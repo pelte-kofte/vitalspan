@@ -1,0 +1,343 @@
+import React, { useState, useRef } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet,
+  SafeAreaView, TextInput, ScrollView, Animated,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Colors, Spacing, Radius, Typography } from '../theme';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const GOALS = [
+  { icon: '⏳', title: 'Extend lifespan', desc: 'Live as long as possible' },
+  { icon: '⚡', title: 'Optimize healthspan', desc: 'Stay sharp & energetic longer' },
+  { icon: '🧬', title: 'Slow biological aging', desc: 'Reduce my biological age score' },
+  { icon: '📊', title: 'Track & understand', desc: 'Know my biomarkers deeply' },
+];
+
+const CONDITIONS = [
+  'Type 2 diabetes', 'Hypertension', 'Hypothyroidism',
+  'High cholesterol', 'Cardiovascular disease', 'Autoimmune condition',
+  'Kidney disease', 'Liver disease',
+];
+
+const QUICK_MEDS = ['Metformin', 'Aspirin', 'Statin', 'Levothyroxine', 'Warfarin', 'Lisinopril'];
+
+export default function OnboardingScreen() {
+  const nav = useNavigation<Nav>();
+  const [step, setStep] = useState(0);
+  const [goal, setGoal] = useState<number | null>(null);
+  const [age, setAge] = useState(38);
+  const [sex, setSex] = useState<'male' | 'female'>('male');
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [meds, setMeds] = useState<string[]>([]);
+  const [medInput, setMedInput] = useState('');
+
+  const totalSteps = 5;
+
+  function toggleCondition(c: string) {
+    setConditions(prev =>
+      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+    );
+  }
+
+  function addMed(name: string) {
+    if (!meds.includes(name) && name.trim()) {
+      setMeds(prev => [...prev, name]);
+      setMedInput('');
+    }
+  }
+
+  function ProgressBar() {
+    return (
+      <View style={s.progressRow}>
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              s.progressSeg,
+              i < step ? s.progressDone : i === step ? s.progressActive : s.progressPending,
+            ]}
+          />
+        ))}
+      </View>
+    );
+  }
+
+  // Step 0: Goal
+  if (step === 0) return (
+    <SafeAreaView style={s.safe}>
+      <ProgressBar />
+      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <Text style={s.stepLabel}>Step 1 of 5</Text>
+        <Text style={s.title}>What's your{'\n'}main goal?</Text>
+        <Text style={s.sub}>We'll build your personalized protocol around this.</Text>
+        <View style={s.optionList}>
+          {GOALS.map((g, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[s.optionCard, goal === i && s.optionCardSel]}
+              onPress={() => setGoal(i)}
+            >
+              <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
+                <Text style={{ fontSize: 18 }}>{g.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.optionTitle}>{g.title}</Text>
+                <Text style={s.optionDesc}>{g.desc}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+      <View style={s.cta}>
+        <TouchableOpacity style={s.btnMain} onPress={() => setStep(1)}>
+          <Text style={s.btnMainTxt}>Continue →</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  // Step 1: Basic info
+  if (step === 1) return (
+    <SafeAreaView style={s.safe}>
+      <ProgressBar />
+      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+        <Text style={s.stepLabel}>Step 2 of 5</Text>
+        <Text style={s.title}>Tell us about{'\n'}yourself</Text>
+        <Text style={s.sub}>Used to calibrate your biomarker ranges and biological age.</Text>
+
+        <Text style={s.fieldLabel}>Age</Text>
+        <View style={s.ageCard}>
+          <TouchableOpacity style={s.ageBtn} onPress={() => setAge(a => Math.max(18, a - 1))}>
+            <Text style={s.ageBtnTxt}>−</Text>
+          </TouchableOpacity>
+          <Text style={s.ageNum}>{age} <Text style={s.ageUnit}>years old</Text></Text>
+          <TouchableOpacity style={s.ageBtn} onPress={() => setAge(a => Math.min(90, a + 1))}>
+            <Text style={s.ageBtnTxt}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={s.fieldLabel}>Biological sex</Text>
+        <View style={s.sexRow}>
+          {(['male', 'female'] as const).map(opt => (
+            <TouchableOpacity
+              key={opt}
+              style={[s.sexBtn, sex === opt && s.sexBtnSel]}
+              onPress={() => setSex(opt)}
+            >
+              <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.primary }]}>
+                {opt.charAt(0).toUpperCase() + opt.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+      <View style={s.cta}>
+        <TouchableOpacity style={s.btnMain} onPress={() => setStep(2)}>
+          <Text style={s.btnMainTxt}>Continue →</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  // Step 2: Conditions
+  if (step === 2) return (
+    <SafeAreaView style={s.safe}>
+      <ProgressBar />
+      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+        <Text style={s.stepLabel}>Step 3 of 5</Text>
+        <Text style={s.title}>Any existing{'\n'}conditions?</Text>
+        <Text style={s.sub}>Helps us flag interactions and tailor your protocol safely.</Text>
+        <View style={s.condGrid}>
+          {CONDITIONS.map(c => (
+            <TouchableOpacity
+              key={c}
+              style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
+              onPress={() => toggleCondition(c)}
+            >
+              <Text style={[s.condBtnTxt, conditions.includes(c) && { color: '#085041' }]}>{c}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+      <View style={s.cta}>
+        <TouchableOpacity style={s.btnMain} onPress={() => setStep(3)}>
+          <Text style={s.btnMainTxt}>Continue →</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setStep(3)}>
+          <Text style={s.btnSkip}>Skip for now</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  // Step 3: Medications
+  if (step === 3) return (
+    <SafeAreaView style={s.safe}>
+      <ProgressBar />
+      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+        <Text style={s.stepLabel}>Step 4 of 5</Text>
+        <Text style={s.title}>Current{'\n'}medications?</Text>
+        <Text style={s.sub}>Our pharmacist-built engine will check all supplement interactions.</Text>
+
+        {meds.length > 0 && (
+          <View style={s.medTagRow}>
+            {meds.map(m => (
+              <TouchableOpacity
+                key={m}
+                style={s.medTag}
+                onPress={() => setMeds(prev => prev.filter(x => x !== m))}
+              >
+                <Text style={s.medTagTxt}>{m} ×</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={s.medInputRow}>
+          <TextInput
+            style={s.medInput}
+            value={medInput}
+            onChangeText={setMedInput}
+            placeholder="e.g. Metformin, Aspirin..."
+            placeholderTextColor={Colors.textMuted}
+            onSubmitEditing={() => addMed(medInput)}
+          />
+          <TouchableOpacity style={s.addBtn} onPress={() => addMed(medInput)}>
+            <Text style={s.addBtnTxt}>Add</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={s.fieldLabel}>Common medications</Text>
+        <View style={s.quickRow}>
+          {QUICK_MEDS.map(m => (
+            <TouchableOpacity key={m} style={s.quickChip} onPress={() => addMed(m)}>
+              <Text style={s.quickChipTxt}>+ {m}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={s.privacyNote}>
+          <Text style={s.privacyTxt}>
+            🔒 Your medication data is encrypted and never shared. Used only to protect you from supplement interactions.
+          </Text>
+        </View>
+      </ScrollView>
+      <View style={s.cta}>
+        <TouchableOpacity style={s.btnMain} onPress={() => setStep(4)}>
+          <Text style={s.btnMainTxt}>Continue →</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setStep(4)}>
+          <Text style={s.btnSkip}>Skip — no medications</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  // Step 4: Success
+  return (
+    <SafeAreaView style={s.safe}>
+      <ProgressBar />
+      <ScrollView style={s.scroll} contentContainerStyle={[s.content, { alignItems: 'center' }]}>
+        <View style={s.successIcon}>
+          <Text style={{ fontSize: 32 }}>✓</Text>
+        </View>
+        <Text style={[s.title, { textAlign: 'center' }]}>You're all set!</Text>
+        <Text style={[s.sub, { textAlign: 'center' }]}>
+          Your personalized longevity protocol is ready. Here's what we found:
+        </Text>
+        <View style={s.statsRow}>
+          {[
+            { num: age.toString(), lbl: 'Chronological age' },
+            { num: '12', lbl: 'Biomarkers to track' },
+            { num: meds.length > 0 ? '2' : '0', lbl: 'Interactions flagged' },
+          ].map((stat, i) => (
+            <View key={i} style={s.statCard}>
+              <Text style={s.statNum}>{stat.num}</Text>
+              <Text style={s.statLbl}>{stat.lbl}</Text>
+            </View>
+          ))}
+        </View>
+        {meds.length > 0 && (
+          <View style={s.pharmNote}>
+            <Text style={s.pharmNoteTitle}>Pharmacist note</Text>
+            <Text style={s.pharmNoteBody}>
+              Based on your medications, we've flagged potential supplement interactions. Review them before starting your protocol.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+      <View style={s.cta}>
+        <TouchableOpacity style={s.btnMain} onPress={() => nav.replace('Main')}>
+          <Text style={s.btnMainTxt}>Go to my dashboard →</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.base, paddingTop: Spacing.md },
+  progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.base, paddingTop: Spacing.base, paddingBottom: Spacing.sm },
+  progressSeg: { flex: 1, height: 3, borderRadius: 2 },
+  progressDone: { backgroundColor: Colors.primaryLight },
+  progressActive: { backgroundColor: Colors.primaryLight, opacity: 0.5 },
+  progressPending: { backgroundColor: Colors.border },
+  back: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginBottom: Spacing.base },
+  stepLabel: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, lineHeight: 34, marginBottom: 8 },
+  sub: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22, marginBottom: Spacing.lg },
+  optionList: { gap: 10 },
+  optionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.border },
+  optionCardSel: { borderColor: Colors.primaryLight, backgroundColor: Colors.primaryBg },
+  optionIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' },
+  optionIconSel: { backgroundColor: Colors.primaryBorder },
+  optionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
+  optionDesc: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  fieldLabel: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: 8, marginTop: Spacing.base },
+  ageCard: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 0.5, borderColor: Colors.border },
+  ageBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  ageBtnTxt: { fontSize: 22, color: Colors.textPrimary },
+  ageNum: { fontSize: 36, fontWeight: '300', color: Colors.primary },
+  ageUnit: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  sexRow: { flexDirection: 'row', gap: 10 },
+  sexBtn: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  sexBtnSel: { borderColor: Colors.primaryLight, backgroundColor: Colors.primaryBg },
+  sexBtnTxt: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textSecondary },
+  condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  condBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: Colors.border },
+  condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
+  medTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
+  medTag: { backgroundColor: Colors.primaryBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.primaryBorder },
+  medTagTxt: { fontSize: Typography.sizes.sm, color: '#085041' },
+  medInputRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.md },
+  medInput: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border },
+  addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingHorizontal: 16, justifyContent: 'center' },
+  addBtnTxt: { color: '#E1F5EE', fontSize: Typography.sizes.base, fontWeight: '500' },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.base },
+  quickChip: { backgroundColor: Colors.bgCard, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.border },
+  quickChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  privacyNote: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.border },
+  privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
+  successIcon: { width: 76, height: 76, backgroundColor: Colors.primaryBg, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.base },
+  statsRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.base },
+  statCard: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  statNum: { fontSize: 26, fontWeight: '300', color: Colors.primary },
+  statLbl: { fontSize: 10, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
+  pharmNote: { backgroundColor: Colors.primaryBg, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder, width: '100%' },
+  pharmNoteTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: '#085041', marginBottom: 4 },
+  pharmNoteBody: { fontSize: Typography.sizes.sm, color: '#0F6E56', lineHeight: 18 },
+  cta: { padding: Spacing.base, paddingBottom: Spacing.xl, gap: 8 },
+  btnMain: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 15, alignItems: 'center' },
+  btnMainTxt: { color: '#E1F5EE', fontSize: Typography.sizes.md, fontWeight: '600' },
+  btnSkip: { color: Colors.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
+});

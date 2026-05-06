@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Vitalspan",
+    "slug": "vitalspan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#085041"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vitalspan.app",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Vitalspan reads your health data to track biomarkers and biological age.",
+        "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
