@@ -16,9 +16,6 @@
         "NSHealthShareUsageDescription": "Vitalspan reads your health data to track biomarkers and biological age.",
         "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
       }
-    },
-    "plugins": [
-      "expo-router"
-    ]
+    }
   }
 }
