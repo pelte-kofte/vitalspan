@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput,
+  StyleSheet, SafeAreaView,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { INTERACTIONS } from '../data/biomarkers';
+import MedicationSearch from '../components/MedicationSearch';
 
-const DRUGS = ['Metformin', 'Aspirin', 'Warfarin', 'Statin', 'Levothyroxine', 'Lisinopril'];
 const SUPPLEMENTS = ['NMN', 'Omega-3', 'Berberine', 'Resveratrol', 'CoQ10', 'Vitamin K2', 'Magnesium', 'Vitamin D'];
 
 const SAFE_COMBOS = [
@@ -19,7 +19,6 @@ const SAFE_COMBOS = [
 export default function InteractionCheckerScreen() {
   const [tab, setTab] = useState(0);
   const [items, setItems] = useState<{ name: string; type: 'drug' | 'supp' }[]>([]);
-  const [searchVal, setSearchVal] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   function addItem(name: string, type: 'drug' | 'supp') {
@@ -93,25 +92,13 @@ export default function InteractionCheckerScreen() {
 
       {tab === 0 && (
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-          {/* Search + add */}
-          <View style={s.searchRow}>
-            <TextInput
-              style={s.searchInput}
-              value={searchVal}
-              onChangeText={setSearchVal}
-              placeholder="Add drug or supplement..."
-              placeholderTextColor={Colors.textMuted}
-            />
-          </View>
-
-          {/* Quick add */}
+          {/* Drug search */}
           <Text style={s.sectionLbl}>Drugs</Text>
-          <View style={s.chipRow}>
-            {DRUGS.map(d => (
-              <TouchableOpacity key={d} style={[s.chip, s.chipDrug]} onPress={() => addItem(d, 'drug')}>
-                <Text style={s.chipDrugTxt}>+ {d}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={s.searchRow}>
+            <MedicationSearch
+              onSelect={(med) => addItem(med.brandName || med.genericName, 'drug')}
+              placeholder="Search medications..."
+            />
           </View>
 
           <Text style={s.sectionLbl}>Supplements</Text>
@@ -227,12 +214,9 @@ const s = StyleSheet.create({
   tabTxt: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: '500' },
   tabTxtActive: { color: Colors.textPrimary },
   searchRow: { paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  searchInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border },
   sectionLbl: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, paddingHorizontal: Spacing.base, marginBottom: 8, marginTop: 4 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
   chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 0.5 },
-  chipDrug: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  chipDrugTxt: { fontSize: Typography.sizes.xs, color: '#085041' },
   chipSupp: { backgroundColor: '#E6F1FB', borderColor: '#B5D4F4' },
   chipSuppTxt: { fontSize: Typography.sizes.xs, color: '#0C447C' },
   selectedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.base, marginBottom: Spacing.md },

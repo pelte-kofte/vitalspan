@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import MedicationSearch from '../components/MedicationSearch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -35,8 +36,6 @@ export default function OnboardingScreen() {
   const [sex, setSex] = useState<'male' | 'female'>('male');
   const [conditions, setConditions] = useState<string[]>([]);
   const [meds, setMeds] = useState<string[]>([]);
-  const [medInput, setMedInput] = useState('');
-
   function toggleCondition(c: string) {
     setConditions(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   }
@@ -45,7 +44,6 @@ export default function OnboardingScreen() {
     const trimmed = name.trim();
     if (trimmed && !meds.find(m => m.toLowerCase() === trimmed.toLowerCase())) {
       setMeds(prev => [...prev, trimmed]);
-      setMedInput('');
     }
   }
 
@@ -222,19 +220,10 @@ export default function OnboardingScreen() {
             ))}
           </View>
         )}
-        <View style={s.medInputRow}>
-          <TextInput
-            style={s.medInput}
-            value={medInput}
-            onChangeText={setMedInput}
-            placeholder="e.g. Empagliflozin, Metformin..."
-            placeholderTextColor={Colors.textMuted}
-            onSubmitEditing={() => addMed(medInput)}
-          />
-          <TouchableOpacity style={s.addBtn} onPress={() => addMed(medInput)}>
-            <Text style={s.addBtnTxt}>Add</Text>
-          </TouchableOpacity>
-        </View>
+        <MedicationSearch
+          onSelect={(med) => addMed(med.brandName || med.genericName)}
+          placeholder="Search by name, e.g. Metformin..."
+        />
         <Text style={s.fieldLabel}>Common medications</Text>
         <View style={s.quickRow}>
           {QUICK_MEDS.map(m => (

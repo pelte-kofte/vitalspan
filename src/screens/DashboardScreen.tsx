@@ -100,7 +100,7 @@ export default function DashboardScreen() {
 
         {/* Interaction alert — only show if user has medications */}
         {hasMedications && (
-          <View style={s.alertCard}>
+          <TouchableOpacity style={s.alertCard} onPress={() => nav.navigate('InteractionChecker')}>
             <View style={s.alertIcon}>
               <Text style={{ fontSize: 14 }}>⚠️</Text>
             </View>
@@ -110,7 +110,7 @@ export default function DashboardScreen() {
                 You have {profile.medications.length} medication{profile.medications.length > 1 ? 's' : ''} logged. Tap to review supplement interactions.
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Biomarkers */}

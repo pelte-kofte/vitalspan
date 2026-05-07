@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,23 +21,17 @@ export type RootStackParamList = {
   Main: undefined;
   BiomarkerDetail: { biomarkerId: string };
   BiomarkerEntry: { biomarkerId?: string };
+  InteractionChecker: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const color = focused ? Colors.primary : Colors.textMuted;
-  const icons: Record<string, string> = {
-    Home: '⊙',
-    Biomarkers: '◈',
-    Protocol: '⊕',
-    Profile: '◉',
-  };
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
-    <React.Fragment>
-      {/* Replace with proper SVG icons in production */}
-    </React.Fragment>
+    <Text style={{ fontSize: 20, color: focused ? Colors.primary : Colors.textMuted }}>
+      {emoji}
+    </Text>
   );
 }
 
@@ -65,22 +60,34 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={DashboardScreen}
-        options={{ tabBarLabel: 'Home' }}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Biomarkers"
         component={BiomarkerDetailScreen}
-        options={{ tabBarLabel: 'Biomarkers' }}
+        options={{
+          tabBarLabel: 'Biomarkers',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Protocol"
         component={ProtocolScreen}
-        options={{ tabBarLabel: 'Protocol' }}
+        options={{
+          tabBarLabel: 'Protocol',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🧬" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: 'Profile' }}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+        }}
       />
     </Tab.Navigator>
   );
@@ -104,6 +111,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="BiomarkerEntry"
           component={BiomarkerEntryScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="InteractionChecker"
+          component={InteractionCheckerScreen}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>
