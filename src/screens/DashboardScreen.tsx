@@ -23,18 +23,25 @@ interface UserProfile {
   conditions: string[];
 }
 
-const PROTOCOL = [
-  { name: 'NMN', dose: '500mg', time: 'Morning', status: 'taken' },
-  { name: 'Magnesium glycinate', dose: '400mg', time: 'Morning', status: 'taken' },
-  { name: 'Omega-3', dose: '2g with food', time: 'Now', status: 'warning' },
-  { name: 'Berberine', dose: '500mg', time: '12:00', status: 'pending' },
-  { name: 'Apigenin', dose: '50mg', time: '21:00', status: 'pending' },
+interface ProtocolItem {
+  name: string;
+  dose: string;
+  time: string;
+  type: 'medication' | 'supplement';
+}
+
+const DEFAULT_SUPPLEMENTS: ProtocolItem[] = [
+  { name: 'NMN', dose: '500mg', time: 'Morning', type: 'supplement' },
+  { name: 'Magnesium glycinate', dose: '400mg', time: 'Evening', type: 'supplement' },
+  { name: 'Vitamin D3', dose: '2000IU', time: 'Morning', type: 'supplement' },
 ];
 
 export default function DashboardScreen() {
   const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<StoredEntry[]>([]);
+  const [protocolItems, setProtocolItems] = useState<ProtocolItem[]>([]);
+  const [takenItems, setTakenItems] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     React.useCallback(() => {
@@ -44,15 +51,53 @@ export default function DashboardScreen() {
 
   async function loadData() {
     try {
-      const [profileRaw, entriesRaw] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
+        AsyncStorage.getItem('@vitalspan_protocol_today'),
       ]);
-      if (profileRaw) setProfile(JSON.parse(profileRaw));
+
+      if (profileRaw) {
+        const p: UserProfile = JSON.parse(profileRaw);
+        setProfile(p);
+        const medItems: ProtocolItem[] = p.medications.map(med => ({
+          name: med,
+          dose: '',
+          time: 'As prescribed',
+          type: 'medication' as const,
+        }));
+        setProtocolItems([...medItems, ...DEFAULT_SUPPLEMENTS]);
+      } else {
+        setProtocolItems(DEFAULT_SUPPLEMENTS);
+      }
+
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+
+      if (protocolRaw) {
+        const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
+        const today = new Date().toISOString().slice(0, 10);
+        setTakenItems(date === today ? new Set(taken) : new Set());
+      }
     } catch (e) {
       console.error(e);
     }
+  }
+
+  async function toggleTaken(name: string) {
+    setTakenItems(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      AsyncStorage.setItem('@vitalspan_protocol_today', JSON.stringify({
+        date: today,
+        taken: Array.from(next),
+      })).catch(console.error);
+      return next;
+    });
   }
 
   function latestFor(biomarkerId: string): StoredEntry | null {
@@ -66,12 +111,13 @@ export default function DashboardScreen() {
   const chronoAge = profile?.age || '-';
   const yearsDiff = profile ? (profile.age - (profile.biologicalAge || profile.age)) : 0;
 
-  // Only alert when the user has a medication that appears in the INTERACTIONS database
   const hasKnownInteractions = profile !== null &&
     profile.medications.length > 0 &&
     profile.medications.some(med =>
       INTERACTIONS.some(inter => inter.drug.toLowerCase() === med.toLowerCase())
     );
+
+  const takenCount = protocolItems.filter(item => takenItems.has(item.name)).length;
 
   function getGreeting() {
     const hour = new Date().getHours();
@@ -166,28 +212,35 @@ export default function DashboardScreen() {
         {/* Protocol */}
         <View style={s.sectionHdr}>
           <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
-          <Text style={s.sectionLink}>3 / 5 taken</Text>
+          <Text style={s.sectionLink}>{takenCount} / {protocolItems.length} taken</Text>
         </View>
 
         <View style={s.protocolCard}>
-          {PROTOCOL.map((item, i) => (
-            <View key={i} style={[s.protoItem, i < PROTOCOL.length - 1 && s.protoItemBorder]}>
-              <View style={[s.protoDot,
-                item.status === 'taken' && s.protoDotTaken,
-                item.status === 'warning' && s.protoDotWarn,
-                item.status === 'pending' && s.protoDotPending,
-              ]} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.protoName}>{item.name}</Text>
-                <Text style={s.protoDose}>{item.dose}</Text>
-              </View>
-              {item.status === 'warning' ? (
-                <View style={s.warnPill}><Text style={s.warnPillTxt}>Check</Text></View>
-              ) : (
-                <Text style={s.protoTime}>{item.status === 'taken' ? 'Taken ✓' : item.time}</Text>
-              )}
+          {protocolItems.length === 0 ? (
+            <View style={s.protoEmpty}>
+              <Text style={s.protoEmptyTxt}>Complete your profile to get started</Text>
             </View>
-          ))}
+          ) : (
+            protocolItems.map((item, i) => {
+              const taken = takenItems.has(item.name);
+              return (
+                <TouchableOpacity
+                  key={`${item.name}-${i}`}
+                  style={[s.protoItem, i < protocolItems.length - 1 && s.protoItemBorder]}
+                  onPress={() => toggleTaken(item.name)}
+                >
+                  <View style={[s.protoDot, taken ? s.protoDotTaken : s.protoDotPending]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.protoName}>{item.name}</Text>
+                    {item.dose ? <Text style={s.protoDose}>{item.dose}</Text> : null}
+                  </View>
+                  <Text style={[s.protoTime, taken && { color: Colors.primaryLight }]}>
+                    {taken ? 'Taken ✓' : item.time}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         <View style={{ height: 32 }} />
@@ -214,12 +267,12 @@ const s = StyleSheet.create({
   alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.warningTextDark, marginBottom: 2 },
   alertBody: { fontSize: Typography.sizes.xs, color: Colors.warningText, lineHeight: 16 },
   sectionHdr: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
+  sectionTitle: { fontSize: Typography.sizes.md, fontWeight: '600', color: Colors.textPrimary },
   sectionLink: { fontSize: Typography.sizes.sm, color: Colors.primaryLight },
   sectionAddBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3 },
   sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
-  bmCard: { width: 120, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5 },
+  bmCard: { width: 120, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
   bmCardWarning: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
   bmCardGood: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   bmCardNone: { backgroundColor: Colors.bgCard, borderColor: Colors.border },
@@ -231,16 +284,15 @@ const s = StyleSheet.create({
   bmBadgeGood: { backgroundColor: Colors.primaryBorder },
   bmBadgeNone: { backgroundColor: Colors.bgSecondary },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
-  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, overflow: 'hidden', marginBottom: Spacing.base },
+  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   protoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing.md },
   protoItemBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
   protoDot: { width: 10, height: 10, borderRadius: 5 },
   protoDotTaken: { backgroundColor: Colors.primaryLight },
-  protoDotWarn: { backgroundColor: Colors.warning },
   protoDotPending: { backgroundColor: Colors.border },
   protoName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   protoDose: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 1 },
   protoTime: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  warnPill: { backgroundColor: Colors.warningBg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  warnPillTxt: { fontSize: 9, color: Colors.warningText, fontWeight: '500' },
+  protoEmpty: { padding: Spacing.md },
+  protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
 });

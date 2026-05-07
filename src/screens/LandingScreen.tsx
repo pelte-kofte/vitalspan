@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -17,52 +18,55 @@ export default function LandingScreen() {
   const nav = useNavigation<Nav>();
 
   return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.inner}>
+    <LinearGradient colors={['#EDEAE0', Colors.bg]} style={s.gradient}>
+      <SafeAreaView style={s.safe}>
+        <View style={s.inner}>
 
-        {/* Hero */}
-        <View style={s.hero}>
-          <Text style={s.eyebrow}>LONGEVITY · SCIENCE</Text>
-          <Text style={s.title}>Vitalspan</Text>
-          <Text style={s.tagline}>
-            Precision longevity tracking,{'\n'}built by a pharmacist.
-          </Text>
+          {/* Hero */}
+          <View style={s.hero}>
+            <Text style={s.eyebrow}>LONGEVITY · SCIENCE</Text>
+            <Text style={s.title}>Vitalspan</Text>
+            <Text style={s.tagline}>
+              Precision longevity tracking,{'\n'}built by a pharmacist.
+            </Text>
+          </View>
+
+          {/* Feature list */}
+          <View style={s.features}>
+            {FEATURES.map(f => (
+              <View key={f} style={s.featureRow}>
+                <View style={s.featureDot} />
+                <Text style={s.featureTxt}>{f}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* CTA */}
+          <View style={s.cta}>
+            <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Onboarding')}>
+              <Text style={s.btnPrimaryTxt}>Begin your journey</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => nav.navigate('Main')}>
+              <Text style={s.ghost}>Already have an account</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
 
-        {/* Feature list */}
-        <View style={s.features}>
-          {FEATURES.map(f => (
-            <View key={f} style={s.featureRow}>
-              <View style={s.featureDot} />
-              <Text style={s.featureTxt}>{f}</Text>
-            </View>
-          ))}
+        {/* Pharmacist badge */}
+        <View style={s.footer}>
+          <View style={s.footerBadge}>
+            <Text style={s.footerTxt}>⚕ Reviewed by licensed pharmacists</Text>
+          </View>
         </View>
-
-        {/* CTA */}
-        <View style={s.cta}>
-          <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Onboarding')}>
-            <Text style={s.btnPrimaryTxt}>Begin your journey</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => nav.navigate('Main')}>
-            <Text style={s.ghost}>Already have an account</Text>
-          </TouchableOpacity>
-        </View>
-
-      </View>
-
-      {/* Pharmacist badge */}
-      <View style={s.footer}>
-        <View style={s.footerBadge}>
-          <Text style={s.footerTxt}>⚕ Reviewed by licensed pharmacists</Text>
-        </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  gradient: { flex: 1 },
+  safe: { flex: 1 },
   inner: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
@@ -74,7 +78,7 @@ const s = StyleSheet.create({
     fontSize: Typography.sizes.xs,
     fontWeight: '600',
     color: Colors.primaryLight,
-    letterSpacing: 2,
+    letterSpacing: 3,
     textTransform: 'uppercase',
   },
   title: {
@@ -102,9 +106,14 @@ const s = StyleSheet.create({
   cta: { gap: Spacing.md },
   btnPrimary: {
     backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 15,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
   btnPrimaryTxt: {
     color: Colors.primaryBg,

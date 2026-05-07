@@ -16,51 +16,56 @@ interface Props {
   placeholder?: string;
 }
 
-interface FDAResult {
-  active_ingredient?: string[];
-  openfda?: {
-    generic_name?: string[];
-    substance_name?: string[];
+interface ConceptProperty {
+  rxcui: string;
+  name: string;
+  synonym: string;
+  tty: string;
+  language: string;
+  suppress: string;
+  umlscui: string;
+}
+
+interface ConceptGroup {
+  tty: string;
+  conceptProperties?: ConceptProperty[];
+}
+
+interface RxNormResponse {
+  drugGroup: {
+    name: string;
+    conceptGroup?: ConceptGroup[];
   };
 }
 
-interface FDAResponse {
-  results?: FDAResult[];
-}
+const RXNORM_URL = 'https://rxnav.nlm.nih.gov/REST/drugs.json';
 
-const BASE_URL = 'https://api.fda.gov/drug/label.json';
-
-async function fetchEndpoint(url: string): Promise<FDAResult[]> {
+async function searchMedications(query: string): Promise<Medication[]> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(`${RXNORM_URL}?name=${encodeURIComponent(query.trim())}`);
     if (!res.ok) return [];
-    const data = await res.json() as FDAResponse;
-    return data.results ?? [];
+    const data = await res.json() as RxNormResponse;
+    const groups = data.drugGroup?.conceptGroup ?? [];
+
+    const seen = new Set<string>();
+    const meds: Medication[] = [];
+
+    for (const group of groups) {
+      if (group.tty !== 'IN' && group.tty !== 'BN') continue;
+      for (const cp of group.conceptProperties ?? []) {
+        const name = cp.name;
+        const key = name.toLowerCase();
+        if (!name || seen.has(key)) continue;
+        seen.add(key);
+        meds.push({ brandName: '', genericName: name, activeIngredient: name });
+        if (meds.length >= 8) return meds;
+      }
+    }
+
+    return meds;
   } catch {
     return [];
   }
-}
-
-async function searchMedications(query: string): Promise<Medication[]> {
-  const q = encodeURIComponent(query.trim());
-  const results = await fetchEndpoint(`${BASE_URL}?search=active_ingredient:${q}&limit=8`);
-
-  const seen = new Set<string>();
-  const meds: Medication[] = [];
-
-  for (const result of results) {
-    // Skip combo drugs (multiple active substances)
-    if ((result.openfda?.substance_name?.length ?? 0) > 1) continue;
-
-    const activeIngredient = result.openfda?.substance_name?.[0] ?? '';
-    const genericName = result.openfda?.generic_name?.[0] ?? '';
-    const key = (activeIngredient || genericName).toLowerCase();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    meds.push({ brandName: '', genericName, activeIngredient });
-  }
-
-  return meds;
 }
 
 export default function MedicationSearch({ onSelect, placeholder = 'Search medications...' }: Props) {
@@ -78,7 +83,7 @@ export default function MedicationSearch({ onSelect, placeholder = 'Search medic
     setQuery(text);
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    if (!text.trim()) {
+    if (!text.trim() || text.trim().length < 2) {
       setResults([]);
       setShowDropdown(false);
       setLoading(false);
@@ -127,18 +132,11 @@ export default function MedicationSearch({ onSelect, placeholder = 'Search medic
           ) : (
             results.map((med, i) => (
               <TouchableOpacity
-                key={`${med.activeIngredient}-${med.genericName}-${i}`}
+                key={`${med.genericName}-${i}`}
                 style={[s.resultRow, i < results.length - 1 && s.resultBorder]}
                 onPress={() => handleSelect(med)}
               >
-                <Text style={s.ingredientTxt} numberOfLines={1}>
-                  {med.activeIngredient || med.genericName}
-                </Text>
-                {med.genericName && med.genericName !== med.activeIngredient && (
-                  <Text style={s.genericTxt} numberOfLines={1}>
-                    {med.genericName}
-                  </Text>
-                )}
+                <Text style={s.nameTxt} numberOfLines={1}>{med.genericName}</Text>
               </TouchableOpacity>
             ))
           )}
@@ -180,8 +178,7 @@ const s = StyleSheet.create({
   },
   resultRow: { padding: Spacing.md },
   resultBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
-  ingredientTxt: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
-  genericTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  nameTxt: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   emptyRow: { padding: Spacing.md },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
 });
