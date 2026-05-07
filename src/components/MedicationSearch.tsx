@@ -17,8 +17,8 @@ interface Props {
 }
 
 interface FDAResult {
+  active_ingredient?: string[];
   openfda?: {
-    brand_name?: string[];
     generic_name?: string[];
     substance_name?: string[];
   };
@@ -43,22 +43,21 @@ async function fetchEndpoint(url: string): Promise<FDAResult[]> {
 
 async function searchMedications(query: string): Promise<Medication[]> {
   const q = encodeURIComponent(query.trim());
-  const [brandResults, genericResults] = await Promise.all([
-    fetchEndpoint(`${BASE_URL}?search=openfda.brand_name:${q}&limit=10`),
-    fetchEndpoint(`${BASE_URL}?search=openfda.generic_name:${q}&limit=10`),
-  ]);
+  const results = await fetchEndpoint(`${BASE_URL}?search=active_ingredient:${q}&limit=8`);
 
   const seen = new Set<string>();
   const meds: Medication[] = [];
 
-  for (const result of [...brandResults, ...genericResults]) {
-    const brandName = result.openfda?.brand_name?.[0] ?? '';
+  for (const result of results) {
+    // Skip combo drugs (multiple active substances)
+    if ((result.openfda?.substance_name?.length ?? 0) > 1) continue;
+
+    const activeIngredient = result.openfda?.substance_name?.[0] ?? '';
     const genericName = result.openfda?.generic_name?.[0] ?? '';
-    const activeIngredient = result.openfda?.substance_name?.[0] ?? genericName;
-    const key = (brandName || genericName).toLowerCase();
+    const key = (activeIngredient || genericName).toLowerCase();
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    meds.push({ brandName, genericName, activeIngredient });
+    meds.push({ brandName: '', genericName, activeIngredient });
   }
 
   return meds;
@@ -128,14 +127,14 @@ export default function MedicationSearch({ onSelect, placeholder = 'Search medic
           ) : (
             results.map((med, i) => (
               <TouchableOpacity
-                key={`${med.brandName}-${med.genericName}-${i}`}
+                key={`${med.activeIngredient}-${med.genericName}-${i}`}
                 style={[s.resultRow, i < results.length - 1 && s.resultBorder]}
                 onPress={() => handleSelect(med)}
               >
-                <Text style={s.brandName} numberOfLines={1}>
-                  {med.brandName || med.genericName}
+                <Text style={s.ingredientTxt} numberOfLines={1}>
+                  {med.activeIngredient || med.genericName}
                 </Text>
-                {med.genericName && med.brandName !== med.genericName && (
+                {med.genericName && med.genericName !== med.activeIngredient && (
                   <Text style={s.genericTxt} numberOfLines={1}>
                     {med.genericName}
                   </Text>
@@ -181,7 +180,7 @@ const s = StyleSheet.create({
   },
   resultRow: { padding: Spacing.md },
   resultBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
-  brandName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
+  ingredientTxt: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   genericTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   emptyRow: { padding: Spacing.md },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },

@@ -73,6 +73,6 @@ const s = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '500', color: Colors.textPrimary, marginBottom: 10, textAlign: 'center' },
   sub: { fontSize: Typography.sizes.base, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   btnRow: { marginTop: 32, gap: 12, alignItems: 'center' },
-  btn: { backgroundColor: '#0F6E56', color: '#E1F5EE', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, fontSize: 16, fontWeight: '500', overflow: 'hidden' },
+  btn: { backgroundColor: Colors.primary, color: Colors.primaryBg, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, fontSize: 16, fontWeight: '500', overflow: 'hidden' },
   btnGhost: { color: Colors.textMuted, fontSize: Typography.sizes.base },
 });

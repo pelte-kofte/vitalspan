@@ -185,7 +185,7 @@ export default function OnboardingScreen() {
             <TouchableOpacity key={c}
               style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
               onPress={() => toggleCondition(c)}>
-              <Text style={[s.condBtnTxt, conditions.includes(c) && { color: '#085041' }]}>{c}</Text>
+              <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -287,11 +287,11 @@ const s = StyleSheet.create({
   condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
   medTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
   medTag: { backgroundColor: Colors.primaryBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.primaryBorder },
-  medTagTxt: { fontSize: Typography.sizes.sm, color: '#085041' },
+  medTagTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryDark },
   medInputRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.md },
   medInput: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border },
   addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingHorizontal: 16, justifyContent: 'center' },
-  addBtnTxt: { color: '#E1F5EE', fontSize: Typography.sizes.base, fontWeight: '500' },
+  addBtnTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.base, fontWeight: '500' },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.base },
   quickChip: { backgroundColor: Colors.bgCard, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.border },
   quickChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
@@ -299,6 +299,6 @@ const s = StyleSheet.create({
   privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
   cta: { padding: Spacing.base, paddingBottom: Spacing.xl, gap: 8 },
   btnMain: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 15, alignItems: 'center' },
-  btnMainTxt: { color: '#E1F5EE', fontSize: Typography.sizes.md, fontWeight: '600' },
+  btnMainTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
   btnSkip: { color: Colors.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
 });

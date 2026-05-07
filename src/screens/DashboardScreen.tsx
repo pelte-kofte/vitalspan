@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
-import { BIOMARKERS } from '../data/biomarkers';
+import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -54,8 +54,12 @@ export default function DashboardScreen() {
   const chronoAge = profile?.age || '-';
   const yearsDiff = profile ? (profile.age - (profile.biologicalAge || profile.age)) : 0;
 
-  // Check for interactions based on user's medications
-  const hasMedications = profile && profile.medications && profile.medications.length > 0;
+  // Only alert when the user has a medication that appears in the INTERACTIONS database
+  const hasKnownInteractions = profile !== null &&
+    profile.medications.length > 0 &&
+    profile.medications.some(med =>
+      INTERACTIONS.some(inter => inter.drug.toLowerCase() === med.toLowerCase())
+    );
 
   function getGreeting() {
     const hour = new Date().getHours();
@@ -80,7 +84,7 @@ export default function DashboardScreen() {
 
         {/* Bio age card */}
         <LinearGradient
-          colors={['#085041', '#0F6E56']}
+          colors={[Colors.primaryDark, Colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={s.bioCard}
@@ -98,16 +102,16 @@ export default function DashboardScreen() {
           )}
         </LinearGradient>
 
-        {/* Interaction alert — only show if user has medications */}
-        {hasMedications && (
+        {/* Interaction alert — only shown when a logged medication has known interactions */}
+        {hasKnownInteractions && (
           <TouchableOpacity style={s.alertCard} onPress={() => nav.navigate('InteractionChecker')}>
             <View style={s.alertIcon}>
               <Text style={{ fontSize: 14 }}>⚠️</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.alertTitle}>Check your interactions</Text>
+              <Text style={s.alertTitle}>Interaction check recommended</Text>
               <Text style={s.alertBody}>
-                You have {profile.medications.length} medication{profile.medications.length > 1 ? 's' : ''} logged. Tap to review supplement interactions.
+                One or more of your medications has known supplement interactions. Tap to review.
               </Text>
             </View>
           </TouchableOpacity>
@@ -126,11 +130,11 @@ export default function DashboardScreen() {
             const isOptimal = bm.defaultVal >= bm.optMin && bm.defaultVal <= bm.optMax;
             return (
               <View key={bm.id} style={[s.bmCard, isOptimal ? s.bmCardGood : s.bmCardWarning]}>
-                <Text style={[s.bmName, isOptimal ? { color: '#085041' } : { color: '#633806' }]}>{bm.name}</Text>
-                <Text style={[s.bmVal, isOptimal ? { color: '#0F6E56' } : { color: '#BA7517' }]}>{bm.defaultVal}</Text>
+                <Text style={[s.bmName, isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningText }]}>{bm.name}</Text>
+                <Text style={[s.bmVal, isOptimal ? { color: Colors.primary } : { color: Colors.warning }]}>{bm.defaultVal}</Text>
                 <Text style={s.bmUnit}>{bm.unit}</Text>
                 <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                  <Text style={[s.bmBadgeTxt, isOptimal ? { color: '#04342C' } : { color: '#412402' }]}>
+                  <Text style={[s.bmBadgeTxt, isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningTextDark }]}>
                     {isOptimal ? 'Optimal' : 'Review'}
                   </Text>
                 </View>
@@ -180,27 +184,27 @@ const s = StyleSheet.create({
   greetName: { fontSize: 22, fontWeight: '600', color: Colors.textPrimary, marginTop: 2 },
   notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bgCard, borderWidth: 0.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   bioCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.base, marginBottom: Spacing.base },
-  bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(225,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
-  bioNum: { fontSize: 52, color: '#E1F5EE', fontWeight: '300', lineHeight: 58 },
-  bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(225,245,238,0.75)', marginTop: 4 },
-  bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(159,225,203,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  bioPillTxt: { fontSize: Typography.sizes.xs, color: '#9FE1CB' },
+  bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
+  bioNum: { fontSize: 52, color: Colors.primaryBg, fontWeight: '300', lineHeight: 58 },
+  bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.75)', marginTop: 4 },
+  bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(168,213,190,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBorder },
   alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder, borderWidth: 0.5, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
   alertIcon: { width: 32, height: 32, backgroundColor: Colors.warningBorder, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: '#412402', marginBottom: 2 },
-  alertBody: { fontSize: Typography.sizes.xs, color: '#633806', lineHeight: 16 },
+  alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.warningTextDark, marginBottom: 2 },
+  alertBody: { fontSize: Typography.sizes.xs, color: Colors.warningText, lineHeight: 16 },
   sectionHdr: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
   sectionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
   sectionLink: { fontSize: Typography.sizes.sm, color: Colors.primaryLight },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
   bmCard: { width: 120, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5 },
-  bmCardWarning: { backgroundColor: '#FAEEDA', borderColor: '#FAC775' },
+  bmCardWarning: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
   bmCardGood: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   bmName: { fontSize: Typography.sizes.xs, marginBottom: 4 },
   bmVal: { fontSize: 22, fontWeight: '500', lineHeight: 26 },
   bmUnit: { fontSize: 10, color: Colors.textMuted, marginBottom: 6 },
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
-  bmBadgeWarn: { backgroundColor: '#FAC775' },
+  bmBadgeWarn: { backgroundColor: Colors.warningBorder },
   bmBadgeGood: { backgroundColor: Colors.primaryBorder },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, overflow: 'hidden', marginBottom: Spacing.base },
@@ -213,6 +217,6 @@ const s = StyleSheet.create({
   protoName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   protoDose: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 1 },
   protoTime: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  warnPill: { backgroundColor: '#FAEEDA', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  warnPillTxt: { fontSize: 9, color: '#633806', fontWeight: '500' },
+  warnPill: { backgroundColor: Colors.warningBg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  warnPillTxt: { fontSize: 9, color: Colors.warningText, fontWeight: '500' },
 });

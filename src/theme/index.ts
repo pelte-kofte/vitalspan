@@ -1,42 +1,50 @@
 export const Colors = {
   // Primary greens
-  primary: '#0F6E56',
-  primaryDark: '#085041',
-  primaryLight: '#1D9E75',
-  primaryBg: '#E1F5EE',
-  primaryBorder: '#9FE1CB',
+  primary: '#2D6A4F',
+  primaryDark: '#1C3B2A',
+  primaryLight: '#52B788',
+  primaryBg: '#E8F5EE',
+  primaryBorder: '#A8D5BE',
 
   // Backgrounds
-  bg: '#F1EFE8',
+  bg: '#F8F6F0',
   bgCard: '#FFFFFF',
-  bgSecondary: '#F1EFE8',
+  bgSecondary: '#F8F6F0',
 
   // Text
-  textPrimary: '#2C2C2A',
-  textSecondary: '#5F5E5A',
-  textMuted: '#888780',
+  textPrimary: '#1A1A18',
+  textSecondary: '#4A4A45',
+  textMuted: '#8A8A82',
 
   // Border
-  border: '#D3D1C7',
-  borderLight: '#E8E6DE',
+  border: '#DDD9CE',
+  borderLight: '#EEE9DE',
 
   // Semantic
-  warning: '#EF9F27',
-  warningBg: '#FAEEDA',
-  warningBorder: '#FAC775',
-  danger: '#E24B4A',
-  dangerBg: '#FCEBEB',
+  warning: '#D4860B',
+  warningBg: '#FDF3E3',
+  warningBorder: '#EDBE87',
+  warningText: '#633806',
+  warningTextDark: '#412402',
+  danger: '#B13126',
+  dangerBg: '#FCECEA',
+
+  // Accent (supplement chips / blue)
+  accent: '#5B9DBF',
+  accentBg: '#E6F1FB',
+  accentBorder: '#B5D4F4',
+  accentDark: '#0C447C',
 
   // Chart
-  chartGreen: '#1D9E75',
+  chartGreen: '#52B788',
   chartBlue: '#378ADD',
-  chartOrange: '#EF9F27',
+  chartOrange: '#D4860B',
   chartPurple: '#7F77DD',
   chartRed: '#D85A30',
 
-  // Dark card (bio age)
-  darkCard: '#085041',
-  darkCardText: '#E1F5EE',
+  // Dark card (bio age gradient)
+  darkCard: '#1C3B2A',
+  darkCardText: '#E8F5EE',
 };
 
 export const Typography = {

@@ -121,7 +121,7 @@ export default function InteractionCheckerScreen() {
                     style={[s.selectedChip, item.type === 'drug' ? s.selectedDrug : s.selectedSupp]}
                     onPress={() => removeItem(item.name)}
                   >
-                    <Text style={[s.selectedChipTxt, item.type === 'drug' ? { color: '#085041' } : { color: '#0C447C' }]}>
+                    <Text style={[s.selectedChipTxt, item.type === 'drug' ? { color: Colors.primaryDark } : { color: Colors.accentDark }]}>
                       {item.name} ×
                     </Text>
                   </TouchableOpacity>
@@ -217,12 +217,12 @@ const s = StyleSheet.create({
   sectionLbl: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, paddingHorizontal: Spacing.base, marginBottom: 8, marginTop: 4 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
   chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 0.5 },
-  chipSupp: { backgroundColor: '#E6F1FB', borderColor: '#B5D4F4' },
-  chipSuppTxt: { fontSize: Typography.sizes.xs, color: '#0C447C' },
+  chipSupp: { backgroundColor: Colors.accentBg, borderColor: Colors.accentBorder },
+  chipSuppTxt: { fontSize: Typography.sizes.xs, color: Colors.accentDark },
   selectedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.base, marginBottom: Spacing.md },
   selectedChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 0.5, flexDirection: 'row', alignItems: 'center', gap: 4 },
   selectedDrug: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  selectedSupp: { backgroundColor: '#E6F1FB', borderColor: '#B5D4F4' },
+  selectedSupp: { backgroundColor: Colors.accentBg, borderColor: Colors.accentBorder },
   selectedChipTxt: { fontSize: Typography.sizes.xs, fontWeight: '500' },
   emptyState: { padding: Spacing.xl, alignItems: 'center' },
   emptyTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary, marginBottom: 6 },
@@ -239,10 +239,10 @@ const s = StyleSheet.create({
   recCard: { backgroundColor: Colors.bg, borderRadius: Radius.sm, padding: Spacing.md, borderLeftWidth: 3, borderLeftColor: Colors.primaryLight },
   recTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, lineHeight: 18 },
   safeCard: { marginHorizontal: Spacing.base, marginBottom: 10, backgroundColor: Colors.primaryBg, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder },
-  safeTitle: { fontSize: Typography.sizes.base, fontWeight: '500', color: '#04342C', marginBottom: 4 },
-  safeBody: { fontSize: Typography.sizes.sm, color: '#085041', lineHeight: 18 },
+  safeTitle: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.primaryDark, marginBottom: 4 },
+  safeBody: { fontSize: Typography.sizes.sm, color: Colors.primaryDark, lineHeight: 18 },
   pharmCard: { margin: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.border, flexDirection: 'row', gap: 10 },
   pharmAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primaryBg, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignItems: 'center', justifyContent: 'center' },
-  pharmName: { fontSize: Typography.sizes.xs, fontWeight: '600', color: '#085041', marginBottom: 3 },
+  pharmName: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primaryDark, marginBottom: 3 },
   pharmBody: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 16 },
 });

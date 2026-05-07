@@ -101,5 +101,5 @@ const s = StyleSheet.create({
   badgeWarn: { backgroundColor: Colors.warningBg },
   badgeTxt: { fontSize: 10, fontWeight: '600' },
   badgeTxtGood: { color: Colors.primaryDark },
-  badgeTxtWarn: { color: '#633806' },
+  badgeTxtWarn: { color: Colors.warningText },
 });
