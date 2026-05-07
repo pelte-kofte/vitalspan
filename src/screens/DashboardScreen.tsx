@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView,
@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { StoredEntry } from './BiomarkerEntryScreen';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -33,20 +34,31 @@ const PROTOCOL = [
 export default function DashboardScreen() {
   const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [entries, setEntries] = useState<StoredEntry[]>([]);
 
   useFocusEffect(
     React.useCallback(() => {
-      loadProfile();
+      loadData();
     }, [])
   );
 
-  async function loadProfile() {
+  async function loadData() {
     try {
-      const stored = await AsyncStorage.getItem('@vitalspan_user_profile');
-      if (stored) setProfile(JSON.parse(stored));
+      const [profileRaw, entriesRaw] = await Promise.all([
+        AsyncStorage.getItem('@vitalspan_user_profile'),
+        AsyncStorage.getItem('@vitalspan_biomarkers'),
+      ]);
+      if (profileRaw) setProfile(JSON.parse(profileRaw));
+      if (entriesRaw) setEntries(JSON.parse(entriesRaw));
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function latestFor(biomarkerId: string): StoredEntry | null {
+    return entries
+      .filter(e => e.biomarkerId === biomarkerId)
+      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   }
 
   const displayName = profile?.name || 'there';
@@ -120,22 +132,30 @@ export default function DashboardScreen() {
         {/* Biomarkers */}
         <View style={s.sectionHdr}>
           <Text style={s.sectionTitle}>Biomarkers</Text>
-          <TouchableOpacity>
-            <Text style={s.sectionLink}>See all</Text>
+          <TouchableOpacity
+            style={s.sectionAddBtn}
+            onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+          >
+            <Text style={s.sectionAddTxt}>+ Log</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
           {BIOMARKERS.slice(0, 5).map((bm) => {
-            const isOptimal = bm.defaultVal >= bm.optMin && bm.defaultVal <= bm.optMax;
+            const latest = latestFor(bm.id);
+            const displayVal = latest !== null ? String(latest.value) : '—';
+            const isOptimal = latest !== null
+              ? latest.value >= bm.optMin && latest.value <= bm.optMax
+              : false;
+            const hasData = latest !== null;
             return (
-              <View key={bm.id} style={[s.bmCard, isOptimal ? s.bmCardGood : s.bmCardWarning]}>
-                <Text style={[s.bmName, isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningText }]}>{bm.name}</Text>
-                <Text style={[s.bmVal, isOptimal ? { color: Colors.primary } : { color: Colors.warning }]}>{bm.defaultVal}</Text>
+              <View key={bm.id} style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}>
+                <Text style={[s.bmName, hasData ? (isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningText }) : { color: Colors.textMuted }]}>{bm.name}</Text>
+                <Text style={[s.bmVal, hasData ? (isOptimal ? { color: Colors.primary } : { color: Colors.warning }) : { color: Colors.textMuted }]}>{displayVal}</Text>
                 <Text style={s.bmUnit}>{bm.unit}</Text>
-                <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                  <Text style={[s.bmBadgeTxt, isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningTextDark }]}>
-                    {isOptimal ? 'Optimal' : 'Review'}
+                <View style={[s.bmBadge, hasData ? (isOptimal ? s.bmBadgeGood : s.bmBadgeWarn) : s.bmBadgeNone]}>
+                  <Text style={[s.bmBadgeTxt, hasData ? (isOptimal ? { color: Colors.primaryDark } : { color: Colors.warningTextDark }) : { color: Colors.textMuted }]}>
+                    {hasData ? (isOptimal ? 'Optimal' : 'Review') : 'No data'}
                   </Text>
                 </View>
               </View>
@@ -196,16 +216,20 @@ const s = StyleSheet.create({
   sectionHdr: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
   sectionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
   sectionLink: { fontSize: Typography.sizes.sm, color: Colors.primaryLight },
+  sectionAddBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3 },
+  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
   bmCard: { width: 120, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5 },
   bmCardWarning: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
   bmCardGood: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  bmCardNone: { backgroundColor: Colors.bgCard, borderColor: Colors.border },
   bmName: { fontSize: Typography.sizes.xs, marginBottom: 4 },
   bmVal: { fontSize: 22, fontWeight: '500', lineHeight: 26 },
   bmUnit: { fontSize: 10, color: Colors.textMuted, marginBottom: 6 },
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
   bmBadgeWarn: { backgroundColor: Colors.warningBorder },
   bmBadgeGood: { backgroundColor: Colors.primaryBorder },
+  bmBadgeNone: { backgroundColor: Colors.bgSecondary },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, overflow: 'hidden', marginBottom: Spacing.base },
   protoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing.md },
