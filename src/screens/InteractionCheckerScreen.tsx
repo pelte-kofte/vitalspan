@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView,
@@ -16,6 +16,17 @@ const SAFE_COMBOS = [
   { pair: 'Ashwagandha + Magnesium', body: 'Complementary stress & sleep support. No interactions known.' },
 ];
 
+const SEVERITY_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
+  high: { color: Colors.danger, label: 'High Risk', bg: Colors.dangerBg },
+  moderate: { color: Colors.warning, label: 'Moderate', bg: Colors.warningBg },
+  low: { color: Colors.primaryLight, label: 'Monitor', bg: Colors.primaryBg },
+  beneficial: { color: Colors.primaryLight, label: 'Beneficial ✓', bg: Colors.primaryBg },
+};
+
+function sev(severity: string) {
+  return SEVERITY_CONFIG[severity] ?? { color: Colors.textMuted, label: severity, bg: Colors.bg };
+}
+
 export default function InteractionCheckerScreen() {
   const [tab, setTab] = useState(0);
   const [items, setItems] = useState<{ name: string; type: 'drug' | 'supp' }[]>([]);
@@ -31,7 +42,7 @@ export default function InteractionCheckerScreen() {
     setItems(prev => prev.filter(i => i.name !== name));
   }
 
-  function getInteractions() {
+  const interactions = useMemo(() => {
     const found: typeof INTERACTIONS = [];
     const checked = new Set<string>();
     for (const item of items) {
@@ -39,10 +50,7 @@ export default function InteractionCheckerScreen() {
         if (item.name === item2.name) continue;
         const interaction = INTERACTIONS.find(inter => {
           const key = [inter.drug.toLowerCase(), inter.supplement.toLowerCase()];
-          return (
-            key.includes(item.name.toLowerCase()) &&
-            key.includes(item2.name.toLowerCase())
-          );
+          return key.includes(item.name.toLowerCase()) && key.includes(item2.name.toLowerCase());
         });
         if (interaction && !checked.has(interaction.id)) {
           found.push(interaction);
@@ -50,38 +58,12 @@ export default function InteractionCheckerScreen() {
         }
       }
     }
-    return found.sort((a, b) => {
-      const order = { high: 0, moderate: 1, low: 2, beneficial: 3 };
-      return order[a.severity] - order[b.severity];
-    });
-  }
-
-  const interactions = getInteractions();
-
-  const sevColor = (sev: string) => ({
-    high: Colors.danger,
-    moderate: Colors.warning,
-    low: Colors.primaryLight,
-    beneficial: Colors.primaryLight,
-  }[sev] || Colors.textMuted);
-
-  const sevLabel = (sev: string) => ({
-    high: 'High Risk',
-    moderate: 'Moderate',
-    low: 'Monitor',
-    beneficial: 'Beneficial ✓',
-  }[sev] || sev);
-
-  const sevBg = (sev: string) => ({
-    high: Colors.dangerBg,
-    moderate: Colors.warningBg,
-    low: Colors.primaryBg,
-    beneficial: Colors.primaryBg,
-  }[sev] || Colors.bg);
+    const order: Record<string, number> = { high: 0, moderate: 1, low: 2, beneficial: 3 };
+    return found.sort((a, b) => (order[a.severity] ?? 4) - (order[b.severity] ?? 4));
+  }, [items]);
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Tab bar */}
       <View style={s.tabRow}>
         {['Check now', 'Safe combos'].map((label, i) => (
           <TouchableOpacity key={i} style={[s.tab, tab === i && s.tabActive]} onPress={() => setTab(i)}>
@@ -92,7 +74,6 @@ export default function InteractionCheckerScreen() {
 
       {tab === 0 && (
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-          {/* Drug search */}
           <Text style={s.sectionLbl}>Drugs</Text>
           <View style={s.searchRow}>
             <MedicationSearch
@@ -110,7 +91,6 @@ export default function InteractionCheckerScreen() {
             ))}
           </View>
 
-          {/* Selected items */}
           {items.length > 0 && (
             <>
               <Text style={s.sectionLbl}>Checking interactions for</Text>
@@ -130,7 +110,6 @@ export default function InteractionCheckerScreen() {
             </>
           )}
 
-          {/* Results */}
           {items.length < 2 ? (
             <View style={s.emptyState}>
               <Text style={s.emptyTitle}>Add at least 2 items</Text>
@@ -144,45 +123,45 @@ export default function InteractionCheckerScreen() {
           ) : (
             <>
               <Text style={s.sectionLbl}>{interactions.length} interaction{interactions.length > 1 ? 's' : ''} found</Text>
-              {interactions.map(inter => (
-                <TouchableOpacity
-                  key={inter.id}
-                  style={[
-                    s.interCard,
-                    inter.severity === 'high' && s.interCardHigh,
-                    inter.severity === 'beneficial' && s.interCardBeneficial,
-                  ]}
-                  onPress={() => setExpanded(expanded === inter.id ? null : inter.id)}
-                >
-                  <View style={s.interHeader}>
-                    <View style={[s.interDot, { backgroundColor: sevColor(inter.severity) }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.interTitle}>{inter.title}</Text>
-                      <Text style={s.interSub}>Tap to see details</Text>
-                    </View>
-                    <View style={[s.severityBadge, { backgroundColor: sevBg(inter.severity) }]}>
-                      <Text style={[s.severityTxt, { color: sevColor(inter.severity) }]}>
-                        {sevLabel(inter.severity)}
-                      </Text>
-                    </View>
-                  </View>
-                  {expanded === inter.id && (
-                    <View style={s.interBody}>
-                      <Text style={s.interBodyTxt}>{inter.body}</Text>
-                      <View style={s.recCard}>
-                        <Text style={s.recTxt}>
-                          <Text style={{ fontWeight: '600', color: Colors.textPrimary }}>Recommendation: </Text>
-                          {inter.recommendation}
-                        </Text>
+              {interactions.map(inter => {
+                const cfg = sev(inter.severity);
+                return (
+                  <TouchableOpacity
+                    key={inter.id}
+                    style={[
+                      s.interCard,
+                      inter.severity === 'high' && s.interCardHigh,
+                      inter.severity === 'beneficial' && s.interCardBeneficial,
+                    ]}
+                    onPress={() => setExpanded(expanded === inter.id ? null : inter.id)}
+                  >
+                    <View style={s.interHeader}>
+                      <View style={[s.interDot, { backgroundColor: cfg.color }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.interTitle}>{inter.title}</Text>
+                        <Text style={s.interSub}>Tap to see details</Text>
+                      </View>
+                      <View style={[s.severityBadge, { backgroundColor: cfg.bg }]}>
+                        <Text style={[s.severityTxt, { color: cfg.color }]}>{cfg.label}</Text>
                       </View>
                     </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+                    {expanded === inter.id && (
+                      <View style={s.interBody}>
+                        <Text style={s.interBodyTxt}>{inter.body}</Text>
+                        <View style={s.recCard}>
+                          <Text style={s.recTxt}>
+                            <Text style={{ fontWeight: '600', color: Colors.textPrimary }}>Recommendation: </Text>
+                            {inter.recommendation}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
 
-          {/* Pharmacist note */}
           <View style={s.pharmCard}>
             <View style={s.pharmAvatar}><Text style={{ fontSize: 16 }}>⚕</Text></View>
             <View style={{ flex: 1 }}>
@@ -219,7 +198,7 @@ const s = StyleSheet.create({
     borderRadius: Radius.md,
     padding: 3,
     gap: 3,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   tab: { flex: 1, paddingVertical: 8, borderRadius: Radius.sm, alignItems: 'center' },
@@ -254,7 +233,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: Colors.bgCard,
     borderRadius: 16,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -280,7 +259,7 @@ const s = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
     borderRadius: 16,
     padding: Spacing.md,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.primaryBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -295,7 +274,7 @@ const s = StyleSheet.create({
     backgroundColor: Colors.bgCard,
     borderRadius: 16,
     padding: Spacing.md,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.border,
     flexDirection: 'row',
     gap: 10,

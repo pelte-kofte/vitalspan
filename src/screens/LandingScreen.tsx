@@ -18,7 +18,7 @@ export default function LandingScreen() {
   const nav = useNavigation<Nav>();
 
   return (
-    <LinearGradient colors={['#EDEAE0', Colors.bg]} style={s.gradient}>
+    <LinearGradient colors={[Colors.bgShade, Colors.bg]} style={s.gradient}>
       <SafeAreaView style={s.safe}>
         <View style={s.inner}>
 

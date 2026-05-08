@@ -25,7 +25,7 @@ export interface StoredEntry {
   notes: string;
 }
 
-function getStatus(val: number, optMin: number, optMax: number) {
+export function getStatus(val: number, optMin: number, optMax: number) {
   if (val >= optMin && val <= optMax) return 'optimal';
   const buf = (optMax - optMin) * (2 / 3);
   if (val >= optMin - buf && val <= optMax + buf) return 'suboptimal';

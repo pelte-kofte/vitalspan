@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView,
@@ -7,9 +7,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
-import { BIOMARKERS, Biomarker } from '../data/biomarkers';
+import { BIOMARKERS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { StoredEntry } from './BiomarkerEntryScreen';
+import { StoredEntry, getStatus } from './BiomarkerEntryScreen';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,15 +21,13 @@ const CATEGORIES = [
   { key: 'vitamins', label: 'Vitamins' },
 ] as const;
 
+// Precomputed at module level — BIOMARKERS is static
+const BIOMARKERS_BY_CATEGORY = new Map(
+  CATEGORIES.map(cat => [cat.key, BIOMARKERS.filter(b => b.category === cat.key)])
+);
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function getStatus(val: number, optMin: number, optMax: number) {
-  if (val >= optMin && val <= optMax) return 'optimal';
-  const buf = (optMax - optMin) * (2 / 3);
-  if (val >= optMin - buf && val <= optMax + buf) return 'suboptimal';
-  return 'out_of_range';
 }
 
 export default function BiomarkerDetailScreen() {
@@ -45,16 +43,26 @@ export default function BiomarkerDetailScreen() {
     }, [])
   );
 
+  // Single O(n) pass — builds sorted lists per biomarker
+  const entryMap = useMemo(() => {
+    const map = new Map<string, StoredEntry[]>();
+    for (const e of entries) {
+      const arr = map.get(e.biomarkerId) ?? [];
+      arr.push(e);
+      map.set(e.biomarkerId, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => b.date.localeCompare(a.date));
+    }
+    return map;
+  }, [entries]);
+
   function latestFor(biomarkerId: string): StoredEntry | null {
-    return entries
-      .filter(e => e.biomarkerId === biomarkerId)
-      .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+    return entryMap.get(biomarkerId)?.[0] ?? null;
   }
 
   function historyFor(biomarkerId: string): StoredEntry[] {
-    return entries
-      .filter(e => e.biomarkerId === biomarkerId)
-      .sort((a, b) => b.date.localeCompare(a.date));
+    return entryMap.get(biomarkerId) ?? [];
   }
 
   // ── Detail view ───────────────────────────────────────────────────────────
@@ -79,7 +87,6 @@ export default function BiomarkerDetailScreen() {
         </View>
 
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-          {/* Hero value */}
           <View style={s.detailHero}>
             <View style={s.detailHeroLeft}>
               <Text style={s.detailName}>{bm.name}</Text>
@@ -95,7 +102,6 @@ export default function BiomarkerDetailScreen() {
             )}
           </View>
 
-          {/* Status + target */}
           <View style={s.metaRow}>
             {status && (
               <View style={[s.statusBadge,
@@ -116,20 +122,16 @@ export default function BiomarkerDetailScreen() {
             </View>
           </View>
 
-          {/* Insight */}
           {latest && (
             <View style={s.insightCard}>
               <Text style={s.insightTxt}>{bm.insight}</Text>
             </View>
           )}
 
-          {/* History */}
           <Text style={s.sectionLabel}>History</Text>
           <View style={s.card}>
             {history.length === 0 ? (
-              <View style={s.emptyRow}>
-                <Text style={s.emptyTxt}>No entries logged yet</Text>
-              </View>
+              <Text style={s.emptyTxt}>No entries logged yet</Text>
             ) : (
               history.map((entry, i) => (
                 <View key={entry.id} style={[s.histRow, i < history.length - 1 && s.rowBorder]}>
@@ -143,20 +145,14 @@ export default function BiomarkerDetailScreen() {
             )}
           </View>
 
-          {/* Description */}
           <Text style={s.sectionLabel}>About</Text>
           <View style={s.card}>
-            <View style={s.textRow}>
-              <Text style={s.bodyTxt}>{bm.description}</Text>
-            </View>
+            <Text style={s.bodyTxt}>{bm.description}</Text>
           </View>
 
-          {/* How to improve */}
           <Text style={s.sectionLabel}>How to improve</Text>
           <View style={s.card}>
-            <View style={s.textRow}>
-              <Text style={s.bodyTxt}>{bm.howToImprove}</Text>
-            </View>
+            <Text style={s.bodyTxt}>{bm.howToImprove}</Text>
           </View>
 
           <View style={{ height: 32 }} />
@@ -183,7 +179,7 @@ export default function BiomarkerDetailScreen() {
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
         {CATEGORIES.map(cat => {
-          const bms = BIOMARKERS.filter(b => b.category === cat.key);
+          const bms = BIOMARKERS_BY_CATEGORY.get(cat.key) ?? [];
           if (bms.length === 0) return null;
           return (
             <View key={cat.key}>
@@ -235,7 +231,6 @@ export default function BiomarkerDetailScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
-  // List header
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md },
   heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.textPrimary },
   headingSub: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: 2 },
@@ -246,15 +241,16 @@ const s = StyleSheet.create({
     marginHorizontal: Spacing.base,
     backgroundColor: Colors.bgCard,
     borderRadius: 16,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 8,
     elevation: 1,
+    padding: Spacing.md,
   },
-  listRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
+  listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.sm },
   rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
   nameGroup: { flex: 1 },
   bmName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
@@ -271,12 +267,10 @@ const s = StyleSheet.create({
   badgeTxtGood: { color: Colors.primary },
   badgeTxtWarn: { color: Colors.warning },
   badgeTxtNone: { color: Colors.textMuted },
-  // Detail header
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md },
   back: { fontSize: Typography.sizes.base, color: Colors.primaryLight },
   addBtnSmall: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
   addBtnSmallTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
-  // Detail hero
   detailHero: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: Spacing.base, paddingBottom: Spacing.md },
   detailHeroLeft: { flex: 1 },
   detailName: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.textPrimary },
@@ -285,7 +279,6 @@ const s = StyleSheet.create({
   detailVal: { fontSize: 44, fontWeight: '300', color: Colors.textPrimary },
   detailUnit: { fontSize: Typography.sizes.sm, color: Colors.textMuted },
   noData: { fontSize: Typography.sizes.md, color: Colors.textMuted, marginTop: 8 },
-  // Status + target
   metaRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.base, flexWrap: 'wrap' },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5 },
   statusOpt: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
@@ -299,15 +292,13 @@ const s = StyleSheet.create({
   targetTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
   insightCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.primaryBg, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder, marginBottom: Spacing.base },
   insightTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryDark, lineHeight: 20 },
-  sectionLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
-  histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
+  sectionLabel: { fontSize: 11, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm },
   histLeft: { flex: 1 },
   histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   histSource: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   histVal: { fontSize: 18, fontWeight: '600', color: Colors.textPrimary },
   histUnit: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '400' },
-  emptyRow: { padding: Spacing.md },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
-  textRow: { padding: Spacing.md },
   bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
 });

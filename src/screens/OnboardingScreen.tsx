@@ -27,6 +27,18 @@ const CONDITIONS = [
 
 const QUICK_MEDS = ['Metformin', 'Aspirin', 'Statin', 'Levothyroxine', 'Warfarin', 'Empagliflozin', 'Lisinopril', 'Dapagliflozin'];
 
+// Hoisted outside component to prevent remount on every parent render
+function ProgressBar({ step }: { step: number }) {
+  return (
+    <View style={s.progressRow}>
+      {[0, 1, 2, 3, 4].map(i => (
+        <View key={i} style={[s.progressSeg,
+          i < step ? s.progressDone : i === step ? s.progressActive : s.progressPending]} />
+      ))}
+    </View>
+  );
+}
+
 export default function OnboardingScreen() {
   const nav = useNavigation<Nav>();
   const [step, setStep] = useState(0);
@@ -36,6 +48,7 @@ export default function OnboardingScreen() {
   const [sex, setSex] = useState<'male' | 'female'>('male');
   const [conditions, setConditions] = useState<string[]>([]);
   const [meds, setMeds] = useState<string[]>([]);
+
   function toggleCondition(c: string) {
     setConditions(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   }
@@ -62,21 +75,9 @@ export default function OnboardingScreen() {
     nav.replace('Main');
   }
 
-  function ProgressBar() {
-    return (
-      <View style={s.progressRow}>
-        {[0,1,2,3,4].map(i => (
-          <View key={i} style={[s.progressSeg,
-            i < step ? s.progressDone : i === step ? s.progressActive : s.progressPending]} />
-        ))}
-      </View>
-    );
-  }
-
-  // Step 0: Name
   if (step === 0) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar />
+      <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <Text style={s.stepLabel}>Step 1 of 5</Text>
         <Text style={s.title}>{"What's your\nname?"}</Text>
@@ -98,10 +99,9 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 
-  // Step 1: Goal
   if (step === 1) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar />
+      <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 2 of 5</Text>
@@ -131,10 +131,9 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 
-  // Step 2: Age & Sex
   if (step === 2) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar />
+      <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 3 of 5</Text>
@@ -171,10 +170,9 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 
-  // Step 3: Conditions
   if (step === 3) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar />
+      <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 4 of 5</Text>
@@ -201,10 +199,9 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 
-  // Step 4: Medications
   return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar />
+      <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <TouchableOpacity onPress={() => setStep(3)}><Text style={s.back}>Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 5 of 5</Text>
@@ -215,7 +212,7 @@ export default function OnboardingScreen() {
             {meds.map(m => (
               <TouchableOpacity key={m} style={s.medTag}
                 onPress={() => setMeds(prev => prev.filter(x => x !== m))}>
-                <Text style={s.medTagTxt}>{m} x</Text>
+                <Text style={s.medTagTxt}>{m} ×</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -263,42 +260,38 @@ const s = StyleSheet.create({
   stepLabel: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
   title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, lineHeight: 34, marginBottom: 8 },
   sub: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22, marginBottom: Spacing.lg },
-  nameInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, fontSize: 20, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border, marginTop: 8 },
+  nameInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, fontSize: 20, color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.border, marginTop: 8 },
   optionList: { gap: 10 },
-  optionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.border },
+  optionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border },
   optionCardSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder, borderLeftWidth: 3, borderLeftColor: Colors.primary },
   optionIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' },
   optionIconSel: { backgroundColor: Colors.primaryBorder },
   optionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
   optionDesc: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   fieldLabel: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: 8, marginTop: Spacing.base },
-  ageCard: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 0.5, borderColor: Colors.border },
+  ageCard: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: Colors.border },
   ageBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.border },
   ageBtnTxt: { fontSize: 22, color: Colors.textPrimary },
   ageNum: { fontSize: 36, fontWeight: '300', color: Colors.primary },
   ageUnit: { fontSize: Typography.sizes.base, color: Colors.textMuted },
   sexRow: { flexDirection: 'row', gap: 10 },
-  sexBtn: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  sexBtn: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
   sexBtnSel: { borderColor: Colors.primaryLight, backgroundColor: Colors.primaryBg },
   sexBtnTxt: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textSecondary },
   condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  condBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: Colors.border },
+  condBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.border },
   condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
   medTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
   medTag: { backgroundColor: Colors.primaryBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   medTagTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryDark },
-  medInputRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.md },
-  medInput: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border },
-  addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingHorizontal: 16, justifyContent: 'center' },
-  addBtnTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.base, fontWeight: '500' },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.base },
-  quickChip: { backgroundColor: Colors.bgCard, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.border },
+  quickChip: { backgroundColor: Colors.bgCard, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border },
   quickChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  privacyNote: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.border },
+  privacyNote: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border },
   privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
   cta: { padding: Spacing.base, paddingBottom: Spacing.xl, gap: 8 },
-  btnMain: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 15, alignItems: 'center' },
+  btnMain: { backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
   btnMainTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
   btnSkip: { color: Colors.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
 });

@@ -7,9 +7,10 @@ export const Colors = {
   primaryBorder: '#A8D5BE',
 
   // Backgrounds
-  bg: '#F8F6F0',
+  bg: '#EDE8DC',
   bgCard: '#FFFFFF',
-  bgSecondary: '#F8F6F0',
+  bgSecondary: '#EDE8DC',
+  bgShade: '#E4E0D4',
 
   // Text
   textPrimary: '#1A1A18',
@@ -17,8 +18,8 @@ export const Colors = {
   textMuted: '#8A8A82',
 
   // Border
-  border: '#DDD9CE',
-  borderLight: '#EEE9DE',
+  border: '#D4CFC4',
+  borderLight: '#E2DED6',
 
   // Semantic
   warning: '#D4860B',
