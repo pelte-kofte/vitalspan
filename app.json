@@ -14,7 +14,13 @@
       "bundleIdentifier": "com.vitalspan.app",
       "infoPlist": {
         "NSHealthShareUsageDescription": "Vitalspan reads your health data to track biomarkers and biological age.",
-        "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
+        "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4d42a8cb-bf83-4229-82a5-1b2273356a54"
       }
     }
   }
