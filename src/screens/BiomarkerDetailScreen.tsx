@@ -78,12 +78,20 @@ export default function BiomarkerDetailScreen() {
           <TouchableOpacity onPress={() => setSelectedId(null)}>
             <Text style={s.back}>← Biomarkers</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={s.addBtnSmall}
-            onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: selectedId })}
-          >
-            <Text style={s.addBtnSmallTxt}>+ Log</Text>
-          </TouchableOpacity>
+          <View style={s.headerActions}>
+            <TouchableOpacity
+              style={s.uploadBtn}
+              onPress={() => nav.navigate('LabUpload')}
+            >
+              <Text style={s.uploadBtnTxt}>📋 Upload</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.addBtnSmall}
+              onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: selectedId })}
+            >
+              <Text style={s.addBtnSmallTxt}>+ Log</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
@@ -169,12 +177,20 @@ export default function BiomarkerDetailScreen() {
           <Text style={s.heading}>Biomarkers</Text>
           <Text style={s.headingSub}>Longevity-optimized ranges</Text>
         </View>
-        <TouchableOpacity
-          style={s.addBtn}
-          onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
-        >
-          <Text style={s.addBtnTxt}>+ Log</Text>
-        </TouchableOpacity>
+        <View style={s.headerActions}>
+          <TouchableOpacity
+            style={s.uploadBtn}
+            onPress={() => nav.navigate('LabUpload')}
+          >
+            <Text style={s.uploadBtnTxt}>📋 Upload labs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.addBtn}
+            onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+          >
+            <Text style={s.addBtnTxt}>+ Log</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
@@ -234,6 +250,9 @@ const s = StyleSheet.create({
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md },
   heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.textPrimary },
   headingSub: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  uploadBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.full, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1, borderWidth: 1, borderColor: Colors.border },
+  uploadBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
   addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
   addBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
   catLabel: { fontSize: 11, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },

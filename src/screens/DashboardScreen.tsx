@@ -178,6 +178,15 @@ export default function DashboardScreen() {
           })}
         </ScrollView>
 
+        <TouchableOpacity style={s.uploadCard} onPress={() => nav.navigate('LabUpload')}>
+          <Text style={s.uploadCardIcon}>📋</Text>
+          <View style={s.uploadCardBody}>
+            <Text style={s.uploadCardTitle}>Upload lab results</Text>
+            <Text style={s.uploadCardSub}>Import biomarkers from your PDF</Text>
+          </View>
+          <Text style={s.uploadCardArrow}>→</Text>
+        </TouchableOpacity>
+
         <View style={s.sectionHdr}>
           <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
           <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
@@ -257,4 +266,10 @@ const s = StyleSheet.create({
   protoName: { flex: 1, fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   protoTime: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
   protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted, paddingVertical: Spacing.sm },
+  uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
+  uploadCardIcon: { fontSize: 28 },
+  uploadCardBody: { flex: 1 },
+  uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
+  uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
 });

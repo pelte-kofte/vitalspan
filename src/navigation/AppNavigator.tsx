@@ -8,6 +8,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import BiomarkerDetailScreen from '../screens/BiomarkerDetailScreen';
 import BiomarkerEntryScreen from '../screens/BiomarkerEntryScreen';
 import InteractionCheckerScreen from '../screens/InteractionCheckerScreen';
+import LabUploadScreen from '../screens/LabUploadScreen';
 import ProtocolScreen from '../screens/ProtocolScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   BiomarkerDetail: { biomarkerId: string };
   BiomarkerEntry: { biomarkerId?: string };
   InteractionChecker: undefined;
+  LabUpload: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -116,6 +118,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="InteractionChecker"
           component={InteractionCheckerScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="LabUpload"
+          component={LabUploadScreen}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>

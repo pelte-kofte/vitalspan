@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import SupplementRow from '../components/SupplementRow';
 
 interface UserProfile {
   name: string;
@@ -27,19 +28,20 @@ interface Supplement {
   dose: string;
   evidence: 'A' | 'B' | 'C';
   goals: string[];
+  dbId?: string;
 }
 
 const BASE_SUPPLEMENTS: Supplement[] = [
-  { name: 'Vitamin D3', dose: '2000 IU', evidence: 'A', goals: ['all'] },
-  { name: 'Magnesium glycinate', dose: '400 mg', evidence: 'A', goals: ['all'] },
-  { name: 'Omega-3', dose: '2 g', evidence: 'A', goals: ['all'] },
+  { name: 'Vitamin D3',         dose: '2000 IU', evidence: 'A', goals: ['all'], dbId: 'vitamin_d3' },
+  { name: 'Magnesium glycinate', dose: '400 mg',  evidence: 'A', goals: ['all'], dbId: 'magnesium_glycinate' },
+  { name: 'Omega-3',            dose: '2 g',      evidence: 'A', goals: ['all'], dbId: 'omega3' },
 ];
 
 const GOAL_SUPPLEMENTS: Supplement[] = [
-  { name: 'NMN', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'] },
-  { name: 'Resveratrol', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'] },
-  { name: 'CoQ10', dose: '200 mg', evidence: 'B', goals: ['Optimize healthspan'] },
-  { name: 'Berberine', dose: '500 mg', evidence: 'B', goals: ['Optimize healthspan'] },
+  { name: 'NMN',        dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'], dbId: 'nmn' },
+  { name: 'Resveratrol', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'], dbId: 'resveratrol' },
+  { name: 'CoQ10',       dose: '200 mg', evidence: 'B', goals: ['Optimize healthspan'],                      dbId: 'coq10' },
+  { name: 'Berberine',   dose: '500 mg', evidence: 'B', goals: ['Optimize healthspan'],                      dbId: 'berberine' },
 ];
 
 const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
@@ -48,12 +50,6 @@ const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
   { key: 'evening', label: 'Eve' },
   { key: 'night', label: 'Night' },
 ];
-
-const EVIDENCE_STYLE: Record<string, { bg: string; color: string }> = {
-  A: { bg: Colors.primaryBg, color: Colors.primary },
-  B: { bg: Colors.warningBg, color: Colors.warning },
-  C: { bg: Colors.bgSecondary, color: Colors.textMuted },
-};
 
 const EMPTY_PROTOCOL: ProtocolState = {
   medTimes: {},
@@ -65,6 +61,7 @@ const EMPTY_PROTOCOL: ProtocolState = {
 export default function ProtocolScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
+  const [expandedTimings, setExpandedTimings] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     React.useCallback(() => {
@@ -120,6 +117,14 @@ export default function ProtocolScreen() {
       newTimes[med] = time;
     }
     persist({ ...protocol, medTimes: newTimes });
+  }
+
+  function toggleExpanded(name: string) {
+    setExpandedTimings(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
   }
 
   function toggleSupplement(name: string) {
@@ -204,37 +209,20 @@ export default function ProtocolScreen() {
           {profile?.goal && <Text style={s.goalLbl}>Based on: {profile.goal}</Text>}
         </View>
         <View style={s.card}>
-          {recommended.map((supp, i) => {
-            const isAdded = protocol.addedSupplements.includes(supp.name);
-            const isTaken = protocol.taken.includes(supp.name);
-            const ev = EVIDENCE_STYLE[supp.evidence];
-            return (
-              <View key={supp.name} style={[s.suppRow, i < recommended.length - 1 && s.rowBorder]}>
-                {isAdded ? (
-                  <TouchableOpacity onPress={() => toggleTaken(supp.name)}>
-                    <View style={[s.dot, isTaken && s.dotTaken]} />
-                  </TouchableOpacity>
-                ) : (
-                  <View style={s.dotPlaceholder} />
-                )}
-                <View style={s.suppInfo}>
-                  <Text style={[s.suppName, !isAdded && s.suppNameDim]}>{supp.name}</Text>
-                  <Text style={s.suppDose}>{supp.dose}</Text>
-                </View>
-                <View style={[s.evidBadge, { backgroundColor: ev.bg }]}>
-                  <Text style={[s.evidTxt, { color: ev.color }]}>Grade {supp.evidence}</Text>
-                </View>
-                <TouchableOpacity
-                  style={[s.addBtn, isAdded && s.addBtnAdded]}
-                  onPress={() => toggleSupplement(supp.name)}
-                >
-                  <Text style={[s.addBtnTxt, isAdded && s.addBtnTxtAdded]}>
-                    {isAdded ? 'Added ✓' : '+ Add'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
+          {recommended.map((supp, i) => (
+            <SupplementRow
+              key={supp.name}
+              supp={supp}
+              isAdded={protocol.addedSupplements.includes(supp.name)}
+              isTaken={protocol.taken.includes(supp.name)}
+              isExpanded={expandedTimings.has(supp.name)}
+              medications={medications}
+              showBorder={i < recommended.length - 1}
+              onToggleTaken={() => toggleTaken(supp.name)}
+              onToggle={() => toggleSupplement(supp.name)}
+              onToggleExpanded={() => toggleExpanded(supp.name)}
+            />
+          ))}
         </View>
 
         <View style={{ height: 32 }} />
@@ -305,7 +293,6 @@ const s = StyleSheet.create({
   medTimeLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 2 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border },
   dotTaken: { backgroundColor: Colors.primaryLight },
-  dotPlaceholder: { width: 10, height: 10 },
   timeRow: { flexDirection: 'row', gap: 4 },
   timeChip: {
     paddingHorizontal: 6,
@@ -318,27 +305,4 @@ const s = StyleSheet.create({
   timeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   timeChipTxt: { fontSize: 9, color: Colors.textMuted, fontWeight: '500' },
   timeChipTxtActive: { color: Colors.primary },
-  suppRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  suppInfo: { flex: 1 },
-  suppName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
-  suppNameDim: { color: Colors.textMuted },
-  suppDose: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  evidBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: Radius.sm },
-  evidTxt: { fontSize: 9, fontWeight: '600' },
-  addBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgSecondary,
-  },
-  addBtnAdded: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  addBtnTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.textMuted },
-  addBtnTxtAdded: { color: Colors.primary },
 });
