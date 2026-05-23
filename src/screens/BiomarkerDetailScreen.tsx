@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, RefreshControl,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -37,14 +37,23 @@ export default function BiomarkerDetailScreen() {
   const nav = useNavigation<Nav>();
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadEntries = useCallback(() => {
+    return AsyncStorage.getItem('@vitalspan_biomarkers')
+      .then(raw => { if (raw) setEntries(JSON.parse(raw)); })
+      .catch(console.error);
+  }, []);
 
   useFocusEffect(
-    React.useCallback(() => {
-      AsyncStorage.getItem('@vitalspan_biomarkers')
-        .then(raw => { if (raw) setEntries(JSON.parse(raw)); })
-        .catch(console.error);
-    }, [])
+    useCallback(() => { loadEntries(); }, [loadEntries])
   );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadEntries();
+    setRefreshing(false);
+  }
 
   // Single O(n) pass — builds sorted lists per biomarker
   const entryMap = useMemo(() => {
@@ -100,7 +109,13 @@ export default function BiomarkerDetailScreen() {
           </View>
         </View>
 
-        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={s.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          }
+        >
           <View style={s.detailHero}>
             <View style={s.detailHeroLeft}>
               <Text style={s.detailName}>{bm.name}</Text>
@@ -173,11 +188,21 @@ export default function BiomarkerDetailScreen() {
           <Text style={s.sectionLabel}>About</Text>
           <View style={s.card}>
             <Text style={s.bodyTxt}>{bm.description}</Text>
+            <View style={s.citationRow}>
+              <Text style={s.citationTxt}>
+                References: Levine et al. Aging Cell 2018 · Attia, Outlive (2023) · Longevity Medicine Alliance guidelines
+              </Text>
+            </View>
           </View>
 
           <Text style={s.sectionLabel}>How to improve</Text>
           <View style={s.card}>
             <Text style={s.bodyTxt}>{bm.howToImprove}</Text>
+            <View style={s.citationRow}>
+              <Text style={s.citationTxt}>
+                Pharmacist-reviewed · Evidence grade based on RCT + meta-analysis literature
+              </Text>
+            </View>
           </View>
 
           <View style={{ height: 32 }} />
@@ -210,7 +235,13 @@ export default function BiomarkerDetailScreen() {
         </View>
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+        }
+      >
         {CATEGORIES.map(cat => {
           const bms = BIOMARKERS_BY_CATEGORY.get(cat.key) ?? [];
           if (bms.length === 0) return null;
@@ -241,13 +272,17 @@ export default function BiomarkerDetailScreen() {
                       ) : (
                         <Text style={s.noBmData}>—</Text>
                       )}
-                      <View style={[s.badge, latest ? (isOptimal ? s.badgeGood : s.badgeWarn) : s.badgeNone]}>
-                        <Text style={[s.badgeTxt,
-                          latest ? (isOptimal ? s.badgeTxtGood : s.badgeTxtWarn) : s.badgeTxtNone,
-                        ]}>
-                          {latest ? (isOptimal ? 'Optimal' : 'Review') : 'No data'}
-                        </Text>
-                      </View>
+                      {latest ? (
+                        <View style={[s.badge, isOptimal ? s.badgeGood : s.badgeWarn]}>
+                          <Text style={[s.badgeTxt, isOptimal ? s.badgeTxtGood : s.badgeTxtWarn]}>
+                            {isOptimal ? 'Optimal' : 'Review'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={s.badgeLog}>
+                          <Text style={s.badgeLogTxt}>Tap to log</Text>
+                        </View>
+                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -298,11 +333,14 @@ const s = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
   badgeGood: { backgroundColor: Colors.primaryBg },
   badgeWarn: { backgroundColor: Colors.warningBg },
-  badgeNone: { backgroundColor: Colors.bgSecondary },
   badgeTxt: { fontSize: 10, fontWeight: '600' },
   badgeTxtGood: { color: Colors.primary },
   badgeTxtWarn: { color: Colors.warning },
-  badgeTxtNone: { color: Colors.textMuted },
+  badgeLog: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full,
+    backgroundColor: Colors.bgSecondary, borderWidth: 0.5, borderColor: Colors.border,
+  },
+  badgeLogTxt: { fontSize: 10, fontWeight: '500', color: Colors.primaryLight },
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md },
   back: { fontSize: Typography.sizes.base, color: Colors.primaryLight },
   addBtnSmall: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
@@ -340,4 +378,11 @@ const s = StyleSheet.create({
   logCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
   logCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
+  citationRow: {
+    marginTop: Spacing.md, paddingTop: Spacing.sm,
+    borderTopWidth: 0.5, borderTopColor: Colors.border,
+  },
+  citationTxt: {
+    fontSize: 10, color: Colors.textMuted, fontStyle: 'italic', lineHeight: 15,
+  },
 });

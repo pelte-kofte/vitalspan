@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, RefreshControl,
+  Modal, TextInput, Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +10,9 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { INTERACTIONS } from '../data/biomarkers';
+import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
+import { MEDICATION_DATABASE } from '../data/medications';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 import SupplementRow from '../components/SupplementRow';
@@ -21,9 +25,19 @@ interface UserProfile {
 
 type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night';
 
+export interface CustomSupplement {
+  id: string;
+  name: string;
+  dose: string;
+  timing?: TimeSlot;
+  notes?: string;
+  addedAt: string;
+}
+
 interface ProtocolState {
   medTimes: Record<string, TimeSlot>;
   addedSupplements: string[];
+  customSupplements: CustomSupplement[];
   taken: string[];
   takenDate: string;
 }
@@ -37,74 +51,238 @@ interface Supplement {
 }
 
 const BASE_SUPPLEMENTS: Supplement[] = [
-  { name: 'Vitamin D3',         dose: '2000 IU', evidence: 'A', goals: ['all'], dbId: 'vitamin_d3' },
-  { name: 'Magnesium glycinate', dose: '400 mg',  evidence: 'A', goals: ['all'], dbId: 'magnesium_glycinate' },
-  { name: 'Omega-3',            dose: '2 g',      evidence: 'A', goals: ['all'], dbId: 'omega3' },
+  { name: 'Vitamin D3',          dose: '2000 IU', evidence: 'A', goals: ['all'],                             dbId: 'vitamin_d3' },
+  { name: 'Magnesium glycinate',  dose: '400 mg',  evidence: 'A', goals: ['all'],                             dbId: 'magnesium_glycinate' },
+  { name: 'Omega-3',             dose: '2 g',      evidence: 'A', goals: ['all'],                             dbId: 'omega3' },
 ];
 
 const GOAL_SUPPLEMENTS: Supplement[] = [
-  { name: 'NMN',        dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'], dbId: 'nmn' },
-  { name: 'Resveratrol', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'], dbId: 'resveratrol' },
-  { name: 'CoQ10',       dose: '200 mg', evidence: 'B', goals: ['Optimize healthspan'],                      dbId: 'coq10' },
-  { name: 'Berberine',   dose: '500 mg', evidence: 'B', goals: ['Optimize healthspan'],                      dbId: 'berberine' },
+  { name: 'NMN',        dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'],  dbId: 'nmn' },
+  { name: 'Resveratrol', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'],  dbId: 'resveratrol' },
+  { name: 'CoQ10',       dose: '200 mg', evidence: 'B', goals: ['Optimize healthspan'],                       dbId: 'coq10' },
+  { name: 'Berberine',   dose: '500 mg', evidence: 'B', goals: ['Optimize healthspan'],                       dbId: 'berberine' },
 ];
 
 const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
-  { key: 'morning', label: 'AM' },
+  { key: 'morning',   label: 'AM' },
   { key: 'afternoon', label: 'PM' },
-  { key: 'evening', label: 'Eve' },
-  { key: 'night', label: 'Night' },
+  { key: 'evening',   label: 'Eve' },
+  { key: 'night',     label: 'Night' },
 ];
 
 const EMPTY_PROTOCOL: ProtocolState = {
   medTimes: {},
   addedSupplements: [],
+  customSupplements: [],
   taken: [],
   takenDate: '',
 };
 
+// ── Custom Supplement Modal ──────────────────────────────────────────────────
+interface AddModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onAdd: (s: CustomSupplement) => void;
+}
+
+function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
+  const [query, setQuery] = useState('');
+  const [selectedDb, setSelectedDb] = useState<SupplementInfo | null>(null);
+  const [name, setName] = useState('');
+  const [dose, setDose] = useState('');
+  const [timing, setTiming] = useState<TimeSlot | undefined>(undefined);
+  const [notes, setNotes] = useState('');
+
+  // Search the database
+  const dbResults = useMemo(() => {
+    if (query.length < 2) return [];
+    const q = query.toLowerCase();
+    return SUPPLEMENT_DATABASE.filter(s =>
+      s.name.toLowerCase().includes(q) || s.shortDescription.toLowerCase().includes(q),
+    ).slice(0, 6);
+  }, [query]);
+
+  function resetForm() {
+    setQuery('');
+    setSelectedDb(null);
+    setName('');
+    setDose('');
+    setTiming(undefined);
+    setNotes('');
+  }
+
+  function selectFromDb(info: SupplementInfo) {
+    setSelectedDb(info);
+    setName(info.name);
+    setDose(info.defaultDose);
+    setQuery('');
+  }
+
+  function handleAdd() {
+    const finalName = (selectedDb?.name ?? name).trim();
+    if (!finalName) {
+      Alert.alert('Name required', 'Please enter a supplement name.');
+      return;
+    }
+    const custom: CustomSupplement = {
+      id: `custom_${Date.now()}`,
+      name: finalName,
+      dose: dose.trim() || '—',
+      timing,
+      notes: notes.trim() || undefined,
+      addedAt: new Date().toISOString(),
+    };
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    onAdd(custom);
+    resetForm();
+    onClose();
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={ms.overlay}>
+        <View style={ms.sheet}>
+          <View style={ms.handle} />
+          <Text style={ms.sheetTitle}>Add Supplement</Text>
+
+          <Text style={ms.fieldLabel}>Search database</Text>
+          <TextInput
+            style={ms.input}
+            placeholder="Search Berberine, Quercetin, NMN…"
+            placeholderTextColor={Colors.textMuted}
+            value={query}
+            onChangeText={t => { setQuery(t); setSelectedDb(null); }}
+            autoCorrect={false}
+          />
+          {dbResults.length > 0 && (
+            <View style={ms.dbResults}>
+              {dbResults.map(info => (
+                <TouchableOpacity key={info.id} style={ms.dbRow} onPress={() => selectFromDb(info)}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={ms.dbName}>{info.name}</Text>
+                    <Text style={ms.dbDesc}>{info.shortDescription}</Text>
+                  </View>
+                  <View style={[ms.gradeBadge, { backgroundColor: info.evidenceGrade === 'A' ? Colors.primaryBg : Colors.warningBg }]}>
+                    <Text style={[ms.gradeTxt, { color: info.evidenceGrade === 'A' ? Colors.primary : Colors.warning }]}>
+                      {info.evidenceGrade}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {query.length >= 2 && dbResults.length === 0 && (
+            <Text style={ms.notFound}>Not in database — enter manually below</Text>
+          )}
+
+          {selectedDb && (
+            <View style={ms.selectedBadge}>
+              <Text style={ms.selectedTxt}>✓ From database: {selectedDb.name}</Text>
+            </View>
+          )}
+
+          <Text style={ms.fieldLabel}>Name {!selectedDb && <Text style={ms.required}>*</Text>}</Text>
+          <TextInput
+            style={ms.input}
+            placeholder="Supplement name"
+            placeholderTextColor={Colors.textMuted}
+            value={name}
+            onChangeText={setName}
+            editable={!selectedDb}
+          />
+
+          <Text style={ms.fieldLabel}>Dose</Text>
+          <TextInput
+            style={ms.input}
+            placeholder="e.g. 500mg, 2 capsules"
+            placeholderTextColor={Colors.textMuted}
+            value={dose}
+            onChangeText={setDose}
+          />
+
+          <Text style={ms.fieldLabel}>Time of day</Text>
+          <View style={ms.timingRow}>
+            {TIME_SLOTS.map(slot => (
+              <TouchableOpacity
+                key={slot.key}
+                style={[ms.timingChip, timing === slot.key && ms.timingChipActive]}
+                onPress={() => setTiming(t => t === slot.key ? undefined : slot.key)}
+              >
+                <Text style={[ms.timingTxt, timing === slot.key && ms.timingTxtActive]}>
+                  {slot.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={ms.fieldLabel}>Notes (optional)</Text>
+          <TextInput
+            style={[ms.input, ms.notesInput]}
+            placeholder="Any notes, interactions, reminders…"
+            placeholderTextColor={Colors.textMuted}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+          />
+
+          <View style={ms.btnRow}>
+            <TouchableOpacity style={ms.cancelBtn} onPress={() => { resetForm(); onClose(); }}>
+              <Text style={ms.cancelTxt}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={ms.addBtn} onPress={handleAdd}>
+              <Text style={ms.addBtnTxt}>Add to Stack</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProtocolScreen() {
   const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
   const [expandedTimings, setExpandedTimings] = useState<Set<string>>(new Set());
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadData();
-    }, [])
-  );
-
-  async function loadData() {
-    try {
-      const [profileRaw, protocolRaw] = await Promise.all([
-        AsyncStorage.getItem('@vitalspan_user_profile'),
-        AsyncStorage.getItem('@vitalspan_protocol'),
-      ]);
-      if (profileRaw) setProfile(JSON.parse(profileRaw));
-      if (protocolRaw) {
-        const saved: ProtocolState = JSON.parse(protocolRaw);
-        const today = new Date().toISOString().slice(0, 10);
-        setProtocol(saved.takenDate === today ? saved : { ...saved, taken: [], takenDate: today });
-      }
-    } catch (e) {
-      console.error(e);
+  const loadData = useCallback(async () => {
+    const [profileRaw, protocolRaw] = await Promise.all([
+      AsyncStorage.getItem('@vitalspan_user_profile'),
+      AsyncStorage.getItem('@vitalspan_protocol'),
+    ]);
+    if (profileRaw) setProfile(JSON.parse(profileRaw));
+    if (protocolRaw) {
+      const saved: ProtocolState = JSON.parse(protocolRaw);
+      const today = new Date().toISOString().slice(0, 10);
+      setProtocol({
+        ...EMPTY_PROTOCOL,
+        ...saved,
+        customSupplements: saved.customSupplements ?? [],
+        taken: saved.takenDate === today ? (saved.taken ?? []) : [],
+        takenDate: today,
+      });
     }
+  }, []);
+
+  useFocusEffect(useCallback(() => { loadData().catch(console.error); }, [loadData]));
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadData().catch(console.error);
+    setRefreshing(false);
   }
 
   async function persist(next: ProtocolState) {
     setProtocol(next);
-    try {
-      await Promise.all([
-        AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(next)),
-        AsyncStorage.setItem('@vitalspan_protocol_today', JSON.stringify({
-          date: next.takenDate,
-          taken: next.taken,
-        })),
-      ]);
-    } catch (e) {
-      console.error(e);
-    }
+    await Promise.all([
+      AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(next)),
+      AsyncStorage.setItem('@vitalspan_protocol_today', JSON.stringify({
+        date: next.takenDate, taken: next.taken,
+      })),
+    ]).catch(console.error);
   }
 
   function toggleTaken(name: string) {
@@ -118,11 +296,8 @@ export default function ProtocolScreen() {
 
   function setMedTime(med: string, time: TimeSlot) {
     const newTimes = { ...protocol.medTimes };
-    if (newTimes[med] === time) {
-      delete newTimes[med];
-    } else {
-      newTimes[med] = time;
-    }
+    if (newTimes[med] === time) delete newTimes[med];
+    else newTimes[med] = time;
     persist({ ...protocol, medTimes: newTimes });
   }
 
@@ -143,6 +318,26 @@ export default function ProtocolScreen() {
     persist({ ...protocol, addedSupplements, taken });
   }
 
+  function addCustomSupplement(s: CustomSupplement) {
+    const customSupplements = [...(protocol.customSupplements ?? []), s];
+    persist({ ...protocol, customSupplements });
+  }
+
+  function removeCustomSupplement(id: string) {
+    Alert.alert('Remove supplement?', 'This will remove it from your stack.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          const customSupplements = protocol.customSupplements.filter(s => s.id !== id);
+          const taken = protocol.taken.filter(t => t !== id);
+          persist({ ...protocol, customSupplements, taken });
+        },
+      },
+    ]);
+  }
+
   const recommended = useMemo(() => {
     const goal = profile?.goal ?? '';
     return [...BASE_SUPPLEMENTS, ...GOAL_SUPPLEMENTS].filter(s =>
@@ -151,14 +346,71 @@ export default function ProtocolScreen() {
   }, [profile?.goal]);
 
   const medications = profile?.medications ?? [];
+
+  // Build inline interaction map for medications
+  const medInteractionMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const med of medications) {
+      const medLower = med.toLowerCase();
+      const conflicts: string[] = [];
+      for (const inter of INTERACTIONS) {
+        if (medLower.includes(inter.drug.toLowerCase())) {
+          // Check if user has this supplement added
+          const allAdded = [
+            ...protocol.addedSupplements,
+            ...(protocol.customSupplements ?? []).map(cs => cs.name),
+          ];
+          if (allAdded.some(s => s.toLowerCase().includes(inter.supplement.toLowerCase()))) {
+            conflicts.push(inter.supplement);
+          }
+        }
+      }
+      // Also check drug class from medications database
+      const drugEntry = MEDICATION_DATABASE.find(m =>
+        m.genericName.toLowerCase() === medLower ||
+        m.brandNames.some(b => b.toLowerCase() === medLower),
+      );
+      if (drugEntry) {
+        for (const inter of INTERACTIONS) {
+          if (inter.drug.toLowerCase() === drugEntry.drugClass.toLowerCase()) {
+            const allAdded = [
+              ...protocol.addedSupplements,
+              ...(protocol.customSupplements ?? []).map(cs => cs.name),
+            ];
+            if (allAdded.some(s => s.toLowerCase().includes(inter.supplement.toLowerCase()))) {
+              if (!conflicts.includes(inter.supplement)) conflicts.push(inter.supplement);
+            }
+          }
+        }
+      }
+      if (conflicts.length > 0) map[med] = conflicts;
+    }
+    return map;
+  }, [medications, protocol.addedSupplements, protocol.customSupplements]);
+
+  // Drug class labels from medications database
+  const medClassMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const med of medications) {
+      const medLower = med.toLowerCase();
+      const drugEntry = MEDICATION_DATABASE.find(m =>
+        m.genericName.toLowerCase() === medLower ||
+        m.brandNames.some(b => b.toLowerCase() === medLower),
+      );
+      if (drugEntry?.drugClass) map[med] = drugEntry.drugClass;
+    }
+    return map;
+  }, [medications]);
+
   const addedSupps = recommended.filter(s => protocol.addedSupplements.includes(s.name));
-  const totalItems = medications.length + addedSupps.length;
+  const customSupps = protocol.customSupplements ?? [];
+  const totalItems = medications.length + addedSupps.length + customSupps.length;
   const takenCount = protocol.taken.filter(t =>
-    medications.includes(t) || addedSupps.some(s => s.name === t)
+    medications.includes(t) ||
+    addedSupps.some(s => s.name === t) ||
+    customSupps.some(cs => cs.id === t || cs.name === t),
   ).length;
-  const dateStr = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <SafeAreaView style={s.safe}>
@@ -174,7 +426,14 @@ export default function ProtocolScreen() {
         )}
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+        }
+      >
+        {/* Medications section */}
         <Text style={s.sectionLabel}>Medications</Text>
         <View style={s.card}>
           {medications.length === 0 ? (
@@ -191,13 +450,26 @@ export default function ProtocolScreen() {
             medications.map((med, i) => {
               const taken = protocol.taken.includes(med);
               const time = protocol.medTimes[med];
+              const conflicts = medInteractionMap[med] ?? [];
+              const drugClass = medClassMap[med];
               return (
                 <View key={med} style={[s.medRow, i < medications.length - 1 && s.rowBorder]}>
                   <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(med)} activeOpacity={0.7}>
                     <View style={[s.dot, taken && s.dotTaken]} />
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={[s.medName, taken && s.nameTaken]}>{med}</Text>
+                      {drugClass && <Text style={s.medClass}>{drugClass}</Text>}
                       {time && <Text style={s.medTimeLbl}>{time.charAt(0).toUpperCase() + time.slice(1)}</Text>}
+                      {conflicts.length > 0 && (
+                        <TouchableOpacity
+                          style={s.conflictRow}
+                          onPress={() => nav.navigate('InteractionChecker')}
+                        >
+                          <Text style={s.conflictTxt}>
+                            ⚠ Conflicts with {conflicts.join(', ')} — tap to review
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </TouchableOpacity>
                   <View style={s.timeRow}>
@@ -219,6 +491,37 @@ export default function ProtocolScreen() {
           )}
         </View>
 
+        {/* Your Stack — custom supplements */}
+        {customSupps.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>Your Stack</Text>
+            <View style={s.card}>
+              {customSupps.map((cs, i) => {
+                const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
+                return (
+                  <View key={cs.id} style={[s.medRow, i < customSupps.length - 1 && s.rowBorder]}>
+                    <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
+                      <View style={[s.dot, taken && s.dotTaken]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.medName, taken && s.nameTaken]}>{cs.name}</Text>
+                        <Text style={s.medClass}>{cs.dose}{cs.timing ? ` · ${cs.timing}` : ''}</Text>
+                        {cs.notes ? <Text style={s.medTimeLbl}>{cs.notes}</Text> : null}
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.removeBtn}
+                      onPress={() => removeCustomSupplement(cs.id)}
+                    >
+                      <Text style={s.removeTxt}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {/* Recommended Supplements */}
         <View style={s.suppSectionHdr}>
           <Text style={s.suppSectionTitle}>Recommended Supplements</Text>
           {profile?.goal && <Text style={s.goalLbl}>Based on: {profile.goal}</Text>}
@@ -238,10 +541,28 @@ export default function ProtocolScreen() {
               onToggleExpanded={() => toggleExpanded(supp.name)}
             />
           ))}
+
+          {/* Add custom supplement CTA */}
+          <TouchableOpacity
+            style={s.addCustomBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+              setShowAddModal(true);
+            }}
+          >
+            <Text style={s.addCustomIcon}>+</Text>
+            <Text style={s.addCustomTxt}>Add custom supplement</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      <AddCustomSupplementModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={addCustomSupplement}
+      />
     </SafeAreaView>
   );
 }
@@ -250,77 +571,137 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    padding: Spacing.base,
-    paddingTop: Spacing.md,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    padding: Spacing.base, paddingTop: Spacing.md,
   },
   heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.textPrimary },
   date: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: 2 },
   progressPill: {
-    backgroundColor: Colors.primaryBg,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
+    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+    borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
   progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primary },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.base,
+    fontSize: 11, fontWeight: '500', color: Colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   suppSectionHdr: { paddingHorizontal: Spacing.base, marginTop: Spacing.base, marginBottom: Spacing.sm },
   suppSectionTitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    fontSize: 11, fontWeight: '500', color: Colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.5,
   },
   goalLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 3 },
   card: {
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    padding: Spacing.md,
+    marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard,
+    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, padding: Spacing.md,
   },
   rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
   emptyState: { paddingVertical: Spacing.sm, gap: Spacing.sm },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted, paddingVertical: Spacing.xs },
-  emptyCtaBtn: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
+  emptyCtaBtn: {
+    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+    borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start',
+  },
   emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  medRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.sm },
-  medLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
+  medRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: Spacing.sm, gap: Spacing.sm },
+  medLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
   medName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   nameTaken: { color: Colors.textMuted, textDecorationLine: 'line-through' },
+  medClass: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   medTimeLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 2 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border },
+  conflictRow: {
+    marginTop: 4, backgroundColor: Colors.warningBg,
+    borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 3,
+    borderWidth: 0.5, borderColor: Colors.warningBorder, alignSelf: 'flex-start',
+  },
+  conflictTxt: { fontSize: 10, color: Colors.warningText, fontWeight: '500' },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border, marginTop: 4 },
   dotTaken: { backgroundColor: Colors.primaryLight },
-  timeRow: { flexDirection: 'row', gap: 4 },
+  timeRow: { flexDirection: 'row', gap: 4, flexShrink: 0, marginTop: 4 },
   timeChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bgSecondary,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.sm,
+    backgroundColor: Colors.bgSecondary, borderWidth: 0.5, borderColor: Colors.border,
   },
   timeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   timeChipTxt: { fontSize: 9, color: Colors.textMuted, fontWeight: '500' },
   timeChipTxtActive: { color: Colors.primary },
+  removeBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.bgSecondary,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 0.5, borderColor: Colors.border, marginTop: 2,
+  },
+  removeTxt: { fontSize: 11, color: Colors.textMuted },
+  addCustomBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingVertical: Spacing.md, paddingTop: Spacing.base,
+    borderTopWidth: 0.5, borderTopColor: Colors.border, marginTop: Spacing.sm,
+  },
+  addCustomIcon: { fontSize: 20, color: Colors.primaryLight, width: 22, textAlign: 'center' },
+  addCustomTxt: { fontSize: Typography.sizes.base, color: Colors.primaryLight, fontWeight: '500' },
+});
+
+// Modal styles
+const ms = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: Spacing.base, paddingBottom: 40, maxHeight: '90%',
+  },
+  handle: {
+    width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border,
+    alignSelf: 'center', marginBottom: Spacing.base,
+  },
+  sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.base },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm },
+  required: { color: Colors.danger },
+  input: {
+    backgroundColor: Colors.bgSecondary, borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
+    fontSize: Typography.sizes.base, color: Colors.textPrimary,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  notesInput: { height: 72, textAlignVertical: 'top' },
+  dbResults: {
+    marginTop: Spacing.xs, backgroundColor: Colors.bgCard,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border,
+  },
+  dbRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    padding: Spacing.sm, borderBottomWidth: 0.5, borderBottomColor: Colors.border,
+  },
+  dbName: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textPrimary },
+  dbDesc: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  gradeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm },
+  gradeTxt: { fontSize: 10, fontWeight: '700' },
+  notFound: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
+  selectedBadge: {
+    backgroundColor: Colors.primaryBg, borderRadius: Radius.md,
+    padding: Spacing.sm, marginTop: Spacing.sm,
+    borderWidth: 0.5, borderColor: Colors.primaryBorder,
+  },
+  selectedTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+  timingRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
+  timingChip: {
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderRadius: Radius.full, backgroundColor: Colors.bgSecondary,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  timingChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  timingTxt: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: '500' },
+  timingTxtActive: { color: Colors.primary },
+  btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.base },
+  cancelBtn: {
+    flex: 1, padding: Spacing.md, borderRadius: Radius.lg,
+    backgroundColor: Colors.bgSecondary, alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  cancelTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted, fontWeight: '500' },
+  addBtn: { flex: 1, padding: Spacing.md, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignItems: 'center' },
+  addBtnTxt: { fontSize: Typography.sizes.base, color: Colors.primaryBg, fontWeight: '600' },
 });

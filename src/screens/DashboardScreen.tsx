@@ -16,6 +16,7 @@ import NeuralGrid from '../components/NeuralGrid';
 import BreathingCard from '../components/BreathingCard';
 import FutureSelf from '../components/FutureSelf';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
+import { loadHealthData, deriveHealthState, HealthData } from '../lib/healthkit';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -33,17 +34,20 @@ export default function DashboardScreen() {
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [takenItems, setTakenItems] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRaw, entriesRaw, protocolRaw] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw, hData] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         AsyncStorage.getItem('@vitalspan_protocol_today'),
+        loadHealthData(),
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+      if (hData) setHealthData(hData);
 
       if (protocolRaw) {
         const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
@@ -135,10 +139,14 @@ export default function DashboardScreen() {
   const yearsDiff = (bioAge != null && chronoAge != null) ? chronoAge - bioAge : 0;
   const missingForPhenoAge = phenoResult?.missingBiomarkers ?? [];
 
+  // Reactive neural background
+  const healthState = useMemo(() => deriveHealthState(healthData), [healthData]);
+  const neuralTone = healthState === 'stressed' ? 'alert' : healthState === 'good' ? 'vital' : 'calm';
+
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.screenContainer}>
-        <NeuralGrid intensity="low" tone="calm" />
+        <NeuralGrid intensity="low" tone={neuralTone} />
 
         <ScrollView
           style={s.scroll}
@@ -272,14 +280,23 @@ export default function DashboardScreen() {
                 >
                   <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningText) : Colors.textMuted }]}>{bm.name}</Text>
                   <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.primary : Colors.warning) : Colors.textMuted }]}>
-                    {hasData ? String(latest.value) : '—'}
+                    {hasData ? String(latest.value) : '·'}
                   </Text>
                   <Text style={s.bmUnit}>{bm.unit}</Text>
-                  <View style={[s.bmBadge, hasData ? (isOptimal ? s.bmBadgeGood : s.bmBadgeWarn) : s.bmBadgeNone]}>
-                    <Text style={[s.bmBadgeTxt, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningTextDark) : Colors.textMuted }]}>
-                      {hasData ? (isOptimal ? 'Optimal' : 'Review') : 'No data'}
-                    </Text>
-                  </View>
+                  {hasData ? (
+                    <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
+                      <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.primaryDark : Colors.warningTextDark }]}>
+                        {isOptimal ? 'Optimal' : 'Review'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={s.bmBadgeEmpty}
+                      onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: bm.id })}
+                    >
+                      <Text style={s.bmBadgeEmptyTxt}>+ Log first reading</Text>
+                    </TouchableOpacity>
+                  )}
                 </LinearGradient>
               );
             })}
@@ -384,8 +401,13 @@ const s = StyleSheet.create({
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
   bmBadgeWarn: { backgroundColor: Colors.warningBorder },
   bmBadgeGood: { backgroundColor: Colors.primaryBorder },
-  bmBadgeNone: { backgroundColor: Colors.bgSecondary },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
+  bmBadgeEmpty: {
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: Colors.bgSecondary, borderWidth: 0.5, borderColor: Colors.border,
+    alignSelf: 'flex-start',
+  },
+  bmBadgeEmptyTxt: { fontSize: 9, fontWeight: '500', color: Colors.primaryLight },
   protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, padding: Spacing.md },
   protoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: Spacing.sm },
   protoItemBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },

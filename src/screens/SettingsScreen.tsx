@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Switch, Alert,
+  StyleSheet, SafeAreaView, Switch, Alert, Share,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,8 +18,42 @@ const ALL_STORAGE_KEYS = [
   '@vitalspan_protocol',
   '@vitalspan_protocol_today',
   '@vitalspan_health_data',
+  '@vitalspan_health_permissions',
 ];
 
+const __DEV__ = true; // set false in production builds
+
+// ── Row building blocks ──────────────────────────────────────────────────────
+interface RowProps {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  right?: React.ReactNode;
+  danger?: boolean;
+  topBorder?: boolean;
+}
+
+function SettingsRow({ icon, title, subtitle, onPress, right, danger, topBorder }: RowProps) {
+  return (
+    <TouchableOpacity
+      style={[s.row, topBorder && s.rowBorder]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={s.rowIconWrap}>
+        <Text style={s.rowIcon}>{icon}</Text>
+      </View>
+      <View style={s.rowBody}>
+        <Text style={[s.rowTitle, danger && s.rowDanger]}>{title}</Text>
+        {subtitle ? <Text style={s.rowSub}>{subtitle}</Text> : null}
+      </View>
+      {right ?? (onPress && !right ? <Text style={[s.rowArrow, danger && s.rowDanger]}>›</Text> : null)}
+    </TouchableOpacity>
+  );
+}
+
+// ── Screen ───────────────────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const nav = useNavigation<Nav>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -44,7 +78,7 @@ export default function SettingsScreen() {
   function handleSignOut() {
     Alert.alert(
       'Sign out',
-      'This will return you to the landing screen. Your data will remain on this device.',
+      'This will return you to the landing screen. Your data stays on this device.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -61,7 +95,7 @@ export default function SettingsScreen() {
   function handleClearData() {
     Alert.alert(
       'Clear all data',
-      'This will permanently delete your profile, biomarker history, and protocol. This cannot be undone.',
+      'Permanently deletes your profile, biomarker history, and protocol. Cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -70,6 +104,44 @@ export default function SettingsScreen() {
           onPress: async () => {
             await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
+            nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleExportData() {
+    try {
+      const entries = await Promise.all(
+        ALL_STORAGE_KEYS.map(async k => ({ key: k, value: await AsyncStorage.getItem(k) })),
+      );
+      const data: Record<string, unknown> = {};
+      for (const { key, value } of entries) {
+        data[key] = value ? JSON.parse(value) : null;
+      }
+      const json = JSON.stringify(data, null, 2);
+      await Share.share({ message: json, title: 'Vitalspan data export' });
+    } catch (e) {
+      Alert.alert('Export failed', String(e));
+    }
+  }
+
+  function handleResetOnboarding() {
+    Alert.alert(
+      'Reset onboarding',
+      'Clears onboarding flag. Useful for testing. Profile data is kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          onPress: async () => {
+            const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
+            if (raw) {
+              const profile = JSON.parse(raw);
+              delete profile.onboardingComplete;
+              await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
+            }
             nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
           },
         },
@@ -89,92 +161,93 @@ export default function SettingsScreen() {
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Notifications */}
-        <Text style={s.sectionLabel}>Notifications</Text>
+        {/* Account */}
+        <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <View style={s.row}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowTitle}>Daily reminders</Text>
-              <Text style={s.rowSub}>Protocol check-ins & biomarker logging</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotif}
-              trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
-              thumbColor={notificationsEnabled ? Colors.primary : Colors.textMuted}
-            />
-          </View>
-          <View style={[s.row, s.rowBorder]}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowTitle}>Weekly report</Text>
-              <Text style={s.rowSub}>Biomarker trends & progress summary</Text>
-            </View>
-            <Switch
-              value={weeklyReport}
-              onValueChange={handleToggleReport}
-              trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
-              thumbColor={weeklyReport ? Colors.primary : Colors.textMuted}
-            />
-          </View>
+          <SettingsRow icon="👤" title="Edit profile" subtitle="Name, age, conditions" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon="🔒" title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
-        {/* Units */}
-        <Text style={s.sectionLabel}>Units</Text>
+        {/* Preferences */}
+        <Text style={s.sectionLabel}>Preferences</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.row} onPress={handleUnitToggle}>
-            <View style={s.rowLeft}>
-              <Text style={s.rowTitle}>Measurement system</Text>
-              <Text style={s.rowSub}>Affects weight, height display</Text>
-            </View>
-            <View style={s.unitToggle}>
-              <View style={[s.unitOption, unitSystem === 'metric' && s.unitOptionActive]}>
-                <Text style={[s.unitOptionTxt, unitSystem === 'metric' && s.unitOptionTxtActive]}>Metric</Text>
+          <SettingsRow
+            icon="🔔"
+            title="Daily reminders"
+            subtitle="Protocol check-ins & biomarker logging"
+            right={
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleToggleNotif}
+                trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
+                thumbColor={notificationsEnabled ? Colors.primary : Colors.textMuted}
+              />
+            }
+          />
+          <SettingsRow
+            icon="📊"
+            title="Weekly report"
+            subtitle="Biomarker trends & progress summary"
+            topBorder
+            right={
+              <Switch
+                value={weeklyReport}
+                onValueChange={handleToggleReport}
+                trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
+                thumbColor={weeklyReport ? Colors.primary : Colors.textMuted}
+              />
+            }
+          />
+          <SettingsRow
+            icon="📏"
+            title="Measurement system"
+            subtitle={unitSystem === 'metric' ? 'Metric (kg, cm)' : 'Imperial (lbs, ft)'}
+            topBorder
+            onPress={handleUnitToggle}
+            right={
+              <View style={s.unitToggle}>
+                <View style={[s.unitOpt, unitSystem === 'metric' && s.unitOptActive]}>
+                  <Text style={[s.unitOptTxt, unitSystem === 'metric' && s.unitOptTxtActive]}>kg</Text>
+                </View>
+                <View style={[s.unitOpt, unitSystem === 'imperial' && s.unitOptActive]}>
+                  <Text style={[s.unitOptTxt, unitSystem === 'imperial' && s.unitOptTxtActive]}>lb</Text>
+                </View>
               </View>
-              <View style={[s.unitOption, unitSystem === 'imperial' && s.unitOptionActive]}>
-                <Text style={[s.unitOptionTxt, unitSystem === 'imperial' && s.unitOptionTxtActive]}>Imperial</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Privacy & Legal */}
-        <Text style={s.sectionLabel}>Privacy & Legal</Text>
-        <View style={s.card}>
-          <TouchableOpacity
-            style={s.row}
-            onPress={() => nav.navigate('About')}
-          >
-            <Text style={s.rowTitle}>About Vitalspan</Text>
-            <Text style={s.rowArrow}>→</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.row, s.rowBorder]}>
-            <Text style={s.rowTitle}>Privacy Policy</Text>
-            <Text style={s.rowArrow}>→</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.row, s.rowBorder]}>
-            <Text style={s.rowTitle}>Terms of Use</Text>
-            <Text style={s.rowArrow}>→</Text>
-          </TouchableOpacity>
+            }
+          />
         </View>
 
         {/* Data */}
         <Text style={s.sectionLabel}>Data</Text>
         <View style={s.card}>
-          <TouchableOpacity style={s.row} onPress={handleSignOut}>
-            <Text style={s.rowTitle}>Sign out</Text>
-            <Text style={s.rowArrow}>→</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.row, s.rowBorder]} onPress={handleClearData}>
-            <Text style={[s.rowTitle, { color: Colors.danger }]}>Clear all data</Text>
-            <Text style={[s.rowArrow, { color: Colors.danger }]}>→</Text>
-          </TouchableOpacity>
+          <SettingsRow icon="📤" title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
+          <SettingsRow icon="🗑" title="Clear all data" danger onPress={handleClearData} topBorder />
         </View>
+
+        {/* About */}
+        <Text style={s.sectionLabel}>About</Text>
+        <View style={s.card}>
+          <SettingsRow icon="ℹ" title="About Vitalspan" subtitle="Mission, citations, evidence grading" onPress={() => nav.navigate('About')} />
+          <SettingsRow icon="🔏" title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
+          <SettingsRow icon="📋" title="Terms of Use" topBorder onPress={() => {}} />
+          <SettingsRow icon="⭐" title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
+        </View>
+
+        {/* Debug (dev only) */}
+        {__DEV__ && (
+          <>
+            <Text style={s.sectionLabel}>Developer</Text>
+            <View style={s.card}>
+              <SettingsRow icon="🔄" title="Reset onboarding" subtitle="Debug: clears onboarding flag" onPress={handleResetOnboarding} />
+            </View>
+          </>
+        )}
 
         <View style={s.disclaimer}>
           <Text style={s.disclaimerTxt}>
-            ⚕ Vitalspan is built by a licensed pharmacist. All biomarker ranges are longevity-optimized and evidence-graded.
-            This app does not provide medical advice and is not a substitute for professional healthcare.
+            ⚕ Vitalspan is built by a licensed pharmacist. Biomarker ranges are longevity-optimized and evidence-graded. Not a substitute for professional medical advice.
           </Text>
+          <Text style={s.versionTxt}>Version 0.1.0</Text>
         </View>
 
         <View style={{ height: 32 }} />
@@ -186,70 +259,51 @@ export default function SettingsScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
   },
   closeBtn: { paddingVertical: Spacing.xs },
   closeTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
   title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
   scroll: { flex: 1 },
   sectionLabel: {
-    fontSize: Typography.sizes.xs,
-    fontWeight: '500',
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.base,
+    fontSize: 11, fontWeight: '600', color: Colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   card: {
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    overflow: 'hidden',
+    marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard,
+    borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, overflow: 'hidden',
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
   rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.border },
-  rowLeft: { flex: 1 },
+  rowIconWrap: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: Colors.bgSecondary, alignItems: 'center', justifyContent: 'center',
+  },
+  rowIcon: { fontSize: 16 },
+  rowBody: { flex: 1 },
   rowTitle: { fontSize: Typography.sizes.base, color: Colors.textPrimary, fontWeight: '400' },
+  rowDanger: { color: Colors.danger },
   rowSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  rowArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
+  rowArrow: { fontSize: 18, color: Colors.textMuted, fontWeight: '300' },
   unitToggle: {
-    flexDirection: 'row',
-    backgroundColor: Colors.bg,
-    borderRadius: Radius.md,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: Colors.border,
+    flexDirection: 'row', backgroundColor: Colors.bg,
+    borderRadius: Radius.md, overflow: 'hidden',
+    borderWidth: 0.5, borderColor: Colors.border,
   },
-  unitOption: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs + 1 },
-  unitOptionActive: { backgroundColor: Colors.primary, borderRadius: Radius.md },
-  unitOptionTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '500' },
-  unitOptionTxtActive: { color: Colors.primaryBg },
+  unitOpt: { paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1 },
+  unitOptActive: { backgroundColor: Colors.primary, borderRadius: Radius.md },
+  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '500' },
+  unitOptTxtActive: { color: Colors.primaryBg },
   disclaimer: {
-    marginHorizontal: Spacing.base,
-    marginTop: Spacing.base,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
+    marginHorizontal: Spacing.base, marginTop: Spacing.base,
+    backgroundColor: Colors.bgCard, borderRadius: Radius.md,
+    padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
-  disclaimerTxt: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.textMuted,
-    lineHeight: 18,
-  },
+  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
+  versionTxt: { fontSize: 10, color: Colors.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
 });

@@ -14,9 +14,13 @@ import { Colors } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
+export type NeuralTone = 'calm' | 'alert' | 'vital';
+
 interface Props {
   intensity?: 'low' | 'medium' | 'high';
-  tone?: 'calm' | 'alert' | 'vital';
+  tone?: NeuralTone;
+  /** When true, animates opacity from 0 to target over 2s (biological feel) */
+  animate?: boolean;
 }
 
 const TONE_COLORS: Record<string, string> = {
@@ -80,7 +84,7 @@ function buildLinks(
 const NODES_CACHE: Record<string, ReturnType<typeof buildNodes>> = {};
 const LINKS_CACHE: Record<string, ReturnType<typeof buildLinks>> = {};
 
-export default function NeuralGrid({ intensity = 'low', tone = 'calm' }: Props) {
+export default function NeuralGrid({ intensity = 'low', tone = 'calm', animate = false }: Props) {
   const cfg = INTENSITY_CONFIG[intensity];
   const color = TONE_COLORS[tone] ?? Colors.viz.cyan;
 

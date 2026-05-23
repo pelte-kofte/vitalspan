@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, SafeAreaView,
-  TouchableOpacity, TextInput, Alert,
+  TouchableOpacity, TextInput, Alert, RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,23 +37,30 @@ export default function ProfileScreen() {
   const [editAge, setEditAge] = useState(35);
   const [editSex, setEditSex] = useState<'male' | 'female'>('male');
   const [editConditions, setEditConditions] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      AsyncStorage.getItem('@vitalspan_user_profile')
-        .then(raw => {
-          if (raw) {
-            const p = JSON.parse(raw) as UserProfile;
-            setProfile(p);
-            setEditName(p.name);
-            setEditAge(p.age);
-            setEditSex(p.sex);
-            setEditConditions(p.conditions ?? []);
-          }
-        })
-        .catch(console.error);
-    }, [])
-  );
+  const loadProfile = useCallback(() => {
+    return AsyncStorage.getItem('@vitalspan_user_profile')
+      .then(raw => {
+        if (raw) {
+          const p = JSON.parse(raw) as UserProfile;
+          setProfile(p);
+          setEditName(p.name);
+          setEditAge(p.age);
+          setEditSex(p.sex);
+          setEditConditions(p.conditions ?? []);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  useFocusEffect(useCallback(() => { loadProfile(); }, [loadProfile]));
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadProfile();
+    setRefreshing(false);
+  }
 
   function startEdit() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
@@ -214,7 +221,13 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+        }
+      >
         {/* Hero */}
         <View style={s.hero}>
           <View style={s.avatar}>
