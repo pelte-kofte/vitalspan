@@ -16,7 +16,6 @@ import Svg, {
   LinearGradient as SvgGradient,
   RadialGradient,
   Stop,
-  G,
 } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -32,6 +31,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from '../components/NeuralGrid';
+import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
+import { StoredEntry } from './BiomarkerEntryScreen';
 
 const { width: W } = Dimensions.get('window');
 const SPHERE_R = 88;
@@ -62,7 +63,6 @@ interface HealthSnap {
 interface UserProfile {
   name?: string;
   age?: number;
-  biologicalAge?: number;
 }
 
 function polarToXY(angleDeg: number, r: number, cx: number, cy: number) {
@@ -70,7 +70,7 @@ function polarToXY(angleDeg: number, r: number, cx: number, cy: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function healthScoreColor(bioAge?: number, age?: number): [string, string] {
+function healthScoreColor(bioAge?: number | null, age?: number | null): [string, string] {
   if (bioAge == null || age == null) return ['#1C3B2A', '#2D6A4F'];
   const diff = age - bioAge;
   if (diff >= 3) return ['#0D2B22', '#2D6A4F']; // optimal — green
@@ -94,15 +94,18 @@ export default function LongevityScoreScreen() {
   const nav = useNavigation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [healthSnap, setHealthSnap] = useState<HealthSnap>({});
+  const [biomarkerEntries, setBiomarkerEntries] = useState<StoredEntry[]>([]);
 
   useFocusEffect(
     React.useCallback(() => {
       Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_health_data'),
-      ]).then(([pRaw, hRaw]) => {
+        AsyncStorage.getItem('@vitalspan_biomarkers'),
+      ]).then(([pRaw, hRaw, bRaw]) => {
         if (pRaw) setProfile(JSON.parse(pRaw));
         if (hRaw) setHealthSnap(JSON.parse(hRaw));
+        if (bRaw) setBiomarkerEntries(JSON.parse(bRaw));
       }).catch(console.error);
     }, []),
   );
@@ -154,10 +157,26 @@ export default function LongevityScoreScreen() {
     opacity: interpolate(spherePulse.value, [0.85, 1.0], [0.85, 1.0]),
   }));
 
-  const bioAge = profile?.biologicalAge;
+  // Compute PhenoAge from logged biomarkers
+  const phenoResult = React.useMemo(() => {
+    if (!profile?.age) return null;
+    const entryMap = new Map<string, StoredEntry>();
+    for (const e of biomarkerEntries) {
+      const ex = entryMap.get(e.biomarkerId);
+      if (!ex || e.date > ex.date) entryMap.set(e.biomarkerId, e);
+    }
+    const inputs: PhenoAgeInputs = { age: profile.age };
+    for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
+      const entry = entryMap.get(biomarkerId);
+      if (entry) (inputs as Record<string, number>)[inputKey] = entry.value;
+    }
+    return computePhenoAge(inputs);
+  }, [biomarkerEntries, profile]);
+
+  const bioAge = phenoResult?.biologicalAge ?? null;
   const chronoAge = profile?.age;
   const yearsDiff = bioAge != null && chronoAge != null ? chronoAge - bioAge : 0;
-  const [gradStart, gradEnd] = healthScoreColor(bioAge, chronoAge);
+  const [gradStart, gradEnd] = healthScoreColor(bioAge ?? undefined, chronoAge);
 
   // Build dashed arc path for the rotating ring
   // Draws ~270° arc with gaps
@@ -170,7 +189,9 @@ export default function LongevityScoreScreen() {
   const projectedLifespan =
     bioAge != null && chronoAge != null
       ? `${85 + yearsDiff}–${92 + yearsDiff} years`
-      : 'Log your biomarkers to unlock';
+      : phenoResult != null
+        ? `Log ${phenoResult.missingCount} more biomarkers to unlock`
+        : 'Log biomarkers to unlock';
 
   return (
     <LinearGradient

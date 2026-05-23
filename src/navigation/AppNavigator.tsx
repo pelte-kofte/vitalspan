@@ -14,6 +14,8 @@ import ProtocolScreen from '../screens/ProtocolScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LandingScreen from '../screens/LandingScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import AboutScreen from '../screens/AboutScreen';
 
 import { Colors } from '../theme';
 
@@ -26,6 +28,8 @@ export type RootStackParamList = {
   InteractionChecker: undefined;
   LabUpload: undefined;
   LongevityScore: undefined;
+  Settings: undefined;
+  About: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -97,16 +101,32 @@ function MainTabs() {
   );
 }
 
-export default function AppNavigator() {
+interface Props {
+  initialRoute: 'Landing' | 'Main';
+}
+
+export default function AppNavigator({ initialRoute }: Props) {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Landing"
+        initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Landing" component={LandingScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen
+          name="Landing"
+          component={LandingScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Main"
+          component={MainTabs}
+          options={{ gestureEnabled: false }}
+        />
         <Stack.Screen
           name="BiomarkerDetail"
           component={BiomarkerDetailScreen}
@@ -131,6 +151,16 @@ export default function AppNavigator() {
           name="LongevityScore"
           component={LongevityScoreScreen}
           options={{ presentation: 'card', animation: 'fade_from_bottom' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="About"
+          component={AboutScreen}
+          options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, TextInput, ScrollView,
+  SafeAreaView, TextInput, ScrollView, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -27,7 +28,6 @@ const CONDITIONS = [
 
 const QUICK_MEDS = ['Metformin', 'Aspirin', 'Statin', 'Levothyroxine', 'Warfarin', 'Empagliflozin', 'Lisinopril', 'Dapagliflozin'];
 
-// Hoisted outside component to prevent remount on every parent render
 function ProgressBar({ step }: { step: number }) {
   return (
     <View style={s.progressRow}>
@@ -53,11 +53,24 @@ export default function OnboardingScreen() {
     setConditions(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   }
 
-  function addMed(name: string) {
-    const trimmed = name.trim();
+  function addMed(medName: string) {
+    const trimmed = medName.trim();
     if (trimmed && !meds.find(m => m.toLowerCase() === trimmed.toLowerCase())) {
       setMeds(prev => [...prev, trimmed]);
     }
+  }
+
+  function goNext(from: number) {
+    if (from === 0 && !name.trim()) {
+      Alert.alert('Name required', 'Please enter your first name to personalize your experience.');
+      return;
+    }
+    if (from === 1 && goal === null) {
+      Alert.alert('Select a goal', 'Please select your primary health goal to continue.');
+      return;
+    }
+    Haptics.selectionAsync().catch(() => null);
+    setStep(from + 1);
   }
 
   async function finish() {
@@ -68,17 +81,17 @@ export default function OnboardingScreen() {
       goal: GOALS[goal ?? 0]?.title || '',
       conditions,
       medications: meds,
-      biologicalAge: age - Math.floor(Math.random() * 8 + 2),
       onboardingComplete: true,
     };
     await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
-    nav.replace('Main');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    nav.reset({ index: 0, routes: [{ name: 'Main' }] });
   }
 
   if (step === 0) return (
     <SafeAreaView style={s.safe}>
       <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         <Text style={s.stepLabel}>Step 1 of 5</Text>
         <Text style={s.title}>{"What's your\nname?"}</Text>
         <Text style={s.sub}>{"We'll personalize your experience."}</Text>
@@ -89,10 +102,12 @@ export default function OnboardingScreen() {
           placeholder="Your first name"
           placeholderTextColor={Colors.textMuted}
           autoFocus
+          returnKeyType="next"
+          onSubmitEditing={() => goNext(0)}
         />
       </ScrollView>
       <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => setStep(1)}>
+        <TouchableOpacity style={[s.btnMain, !name.trim() && s.btnMainDisabled]} onPress={() => goNext(0)}>
           <Text style={s.btnMainTxt}>Continue</Text>
         </TouchableOpacity>
       </View>
@@ -103,7 +118,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={s.safe}>
       <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>Back</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>← Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 2 of 5</Text>
         <Text style={s.title}>{"What's your\nmain goal?"}</Text>
         <Text style={s.sub}>{"We'll build your protocol around this."}</Text>
@@ -111,7 +126,7 @@ export default function OnboardingScreen() {
           {GOALS.map((g, i) => (
             <TouchableOpacity key={i}
               style={[s.optionCard, goal === i && s.optionCardSel]}
-              onPress={() => setGoal(i)}>
+              onPress={() => { setGoal(i); Haptics.selectionAsync().catch(() => null); }}>
               <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
                 <Text style={{ fontSize: 18 }}>{g.icon}</Text>
               </View>
@@ -119,12 +134,13 @@ export default function OnboardingScreen() {
                 <Text style={s.optionTitle}>{g.title}</Text>
                 <Text style={s.optionDesc}>{g.desc}</Text>
               </View>
+              {goal === i && <Text style={{ color: Colors.primary, fontSize: 18 }}>✓</Text>}
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
       <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => setStep(2)}>
+        <TouchableOpacity style={[s.btnMain, goal === null && s.btnMainDisabled]} onPress={() => goNext(1)}>
           <Text style={s.btnMainTxt}>Continue</Text>
         </TouchableOpacity>
       </View>
@@ -135,17 +151,17 @@ export default function OnboardingScreen() {
     <SafeAreaView style={s.safe}>
       <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>Back</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>← Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 3 of 5</Text>
         <Text style={s.title}>{"Tell us about\nyourself"}</Text>
         <Text style={s.sub}>Used to calibrate your biomarker ranges.</Text>
         <Text style={s.fieldLabel}>Age</Text>
         <View style={s.ageCard}>
-          <TouchableOpacity style={s.ageBtn} onPress={() => setAge(a => Math.max(18, a - 1))}>
+          <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.max(18, a - 1)); Haptics.selectionAsync().catch(() => null); }}>
             <Text style={s.ageBtnTxt}>−</Text>
           </TouchableOpacity>
           <Text style={s.ageNum}>{age} <Text style={s.ageUnit}>years old</Text></Text>
-          <TouchableOpacity style={s.ageBtn} onPress={() => setAge(a => Math.min(90, a + 1))}>
+          <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.min(90, a + 1)); Haptics.selectionAsync().catch(() => null); }}>
             <Text style={s.ageBtnTxt}>+</Text>
           </TouchableOpacity>
         </View>
@@ -154,7 +170,7 @@ export default function OnboardingScreen() {
           {(['male', 'female'] as const).map(opt => (
             <TouchableOpacity key={opt}
               style={[s.sexBtn, sex === opt && s.sexBtnSel]}
-              onPress={() => setSex(opt)}>
+              onPress={() => { setSex(opt); Haptics.selectionAsync().catch(() => null); }}>
               <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.primary }]}>
                 {opt.charAt(0).toUpperCase() + opt.slice(1)}
               </Text>
@@ -163,7 +179,7 @@ export default function OnboardingScreen() {
         </View>
       </ScrollView>
       <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => setStep(3)}>
+        <TouchableOpacity style={s.btnMain} onPress={() => goNext(2)}>
           <Text style={s.btnMainTxt}>Continue</Text>
         </TouchableOpacity>
       </View>
@@ -174,7 +190,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={s.safe}>
       <ProgressBar step={step} />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>Back</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>← Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 4 of 5</Text>
         <Text style={s.title}>{"Any existing\nconditions?"}</Text>
         <Text style={s.sub}>Helps us flag interactions and tailor your protocol.</Text>
@@ -182,17 +198,17 @@ export default function OnboardingScreen() {
           {CONDITIONS.map(c => (
             <TouchableOpacity key={c}
               style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
-              onPress={() => toggleCondition(c)}>
+              onPress={() => { toggleCondition(c); Haptics.selectionAsync().catch(() => null); }}>
               <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
       <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => setStep(4)}>
+        <TouchableOpacity style={s.btnMain} onPress={() => goNext(3)}>
           <Text style={s.btnMainTxt}>Continue</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setStep(4)}>
+        <TouchableOpacity onPress={() => goNext(3)}>
           <Text style={s.btnSkip}>Skip for now</Text>
         </TouchableOpacity>
       </View>
@@ -202,8 +218,8 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(3)}><Text style={s.back}>Back</Text></TouchableOpacity>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity onPress={() => setStep(3)}><Text style={s.back}>← Back</Text></TouchableOpacity>
         <Text style={s.stepLabel}>Step 5 of 5</Text>
         <Text style={s.title}>{"Current\nmedications?"}</Text>
         <Text style={s.sub}>Our pharmacist engine checks all supplement interactions.</Text>
@@ -291,7 +307,8 @@ const s = StyleSheet.create({
   privacyNote: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border },
   privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
   cta: { padding: Spacing.base, paddingBottom: Spacing.xl, gap: 8 },
-  btnMain: { backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
+  btnMain: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: 15, alignItems: 'center' },
+  btnMainDisabled: { opacity: 0.5 },
   btnMainTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
   btnSkip: { color: Colors.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
 });

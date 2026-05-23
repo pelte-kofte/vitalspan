@@ -19,6 +19,8 @@ const CATEGORIES = [
   { key: 'inflammation', label: 'Inflammation' },
   { key: 'hormones', label: 'Hormones' },
   { key: 'vitamins', label: 'Vitamins' },
+  { key: 'cbc', label: 'Complete Blood Count' },
+  { key: 'metabolicPanel', label: 'Metabolic Panel' },
 ] as const;
 
 // Precomputed at module level — BIOMARKERS is static

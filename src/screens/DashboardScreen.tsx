@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
@@ -14,6 +15,7 @@ import { StoredEntry } from './BiomarkerEntryScreen';
 import NeuralGrid from '../components/NeuralGrid';
 import BreathingCard from '../components/BreathingCard';
 import FutureSelf from '../components/FutureSelf';
+import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,14 +32,9 @@ export default function DashboardScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [takenItems, setTakenItems] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadData();
-    }, [])
-  );
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [profileRaw, entriesRaw, protocolRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
@@ -56,9 +53,20 @@ export default function DashboardScreen() {
     } catch (e) {
       console.error(e);
     }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => { loadData(); }, [loadData])
+  );
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
   }
 
   async function toggleTaken(name: string) {
+    Haptics.selectionAsync().catch(() => null);
     setTakenItems(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -72,7 +80,6 @@ export default function DashboardScreen() {
     });
   }
 
-  // O(1) latest entry lookup — built once when entries change
   const entryMap = useMemo(() => {
     const map = new Map<string, StoredEntry>();
     for (const e of entries) {
@@ -81,6 +88,19 @@ export default function DashboardScreen() {
     }
     return map;
   }, [entries]);
+
+  // Compute PhenoAge from logged biomarkers
+  const phenoResult = useMemo(() => {
+    if (!profile) return null;
+    const inputs: PhenoAgeInputs = { age: profile.age };
+    for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
+      const entry = entryMap.get(biomarkerId);
+      if (entry) {
+        (inputs as Record<string, number>)[inputKey] = entry.value;
+      }
+    }
+    return computePhenoAge(inputs);
+  }, [entryMap, profile]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -109,17 +129,28 @@ export default function DashboardScreen() {
 
   const medications = profile?.medications ?? [];
   const takenCount = medications.filter(m => takenItems.has(m)).length;
-  const bioAge = profile?.biologicalAge ?? '-';
-  const chronoAge = profile?.age ?? '-';
-  const yearsDiff = profile ? (profile.age - (profile.biologicalAge ?? profile.age)) : 0;
+
+  const bioAge = phenoResult?.biologicalAge ?? null;
+  const chronoAge = profile?.age ?? null;
+  const yearsDiff = (bioAge != null && chronoAge != null) ? chronoAge - bioAge : 0;
+  const missingForPhenoAge = phenoResult?.missingBiomarkers ?? [];
 
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.screenContainer}>
-        {/* Atmospheric background grid — low opacity, does not capture touches */}
         <NeuralGrid intensity="low" tone="calm" />
 
-        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={s.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+        >
           <View style={s.topbar}>
             <View>
               <Text style={s.greetSmall}>{greeting}</Text>
@@ -130,14 +161,14 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Bio age card — wrapped in BreathingCard for scale + glow */}
-          <BreathingCard
-            style={s.bioCardWrapper}
-            glowColor={Colors.primaryDark}
-          >
+          {/* Bio age card */}
+          <BreathingCard style={s.bioCardWrapper} glowColor={Colors.primaryDark}>
             <TouchableOpacity
               activeOpacity={0.88}
-              onPress={() => nav.navigate('LongevityScore')}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                nav.navigate('LongevityScore');
+              }}
             >
               <LinearGradient
                 colors={['#0A1628', Colors.primaryDark, Colors.primary]}
@@ -146,30 +177,58 @@ export default function DashboardScreen() {
                 style={s.bioCardInner}
               >
                 <Text style={s.bioLabel}>YOUR BIOLOGICAL AGE</Text>
-                <Text style={s.bioNum}>{bioAge}</Text>
-                <Text style={s.bioSub}>
-                  Chronological: {chronoAge}
-                  {yearsDiff > 0 ? ` · You're ${yearsDiff} years younger` : ''}
-                </Text>
-                {yearsDiff > 0 && (
-                  <View style={s.bioPill}>
-                    <Text style={s.bioPillTxt}>↓ improving</Text>
-                  </View>
+                {bioAge != null ? (
+                  <>
+                    <Text style={s.bioNum}>{bioAge}</Text>
+                    <Text style={s.bioSub}>
+                      Chronological: {chronoAge}
+                      {yearsDiff > 0 ? ` · You're ${yearsDiff} years younger` : ''}
+                    </Text>
+                    {yearsDiff > 0 && (
+                      <View style={s.bioPill}>
+                        <Text style={s.bioPillTxt}>↓ improving</Text>
+                      </View>
+                    )}
+                    {phenoResult?.confidence === 'medium' && (
+                      <Text style={s.bioConfidence}>
+                        Estimated · Log {phenoResult.missingCount} more biomarkers for precision
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text style={s.bioNumPlaceholder}>—</Text>
+                    <Text style={s.bioSub}>
+                      Log {missingForPhenoAge.slice(0, 3).join(', ')}
+                      {missingForPhenoAge.length > 3 ? ` +${missingForPhenoAge.length - 3} more` : ''} to unlock
+                    </Text>
+                    <TouchableOpacity
+                      style={s.bioCtaBtn}
+                      onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+                    >
+                      <Text style={s.bioCtaTxt}>+ Log biomarkers →</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
                 <Text style={s.bioCardTapHint}>Tap to view longevity score →</Text>
               </LinearGradient>
             </TouchableOpacity>
           </BreathingCard>
 
-          {/* Future self projection */}
           <FutureSelf
-            biologicalAge={profile?.biologicalAge}
+            biologicalAge={bioAge ?? undefined}
             chronologicalAge={profile?.age}
             optimality={biomarkerOptimality}
           />
 
           {hasKnownInteractions && (
-            <TouchableOpacity style={s.alertCard} onPress={() => nav.navigate('InteractionChecker')}>
+            <TouchableOpacity
+              style={s.alertCard}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+                nav.navigate('InteractionChecker');
+              }}
+            >
               <View style={s.alertIcon}>
                 <Text style={{ fontSize: 14 }}>⚠️</Text>
               </View>
@@ -186,7 +245,10 @@ export default function DashboardScreen() {
             <Text style={s.sectionTitle}>Biomarkers</Text>
             <TouchableOpacity
               style={s.sectionAddBtn}
-              onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                nav.navigate('BiomarkerEntry', { biomarkerId: undefined });
+              }}
             >
               <Text style={s.sectionAddTxt}>+ Log</Text>
             </TouchableOpacity>
@@ -223,7 +285,13 @@ export default function DashboardScreen() {
             })}
           </ScrollView>
 
-          <TouchableOpacity style={s.uploadCard} onPress={() => nav.navigate('LabUpload')}>
+          <TouchableOpacity
+            style={s.uploadCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+              nav.navigate('LabUpload');
+            }}
+          >
             <Text style={s.uploadCardIcon}>📋</Text>
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Upload lab results</Text>
@@ -239,7 +307,15 @@ export default function DashboardScreen() {
 
           <View style={s.protocolCard}>
             {medications.length === 0 ? (
-              <Text style={s.protoEmptyTxt}>Add medications in your profile to build your protocol</Text>
+              <View style={s.protoEmpty}>
+                <Text style={s.protoEmptyTxt}>No medications in your protocol yet</Text>
+                <TouchableOpacity
+                  style={s.protoEmptyCta}
+                  onPress={() => nav.navigate('Main' as never)}
+                >
+                  <Text style={s.protoEmptyCtaTxt}>Go to Protocol →</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               medications.map((med, i) => {
                 const taken = takenItems.has(med);
@@ -275,15 +351,17 @@ const s = StyleSheet.create({
   greetSmall: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
   greetName: { fontSize: 22, fontWeight: '600', color: Colors.textPrimary, marginTop: 2 },
   notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  // BreathingCard outer margin (replaces old bioCard margin)
   bioCardWrapper: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, marginBottom: Spacing.base },
-  // LinearGradient inner (replaces old bioCard padding/radius)
   bioCardInner: { borderRadius: Radius.xl, padding: Spacing.base },
   bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
   bioNum: { fontSize: 52, color: Colors.primaryBg, fontWeight: '300', lineHeight: 58 },
+  bioNumPlaceholder: { fontSize: 52, color: 'rgba(232,245,238,0.3)', fontWeight: '300', lineHeight: 58 },
   bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.75)', marginTop: 4 },
+  bioConfidence: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.5)', marginTop: 4, fontStyle: 'italic' },
   bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(168,213,190,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBorder },
+  bioCtaBtn: { marginTop: Spacing.sm, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 6, alignSelf: 'flex-start' },
+  bioCtaTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
   bioCardTapHint: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.45)', marginTop: Spacing.sm, letterSpacing: 0.3 },
   alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
   alertIcon: { width: 32, height: 32, backgroundColor: Colors.warningBorder, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -316,7 +394,10 @@ const s = StyleSheet.create({
   protoDotPending: { backgroundColor: Colors.border },
   protoName: { flex: 1, fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   protoTime: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted, paddingVertical: Spacing.sm },
+  protoEmpty: { alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
+  protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
+  protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
   uploadCardIcon: { fontSize: 28 },
   uploadCardBody: { flex: 1 },

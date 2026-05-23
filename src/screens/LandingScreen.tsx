@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -16,6 +17,20 @@ const FEATURES = [
 
 export default function LandingScreen() {
   const nav = useNavigation<Nav>();
+
+  async function handleAlreadyHaveAccount() {
+    try {
+      const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.onboardingComplete) {
+          nav.reset({ index: 0, routes: [{ name: 'Main' }] });
+          return;
+        }
+      }
+    } catch { /* fall through to onboarding */ }
+    nav.navigate('Onboarding');
+  }
 
   return (
     <LinearGradient colors={[Colors.bgShade, Colors.bg]} style={s.gradient}>
@@ -46,7 +61,8 @@ export default function LandingScreen() {
             <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Onboarding')}>
               <Text style={s.btnPrimaryTxt}>Begin your journey</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => nav.navigate('Main')}>
+
+            <TouchableOpacity onPress={handleAlreadyHaveAccount}>
               <Text style={s.ghost}>Already have an account</Text>
             </TouchableOpacity>
           </View>
