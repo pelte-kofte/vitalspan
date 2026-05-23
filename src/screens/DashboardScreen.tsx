@@ -7,10 +7,13 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry } from './BiomarkerEntryScreen';
+import NeuralGrid from '../components/NeuralGrid';
+import BreathingCard from '../components/BreathingCard';
+import FutureSelf from '../components/FutureSelf';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -94,6 +97,16 @@ export default function DashboardScreen() {
     ),
   [profile]);
 
+  const biomarkerOptimality = useMemo(() => {
+    const logged = BIOMARKERS.filter(bm => entryMap.has(bm.id));
+    if (logged.length === 0) return 0;
+    const optimal = logged.filter(bm => {
+      const e = entryMap.get(bm.id)!;
+      return e.value >= bm.optMin && e.value <= bm.optMax;
+    });
+    return optimal.length / logged.length;
+  }, [entryMap]);
+
   const medications = profile?.medications ?? [];
   const takenCount = medications.filter(m => takenItems.has(m)).length;
   const bioAge = profile?.biologicalAge ?? '-';
@@ -102,138 +115,176 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={s.topbar}>
-          <View>
-            <Text style={s.greetSmall}>{greeting}</Text>
-            <Text style={s.greetName}>{profile?.name ?? 'there'}</Text>
+      <View style={s.screenContainer}>
+        {/* Atmospheric background grid — low opacity, does not capture touches */}
+        <NeuralGrid intensity="low" tone="calm" />
+
+        <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+          <View style={s.topbar}>
+            <View>
+              <Text style={s.greetSmall}>{greeting}</Text>
+              <Text style={s.greetName}>{profile?.name ?? 'there'}</Text>
+            </View>
+            <TouchableOpacity style={s.notifBtn}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.notifBtn}>
-            <Text style={{ fontSize: 18 }}>🔔</Text>
-          </TouchableOpacity>
-        </View>
 
-        <LinearGradient
-          colors={[Colors.primaryDark, Colors.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.bioCard}
-        >
-          <Text style={s.bioLabel}>YOUR BIOLOGICAL AGE</Text>
-          <Text style={s.bioNum}>{bioAge}</Text>
-          <Text style={s.bioSub}>
-            Chronological: {chronoAge}
-            {yearsDiff > 0 ? ` · You're ${yearsDiff} years younger` : ''}
-          </Text>
-          {yearsDiff > 0 && (
-            <View style={s.bioPill}>
-              <Text style={s.bioPillTxt}>↓ improving</Text>
-            </View>
-          )}
-        </LinearGradient>
-
-        {hasKnownInteractions && (
-          <TouchableOpacity style={s.alertCard} onPress={() => nav.navigate('InteractionChecker')}>
-            <View style={s.alertIcon}>
-              <Text style={{ fontSize: 14 }}>⚠️</Text>
-            </View>
-            <View style={s.alertBody}>
-              <Text style={s.alertTitle}>Interaction check recommended</Text>
-              <Text style={s.alertTxt}>
-                One or more of your medications has known supplement interactions. Tap to review.
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        <View style={s.sectionHdr}>
-          <Text style={s.sectionTitle}>Biomarkers</Text>
-          <TouchableOpacity
-            style={s.sectionAddBtn}
-            onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+          {/* Bio age card — wrapped in BreathingCard for scale + glow */}
+          <BreathingCard
+            style={s.bioCardWrapper}
+            glowColor={Colors.primaryDark}
           >
-            <Text style={s.sectionAddTxt}>+ Log</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
-          {BIOMARKERS.slice(0, 5).map((bm) => {
-            const latest = entryMap.get(bm.id) ?? null;
-            const hasData = latest !== null;
-            const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
-            return (
-              <View key={bm.id} style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}>
-                <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningText) : Colors.textMuted }]}>{bm.name}</Text>
-                <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.primary : Colors.warning) : Colors.textMuted }]}>
-                  {hasData ? String(latest.value) : '—'}
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => nav.navigate('LongevityScore')}
+            >
+              <LinearGradient
+                colors={['#0A1628', Colors.primaryDark, Colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={s.bioCardInner}
+              >
+                <Text style={s.bioLabel}>YOUR BIOLOGICAL AGE</Text>
+                <Text style={s.bioNum}>{bioAge}</Text>
+                <Text style={s.bioSub}>
+                  Chronological: {chronoAge}
+                  {yearsDiff > 0 ? ` · You're ${yearsDiff} years younger` : ''}
                 </Text>
-                <Text style={s.bmUnit}>{bm.unit}</Text>
-                <View style={[s.bmBadge, hasData ? (isOptimal ? s.bmBadgeGood : s.bmBadgeWarn) : s.bmBadgeNone]}>
-                  <Text style={[s.bmBadgeTxt, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningTextDark) : Colors.textMuted }]}>
-                    {hasData ? (isOptimal ? 'Optimal' : 'Review') : 'No data'}
-                  </Text>
-                </View>
+                {yearsDiff > 0 && (
+                  <View style={s.bioPill}>
+                    <Text style={s.bioPillTxt}>↓ improving</Text>
+                  </View>
+                )}
+                <Text style={s.bioCardTapHint}>Tap to view longevity score →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </BreathingCard>
+
+          {/* Future self projection */}
+          <FutureSelf
+            biologicalAge={profile?.biologicalAge}
+            chronologicalAge={profile?.age}
+            optimality={biomarkerOptimality}
+          />
+
+          {hasKnownInteractions && (
+            <TouchableOpacity style={s.alertCard} onPress={() => nav.navigate('InteractionChecker')}>
+              <View style={s.alertIcon}>
+                <Text style={{ fontSize: 14 }}>⚠️</Text>
               </View>
-            );
-          })}
-        </ScrollView>
-
-        <TouchableOpacity style={s.uploadCard} onPress={() => nav.navigate('LabUpload')}>
-          <Text style={s.uploadCardIcon}>📋</Text>
-          <View style={s.uploadCardBody}>
-            <Text style={s.uploadCardTitle}>Upload lab results</Text>
-            <Text style={s.uploadCardSub}>Import biomarkers from your PDF</Text>
-          </View>
-          <Text style={s.uploadCardArrow}>→</Text>
-        </TouchableOpacity>
-
-        <View style={s.sectionHdr}>
-          <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
-          <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
-        </View>
-
-        <View style={s.protocolCard}>
-          {medications.length === 0 ? (
-            <Text style={s.protoEmptyTxt}>Add medications in your profile to build your protocol</Text>
-          ) : (
-            medications.map((med, i) => {
-              const taken = takenItems.has(med);
-              return (
-                <TouchableOpacity
-                  key={med}
-                  style={[s.protoItem, i < medications.length - 1 && s.protoItemBorder]}
-                  onPress={() => toggleTaken(med)}
-                >
-                  <View style={[s.protoDot, taken ? s.protoDotTaken : s.protoDotPending]} />
-                  <Text style={s.protoName}>{med}</Text>
-                  <Text style={[s.protoTime, taken && { color: Colors.primaryLight }]}>
-                    {taken ? 'Taken ✓' : '—'}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
+              <View style={s.alertBody}>
+                <Text style={s.alertTitle}>Interaction check recommended</Text>
+                <Text style={s.alertTxt}>
+                  One or more of your medications has known supplement interactions. Tap to review.
+                </Text>
+              </View>
+            </TouchableOpacity>
           )}
-        </View>
 
-        <View style={{ height: 32 }} />
-      </ScrollView>
+          <View style={s.sectionHdr}>
+            <Text style={s.sectionTitle}>Biomarkers</Text>
+            <TouchableOpacity
+              style={s.sectionAddBtn}
+              onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+            >
+              <Text style={s.sectionAddTxt}>+ Log</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
+            {BIOMARKERS.slice(0, 5).map((bm) => {
+              const latest = entryMap.get(bm.id) ?? null;
+              const hasData = latest !== null;
+              const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
+              const gradColors = (hasData
+                ? (isOptimal ? Gradients.cardGood : Gradients.cardWarn)
+                : Gradients.cardNone) as [string, string];
+              return (
+                <LinearGradient
+                  key={bm.id}
+                  colors={gradColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0.6, y: 1 }}
+                  style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
+                >
+                  <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningText) : Colors.textMuted }]}>{bm.name}</Text>
+                  <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.primary : Colors.warning) : Colors.textMuted }]}>
+                    {hasData ? String(latest.value) : '—'}
+                  </Text>
+                  <Text style={s.bmUnit}>{bm.unit}</Text>
+                  <View style={[s.bmBadge, hasData ? (isOptimal ? s.bmBadgeGood : s.bmBadgeWarn) : s.bmBadgeNone]}>
+                    <Text style={[s.bmBadgeTxt, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningTextDark) : Colors.textMuted }]}>
+                      {hasData ? (isOptimal ? 'Optimal' : 'Review') : 'No data'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              );
+            })}
+          </ScrollView>
+
+          <TouchableOpacity style={s.uploadCard} onPress={() => nav.navigate('LabUpload')}>
+            <Text style={s.uploadCardIcon}>📋</Text>
+            <View style={s.uploadCardBody}>
+              <Text style={s.uploadCardTitle}>Upload lab results</Text>
+              <Text style={s.uploadCardSub}>Import biomarkers from your PDF</Text>
+            </View>
+            <Text style={s.uploadCardArrow}>→</Text>
+          </TouchableOpacity>
+
+          <View style={s.sectionHdr}>
+            <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
+            <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
+          </View>
+
+          <View style={s.protocolCard}>
+            {medications.length === 0 ? (
+              <Text style={s.protoEmptyTxt}>Add medications in your profile to build your protocol</Text>
+            ) : (
+              medications.map((med, i) => {
+                const taken = takenItems.has(med);
+                return (
+                  <TouchableOpacity
+                    key={med}
+                    style={[s.protoItem, i < medications.length - 1 && s.protoItemBorder]}
+                    onPress={() => toggleTaken(med)}
+                  >
+                    <View style={[s.protoDot, taken ? s.protoDotTaken : s.protoDotPending]} />
+                    <Text style={s.protoName}>{med}</Text>
+                    <Text style={[s.protoTime, taken && { color: Colors.primaryLight }]}>
+                      {taken ? 'Taken ✓' : '—'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
+  screenContainer: { flex: 1 },
   scroll: { flex: 1 },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: Spacing.base, paddingTop: Spacing.md },
   greetSmall: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
   greetName: { fontSize: 22, fontWeight: '600', color: Colors.textPrimary, marginTop: 2 },
   notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  bioCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.base, marginBottom: Spacing.base },
+  // BreathingCard outer margin (replaces old bioCard margin)
+  bioCardWrapper: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, marginBottom: Spacing.base },
+  // LinearGradient inner (replaces old bioCard padding/radius)
+  bioCardInner: { borderRadius: Radius.xl, padding: Spacing.base },
   bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
   bioNum: { fontSize: 52, color: Colors.primaryBg, fontWeight: '300', lineHeight: 58 },
   bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.75)', marginTop: 4 },
   bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(168,213,190,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBorder },
+  bioCardTapHint: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.45)', marginTop: Spacing.sm, letterSpacing: 0.3 },
   alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
   alertIcon: { width: 32, height: 32, backgroundColor: Colors.warningBorder, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   alertBody: { flex: 1 },

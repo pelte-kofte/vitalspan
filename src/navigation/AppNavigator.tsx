@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import DashboardScreen from '../screens/DashboardScreen';
+import LongevityScoreScreen from '../screens/LongevityScoreScreen';
 import BiomarkerDetailScreen from '../screens/BiomarkerDetailScreen';
 import BiomarkerEntryScreen from '../screens/BiomarkerEntryScreen';
 import InteractionCheckerScreen from '../screens/InteractionCheckerScreen';
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   BiomarkerEntry: { biomarkerId?: string };
   InteractionChecker: undefined;
   LabUpload: undefined;
+  LongevityScore: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -124,6 +126,11 @@ export default function AppNavigator() {
           name="LabUpload"
           component={LabUploadScreen}
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="LongevityScore"
+          component={LongevityScoreScreen}
+          options={{ presentation: 'card', animation: 'fade_from_bottom' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
