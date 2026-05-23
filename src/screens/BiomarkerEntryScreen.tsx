@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { BIOMARKERS, Biomarker } from '../data/biomarkers';
@@ -13,8 +14,22 @@ import RangeBar from '../components/RangeBar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Source = 'Blood test' | 'Home kit' | 'Hospital' | 'Private clinic';
+type InputUnit = 'native' | 'mmol/L';
 
 const SOURCES: Source[] = ['Blood test', 'Home kit', 'Hospital', 'Private clinic'];
+
+// Biomarkers that have a common mmol/L alternate input unit
+const MMOL_CONVERTIBLE: Record<string, { factor: number; altUnit: string }> = {
+  fastingglucose: { factor: 18.018, altUnit: 'mmol/L' },  // mg/dL = mmol/L × 18.018
+  hba1c: { factor: 10.929, altUnit: 'mmol/mol' },          // % = mmol/mol / 10.929
+};
+
+function convertToNative(val: number, biomarkerId: string, inputUnit: InputUnit): number {
+  if (inputUnit === 'native') return val;
+  const conv = MMOL_CONVERTIBLE[biomarkerId];
+  if (!conv) return val;
+  return Math.round(val * conv.factor * 100) / 100;
+}
 
 export interface StoredEntry {
   id: string;
@@ -47,12 +62,16 @@ export default function BiomarkerEntryScreen() {
   const [source, setSource] = useState<Source>('Blood test');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [inputUnit, setInputUnit] = useState<InputUnit>('native');
 
-  const numVal = parseFloat(value);
-  const isValidValue = !isNaN(numVal) && numVal >= 0;
+  const rawVal = parseFloat(value);
+  const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
+  const isValidValue = !isNaN(rawVal) && rawVal >= 0;
   const status = selected && isValidValue
     ? getStatus(numVal, selected.optMin, selected.optMax)
     : null;
+  const canConvert = selected ? !!MMOL_CONVERTIBLE[selected.id] : false;
+  const altUnit = selected ? MMOL_CONVERTIBLE[selected.id]?.altUnit : undefined;
 
   const filtered = BIOMARKERS.filter(bm =>
     bm.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -70,6 +89,7 @@ export default function BiomarkerEntryScreen() {
 
   async function save() {
     if (!selected || !isValidValue || saving) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     setSaving(true);
     try {
       const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
@@ -153,8 +173,27 @@ export default function BiomarkerEntryScreen() {
             placeholderTextColor={Colors.textMuted}
             autoFocus
           />
-          <Text style={s.valueUnit}>{selected.unit}</Text>
+          <Text style={s.valueUnit}>{inputUnit === 'native' ? selected.unit : (altUnit ?? selected.unit)}</Text>
         </View>
+        {canConvert && altUnit && (
+          <View style={s.unitConvertRow}>
+            <Text style={s.unitConvertLabel}>Input in:</Text>
+            {(['native', 'mmol/L'] as InputUnit[]).map(u => (
+              <TouchableOpacity
+                key={u}
+                style={[s.unitChip, inputUnit === u && s.unitChipActive]}
+                onPress={() => { setInputUnit(u); setValue(''); Haptics.selectionAsync().catch(() => null); }}
+              >
+                <Text style={[s.unitChipTxt, inputUnit === u && s.unitChipTxtActive]}>
+                  {u === 'native' ? selected.unit : altUnit}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {isValidValue && inputUnit !== 'native' && (
+              <Text style={s.convertedVal}>= {numVal} {selected.unit}</Text>
+            )}
+          </View>
+        )}
 
         {status && (
           <View style={[s.statusBadge,
@@ -279,4 +318,11 @@ const s = StyleSheet.create({
   saveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 16, alignItems: 'center' },
   saveBtnDisabled: { opacity: 0.4 },
   saveBtnTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
+  unitConvertRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
+  unitConvertLabel: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  unitChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
+  unitChipTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
+  convertedVal: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
 });

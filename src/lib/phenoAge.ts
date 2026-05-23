@@ -14,6 +14,7 @@ export interface PhenoAgeInputs {
   alkalinePhosphatase?: number; // U/L
   wbc?: number;               // 10^3/μL (i.e. thousands/μL)
   age: number;                // chronological age in years
+  [key: string]: number | undefined;
 }
 
 export interface PhenoAgeResult {

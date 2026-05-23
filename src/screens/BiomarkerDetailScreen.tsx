@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -89,7 +90,10 @@ export default function BiomarkerDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={s.addBtnSmall}
-              onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: selectedId })}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                nav.navigate('BiomarkerEntry', { biomarkerId: selectedId });
+              }}
             >
               <Text style={s.addBtnSmallTxt}>+ Log</Text>
             </TouchableOpacity>
@@ -141,7 +145,18 @@ export default function BiomarkerDetailScreen() {
           <Text style={s.sectionLabel}>History</Text>
           <View style={s.card}>
             {history.length === 0 ? (
-              <Text style={s.emptyTxt}>No entries logged yet</Text>
+              <View style={s.emptyHistRow}>
+                <Text style={s.emptyTxt}>No entries logged yet</Text>
+                <TouchableOpacity
+                  style={s.logCta}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                    nav.navigate('BiomarkerEntry', { biomarkerId: selectedId });
+                  }}
+                >
+                  <Text style={s.logCtaTxt}>+ Log first entry →</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               history.map((entry, i) => (
                 <View key={entry.id} style={[s.histRow, i < history.length - 1 && s.rowBorder]}>
@@ -320,6 +335,9 @@ const s = StyleSheet.create({
   histSource: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   histVal: { fontSize: 18, fontWeight: '600', color: Colors.textPrimary },
   histUnit: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '400' },
+  emptyHistRow: { paddingVertical: Spacing.sm, gap: Spacing.sm },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  logCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
+  logCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
 });

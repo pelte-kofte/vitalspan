@@ -3,9 +3,14 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 import SupplementRow from '../components/SupplementRow';
 
 interface UserProfile {
@@ -59,6 +64,7 @@ const EMPTY_PROTOCOL: ProtocolState = {
 };
 
 export default function ProtocolScreen() {
+  const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
   const [expandedTimings, setExpandedTimings] = useState<Set<string>>(new Set());
@@ -102,6 +108,7 @@ export default function ProtocolScreen() {
   }
 
   function toggleTaken(name: string) {
+    Haptics.selectionAsync().catch(() => null);
     const today = new Date().toISOString().slice(0, 10);
     const taken = protocol.taken.includes(name)
       ? protocol.taken.filter(t => t !== name)
@@ -171,7 +178,15 @@ export default function ProtocolScreen() {
         <Text style={s.sectionLabel}>Medications</Text>
         <View style={s.card}>
           {medications.length === 0 ? (
-            <Text style={s.emptyTxt}>Add medications in your profile to see them here</Text>
+            <View style={s.emptyState}>
+              <Text style={s.emptyTxt}>No medications in your profile</Text>
+              <TouchableOpacity
+                style={s.emptyCtaBtn}
+                onPress={() => nav.navigate('Profile' as never)}
+              >
+                <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             medications.map((med, i) => {
               const taken = protocol.taken.includes(med);
@@ -285,7 +300,10 @@ const s = StyleSheet.create({
     padding: Spacing.md,
   },
   rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
+  emptyState: { paddingVertical: Spacing.sm, gap: Spacing.sm },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted, paddingVertical: Spacing.xs },
+  emptyCtaBtn: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
+  emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   medRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.sm },
   medLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
   medName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },

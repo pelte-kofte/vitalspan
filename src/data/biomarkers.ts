@@ -277,7 +277,6 @@ export const BIOMARKERS: Biomarker[] = [
       { date: 'Apr 2026', value: 5.1 },
     ],
   },
-];
 
   // ── PhenoAge required biomarkers ─────────────────────────────────────────
   {
@@ -399,6 +398,7 @@ export const BIOMARKERS: Biomarker[] = [
     howToImprove: 'Reduce chronic infections, optimize dental health, improve sleep quality, reduce processed foods. Elevated WBC without infection warrants medical evaluation.',
     history: [],
   },
+];
 
 export const INTERACTIONS = [
   {
