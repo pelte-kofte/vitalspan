@@ -25,6 +25,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Colors, Spacing, Typography, Radius } from '../theme';
+import NeuralGrid from './NeuralGrid';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SVG_W = SCREEN_W - Spacing.base * 2;
@@ -124,6 +125,10 @@ export default function FutureSelf({
   return (
     <>
       <Animated.View style={[s.wrapper, containerStyle]}>
+        {/* Subtle neural grid overlay at very low opacity — gives the card life */}
+        <View style={[StyleSheet.absoluteFill, { opacity: 0.35 }]} pointerEvents="none">
+          <NeuralGrid intensity="low" tone="calm" />
+        </View>
         <TouchableOpacity
           onPress={() => {
             if (onPress) onPress();
@@ -283,6 +288,7 @@ const s = StyleSheet.create({
     overflow: 'hidden', shadowColor: Colors.primaryDark,
     shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08,
     shadowRadius: 16, elevation: 3,
+    position: 'relative',
   },
   touchable: { padding: Spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: Spacing.sm },

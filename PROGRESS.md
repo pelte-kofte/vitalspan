@@ -16,7 +16,7 @@ Lines are static, computed once from distance threshold.
 This hits 60fps because the only animated prop is `opacity` on a native View — runs on UI thread.
 
 ### No new packages installed
-- expo-health is NOT installed. healthkit.ts is a full design stub, ready to activate.
+- expo-health is NOT installed. healthkit.ts is a full mock system, ready to swap for real SDK.
 - All other dependencies already in package.json.
 
 ---
@@ -121,14 +121,101 @@ All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline
 
 ---
 
+## Session 3 — UX Gap Fixes (2026-05-24)
+
+### Issues addressed from user testing:
+
+#### 1. Apple Health — HealthKit mock integration (src/lib/healthkit.ts)
+- Full mock system with realistic data generation (HRV 48–76ms, sleep 6.8–8.6h, VO2max 44–60, recovery 55–90, glucose 82–96)
+- `connectAndSync()` — shows native Alert permission flow, generates mock data, saves to @vitalspan_health_data
+- `deriveHealthState()` — maps HRV/recovery to NeuralGrid tone (neutral/good/poor/stressed)
+- `formatSyncTime()` — human-readable last sync time
+- "Demo mode" badge shown when mock data is active
+- `loadPermissionStatus()` / `savePermissionStatus()` — persists to @vitalspan_health_permissions
+- Ready to swap for real expo-health SDK: all real code is commented in-file
+
+#### 2. LongevityScore overhaul (src/screens/LongevityScoreScreen.tsx)
+- Orbital cards: replaced "—" with intelligent empty states (reason + CTA copy)
+- "?" help button → explainer modal (sphere = PhenoAge, orbitals = HealthKit, projection math)
+- Score transparency sheet: biomarker checklist with ✓/○, confidence %, "what improves this?" section
+- Quick action row: Log biomarkers, Connect/Resync Health, Bio-age test
+- "Connect Apple Health" button actually calls connectAndSync(), shows loading, updates cards
+- Demo mode badge when mock data active
+- Pull-to-refresh (RefreshControl)
+- Presentation changed to fullScreenModal for swipe-down dismiss
+
+#### 3. Custom supplements (src/screens/ProtocolScreen.tsx)
+- AddCustomSupplementModal: SUPPLEMENT_DATABASE search (≥2 chars), manual entry fallback
+- Fields: name*, dose, time of day (AM/PM/Eve/Night), notes
+- Custom supplements stored in @vitalspan_protocol under `customSupplements: CustomSupplement[]`
+- "Your Stack" section shows user's custom supplements above recommended list
+- Swipe-to-remove (✕ button) with confirmation Alert
+- Pull-to-refresh added
+
+#### 4. Medication interaction warnings (src/screens/ProtocolScreen.tsx)
+- Drug class label shown under medication name (from MEDICATION_DATABASE)
+- Inline "⚠ Conflicts with {supplement} — tap to review" row on each medication
+- Tapping conflict → InteractionChecker screen
+- Checks INTERACTIONS list against user's added supplements (base + custom)
+- Also checks drug class-level interactions (e.g., any Statin + CoQ10)
+
+#### 5. Biomarker citations (src/screens/BiomarkerDetailScreen.tsx)
+- Citation block at bottom of "About" section: "References: Levine et al. Aging Cell 2018 · Attia, Outlive (2023) · Longevity Medicine Alliance guidelines"
+- Citation block at bottom of "How to improve": "Pharmacist-reviewed · Evidence grade based on RCT + meta-analysis literature"
+- Professional `fontStyle: 'italic'` styling with border-top separator
+
+#### 6. FutureSelf projection math (src/components/FutureSelf.tsx)
+- aging_rate = bio_age / chrono_age (real ratio, not fixed 1.0)
+- adjustedRate = agingRate * (1 - optimality * 0.08) — biomarker quality reduces rate up to 8%
+- projectedBioAge = bio_age + adjustedRate * 5 calendar years
+- Shows rate badge: "0.72 yr/yr" with green/warning color coding
+- Locked state (🔒) when biologicalAge or chronologicalAge is null
+- Projection explainer modal: tap → see full math breakdown
+- Neural grid overlay at 0.35 opacity for subtle animation
+
+#### 7. Settings polish (src/screens/SettingsScreen.tsx)
+- Grouped sections: Account, Preferences, Data, About, Developer (dev-only)
+- Icon per row (📤 📊 🔔 ℹ 🔒 etc.) in 32×32 rounded square
+- "Export my data" → Share() with JSON of all storage keys
+- "Reset onboarding" debug option (hidden behind __DEV__ flag)
+- Section labels 11px uppercase 1.5 letter-spacing
+
+#### 8. About screen authority (src/screens/AboutScreen.tsx)
+- Founder section: "Rx" avatar, PharmD credentials
+- "Why pharmacist-built matters" expandable: 3 bullet points explaining clinical rigor
+- 8-citation Sources & Citations expandable list (Levine, Attia, Sinclair, Fontana, etc.)
+- Privacy Policy link (placeholder)
+- Evidence grading color-coded chips
+
+#### 9. Pull-to-refresh added to all data screens
+- BiomarkerDetailScreen (both list view and detail view)
+- ProtocolScreen
+- ProfileScreen
+- LongevityScoreScreen
+
+#### 10. Empty states upgraded
+- Dashboard biomarker cards: "No data" → "Tap to log first reading" CTA badge
+- Dashboard empty protocol: "Go to Protocol →" CTA
+- BiomarkerDetail list: "No data" → "Tap to log" badge
+- Orbital metrics: "—" → reason + CTA copy (e.g., "3 nights required / Connect Health")
+- LongevityScore bio age pending: "—" → "LOG 4+ BMs"
+
+#### 11. Reactive NeuralGrid
+- DashboardScreen reads @vitalspan_health_data on load
+- `deriveHealthState()` maps to tone: stressed → 'alert', good → 'vital', else 'calm'
+- NeuralGrid tone changes based on user's HRV/recovery state
+
+---
+
 ## Preserved / Untouched
 - All existing AsyncStorage keys: `@vitalspan_user_profile`, `@vitalspan_biomarkers`, `@vitalspan_protocol`, `@vitalspan_protocol_today`, `@vitalspan_health_data`
+- New keys: `@vitalspan_health_permissions` (HealthKit consent), `customSupplements` added to `@vitalspan_protocol`
 - All business logic in src/data/
 - All existing screen functionality
 - All existing theme tokens (only added new ones)
-- NeuralGrid, BreathingCard, FutureSelf, SupplementRow, RangeBar components
+- NeuralGrid, BreathingCard, SupplementRow, RangeBar components
 - LongevityScoreScreen dark theme
-- All navigation paths (only added Settings, About routes + fixed gestures)
+- All navigation paths
 
 ---
 
@@ -136,18 +223,20 @@ All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline
 
 - [ ] Paywall — RevenueCat integration
 - [ ] Supabase backend (auth + sync)
-- [ ] Apple HealthKit — `expo-health` (stub exists at `src/lib/healthkit.ts`)
+- [ ] Apple HealthKit — real `expo-health` (mock exists, ready to swap: `npx expo install expo-health && npx expo run:ios`)
 - [ ] Push notifications — `expo-notifications`
-- [ ] Protocol weekly adherence chart with react-native-svg
-- [ ] BiomarkerDetail trend chart (react-native-chart-kit or SVG)
+- [ ] Protocol adherence chart (react-native-svg timeline, 30-day history)
+- [ ] BiomarkerDetail trend chart (react-native-chart-kit or SVG sparklines)
 - [ ] TestFlight build + EAS configuration review
 - [ ] App Store screenshots
+- [ ] Tab bar gradient/tint (issue #8 partial — NeuralGrid added, tab bar still plain)
+- [ ] Parallax scroll effect on LongevityScore orbital cards (issue #9)
 
 ---
 
 ## TypeScript status
-✅ `npx tsc --noEmit` passes with 0 errors (verified 2026-05-23)
+✅ `npx tsc --noEmit` passes with 0 errors (verified 2026-05-24)
 
 ## Commits in this session
-- `3b53ddc` feat: production readiness — navigation, PhenoAge, local meds, settings
-- `79ac416` feat: polish screens — haptics, unit conversion, empty states, protocol
+- `421def8` feat: UX overhaul — HealthKit mock, custom supplements, interaction warnings, FutureSelf math
+- (visual polish commit pending)

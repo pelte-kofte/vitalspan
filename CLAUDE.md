@@ -52,13 +52,52 @@ assets/
 ## Current Screens
 - LandingScreen → OnboardingScreen → Main (tabs)
 - Main tabs: Dashboard, Biomarkers, Protocol, Profile
-- Modals: BiomarkerDetail, BiomarkerEntry, InteractionChecker
+- Stack modals: LongevityScore (fullScreenModal), BiomarkerEntry, InteractionChecker, LabUpload
+- Stack cards: BiomarkerDetail
+- Settings + About (modal)
+
+## Key Components
+- `NeuralGrid` — animated SVG background. Props: `intensity`, `tone` ('calm'|'alert'|'vital')
+- `BreathingCard` — scale+glow wrapper around cards
+- `FutureSelf` — biological age projection card with neural overlay, aging rate badge, locked state
+- `SupplementRow` — supplement with timing info, interaction warnings, evidence grade
+- `RangeBar` — biomarker range visualization
+
+## Key Libraries / Data
+- `src/lib/phenoAge.ts` — Levine PhenoAge formula, `computePhenoAge()`, `PHENO_AGE_BIOMARKER_MAP`
+- `src/lib/healthkit.ts` — HealthKit mock: `connectAndSync()`, `loadHealthData()`, `deriveHealthState()`
+- `src/data/medications.ts` — `MEDICATION_DATABASE` (200 drugs), `MedicationEntry` type
+- `src/data/supplementTimings.ts` — `SUPPLEMENT_DATABASE` (20 supplements), `SupplementInfo` type
+- `src/data/biomarkers.ts` — `BIOMARKERS`, `INTERACTIONS`
+
+## AsyncStorage Keys
+- `@vitalspan_user_profile` — UserProfile (name, age, sex, goal, conditions, medications)
+- `@vitalspan_biomarkers` — StoredEntry[] (biomarker history)
+- `@vitalspan_protocol` — ProtocolState (medTimes, addedSupplements, customSupplements, taken, takenDate)
+- `@vitalspan_protocol_today` — { date, taken } (daily taken cache for Dashboard)
+- `@vitalspan_health_data` — HealthData (HRV, sleep, glucose, recovery, isDemoMode, lastSynced)
+- `@vitalspan_health_permissions` — PermissionStatus (granted, categories, requestedAt)
+
+## ProtocolState schema
+```typescript
+interface ProtocolState {
+  medTimes: Record<string, TimeSlot>;
+  addedSupplements: string[];          // names from recommended list
+  customSupplements: CustomSupplement[]; // user-added
+  taken: string[];
+  takenDate: string;
+}
+interface CustomSupplement {
+  id: string; name: string; dose: string;
+  timing?: TimeSlot; notes?: string; addedAt: string;
+}
+```
 
 ## What's Next (priority order)
-1. BiomarkerDetailScreen — charts with react-native-chart-kit
-2. BiomarkerEntryScreen — manual log
-3. ProtocolScreen — supplement stack builder
+1. Real Apple HealthKit — `npx expo install expo-health && npx expo run:ios` (mock ready in healthkit.ts)
+2. BiomarkerDetail trend chart (react-native-chart-kit sparkline)
+3. Protocol adherence chart (30-day SVG timeline)
 4. Paywall — RevenueCat integration
 5. Supabase backend
-6. Apple HealthKit — expo-health
-7. Push notifications — expo-notifications
+6. Push notifications — expo-notifications
+7. TestFlight / EAS

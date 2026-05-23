@@ -150,7 +150,7 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="LongevityScore"
           component={LongevityScoreScreen}
-          options={{ presentation: 'card', animation: 'fade_from_bottom' }}
+          options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
         />
         <Stack.Screen
           name="Settings"
