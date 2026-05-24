@@ -420,7 +420,7 @@ const s = StyleSheet.create({
   targetTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
   insightCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.status.optimalBg, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   insightTxt: { fontSize: Typography.sizes.sm, color: Colors.status.optimalText, lineHeight: 20 },
-  sectionLabel: { fontSize: 11, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  sectionLabel: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm },
   histLeft: { flex: 1 },
   histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },

@@ -88,7 +88,7 @@ function MainTabs() {
         component={ProtocolScreen}
         options={{
           tabBarLabel: 'Protocol',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🧬" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="💊" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -96,7 +96,7 @@ function MainTabs() {
         component={ExerciseScreen}
         options={{
           tabBarLabel: 'Exercise',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏋️" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏃" focused={focused} />,
         }}
       />
       <Tab.Screen

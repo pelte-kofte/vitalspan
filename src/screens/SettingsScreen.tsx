@@ -273,7 +273,9 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard,
-    borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, overflow: 'hidden',
+    borderRadius: 20, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
