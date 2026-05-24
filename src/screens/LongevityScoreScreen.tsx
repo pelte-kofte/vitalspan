@@ -429,12 +429,7 @@ export default function LongevityScoreScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Demo mode badge */}
-          {healthData.isDemoMode && (
-            <View style={s.demoBadge}>
-              <Text style={s.demoBadgeTxt}>⚗ Demo data — connect Apple Health for real metrics</Text>
-            </View>
-          )}
+          {/* Demo chip — only shown inline on orbital data orbs, not as banner */}
 
           {/* Sphere + orbit visualization */}
           <Animated.View style={[s.sphereArea, sphereContainerStyle]}>
@@ -498,6 +493,7 @@ export default function LongevityScoreScreen() {
                       <>
                         <Text style={s.dataOrbVal}>{val}</Text>
                         <Text style={s.dataOrbLabel}>{dp.label}</Text>
+                        {healthData.isDemoMode && <Text style={s.dataOrbDemoChip}>demo</Text>}
                       </>
                     ) : (
                       <>
@@ -541,6 +537,7 @@ export default function LongevityScoreScreen() {
                       <Text style={s.metricVal}>{val}</Text>
                       <Text style={s.metricLabel}>{dp.label}</Text>
                       {dp.unit !== '' && <Text style={s.metricUnit}>{dp.unit}</Text>}
+                      {healthData.isDemoMode && <Text style={s.metricDemoChip}>demo</Text>}
                     </>
                   ) : (
                     <>
@@ -663,18 +660,18 @@ const s = StyleSheet.create({
   },
   helpBtnTxt: { fontSize: 16, color: Colors.dark.textMuted, fontWeight: '600' },
 
-  demoBadge: {
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderRadius: Radius.full,
-    borderWidth: 0.5,
-    borderColor: 'rgba(245,158,11,0.3)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    alignSelf: 'center',
+  dataOrbDemoChip: {
+    fontSize: 7,
+    color: 'rgba(245,158,11,0.6)',
+    letterSpacing: 0.3,
+    marginTop: 1,
   },
-  demoBadgeTxt: { fontSize: Typography.sizes.xs, color: Colors.viz.amber, textAlign: 'center' },
+  metricDemoChip: {
+    fontSize: 8,
+    color: 'rgba(245,158,11,0.55)',
+    letterSpacing: 0.3,
+    marginTop: 1,
+  },
 
   sphereArea: { width: W, height: SVG_H, alignSelf: 'center' },
 
