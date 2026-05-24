@@ -401,6 +401,15 @@ export default function ProtocolScreen() {
   }
 
   function addCustomSupplement(s: CustomSupplement) {
+    const nameLower = s.name.toLowerCase().trim();
+    const allNames = [
+      ...protocol.addedSupplements.map(n => n.toLowerCase()),
+      ...(protocol.customSupplements ?? []).map(cs => cs.name.toLowerCase()),
+    ];
+    if (allNames.includes(nameLower)) {
+      Alert.alert('Already in your stack', `${s.name} is already in your supplement stack.`);
+      return;
+    }
     const customSupplements = [...(protocol.customSupplements ?? []), s];
     persist({ ...protocol, customSupplements });
   }
