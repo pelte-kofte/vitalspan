@@ -110,18 +110,19 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
     wbc:                 6.0,
   };
 
-  const alb   = inputs.albumin              ?? MEDIANS.albumin;
-  const cr    = inputs.creatinine           ?? MEDIANS.creatinine;
-  const glu   = inputs.glucose              ?? MEDIANS.glucose;
-  const crpRaw = inputs.crp                 ?? MEDIANS.crp;
-  const lymph = inputs.lymphocytePct        ?? MEDIANS.lymphocytePct;
-  const mcv   = inputs.mcv                  ?? MEDIANS.mcv;
-  const rdw   = inputs.rdw                  ?? MEDIANS.rdw;
-  const alp   = inputs.alkalinePhosphatase  ?? MEDIANS.alkalinePhosphatase;
-  const wbc   = inputs.wbc                  ?? MEDIANS.wbc;
+  // Levine 2018 formula expects g/L, μmol/L, mmol/L — convert from lab-report units
+  const alb    = (inputs.albumin              ?? MEDIANS.albumin)    * 10;      // g/dL → g/L
+  const cr     = (inputs.creatinine           ?? MEDIANS.creatinine) * 88.42;   // mg/dL → μmol/L
+  const glu    = (inputs.glucose              ?? MEDIANS.glucose)    * 0.0555;  // mg/dL → mmol/L
+  const crpRaw = inputs.crp                  ?? MEDIANS.crp;
+  const lymph  = inputs.lymphocytePct        ?? MEDIANS.lymphocytePct;
+  const mcv    = inputs.mcv                  ?? MEDIANS.mcv;
+  const rdw    = inputs.rdw                  ?? MEDIANS.rdw;
+  const alp    = inputs.alkalinePhosphatase  ?? MEDIANS.alkalinePhosphatase;
+  const wbc    = inputs.wbc                  ?? MEDIANS.wbc;
 
-  // Natural log of CRP (add 1 to handle very low values)
-  const lnCRP = Math.log(Math.max(crpRaw, 0.01) + 1);
+  // CRP input is mg/L; formula uses ln(CRP in mg/dL). Divide by 10 to convert.
+  const lnCRP  = Math.log(Math.max(crpRaw / 10, 0.0001));
 
   // Compute linear combination (mortality score)
   const xb =
