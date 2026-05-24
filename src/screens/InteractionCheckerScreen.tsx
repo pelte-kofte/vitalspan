@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView,
+  StyleSheet, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { INTERACTIONS } from '../data/biomarkers';
 import MedicationSearch from '../components/MedicationSearch';
+import { checkDrugInteractions, DrugInteractionResult } from '../services/rxnav';
 
 const SUPPLEMENTS = ['NMN', 'Omega-3', 'Berberine', 'Resveratrol', 'CoQ10', 'Vitamin K2', 'Magnesium', 'Vitamin D'];
 
@@ -31,6 +32,8 @@ export default function InteractionCheckerScreen() {
   const [tab, setTab] = useState(0);
   const [items, setItems] = useState<{ name: string; type: 'drug' | 'supp' }[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [rxnavResults, setRxnavResults] = useState<DrugInteractionResult[]>([]);
+  const [rxnavLoading, setRxnavLoading] = useState(false);
 
   function addItem(name: string, type: 'drug' | 'supp') {
     if (!items.find(i => i.name.toLowerCase() === name.toLowerCase())) {
@@ -41,6 +44,27 @@ export default function InteractionCheckerScreen() {
   function removeItem(name: string) {
     setItems(prev => prev.filter(i => i.name !== name));
   }
+
+  useEffect(() => {
+    const drugs = items.filter(i => i.type === 'drug').map(i => i.name);
+    if (drugs.length < 2) {
+      setRxnavResults([]);
+      return;
+    }
+    let cancelled = false;
+    setRxnavLoading(true);
+    checkDrugInteractions(drugs)
+      .then(results => {
+        if (!cancelled) {
+          setRxnavResults(results);
+          setRxnavLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRxnavLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [items]);
 
   const interactions = useMemo(() => {
     const found: typeof INTERACTIONS = [];
@@ -160,6 +184,39 @@ export default function InteractionCheckerScreen() {
                 );
               })}
             </>
+          )}
+
+          {/* Live RxNav drug-drug interactions */}
+          {items.filter(i => i.type === 'drug').length >= 2 && (
+            <View style={s.rxnavSection}>
+              <View style={s.rxnavHeader}>
+                <Text style={s.sectionLbl}>NLM Drug Interactions</Text>
+                {rxnavLoading && <ActivityIndicator size="small" color={Colors.primary} />}
+              </View>
+              {!rxnavLoading && rxnavResults.length === 0 && (
+                <View style={s.safeCard}>
+                  <Text style={s.safeTitle}>✓ No live drug-drug interactions found</Text>
+                  <Text style={s.safeBody}>Verified via NIH RxNav API</Text>
+                </View>
+              )}
+              {rxnavResults.slice(0, 5).map((r, i) => {
+                const cfg = sev(r.severity);
+                return (
+                  <View key={i} style={[s.interCard, r.severity === 'high' && s.interCardHigh]}>
+                    <View style={s.interHeader}>
+                      <View style={[s.interDot, { backgroundColor: cfg.color }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.interTitle}>{r.drugA} + {r.drugB}</Text>
+                        <Text style={s.interSub} numberOfLines={2}>{r.description}</Text>
+                      </View>
+                      <View style={[s.severityBadge, { backgroundColor: cfg.bg }]}>
+                        <Text style={[s.severityTxt, { color: cfg.color }]}>{cfg.label}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           )}
 
           <View style={s.pharmCard}>
@@ -287,4 +344,6 @@ const s = StyleSheet.create({
   pharmAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primaryBg, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignItems: 'center', justifyContent: 'center' },
   pharmName: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primaryDark, marginBottom: 3 },
   pharmBody: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 16 },
+  rxnavSection: { marginTop: Spacing.base },
+  rxnavHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
 });

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
+import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Landing' | 'Main' | null>(null);
@@ -26,6 +27,7 @@ export default function App() {
     <>
       <StatusBar style="auto" />
       <AppNavigator initialRoute={initialRoute} />
+      <MedicalDisclaimer />
     </>
   );
 }

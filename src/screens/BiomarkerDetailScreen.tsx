@@ -15,13 +15,17 @@ import { StoredEntry, getStatus } from './BiomarkerEntryScreen';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORIES = [
-  { key: 'cardio', label: 'Cardiovascular' },
-  { key: 'metabolic', label: 'Metabolic' },
-  { key: 'inflammation', label: 'Inflammation' },
-  { key: 'hormones', label: 'Hormones' },
-  { key: 'vitamins', label: 'Vitamins' },
-  { key: 'cbc', label: 'Complete Blood Count' },
-  { key: 'metabolicPanel', label: 'Metabolic Panel' },
+  { key: 'cardio',        label: 'Cardiovascular' },
+  { key: 'metabolic',     label: 'Metabolic' },
+  { key: 'inflammation',  label: 'Inflammation' },
+  { key: 'hormones',      label: 'Hormones' },
+  { key: 'thyroid',       label: 'Thyroid' },
+  { key: 'liver',         label: 'Liver Function' },
+  { key: 'kidney',        label: 'Kidney Function' },
+  { key: 'vitamins',      label: 'Vitamins & Minerals' },
+  { key: 'cbc',           label: 'Complete Blood Count' },
+  { key: 'metabolicPanel',label: 'Metabolic Panel' },
+  { key: 'longevity',     label: 'Longevity' },
 ] as const;
 
 // Precomputed at module level — BIOMARKERS is static
