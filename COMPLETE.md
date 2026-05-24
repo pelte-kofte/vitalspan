@@ -1,115 +1,114 @@
-# Session 3 Complete
+# Session 4 — Bug Fix Complete
 
-All three tasks completed, TypeScript clean, three atomic commits.
-
-## Commits
-
-| SHA | Task | Description |
-|-----|------|-------------|
-| 0265a72 | TASK 1 | design: premium apple health polish |
-| 04f3b18 | TASK 2 | feat: exercise database and screen |
-| 0c7f534 | TASK 3 | feat: rxnav api + biomarker expansion |
+6 bugs fixed. `npx tsc` passes with zero errors.
 
 ---
 
-## TASK 1 — Design System Overhaul ✓
+## Bug 1 — PhenoAge Formula Returns "1" (CRITICAL)
+**File:** `src/lib/phenoAge.ts`
 
-**Files changed:** `src/theme/index.ts`, `src/navigation/AppNavigator.tsx`, `src/screens/DashboardScreen.tsx`, `src/screens/BiomarkerDetailScreen.tsx`, `src/screens/ProfileScreen.tsx`, `src/screens/LandingScreen.tsx`
+Root cause: Levine 2018 coefficients are calibrated for US lab units (albumin g/dL, creatinine mg/dL, glucose mg/dL). The code was converting to SI units (×10, ×88.42, ×0.0555) before applying them, causing `xb ≈ −10.7` → `mortProb ≈ 0` → `Math.log(0) = −Infinity` → clamped to 1.
 
-- `Colors.status` namespace added: `optimal` (#52B788), `review` (#E9C46A), `critical` (#E76F51) with `Bg`, `Border`, `Text` variants
-- Tab bar: translucent warm tone `rgba(237, 232, 220, 0.94)`, no hard border, label fontWeight 600
-- All cards: `borderRadius: 20`, no explicit border, `shadowOpacity: 0.06 / shadowRadius: 12`
-- Section labels: ALL CAPS, `fontSize: 11`, `letterSpacing: 1.5` consistently across all screens
-- Screen titles: `fontWeight: '700'` (was `'300'`) on Biomarkers, Profile
-- Biomarker status badges use `Colors.status.*` tokens throughout
-- LongevityScore cinematic dark UI untouched (per constraint)
+Fix: removed the three unit conversions. Also added:
+- Explicit `crpRaw <= 0` guard (returns `null`)
+- `mortProb` and `innerLog` validity checks before `Math.log()`
+- Range clamp: PhenoAge < 15 or > 95 returns `null` instead of garbage
+- `console.log` of every intermediate term for debugging
 
----
-
-## TASK 2 — Exercise Database + Screen ✓
-
-**Files created:** `src/data/exercises.ts`, `src/screens/ExerciseScreen.tsx`  
-**Files changed:** `src/navigation/AppNavigator.tsx`, `src/screens/DashboardScreen.tsx`
-
-- **59 curated exercises** across 8 longevity categories (Cardio, Legs, Push, Pull/Row, Core, Shoulders, Arms, Calves)
-- Sourced from `hasaneyldrm/exercises-dataset` (MIT), filtered for BW/dumbbell/barbell/kettlebell
-- `ExerciseScreen`: horizontal category tab filter, accordion exercise list, `QuickLogModal` (sets×reps for strength, duration for cardio)
-- Exercise log stored at `@vitalspan_exercise_log` as `ExerciseLogEntry[]`
-- **5th tab "Exercise"** added to MainTabs (between Protocol and Profile)
-- **Dashboard card**: "Exercise today" — shows exercise count and names from today's log
+**Commit:** `ffb05fb`
 
 ---
 
-## TASK 3 — Data Architecture ✓
+## Bug 2 — Full-Width "Demo Data" Banner on LongevityScoreScreen
+**File:** `src/screens/LongevityScoreScreen.tsx`
 
-### 3a: Biomarker Expansion (19→50)
+Removed the amber full-width banner. Replaced with a tiny amber "demo" chip rendered inline inside each data orbital and metric grid cell when `healthData.isDemoMode` is true and the value is non-null. Chip is 7–8px, `rgba(245,158,11,0.6)` — visible but unobtrusive.
 
-**File changed:** `src/data/biomarkers.ts`
-
-New categories added: `thyroid`, `liver`, `kidney`, `longevity`
-
-| Category | New Biomarkers |
-|----------|---------------|
-| Cardiovascular | Lp(a), HDL, LDL, Triglycerides |
-| Metabolic | Fasting Insulin, HOMA-IR, Adiponectin |
-| Inflammation | IL-6, Fibrinogen |
-| Hormones | Estradiol, Cortisol (AM), SHBG, Free Testosterone |
-| Vitamins/Minerals | B12, Folate, Magnesium (RBC), Zinc, Vitamin K2 |
-| Thyroid | TSH, Free T3, Free T4 |
-| Liver Function | ALT, AST, GGT |
-| Kidney Function | eGFR, Cystatin C, BUN, UACR |
-| Longevity | VO2 Max, Grip Strength, NAD+ |
-
-All use longevity-optimized ranges (not standard lab normals). All have clinical rationale, howToImprove, and insight fields.
-
-BiomarkerDetailScreen CATEGORIES list updated to include all 11 categories.
-
-### 3b: RxNav NLM API Service
-
-**File created:** `src/services/rxnav.ts`
-
-- `fetchRxCUI(drugName)` — resolves drug name to RxCUI
-- `fetchInteractions(rxcuis)` — fetches drug-drug interaction pairs
-- `checkDrugInteractions(names)` — high-level convenience combining both
-- `pruneExpiredCache()` — removes stale entries on startup
-- **30-day TTL cache** at `@vitalspan_rxnav_cache`
-- Graceful fallback: returns `[]` on network failure (never crashes)
-- **InteractionCheckerScreen** updated: when 2+ drugs selected, live RxNav check fires asynchronously with loading indicator
-
-### 3c: Medical Disclaimer
-
-**File created:** `src/components/MedicalDisclaimer.tsx`
-
-- `MedicalDisclaimer` — non-dismissable Modal on first launch
-- Version-keyed at `@vitalspan_disclaimer_accepted` — re-shows on version bump
-- `MedicalBanner` — slim persistent inline banner for medical screens
-- Mounted in `App.tsx` — renders above AppNavigator
-
-### 3d: Supplement Interactions Expanded (7→31)
-
-**File changed:** `src/data/biomarkers.ts`
-
-+24 pharmacist-verified interactions added:
-- St. John's Wort (SSRIs, warfarin)
-- Thyroid medication interactions (calcium, iron, magnesium, ashwagandha)
-- Berberine CYP3A4 substrate interactions
-- Quercetin + cyclosporine (high severity)
-- Ginkgo biloba (aspirin, warfarin)
-- Curcumin + anticoagulants
-- Niacin + statins, CoQ10 + warfarin
-- NAC + nitroglycerin, garlic extract, rhodiola, creatine
-
-Sources: Stockley's Drug Interactions, Medscape Drug Interaction Checker 2024
+**Commit:** `283ab63`
 
 ---
 
-## What's next
+## Bug 3 — Duplicate Supplements in Protocol Stack
+**File:** `src/screens/ProtocolScreen.tsx`
 
-Priority order from CLAUDE.md (unchanged):
-1. Real Apple HealthKit — `npx expo install expo-health && npx expo run:ios`
-2. BiomarkerDetail trend chart (react-native-chart-kit sparkline)
-3. Protocol adherence chart (30-day SVG timeline)
-4. Paywall — RevenueCat integration
-5. Supabase backend
-6. Push notifications — expo-notifications
-7. TestFlight / EAS Build
+`addCustomSupplement` now builds a combined name list from both `protocol.addedSupplements` and `protocol.customSupplements`, does a case-insensitive `.includes()` check on the trimmed name, and shows `Alert.alert('Already in your stack', ...)` with an early return before any state mutation.
+
+**Commit:** `afa38f2`
+
+---
+
+## Bug 4 — No Way to Edit Biomarker History Entries
+**File:** `src/screens/BiomarkerDetailScreen.tsx`
+
+Each history row now has a pencil button (✎). Tapping it switches the row into inline edit mode: a `TextInput` pre-filled with the current value, a unit label, and Save/Cancel buttons. On save:
+1. Parses and validates the new value (must be > 0)
+2. Maps over the full `StoredEntry[]` array, updating the matched entry's value
+3. Persists to `@vitalspan_biomarkers` via AsyncStorage
+4. Triggers `Haptics.notificationAsync(SUCCESS)`
+
+PhenoAge recalculates automatically on next focus via the existing `useFocusEffect`.
+
+**Commit:** `b58662c`
+
+---
+
+## Bug 5 — No Daily Workout Tracking
+**Files:** `src/data/exercises.ts`, `src/screens/ExerciseScreen.tsx`, `src/screens/DashboardScreen.tsx`
+
+### Data layer
+- Added `ExerciseIntensity = 'easy' | 'moderate' | 'hard'`
+- Added `intensity?` and `caloriesEstimated?` fields to `ExerciseLogEntry`
+- Added `CATEGORY_MET` record (Cardio 4.5, compound lifts 5.0, Core 3.5, Arms 4.0)
+
+### ExerciseScreen
+- Duration field added to all exercise types (was cardio-only)
+- Intensity picker: Easy / Moderate / Hard chips (MET multipliers 0.8 / 1.0 / 1.3)
+- Live calorie estimate: `MET × met_mult × weightKg × (durationMin / 60)` shown in modal
+- Weight pulled from `@vitalspan_user_profile`; defaults to 75 kg if absent
+- "Today's Activity" summary card at top: exercise count / total minutes / total kcal
+
+### DashboardScreen
+- "Movement today" subtitle now shows `{count} exercise(s) · {totalMin} min · ~{totalCal} kcal`
+- Icon updated to 🏃
+
+**Commit:** `9f61cbe`
+
+---
+
+## Bug 6 — Clinic-Vibe White Screens & Inconsistent Styles
+**Files:** `src/screens/SettingsScreen.tsx`, `src/screens/InteractionCheckerScreen.tsx`, `src/screens/BiomarkerDetailScreen.tsx`, `src/navigation/AppNavigator.tsx`
+
+### SettingsScreen
+- `card`: removed `borderWidth: 0.5`; `borderRadius: Radius.lg` → `20`; added shadow `0.05/12/elevation 2`
+
+### InteractionCheckerScreen
+- `sectionLbl`: `fontWeight '500'` → `'600'`, `letterSpacing 0.7` → `1.5`
+- `interCard`, `safeCard`, `pharmCard`: `borderRadius 16` → `20`; removed `borderWidth: 1`; `shadowOpacity 0.03` → `0.05`, `shadowRadius 8` → `12`, `elevation 1` → `2`
+
+### BiomarkerDetailScreen
+- `sectionLabel`: `fontWeight '500'` → `'600'`
+
+### AppNavigator
+- Protocol tab: 🧬 → 💊 (pill — matches screen purpose)
+- Exercise tab: 🏋️ → 🏃 (figure running)
+
+All backgrounds (`Colors.bg = '#EDE8DC'`) were already correct on LandingScreen, OnboardingScreen, DashboardScreen, ProfileScreen. LongevityScoreScreen dark theme untouched.
+
+**Commit:** `0d83bbd`
+
+---
+
+## TypeScript
+`npx tsc --noEmit` → zero errors after all fixes.
+
+---
+
+## Commit Log
+```
+0d83bbd  fix: remove clinic-vibe borders, unify card shadows, fix section labels
+9f61cbe  feat: exercise daily tracking with intensity + calorie estimate
+b58662c  feat: inline edit for biomarker history entries
+afa38f2  fix: prevent duplicate supplements in protocol stack
+283ab63  fix: replace demo banner with subtle per-card chip
+ffb05fb  fix: correct PhenoAge unit conversion (critical)
+```
