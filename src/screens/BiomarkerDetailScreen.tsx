@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
+  TextInput, Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -42,6 +43,8 @@ export default function BiomarkerDetailScreen() {
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
 
   const loadEntries = useCallback(() => {
     return AsyncStorage.getItem('@vitalspan_biomarkers')
@@ -57,6 +60,20 @@ export default function BiomarkerDetailScreen() {
     setRefreshing(true);
     await loadEntries();
     setRefreshing(false);
+  }
+
+  async function saveEdit(entryId: string) {
+    const parsed = parseFloat(editingValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      Alert.alert('Invalid value', 'Enter a positive number.');
+      return;
+    }
+    const updated = entries.map(e => e.id === entryId ? { ...e, value: parsed } : e);
+    setEntries(updated);
+    await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(updated)).catch(console.error);
+    setEditingId(null);
+    setEditingValue('');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
   }
 
   // Single O(n) pass — builds sorted lists per biomarker
@@ -177,15 +194,50 @@ export default function BiomarkerDetailScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              history.map((entry, i) => (
-                <View key={entry.id} style={[s.histRow, i < history.length - 1 && s.rowBorder]}>
-                  <View style={s.histLeft}>
-                    <Text style={s.histDate}>{formatDate(entry.date)}</Text>
-                    <Text style={s.histSource}>{entry.source}</Text>
+              history.map((entry, i) => {
+                const isEditing = editingId === entry.id;
+                return (
+                  <View key={entry.id} style={[s.histRow, i < history.length - 1 && s.rowBorder]}>
+                    <View style={s.histLeft}>
+                      <Text style={s.histDate}>{formatDate(entry.date)}</Text>
+                      <Text style={s.histSource}>{entry.source}</Text>
+                    </View>
+                    {isEditing ? (
+                      <View style={s.editRow}>
+                        <TextInput
+                          style={s.editInput}
+                          value={editingValue}
+                          onChangeText={setEditingValue}
+                          keyboardType="decimal-pad"
+                          autoFocus
+                          selectTextOnFocus
+                        />
+                        <Text style={s.editUnit}>{bm.unit}</Text>
+                        <TouchableOpacity style={s.editSaveBtn} onPress={() => saveEdit(entry.id)}>
+                          <Text style={s.editSaveTxt}>Save</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={s.editCancelBtn} onPress={() => { setEditingId(null); setEditingValue(''); }}>
+                          <Text style={s.editCancelTxt}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={s.histRight}>
+                        <Text style={s.histVal}>{entry.value} <Text style={s.histUnit}>{bm.unit}</Text></Text>
+                        <TouchableOpacity
+                          style={s.editPencilBtn}
+                          onPress={() => {
+                            Haptics.selectionAsync().catch(() => null);
+                            setEditingId(entry.id);
+                            setEditingValue(String(entry.value));
+                          }}
+                        >
+                          <Text style={s.editPencilTxt}>✎</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                  <Text style={s.histVal}>{entry.value} <Text style={s.histUnit}>{bm.unit}</Text></Text>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
 
@@ -373,8 +425,18 @@ const s = StyleSheet.create({
   histLeft: { flex: 1 },
   histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
   histSource: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  histRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   histVal: { fontSize: 18, fontWeight: '600', color: Colors.textPrimary },
   histUnit: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '400' },
+  editPencilBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.bgSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  editPencilTxt: { fontSize: 14, color: Colors.textMuted },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' },
+  editInput: { backgroundColor: Colors.bgSecondary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 4, fontSize: 16, fontWeight: '600', color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.primaryBorder, minWidth: 72, textAlign: 'right' },
+  editUnit: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  editSaveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 5 },
+  editSaveTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
+  editCancelBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.bgSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.border },
+  editCancelTxt: { fontSize: 11, color: Colors.textMuted },
   emptyHistRow: { paddingVertical: Spacing.sm, gap: Spacing.sm },
   emptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
   logCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
