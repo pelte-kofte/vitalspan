@@ -63,10 +63,17 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
   const missing: string[] = [];
 
   for (const field of REQUIRED_FIELDS) {
-    if (inputs[field.key] == null || inputs[field.key]! <= 0) {
+    const val = inputs[field.key];
+    if (val == null || val <= 0) {
       missing.push(field.label);
     }
   }
+
+  // Debug: log which fields are present vs missing
+  const present = REQUIRED_FIELDS
+    .filter(f => { const v = inputs[f.key]; return v != null && v > 0; })
+    .map(f => f.key);
+  console.log('[PhenoAge] age:', inputs.age, '| present:', present.join(','), '| missing:', missing.join(','));
 
   const missingCount = missing.length;
   const totalRequired = REQUIRED_FIELDS.length;
@@ -162,3 +169,17 @@ export const PHENO_AGE_BIOMARKER_MAP: Record<string, keyof Omit<PhenoAgeInputs, 
   alp:                 'alkalinePhosphatase',
   wbc:                 'wbc',
 };
+
+// Ordered list of PhenoAge biomarker IDs and human-readable labels
+// Use this to show checklists in UI — do not duplicate locally in screens
+export const PHENO_BIOMARKER_LIST: { id: string; label: string; unit: string }[] = [
+  { id: 'albumin',        label: 'Albumin',              unit: 'g/dL' },
+  { id: 'creatinine',     label: 'Creatinine',           unit: 'mg/dL' },
+  { id: 'fastingglucose', label: 'Fasting Glucose',      unit: 'mg/dL' },
+  { id: 'hscrp',          label: 'hsCRP',                unit: 'mg/L' },
+  { id: 'lymphocytepct',  label: 'Lymphocyte %',         unit: '%' },
+  { id: 'mcv',            label: 'MCV',                  unit: 'fL' },
+  { id: 'rdw',            label: 'RDW',                  unit: '%' },
+  { id: 'alp',            label: 'Alkaline Phosphatase', unit: 'U/L' },
+  { id: 'wbc',            label: 'WBC',                  unit: '×10³/μL' },
+];

@@ -234,9 +234,61 @@ All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline
 
 ---
 
-## TypeScript status
-✅ `npx tsc --noEmit` passes with 0 errors (verified 2026-05-24)
+---
 
-## Commits in this session
-- `421def8` feat: UX overhaul — HealthKit mock, custom supplements, interaction warnings, FutureSelf math
-- (visual polish commit pending)
+## Session 4 — Bug Fixes from User Testing (2026-05-24)
+
+### 6 critical bugs fixed:
+
+#### BUG 1 & 2: PhenoAge count wrong / never unlocks
+- Added `console.log` in `computePhenoAge` logging which fields are present vs missing
+- Added `console.log` in Dashboard and LongevityScore entryMap keys for runtime diagnosis
+- Added `profile.age > 0` guard (was just `!profile`) — prevents NaN computation
+- Exported `PHENO_BIOMARKER_LIST` from `phenoAge.ts` (single source of truth)
+- Removed duplicate local `PHENO_BIOMARKER_LABELS` from `LongevityScoreScreen`
+- Fixed sphere label: was hardcoded "LOG 4+ BMs" → now dynamic: "{N} MORE BMs" or "LOG BIOMARKERS"
+- Dashboard "to unlock" copy: now shows specific biomarker names e.g. "Need: Albumin, hsCRP +5 more"
+- All IDs verified consistent: `albumin`, `creatinine`, `fastingglucose`, `hscrp`, `lymphocytepct`, `mcv`, `rdw`, `alp`, `wbc`
+
+#### BUG 3: Multi-dose medications
+- Added `parseDoseCount(dose)` → parses "3x daily" → 3, defaults to 1
+- Added `getDoseTimeLabels(count)` → ["Morning", "Afternoon", "Evening"] for 3x
+- Added `doseId(name, n)` → "Berberine_dose_0", "Berberine_dose_1", etc.
+- Berberine updated in `GOAL_SUPPLEMENTS`: `dose: '500mg (3x daily)'` (matches SUPPLEMENT_DATABASE)
+- `totalItems` now sums dose counts per supplement, not unique item count
+- `takenCount` counts individual dose IDs in `taken[]` array
+- Multi-dose supplements show N checkbox rows under the SupplementRow header
+- Backward compatible: single-dose items still use their name as the taken key
+
+#### BUG 4: Demo data mixing with real score
+- `dataValue()` in LongevityScoreScreen now checks `isDemoMode`
+- When `isDemoMode` is true: sleep, HRV, recovery, fitness orbs show "Connect Health" CTA instead of fake values
+- Glucose still shows if available (can come from biomarker entries, not just HealthKit)
+- PhenoAge computation is unaffected (uses real logged biomarkers)
+
+#### BUG 5: Supplement database expanded
+- Grew from 20 → 47 supplements
+- New additions: Creatine, Taurine, NAC, Glutathione, ALCAR, L-Theanine, TMG, Choline, Inositol, Fisetin, Spermidine, Pterostilbene, EGCG, Sulforaphane, R-Lipoic Acid, Lion's Mane, Reishi, Cordyceps, Vitamin C, Vitamin E (mixed tocopherols), Iodine, Boron, Rhodiola, Bacopa, Phosphatidylserine, D-Ribose, Metformin (Rx), Rapamycin (Rx)
+- Prescription-only supplements clearly marked with `prescriptionOnly: true` and `rxNote`
+- New categories: `amino_acid`, `nootropic`, `senolytic`, `prescription_only`
+
+#### BUG 6: FutureSelf unlock confusing
+- Locked state redesigned: shows tappable checklist of first 5 PhenoAge biomarkers
+- Each row shows ✓ (logged) or ○ (missing) with biomarker name, unit, and "+ Log →" CTA
+- Tapping a missing row navigates directly to BiomarkerEntry pre-filled for that biomarker
+- `FutureSelf` now accepts `loggedBiomarkerIds` and `onBiomarkerPress` props
+- DashboardScreen passes `Array.from(entryMap.keys())` as loggedBiomarkerIds
+
+### Also fixed:
+- Bell icon on Dashboard: now navigates to Settings (was a dead button)
+- Goal 'Track & understand': NMN, CoQ10, Berberine now recommended for this goal
+- `PHENO_BIOMARKER_LIST` exported from `phenoAge.ts` — eliminates ID duplication across screens
+
+---
+
+## TypeScript status
+✅ `npx tsc --noEmit` passes with 0 errors (verified 2026-05-24, session 4)
+
+## Commits
+- `d34a262` feat: visual polish, docs update
+- (session 4 bug fixes commit pending)

@@ -35,7 +35,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from '../components/NeuralGrid';
-import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
+import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PHENO_BIOMARKER_LIST, PhenoAgeInputs } from '../lib/phenoAge';
 import {
   connectAndSync,
   loadHealthData,
@@ -89,30 +89,30 @@ function healthScoreColor(bioAge?: number | null, age?: number | null): [string,
   return ['#2A1A0A', '#6B3B12'];
 }
 
+// Returns a display value for an orbital metric, or null when data is unavailable.
+// When isDemoMode is true we treat HealthKit-only metrics as unavailable so
+// demo numbers never appear alongside real biomarker data.
 function dataValue(snap: HealthData, key: string): string | null {
+  const isDemo = snap.isDemoMode === true;
   switch (key) {
-    case 'sleep':        return snap.sleepHours != null ? `${snap.sleepHours}h` : null;
-    case 'hrv':          return snap.hrv != null ? `${snap.hrv}` : null;
-    case 'recovery':     return snap.recovery != null ? `${snap.recovery}%` : null;
-    case 'inflammation': return null; // from biomarkers, not HealthKit
-    case 'glucose':      return snap.glucose != null ? `${snap.glucose}` : null;
-    case 'fitness':      return snap.vo2max != null ? `${snap.vo2max.toFixed(0)}` : null;
-    default:             return null;
+    case 'sleep':
+      return (!isDemo && snap.sleepHours != null) ? `${snap.sleepHours}h` : null;
+    case 'hrv':
+      return (!isDemo && snap.hrv != null) ? `${snap.hrv}` : null;
+    case 'recovery':
+      return (!isDemo && snap.recovery != null) ? `${snap.recovery}%` : null;
+    case 'inflammation':
+      return null; // derived from biomarkers, handled elsewhere
+    case 'glucose':
+      // Glucose can come from either HealthKit or biomarker entry — show if available
+      return snap.glucose != null ? `${snap.glucose}` : null;
+    case 'fitness':
+      return (!isDemo && snap.vo2max != null) ? `${snap.vo2max.toFixed(0)}` : null;
+    default:
+      return null;
   }
 }
 
-// PhenoAge biomarker labels for score transparency
-const PHENO_BIOMARKER_LABELS: { key: string; label: string; unit: string }[] = [
-  { key: 'albumin',        label: 'Albumin',              unit: 'g/dL' },
-  { key: 'creatinine',     label: 'Creatinine',           unit: 'mg/dL' },
-  { key: 'fastingglucose', label: 'Fasting Glucose',      unit: 'mg/dL' },
-  { key: 'hscrp',          label: 'hsCRP',                unit: 'mg/L' },
-  { key: 'lymphocytepct',  label: 'Lymphocyte %',         unit: '%' },
-  { key: 'mcv',            label: 'MCV',                  unit: 'fL' },
-  { key: 'rdw',            label: 'RDW',                  unit: '%' },
-  { key: 'alp',            label: 'Alkaline Phosphatase', unit: 'U/L' },
-  { key: 'wbc',            label: 'WBC',                  unit: '×10³/μL' },
-];
 
 export default function LongevityScoreScreen() {
   const nav = useNavigation<Nav>();
@@ -201,7 +201,7 @@ export default function LongevityScoreScreen() {
 
   // PhenoAge computation
   const phenoResult = React.useMemo(() => {
-    if (!profile?.age) return null;
+    if (!profile?.age || profile.age <= 0) return null;
     const entryMap = new Map<string, StoredEntry>();
     for (const e of biomarkerEntries) {
       const ex = entryMap.get(e.biomarkerId);
@@ -212,6 +212,7 @@ export default function LongevityScoreScreen() {
       const entry = entryMap.get(biomarkerId);
       if (entry) (inputs as Record<string, number>)[inputKey] = entry.value;
     }
+    console.log('[LongevityScore] entryMap keys:', Array.from(entryMap.keys()).join(','));
     return computePhenoAge(inputs);
   }, [biomarkerEntries, profile]);
 
@@ -230,8 +231,8 @@ export default function LongevityScoreScreen() {
     return m;
   }, [biomarkerEntries]);
 
-  const loggedPhenoCount = PHENO_BIOMARKER_LABELS.filter(b => entryMap.has(b.key)).length;
-  const totalPhenoCount = PHENO_BIOMARKER_LABELS.length;
+  const loggedPhenoCount = PHENO_BIOMARKER_LIST.filter(b => entryMap.has(b.id)).length;
+  const totalPhenoCount = PHENO_BIOMARKER_LIST.length;
   const bioConfidence = Math.round(
     (loggedPhenoCount / totalPhenoCount) * 60 +
     (isConnected ? 25 : 0) +
@@ -332,10 +333,10 @@ export default function LongevityScoreScreen() {
           </Text>
 
           <Text style={s.transparencySubHead}>PhenoAge Biomarkers</Text>
-          {PHENO_BIOMARKER_LABELS.map(b => {
-            const logged = entryMap.has(b.key);
+          {PHENO_BIOMARKER_LIST.map(b => {
+            const logged = entryMap.has(b.id);
             return (
-              <View key={b.key} style={s.transparencyRow}>
+              <View key={b.id} style={s.transparencyRow}>
                 <Text style={[s.transparencyCheck, { color: logged ? Colors.viz.bioGreen : Colors.dark.textMuted }]}>
                   {logged ? '✓' : '○'}
                 </Text>
@@ -358,7 +359,7 @@ export default function LongevityScoreScreen() {
             {loggedPhenoCount < totalPhenoCount && (
               <View style={s.improvementRow}>
                 <Text style={s.improvementAction}>
-                  Log {PHENO_BIOMARKER_LABELS.find(b => !entryMap.has(b.key))?.label ?? 'next biomarker'}
+                  Log {PHENO_BIOMARKER_LIST.find(b => !entryMap.has(b.id))?.label ?? 'next biomarker'}
                 </Text>
                 <Text style={s.improvementGain}>+{Math.round(60 / totalPhenoCount)}% confidence</Text>
               </View>
@@ -457,7 +458,11 @@ export default function LongevityScoreScreen() {
               ) : (
                 <>
                   <Text style={s.bioAgePending}>—</Text>
-                  <Text style={s.bioAgeLabel}>LOG 4+ BMs</Text>
+                  <Text style={s.bioAgeLabel}>
+                    {phenoResult != null
+                      ? `${phenoResult.missingCount} MORE BMs`
+                      : 'LOG BIOMARKERS'}
+                  </Text>
                 </>
               )}
             </Animated.View>

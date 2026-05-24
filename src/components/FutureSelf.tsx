@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from './NeuralGrid';
+import { PHENO_BIOMARKER_LIST } from '../lib/phenoAge';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SVG_W = SCREEN_W - Spacing.base * 2;
@@ -40,6 +41,8 @@ interface Props {
   biologicalAge?: number;
   chronologicalAge?: number;
   optimality?: number; // 0–1
+  loggedBiomarkerIds?: string[]; // IDs of biomarkers the user has logged
+  onBiomarkerPress?: (id: string) => void; // navigate to log a specific biomarker
   onPress?: () => void;
 }
 
@@ -81,6 +84,8 @@ export default function FutureSelf({
   biologicalAge,
   chronologicalAge,
   optimality = 0,
+  loggedBiomarkerIds = [],
+  onBiomarkerPress,
   onPress,
 }: Props) {
   const [showExplainer, setShowExplainer] = React.useState(false);
@@ -145,10 +150,33 @@ export default function FutureSelf({
           {isLocked ? (
             <View style={s.lockedState}>
               <Text style={s.lockedIcon}>🔒</Text>
-              <Text style={s.lockedMsg}>Your projection unlocks at 5 biomarkers logged</Text>
-              <Text style={s.lockedSub}>
-                Log Albumin, hsCRP, Glucose, Creatinine + 1 more to begin
-              </Text>
+              <Text style={s.lockedMsg}>Log these 5 biomarkers to unlock projection</Text>
+              <View style={s.checklistBox}>
+                {PHENO_BIOMARKER_LIST.slice(0, 5).map(b => {
+                  const logged = loggedBiomarkerIds.includes(b.id);
+                  return (
+                    <TouchableOpacity
+                      key={b.id}
+                      style={s.checklistRow}
+                      onPress={() => !logged && onBiomarkerPress && onBiomarkerPress(b.id)}
+                      activeOpacity={logged ? 1 : 0.7}
+                    >
+                      <Text style={[s.checkMark, logged ? s.checkMarkDone : s.checkMarkPending]}>
+                        {logged ? '✓' : '○'}
+                      </Text>
+                      <Text style={[s.checkLabel, logged && s.checkLabelDone]}>
+                        {b.label} <Text style={s.checkUnit}>{b.unit}</Text>
+                      </Text>
+                      {!logged && <Text style={s.checkCta}>+ Log →</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+                {loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length < 5 && (
+                  <Text style={s.checklistNote}>
+                    {5 - Math.min(loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length, 5)} more needed — tap any row to log
+                  </Text>
+                )}
+              </View>
             </View>
           ) : (
             <>
@@ -295,10 +323,23 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textPrimary, letterSpacing: 0.2 },
   headerSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
 
-  lockedState: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
-  lockedIcon: { fontSize: 28 },
-  lockedMsg: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center' },
-  lockedSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, textAlign: 'center', lineHeight: 17 },
+  lockedState: { paddingVertical: Spacing.md, gap: Spacing.sm },
+  lockedIcon: { fontSize: 22, textAlign: 'center' },
+  lockedMsg: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center' },
+  checklistBox: { marginTop: Spacing.xs, gap: 2 },
+  checklistRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingVertical: 5, paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.sm,
+  },
+  checkMark: { fontSize: 13, width: 16, textAlign: 'center' },
+  checkMarkDone: { color: Colors.primaryLight },
+  checkMarkPending: { color: Colors.border },
+  checkLabel: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.textPrimary, fontWeight: '500' },
+  checkLabelDone: { color: Colors.textMuted, textDecorationLine: 'line-through' },
+  checkUnit: { fontWeight: '400', color: Colors.textMuted },
+  checkCta: { fontSize: 10, color: Colors.primaryLight, fontWeight: '600' },
+  checklistNote: { fontSize: 10, color: Colors.textMuted, marginTop: 4, textAlign: 'center', fontStyle: 'italic' },
 
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs, marginLeft: 4 },
   rateBadge: {

@@ -57,11 +57,32 @@ const BASE_SUPPLEMENTS: Supplement[] = [
 ];
 
 const GOAL_SUPPLEMENTS: Supplement[] = [
-  { name: 'NMN',        dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'],  dbId: 'nmn' },
-  { name: 'Resveratrol', dose: '500 mg', evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'],  dbId: 'resveratrol' },
-  { name: 'CoQ10',       dose: '200 mg', evidence: 'B', goals: ['Optimize healthspan'],                       dbId: 'coq10' },
-  { name: 'Berberine',   dose: '500 mg', evidence: 'B', goals: ['Optimize healthspan'],                       dbId: 'berberine' },
+  { name: 'NMN',        dose: '500 mg',           evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging', 'Track & understand'], dbId: 'nmn' },
+  { name: 'Resveratrol', dose: '500 mg',           evidence: 'B', goals: ['Extend lifespan', 'Slow biological aging'],  dbId: 'resveratrol' },
+  { name: 'CoQ10',       dose: '200 mg',           evidence: 'B', goals: ['Optimize healthspan', 'Track & understand'], dbId: 'coq10' },
+  { name: 'Berberine',   dose: '500mg (3x daily)', evidence: 'A', goals: ['Optimize healthspan', 'Slow biological aging', 'Track & understand'], dbId: 'berberine' },
 ];
+
+// Parse "Nx daily" from a dose string → returns count, defaults to 1
+function parseDoseCount(dose: string): number {
+  const m = dose.match(/(\d+)x\s*daily/i);
+  if (m) return Math.min(Math.max(parseInt(m[1], 10), 1), 6);
+  return 1;
+}
+
+const DOSE_TIME_LABELS: Record<number, string[]> = {
+  2: ['Morning', 'Evening'],
+  3: ['Morning', 'Afternoon', 'Evening'],
+  4: ['Morning', 'Noon', 'Afternoon', 'Evening'],
+};
+
+function getDoseTimeLabels(count: number): string[] {
+  return DOSE_TIME_LABELS[count] ?? Array.from({ length: count }, (_, i) => `Dose ${i + 1}`);
+}
+
+function doseId(name: string, n: number): string {
+  return `${name}_dose_${n}`;
+}
 
 const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
   { key: 'morning',   label: 'AM' },
@@ -285,12 +306,12 @@ export default function ProtocolScreen() {
     ]).catch(console.error);
   }
 
-  function toggleTaken(name: string) {
+  function toggleTaken(id: string) {
     Haptics.selectionAsync().catch(() => null);
     const today = new Date().toISOString().slice(0, 10);
-    const taken = protocol.taken.includes(name)
-      ? protocol.taken.filter(t => t !== name)
-      : [...protocol.taken, name];
+    const taken = protocol.taken.includes(id)
+      ? protocol.taken.filter(t => t !== id)
+      : [...protocol.taken, id];
     persist({ ...protocol, taken, takenDate: today });
   }
 
@@ -404,12 +425,27 @@ export default function ProtocolScreen() {
 
   const addedSupps = recommended.filter(s => protocol.addedSupplements.includes(s.name));
   const customSupps = protocol.customSupplements ?? [];
-  const totalItems = medications.length + addedSupps.length + customSupps.length;
-  const takenCount = protocol.taken.filter(t =>
-    medications.includes(t) ||
-    addedSupps.some(s => s.name === t) ||
-    customSupps.some(cs => cs.id === t || cs.name === t),
-  ).length;
+
+  // Total doses: medications count as 1 each; multi-dose supplements count their full dose count
+  const totalItems =
+    medications.length +
+    addedSupps.reduce((sum, s) => sum + parseDoseCount(s.dose), 0) +
+    customSupps.length;
+
+  const takenCount = protocol.taken.filter(t => {
+    if (medications.includes(t)) return true;
+    if (customSupps.some(cs => cs.id === t || cs.name === t)) return true;
+    // Multi-dose supplement dose IDs: "{name}_dose_{n}"
+    for (const s of addedSupps) {
+      const count = parseDoseCount(s.dose);
+      for (let i = 0; i < count; i++) {
+        if (t === doseId(s.name, i)) return true;
+      }
+      // Fallback: old-style single-dose ID
+      if (count === 1 && t === s.name) return true;
+    }
+    return false;
+  }).length;
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
@@ -527,20 +563,54 @@ export default function ProtocolScreen() {
           {profile?.goal && <Text style={s.goalLbl}>Based on: {profile.goal}</Text>}
         </View>
         <View style={s.card}>
-          {recommended.map((supp, i) => (
-            <SupplementRow
-              key={supp.name}
-              supp={supp}
-              isAdded={protocol.addedSupplements.includes(supp.name)}
-              isTaken={protocol.taken.includes(supp.name)}
-              isExpanded={expandedTimings.has(supp.name)}
-              medications={medications}
-              showBorder={i < recommended.length - 1}
-              onToggleTaken={() => toggleTaken(supp.name)}
-              onToggle={() => toggleSupplement(supp.name)}
-              onToggleExpanded={() => toggleExpanded(supp.name)}
-            />
-          ))}
+          {recommended.map((supp, i) => {
+            const isAdded = protocol.addedSupplements.includes(supp.name);
+            const doseCount = parseDoseCount(supp.dose);
+            const timeLabels = getDoseTimeLabels(doseCount);
+            return (
+              <View key={supp.name}>
+                <SupplementRow
+                  supp={supp}
+                  isAdded={isAdded}
+                  isTaken={doseCount === 1
+                    ? (protocol.taken.includes(supp.name) || protocol.taken.includes(doseId(supp.name, 0)))
+                    : timeLabels.every((_, n) => protocol.taken.includes(doseId(supp.name, n)))}
+                  isExpanded={expandedTimings.has(supp.name)}
+                  medications={medications}
+                  showBorder={false}
+                  onToggleTaken={() => {
+                    if (doseCount === 1) toggleTaken(doseId(supp.name, 0));
+                  }}
+                  onToggle={() => toggleSupplement(supp.name)}
+                  onToggleExpanded={() => toggleExpanded(supp.name)}
+                />
+                {/* Multi-dose rows */}
+                {isAdded && doseCount > 1 && (
+                  <View style={s.doseRows}>
+                    {timeLabels.map((label, n) => {
+                      const id = doseId(supp.name, n);
+                      const taken = protocol.taken.includes(id);
+                      return (
+                        <TouchableOpacity
+                          key={id}
+                          style={s.doseRow}
+                          onPress={() => toggleTaken(id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[s.dot, taken && s.dotTaken]} />
+                          <Text style={[s.doseLbl, taken && s.doseLblTaken]}>{label}</Text>
+                          <Text style={[s.doseTick, taken && s.doseTickDone]}>
+                            {taken ? '✓' : '○'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+                {i < recommended.length - 1 && <View style={s.rowBorder} />}
+              </View>
+            );
+          })}
 
           {/* Add custom supplement CTA */}
           <TouchableOpacity
@@ -644,6 +714,14 @@ const s = StyleSheet.create({
   },
   addCustomIcon: { fontSize: 20, color: Colors.primaryLight, width: 22, textAlign: 'center' },
   addCustomTxt: { fontSize: Typography.sizes.base, color: Colors.primaryLight, fontWeight: '500' },
+
+  // Multi-dose supplement rows
+  doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 },
+  doseRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 5 },
+  doseLbl: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.textSecondary },
+  doseLblTaken: { color: Colors.textMuted, textDecorationLine: 'line-through' },
+  doseTick: { fontSize: Typography.sizes.xs, color: Colors.border, width: 16, textAlign: 'center' },
+  doseTickDone: { color: Colors.primaryLight },
 });
 
 // Modal styles

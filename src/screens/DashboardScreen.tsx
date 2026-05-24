@@ -95,7 +95,7 @@ export default function DashboardScreen() {
 
   // Compute PhenoAge from logged biomarkers
   const phenoResult = useMemo(() => {
-    if (!profile) return null;
+    if (!profile || !profile.age || profile.age <= 0) return null;
     const inputs: PhenoAgeInputs = { age: profile.age };
     for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
       const entry = entryMap.get(biomarkerId);
@@ -103,6 +103,7 @@ export default function DashboardScreen() {
         (inputs as Record<string, number>)[inputKey] = entry.value;
       }
     }
+    console.log('[Dashboard] phenoAge entryMap keys:', Array.from(entryMap.keys()).join(','));
     return computePhenoAge(inputs);
   }, [entryMap, profile]);
 
@@ -164,7 +165,10 @@ export default function DashboardScreen() {
               <Text style={s.greetSmall}>{greeting}</Text>
               <Text style={s.greetName}>{profile?.name ?? 'there'}</Text>
             </View>
-            <TouchableOpacity style={s.notifBtn}>
+            <TouchableOpacity
+              style={s.notifBtn}
+              onPress={() => nav.navigate('Settings')}
+            >
               <Text style={{ fontSize: 18 }}>🔔</Text>
             </TouchableOpacity>
           </View>
@@ -207,8 +211,9 @@ export default function DashboardScreen() {
                   <>
                     <Text style={s.bioNumPlaceholder}>—</Text>
                     <Text style={s.bioSub}>
-                      Log {missingForPhenoAge.slice(0, 3).join(', ')}
-                      {missingForPhenoAge.length > 3 ? ` +${missingForPhenoAge.length - 3} more` : ''} to unlock
+                      {missingForPhenoAge.length > 0
+                        ? `Need: ${missingForPhenoAge.slice(0, 2).join(', ')}${missingForPhenoAge.length > 2 ? ` +${missingForPhenoAge.length - 2} more` : ''}`
+                        : 'Log the 9 PhenoAge biomarkers to unlock'}
                     </Text>
                     <TouchableOpacity
                       style={s.bioCtaBtn}
@@ -227,6 +232,8 @@ export default function DashboardScreen() {
             biologicalAge={bioAge ?? undefined}
             chronologicalAge={profile?.age}
             optimality={biomarkerOptimality}
+            loggedBiomarkerIds={Array.from(entryMap.keys())}
+            onBiomarkerPress={(id) => nav.navigate('BiomarkerEntry', { biomarkerId: id })}
           />
 
           {hasKnownInteractions && (

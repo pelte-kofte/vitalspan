@@ -7,7 +7,7 @@ export type EvidenceGrade = 'A' | 'B' | 'C';
 export interface SupplementInfo {
   id: string;
   name: string;
-  category: 'nad' | 'mitochondrial' | 'cardiovascular' | 'metabolic' | 'sleep' | 'antioxidant' | 'mineral' | 'vitamin' | 'adaptogen';
+  category: 'nad' | 'mitochondrial' | 'cardiovascular' | 'metabolic' | 'sleep' | 'antioxidant' | 'mineral' | 'vitamin' | 'adaptogen' | 'amino_acid' | 'nootropic' | 'senolytic' | 'prescription_only';
   defaultDose: string;
   timing: SupplementTiming;
   bestTime: BestTime;
@@ -17,6 +17,8 @@ export interface SupplementInfo {
   evidenceGrade: EvidenceGrade;
   shortDescription: string;
   contraindications?: string[];
+  prescriptionOnly?: boolean;
+  rxNote?: string;
 }
 
 export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
@@ -295,7 +297,7 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
   {
     id: 'glycine',
     name: 'Glycine',
-    category: 'sleep',
+    category: 'amino_acid',
     defaultDose: '3g',
     timing: 'bedtime',
     bestTime: 'bedtime',
@@ -324,6 +326,438 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
     evidenceGrade: 'A',
     shortDescription: 'Adaptogen, lowers cortisol, supports stress resilience.',
     contraindications: ['hyperthyroidism', 'autoimmune_active'],
+  },
+
+  // === AMINO ACIDS ===
+  {
+    id: 'creatine',
+    name: 'Creatine Monohydrate',
+    category: 'amino_acid',
+    defaultDose: '3-5g',
+    timing: 'flexible',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Timing is flexible — consistency matters more than timing for creatine.',
+    evidenceGrade: 'A',
+    shortDescription: 'Boosts strength, muscle mass, and cognitive function. Most evidence-backed supplement.',
+  },
+  {
+    id: 'taurine',
+    name: 'Taurine',
+    category: 'amino_acid',
+    defaultDose: '1-3g',
+    timing: 'flexible',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Calming amino acid — morning or pre-workout. 2023 Nature study links taurine deficiency to aging.',
+    evidenceGrade: 'B',
+    shortDescription: 'Supports heart, brain, and mitochondrial health. Declines with age.',
+  },
+  {
+    id: 'nac',
+    name: 'NAC (N-Acetyl Cysteine)',
+    category: 'antioxidant',
+    defaultDose: '600-1200mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'nitroglycerin', hours: 0, reason: 'May potentiate hypotension' },
+      { drug: 'activated_charcoal', hours: 2, reason: 'Reduces NAC absorption' }
+    ],
+    reason: 'Precursor to glutathione — empty stomach improves absorption.',
+    evidenceGrade: 'B',
+    shortDescription: 'Glutathione precursor, antioxidant, liver protection.',
+  },
+  {
+    id: 'glutathione',
+    name: 'Glutathione (Liposomal)',
+    category: 'antioxidant',
+    defaultDose: '250-500mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Master antioxidant. Liposomal form has superior bioavailability. Fasted state optimal.',
+    evidenceGrade: 'B',
+    shortDescription: 'Master antioxidant — protects cells from oxidative stress.',
+  },
+  {
+    id: 'acetyl_l_carnitine',
+    name: 'Acetyl-L-Carnitine (ALCAR)',
+    category: 'nootropic',
+    defaultDose: '500-1000mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'May potentiate anticoagulant effect' }
+    ],
+    reason: 'Crosses blood-brain barrier unlike plain L-carnitine. Take before noon to avoid sleep disruption.',
+    evidenceGrade: 'B',
+    shortDescription: 'Mitochondrial function, memory, and neuroprotection.',
+  },
+  {
+    id: 'l_theanine',
+    name: 'L-Theanine',
+    category: 'nootropic',
+    defaultDose: '100-200mg',
+    timing: 'flexible',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'sedatives', hours: 0, reason: 'Additive calming effect' }
+    ],
+    reason: 'Pairs well with caffeine (2:1 ratio) for calm focus. Can also be taken before bed.',
+    evidenceGrade: 'B',
+    shortDescription: 'Promotes calm alertness. Synergistic with caffeine.',
+  },
+  {
+    id: 'tmg',
+    name: 'TMG (Trimethylglycine / Betaine)',
+    category: 'amino_acid',
+    defaultDose: '500-1000mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Methyl donor — supports methylation cycle and homocysteine reduction.',
+    evidenceGrade: 'B',
+    shortDescription: 'Methyl donor, lowers homocysteine, supports NAD+ recycling.',
+  },
+  {
+    id: 'choline',
+    name: 'Choline (Alpha-GPC)',
+    category: 'nootropic',
+    defaultDose: '300-600mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Alpha-GPC has superior bioavailability. Morning timing supports cognitive performance.',
+    evidenceGrade: 'B',
+    shortDescription: 'Acetylcholine precursor — supports memory, focus, and liver health.',
+  },
+  {
+    id: 'inositol',
+    name: 'Myo-Inositol',
+    category: 'metabolic',
+    defaultDose: '2-4g',
+    timing: 'flexible',
+    bestTime: 'bedtime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'lithium', hours: 0, reason: 'May alter lithium metabolism' }
+    ],
+    reason: 'High doses (4g) support sleep and insulin signaling. Can be split morning + bedtime.',
+    evidenceGrade: 'B',
+    shortDescription: 'Insulin sensitizer, PCOS support, sleep quality.',
+  },
+
+  // === SENOLYTICS ===
+  {
+    id: 'fisetin',
+    name: 'Fisetin',
+    category: 'senolytic',
+    defaultDose: '500mg-1g (cyclically)',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'May alter anticoagulant levels' }
+    ],
+    reason: 'Senolytic — typically taken in 2-day cycles monthly, not daily. Fat increases absorption.',
+    evidenceGrade: 'B',
+    shortDescription: 'Clears senescent "zombie" cells. Strongest plant-derived senolytic.',
+  },
+  {
+    id: 'spermidine',
+    name: 'Spermidine',
+    category: 'senolytic',
+    defaultDose: '1-5mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Induces autophagy — cellular cleanup. Higher doses require enteric coating.',
+    evidenceGrade: 'B',
+    shortDescription: 'Triggers autophagy, extends lifespan in animal models.',
+  },
+
+  // === POLYPHENOLS / ANTIOXIDANTS ===
+  {
+    id: 'pterostilbene',
+    name: 'Pterostilbene',
+    category: 'antioxidant',
+    defaultDose: '50-150mg',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'May alter metabolism via CYP2C9' }
+    ],
+    reason: 'More bioavailable than resveratrol (80% vs 20%). Fat-soluble.',
+    evidenceGrade: 'B',
+    shortDescription: 'More bioavailable resveratrol analogue. SIRT1 activator.',
+  },
+  {
+    id: 'egcg',
+    name: 'EGCG (Green Tea Extract)',
+    category: 'antioxidant',
+    defaultDose: '400-800mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: ['iron'],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'Mild anticoagulant effect' },
+      { drug: 'statins', hours: 2, reason: 'May inhibit statin metabolism at high doses' }
+    ],
+    reason: 'Fasted state maximizes absorption. Avoid with iron supplements (chelation).',
+    evidenceGrade: 'B',
+    shortDescription: 'Anti-cancer, anti-inflammatory, boosts metabolism.',
+  },
+  {
+    id: 'sulforaphane',
+    name: 'Sulforaphane (Broccoli Sprout Extract)',
+    category: 'antioxidant',
+    defaultDose: '10-50mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'NRF2 activator — most potent food-derived anti-inflammatory compound.',
+    evidenceGrade: 'B',
+    shortDescription: 'NRF2 pathway activator — powerful detox and anti-inflammatory.',
+  },
+  {
+    id: 'r_lipoic_acid',
+    name: 'R-Lipoic Acid',
+    category: 'antioxidant',
+    defaultDose: '100-300mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: ['biotin'],
+    separateFromMeds: [
+      { drug: 'insulin', hours: 0, reason: 'Enhances insulin sensitivity — monitor glucose' },
+      { drug: 'levothyroxine', hours: 4, reason: 'May reduce thyroid hormone absorption' }
+    ],
+    reason: 'R-form is 2x more bioavailable than racemic ALA. Empty stomach required.',
+    evidenceGrade: 'B',
+    shortDescription: 'Superior form of alpha lipoic acid. Universal antioxidant, glucose metabolism.',
+  },
+
+  // === MUSHROOMS ===
+  {
+    id: 'lions_mane',
+    name: "Lion's Mane Mushroom",
+    category: 'nootropic',
+    defaultDose: '500-1000mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'anticoagulants', hours: 0, reason: 'May slow blood clotting' }
+    ],
+    reason: 'NGF and BDNF stimulation — morning dose for cognitive benefit throughout the day.',
+    evidenceGrade: 'B',
+    shortDescription: 'Stimulates nerve growth factor (NGF) — supports brain and nerve regeneration.',
+  },
+  {
+    id: 'reishi',
+    name: 'Reishi Mushroom',
+    category: 'adaptogen',
+    defaultDose: '1-2g (extract)',
+    timing: 'with_meal',
+    bestTime: 'evening',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'anticoagulants', hours: 0, reason: 'May potentiate antiplatelet effects' },
+      { drug: 'immunosuppressants', hours: 0, reason: 'Immune modulation may conflict' }
+    ],
+    reason: 'Calming adaptogen — evening dose supports sleep and immune modulation.',
+    evidenceGrade: 'B',
+    shortDescription: 'Immune modulator, calming adaptogen, liver support.',
+    contraindications: ['organ_transplant'],
+  },
+  {
+    id: 'cordyceps',
+    name: 'Cordyceps Militaris',
+    category: 'adaptogen',
+    defaultDose: '500-1000mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'immunosuppressants', hours: 0, reason: 'Immune-stimulating properties may interfere' }
+    ],
+    reason: 'Increases ATP production and VO₂ max — ideal pre-workout or morning.',
+    evidenceGrade: 'B',
+    shortDescription: 'Boosts VO₂ max, endurance, and ATP production.',
+  },
+
+  // === VITAMINS & MINERALS (ADDITIONAL) ===
+  {
+    id: 'vitamin_c',
+    name: 'Vitamin C (Ascorbic Acid)',
+    category: 'vitamin',
+    defaultDose: '500-1000mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'High doses may affect INR' },
+      { drug: 'statins', hours: 2, reason: 'May alter statin absorption at high doses' }
+    ],
+    reason: 'Water-soluble — split doses (morning + evening) better than one large dose.',
+    evidenceGrade: 'A',
+    shortDescription: 'Antioxidant, collagen synthesis, immune support.',
+  },
+  {
+    id: 'vitamin_e',
+    name: 'Vitamin E (Mixed Tocopherols)',
+    category: 'vitamin',
+    defaultDose: '200-400 IU',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'Antiplatelet effect — increases bleeding risk' },
+      { drug: 'statins', hours: 4, reason: 'May reduce statin benefit at very high doses' }
+    ],
+    reason: 'Fat-soluble. Mixed tocopherols (not just alpha) provide fuller antioxidant coverage.',
+    evidenceGrade: 'B',
+    shortDescription: 'Fat-soluble antioxidant. Mixed tocopherols preferred over alpha-only.',
+    contraindications: ['vitamin_k_deficiency'],
+  },
+  {
+    id: 'iodine',
+    name: 'Iodine (as Potassium Iodide)',
+    category: 'mineral',
+    defaultDose: '150-300mcg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'levothyroxine', hours: 4, reason: 'Excess iodine may alter thyroid hormone levels' },
+      { drug: 'antithyroid_drugs', hours: 0, reason: 'Iodine may antagonize antithyroid effect' }
+    ],
+    reason: 'Essential for thyroid function. Do not exceed 1100mcg/day. Test before supplementing.',
+    evidenceGrade: 'B',
+    shortDescription: 'Thyroid hormone synthesis. Many people are deficient.',
+    contraindications: ['hyperthyroidism', 'hashimotos'],
+  },
+  {
+    id: 'boron',
+    name: 'Boron',
+    category: 'mineral',
+    defaultDose: '3-6mg',
+    timing: 'flexible',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Trace mineral supporting testosterone, bone density, and cognitive function.',
+    evidenceGrade: 'C',
+    shortDescription: 'Boosts free testosterone, improves bone density and cognition.',
+  },
+  {
+    id: 'rhodiola',
+    name: 'Rhodiola Rosea',
+    category: 'adaptogen',
+    defaultDose: '200-400mg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'ssri', hours: 0, reason: 'May have additive serotonergic effects' },
+      { drug: 'maoi', hours: 0, reason: 'Potential serotonin syndrome risk' }
+    ],
+    reason: 'Stimulating adaptogen — avoid afternoon/evening to prevent insomnia.',
+    evidenceGrade: 'B',
+    shortDescription: 'Reduces fatigue and stress. Cognitive and physical performance.',
+    contraindications: ['bipolar_disorder'],
+  },
+  {
+    id: 'bacopa',
+    name: 'Bacopa Monnieri',
+    category: 'nootropic',
+    defaultDose: '300-450mg',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'anticholinergics', hours: 0, reason: 'Bacopa increases ACh — may conflict' },
+      { drug: 'thyroid_medications', hours: 4, reason: 'May interact with thyroid hormone levels' }
+    ],
+    reason: 'Fat-soluble saponins. Effects on memory accumulate over 8-12 weeks.',
+    evidenceGrade: 'B',
+    shortDescription: 'Enhances memory formation and recall. Requires 8+ weeks.',
+  },
+  {
+    id: 'phosphatidylserine',
+    name: 'Phosphatidylserine',
+    category: 'nootropic',
+    defaultDose: '100-300mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'May affect platelet function' },
+      { drug: 'cholinesterase_inhibitors', hours: 0, reason: 'Additive ACh effects' }
+    ],
+    reason: 'Key phospholipid for brain cell membranes. With food for absorption.',
+    evidenceGrade: 'B',
+    shortDescription: 'Supports brain cell membranes, memory, and cortisol reduction.',
+  },
+  {
+    id: 'd_ribose',
+    name: 'D-Ribose',
+    category: 'mitochondrial',
+    defaultDose: '5g',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'ATP precursor — supports cellular energy recovery, especially after exercise.',
+    evidenceGrade: 'C',
+    shortDescription: 'ATP precursor — speeds energy recovery in heart and muscles.',
+  },
+
+  // === PRESCRIPTION-ONLY (clearly labeled) ===
+  {
+    id: 'metformin_rx',
+    name: 'Metformin (Rx)',
+    category: 'prescription_only',
+    defaultDose: '500-1000mg (2x daily)',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'AMPK activator with longevity evidence (TAME trial). Requires prescription.',
+    evidenceGrade: 'B',
+    shortDescription: 'Longevity candidate drug — AMPK activation, anti-aging in trials.',
+    prescriptionOnly: true,
+    rxNote: 'Prescription required. Discuss with your physician.',
+  },
+  {
+    id: 'rapamycin_rx',
+    name: 'Rapamycin / Sirolimus (Rx)',
+    category: 'prescription_only',
+    defaultDose: '1-6mg (weekly pulsed)',
+    timing: 'flexible',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'cyp3a4_inhibitors', hours: 0, reason: 'Dramatically increases rapamycin levels' },
+      { drug: 'immunosuppressants', hours: 0, reason: 'Additive immunosuppression' }
+    ],
+    reason: 'mTOR inhibitor with strongest lifespan extension evidence in mammals. Requires physician monitoring.',
+    evidenceGrade: 'B',
+    shortDescription: 'mTOR inhibitor — most compelling longevity drug. Strict medical supervision required.',
+    prescriptionOnly: true,
+    rxNote: 'Prescription required. Only under physician supervision with regular labs.',
+    contraindications: ['active_infection', 'pregnancy'],
   },
 ];
 
