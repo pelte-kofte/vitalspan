@@ -17,6 +17,7 @@ import BreathingCard from '../components/BreathingCard';
 import FutureSelf from '../components/FutureSelf';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
 import { loadHealthData, deriveHealthState, HealthData } from '../lib/healthkit';
+import { ExerciseLogEntry } from '../data/exercises';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -35,19 +36,22 @@ export default function DashboardScreen() {
   const [takenItems, setTakenItems] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRaw, entriesRaw, protocolRaw, hData] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         AsyncStorage.getItem('@vitalspan_protocol_today'),
         loadHealthData(),
+        AsyncStorage.getItem('@vitalspan_exercise_log'),
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
       if (hData) setHealthData(hData);
+      if (exerciseRaw) setExerciseLogs(JSON.parse(exerciseRaw));
 
       if (protocolRaw) {
         const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
@@ -324,6 +328,36 @@ export default function DashboardScreen() {
             <Text style={s.uploadCardArrow}>→</Text>
           </TouchableOpacity>
 
+          {/* Exercise today */}
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const todayEx = exerciseLogs.filter(l => l.date === today);
+            return (
+              <TouchableOpacity
+                style={s.exerciseCard}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                  nav.navigate('Main' as never);
+                }}
+              >
+                <Text style={s.exerciseCardIcon}>🏋️</Text>
+                <View style={s.uploadCardBody}>
+                  <Text style={s.uploadCardTitle}>
+                    {todayEx.length > 0
+                      ? `${todayEx.length} exercise${todayEx.length > 1 ? 's' : ''} logged today`
+                      : 'No exercise logged today'}
+                  </Text>
+                  <Text style={s.uploadCardSub}>
+                    {todayEx.length > 0
+                      ? todayEx.map(l => l.exerciseName).slice(0, 2).join(', ') + (todayEx.length > 2 ? ` +${todayEx.length - 2}` : '')
+                      : 'Tap Exercise tab to log a workout'}
+                  </Text>
+                </View>
+                <Text style={s.uploadCardArrow}>→</Text>
+              </TouchableOpacity>
+            );
+          })()}
+
           <View style={s.sectionHdr}>
             <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
             <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
@@ -428,6 +462,8 @@ const s = StyleSheet.create({
   protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
+  exerciseCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.status.optimalBg, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
+  exerciseCardIcon: { fontSize: 28 },
   uploadCardIcon: { fontSize: 28 },
   uploadCardBody: { flex: 1 },
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },

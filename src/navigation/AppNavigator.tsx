@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import DashboardScreen from '../screens/DashboardScreen';
+import ExerciseScreen from '../screens/ExerciseScreen';
 import LongevityScoreScreen from '../screens/LongevityScoreScreen';
 import BiomarkerDetailScreen from '../screens/BiomarkerDetailScreen';
 import BiomarkerEntryScreen from '../screens/BiomarkerEntryScreen';
@@ -88,6 +89,14 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Protocol',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🧬" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Exercise"
+        component={ExerciseScreen}
+        options={{
+          tabBarLabel: 'Exercise',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏋️" focused={focused} />,
         }}
       />
       <Tab.Screen
