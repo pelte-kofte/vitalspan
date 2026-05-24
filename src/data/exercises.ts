@@ -24,6 +24,8 @@ export interface Exercise {
   instructions: string;
 }
 
+export type ExerciseIntensity = 'easy' | 'moderate' | 'hard';
+
 export interface ExerciseLogEntry {
   id: string;
   exerciseId: string;
@@ -33,9 +35,23 @@ export interface ExerciseLogEntry {
   sets?: number;
   reps?: number;
   durationMin?: number;
+  intensity?: ExerciseIntensity;
+  caloriesEstimated?: number;
   notes?: string;
   loggedAt: string;
 }
+
+// MET values by category for calorie estimation
+export const CATEGORY_MET: Record<string, number> = {
+  'Cardio':     4.5,
+  'Legs':       5.0,
+  'Push':       5.0,
+  'Pull / Row': 5.0,
+  'Core':       3.5,
+  'Shoulders':  5.0,
+  'Arms':       4.0,
+  'Calves':     3.5,
+};
 
 export const EXERCISES: Exercise[] = [
   // ── Pull / Row ────────────────────────────────────────────────────────────

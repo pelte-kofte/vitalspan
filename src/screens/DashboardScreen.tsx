@@ -328,10 +328,13 @@ export default function DashboardScreen() {
             <Text style={s.uploadCardArrow}>→</Text>
           </TouchableOpacity>
 
-          {/* Exercise today */}
+          {/* Movement today */}
           {(() => {
             const today = new Date().toISOString().slice(0, 10);
             const todayEx = exerciseLogs.filter(l => l.date === today);
+            const totalMin = todayEx.reduce((sum, l) => sum + (l.durationMin ?? 0), 0);
+            const totalCal = todayEx.reduce((sum, l) => sum + (l.caloriesEstimated ?? 0), 0);
+            const hasData = todayEx.length > 0;
             return (
               <TouchableOpacity
                 style={s.exerciseCard}
@@ -340,18 +343,18 @@ export default function DashboardScreen() {
                   nav.navigate('Main' as never);
                 }}
               >
-                <Text style={s.exerciseCardIcon}>🏋️</Text>
+                <Text style={s.exerciseCardIcon}>🏃</Text>
                 <View style={s.uploadCardBody}>
-                  <Text style={s.uploadCardTitle}>
-                    {todayEx.length > 0
-                      ? `${todayEx.length} exercise${todayEx.length > 1 ? 's' : ''} logged today`
-                      : 'No exercise logged today'}
-                  </Text>
-                  <Text style={s.uploadCardSub}>
-                    {todayEx.length > 0
-                      ? todayEx.map(l => l.exerciseName).slice(0, 2).join(', ') + (todayEx.length > 2 ? ` +${todayEx.length - 2}` : '')
-                      : 'Tap Exercise tab to log a workout'}
-                  </Text>
+                  <Text style={s.uploadCardTitle}>Movement today</Text>
+                  {hasData ? (
+                    <Text style={s.uploadCardSub}>
+                      {todayEx.length} exercise{todayEx.length > 1 ? 's' : ''}
+                      {totalMin > 0 ? ` · ${totalMin} min` : ''}
+                      {totalCal > 0 ? ` · ~${totalCal} kcal` : ''}
+                    </Text>
+                  ) : (
+                    <Text style={s.uploadCardSub}>Tap to log today's workout</Text>
+                  )}
                 </View>
                 <Text style={s.uploadCardArrow}>→</Text>
               </TouchableOpacity>
