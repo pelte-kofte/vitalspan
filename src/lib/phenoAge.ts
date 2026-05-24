@@ -98,22 +98,24 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
   }
 
   // Use available values; substitute medians for missing (reduces accuracy but gives estimate)
+  // All units are standard US lab units — coefficients are calibrated for these units.
+  // albumin: g/dL, creatinine: mg/dL, glucose: mg/dL, crp: mg/L (converted to ln(mg/dL))
   const MEDIANS: Record<string, number> = {
-    albumin:             4.3,
-    creatinine:          0.9,
-    glucose:             92,
-    crp:                 0.8,
-    lymphocytePct:       28,
-    mcv:                 90,
-    rdw:                 12.8,
-    alkalinePhosphatase: 67,
-    wbc:                 6.0,
+    albumin:             4.3,   // g/dL
+    creatinine:          0.9,   // mg/dL
+    glucose:             92,    // mg/dL
+    crp:                 0.8,   // mg/L
+    lymphocytePct:       28,    // %
+    mcv:                 90,    // fL
+    rdw:                 12.8,  // %
+    alkalinePhosphatase: 67,    // U/L
+    wbc:                 6.0,   // 10³/μL
   };
 
-  // Levine 2018 formula expects g/L, μmol/L, mmol/L — convert from lab-report units
-  const alb    = (inputs.albumin              ?? MEDIANS.albumin)    * 10;      // g/dL → g/L
-  const cr     = (inputs.creatinine           ?? MEDIANS.creatinine) * 88.42;   // mg/dL → μmol/L
-  const glu    = (inputs.glucose              ?? MEDIANS.glucose)    * 0.0555;  // mg/dL → mmol/L
+  // Use original lab units — coefficients from Levine 2018 (NHANES 3) are for US lab units
+  const alb    = inputs.albumin              ?? MEDIANS.albumin;    // g/dL (no conversion)
+  const cr     = inputs.creatinine           ?? MEDIANS.creatinine; // mg/dL (no conversion)
+  const glu    = inputs.glucose              ?? MEDIANS.glucose;    // mg/dL (no conversion)
   const crpRaw = inputs.crp                  ?? MEDIANS.crp;
   const lymph  = inputs.lymphocytePct        ?? MEDIANS.lymphocytePct;
   const mcv    = inputs.mcv                  ?? MEDIANS.mcv;
@@ -121,31 +123,69 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
   const alp    = inputs.alkalinePhosphatase  ?? MEDIANS.alkalinePhosphatase;
   const wbc    = inputs.wbc                  ?? MEDIANS.wbc;
 
+  // Guard: CRP must be > 0 (ln(0) = -∞)
+  if (crpRaw <= 0) {
+    console.log('[PhenoAge] CRP is zero or negative — cannot compute');
+    return {
+      biologicalAge: null,
+      confidence: 'insufficient',
+      missingCount: missingCount + 1,
+      totalRequired,
+      missingBiomarkers: [...missing, 'hsCRP (invalid value)'],
+      yearsYounger: null,
+    };
+  }
+
   // CRP input is mg/L; formula uses ln(CRP in mg/dL). Divide by 10 to convert.
-  const lnCRP  = Math.log(Math.max(crpRaw / 10, 0.0001));
+  const lnCRP = Math.log(crpRaw / 10);
 
   // Compute linear combination (mortality score)
-  const xb =
-    COEFFICIENTS.albumin             * alb   +
-    COEFFICIENTS.creatinine          * cr    +
-    COEFFICIENTS.glucose             * glu   +
-    COEFFICIENTS.lnCRP               * lnCRP +
-    COEFFICIENTS.lymphocytePct       * lymph +
-    COEFFICIENTS.mcv                 * mcv   +
-    COEFFICIENTS.rdw                 * rdw   +
-    COEFFICIENTS.alkalinePhosphatase * alp   +
-    COEFFICIENTS.wbc                 * wbc   +
-    COEFFICIENTS.age                 * inputs.age +
-    INTERCEPT;
+  const term_alb   = COEFFICIENTS.albumin             * alb;
+  const term_cr    = COEFFICIENTS.creatinine          * cr;
+  const term_glu   = COEFFICIENTS.glucose             * glu;
+  const term_crp   = COEFFICIENTS.lnCRP               * lnCRP;
+  const term_lymph = COEFFICIENTS.lymphocytePct       * lymph;
+  const term_mcv   = COEFFICIENTS.mcv                 * mcv;
+  const term_rdw   = COEFFICIENTS.rdw                 * rdw;
+  const term_alp   = COEFFICIENTS.alkalinePhosphatase * alp;
+  const term_wbc   = COEFFICIENTS.wbc                 * wbc;
+  const term_age   = COEFFICIENTS.age                 * inputs.age;
 
-  // Convert xb to 10-year mortality probability
+  const xb = term_alb + term_cr + term_glu + term_crp + term_lymph +
+             term_mcv + term_rdw + term_alp + term_wbc + term_age + INTERCEPT;
+
+  console.log('[PhenoAge] inputs: alb=', alb, 'cr=', cr, 'glu=', glu, 'crpRaw=', crpRaw, 'lnCRP=', lnCRP.toFixed(4));
+  console.log('[PhenoAge] terms: alb=', term_alb.toFixed(3), 'cr=', term_cr.toFixed(3), 'glu=', term_glu.toFixed(3), 'crp=', term_crp.toFixed(3), 'lymph=', term_lymph.toFixed(3));
+  console.log('[PhenoAge] terms: mcv=', term_mcv.toFixed(3), 'rdw=', term_rdw.toFixed(3), 'alp=', term_alp.toFixed(3), 'wbc=', term_wbc.toFixed(3), 'age=', term_age.toFixed(3));
+  console.log('[PhenoAge] xb=', xb.toFixed(4), 'intercept=', INTERCEPT);
+
+  // Convert xb to 10-year mortality probability using Gompertz-Makeham model
   const mortProb = 1 - Math.exp(-LAMBDA * Math.exp(xb) / GAMMA);
+  console.log('[PhenoAge] mortProb=', mortProb.toFixed(6));
+
+  // Sanity check on mortality probability
+  if (!isFinite(mortProb) || mortProb <= 0) {
+    console.log('[PhenoAge] Invalid mortProb — returning null');
+    return { biologicalAge: null, confidence, missingCount, totalRequired, missingBiomarkers: missing, yearsYounger: null };
+  }
 
   // Convert to phenotypic age
   const clampedProb = Math.max(0.0001, Math.min(0.9999, mortProb));
-  const phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - clampedProb)) / 0.090165;
+  const innerLog = -0.00553 * Math.log(1 - clampedProb);
+  if (innerLog <= 0) {
+    console.log('[PhenoAge] innerLog <= 0 — returning null');
+    return { biologicalAge: null, confidence, missingCount, totalRequired, missingBiomarkers: missing, yearsYounger: null };
+  }
+  const phenoAge = 141.50225 + Math.log(innerLog) / 0.090165;
+  console.log('[PhenoAge] phenoAge=', phenoAge.toFixed(2), 'M=', clampedProb.toFixed(6));
 
-  const biologicalAge = Math.round(Math.max(1, Math.min(120, phenoAge)));
+  // Range guard: results outside 15–95 are physiologically implausible
+  if (phenoAge < 15 || phenoAge > 95) {
+    console.log('[PhenoAge] Out-of-range result:', phenoAge.toFixed(2), '— check biomarker values');
+    return { biologicalAge: null, confidence, missingCount, totalRequired, missingBiomarkers: missing, yearsYounger: null };
+  }
+
+  const biologicalAge = Math.round(phenoAge);
   const yearsYounger = inputs.age - biologicalAge;
 
   return {
