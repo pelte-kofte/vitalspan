@@ -260,6 +260,66 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
   );
 }
 
+// ── Add Supplement Sheet (recommended picker + custom entry point) ────────────
+interface AddSupplementSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  goal: string;
+  addedSupplements: string[];
+  onToggle: (name: string) => void;
+  onOpenCustom: () => void;
+}
+
+function AddSupplementSheet({ visible, onClose, goal, addedSupplements, onToggle, onOpenCustom }: AddSupplementSheetProps) {
+  const allRecommended = useMemo(() =>
+    [...BASE_SUPPLEMENTS, ...GOAL_SUPPLEMENTS].filter(s =>
+      s.goals.includes('all') || s.goals.some(g => g.toLowerCase() === goal.toLowerCase()),
+    ), [goal]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={ms.overlay}>
+        <View style={ms.sheet}>
+          <View style={ms.handle} />
+          <Text style={ms.sheetTitle}>Add Supplement</Text>
+          {goal ? <Text style={[ms.fieldLabel, { marginTop: 0, marginBottom: Spacing.sm }]}>Recommended for: {goal}</Text> : null}
+          <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+            {allRecommended.map((supp, i) => {
+              const isAdded = addedSupplements.includes(supp.name);
+              return (
+                <TouchableOpacity
+                  key={supp.name}
+                  style={[ms.dbRow, isAdded && { backgroundColor: Colors.primaryBg }, i === allRecommended.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => null); onToggle(supp.name); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[ms.dbName, isAdded && { color: Colors.primary }]}>{supp.name}</Text>
+                    <Text style={ms.dbDesc}>{supp.dose}</Text>
+                  </View>
+                  <View style={[ms.gradeBadge, { backgroundColor: isAdded ? Colors.primaryBg : Colors.bgSecondary, minWidth: 28, alignItems: 'center' }]}>
+                    <Text style={[ms.gradeTxt, { color: isAdded ? Colors.primary : Colors.textMuted }]}>
+                      {isAdded ? '✓' : '+'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={[ms.btnRow, { marginTop: Spacing.base }]}>
+            <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
+              <Text style={ms.cancelTxt}>Done</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={ms.addBtn} onPress={() => { onClose(); onOpenCustom(); }}>
+              <Text style={ms.addBtnTxt}>+ Custom</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProtocolScreen() {
   const nav = useNavigation<Nav>();
@@ -267,6 +327,7 @@ export default function ProtocolScreen() {
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
   const [expandedTimings, setExpandedTimings] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRecommendedSheet, setShowRecommendedSheet] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -527,107 +588,111 @@ export default function ProtocolScreen() {
           )}
         </View>
 
-        {/* Your Stack — custom supplements */}
-        {customSupps.length > 0 && (
-          <>
-            <Text style={s.sectionLabel}>Your Stack</Text>
-            <View style={s.card}>
-              {customSupps.map((cs, i) => {
-                const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
-                return (
-                  <View key={cs.id} style={[s.medRow, i < customSupps.length - 1 && s.rowBorder]}>
-                    <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
-                      <View style={[s.dot, taken && s.dotTaken]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[s.medName, taken && s.nameTaken]}>{cs.name}</Text>
-                        <Text style={s.medClass}>{cs.dose}{cs.timing ? ` · ${cs.timing}` : ''}</Text>
-                        {cs.notes ? <Text style={s.medTimeLbl}>{cs.notes}</Text> : null}
-                      </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={s.removeBtn}
-                      onPress={() => removeCustomSupplement(cs.id)}
-                    >
-                      <Text style={s.removeTxt}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          </>
-        )}
-
-        {/* Recommended Supplements */}
-        <View style={s.suppSectionHdr}>
-          <Text style={s.suppSectionTitle}>Recommended Supplements</Text>
-          {profile?.goal && <Text style={s.goalLbl}>Based on: {profile.goal}</Text>}
-        </View>
+        {/* Your Stack — recommended-added + custom supplements */}
+        <Text style={s.sectionLabel}>Your Stack</Text>
         <View style={s.card}>
-          {recommended.map((supp, i) => {
-            const isAdded = protocol.addedSupplements.includes(supp.name);
+          {addedSupps.length === 0 && customSupps.length === 0 ? (
+            <View style={s.emptyState}>
+              <Text style={s.emptyTxt}>No supplements in your stack yet</Text>
+            </View>
+          ) : null}
+
+          {/* Recommended supplements that are added */}
+          {addedSupps.map((supp, i) => {
             const doseCount = parseDoseCount(supp.dose);
             const timeLabels = getDoseTimeLabels(doseCount);
+            const isLast = i === addedSupps.length - 1 && customSupps.length === 0;
             return (
               <View key={supp.name}>
-                <SupplementRow
-                  supp={supp}
-                  isAdded={isAdded}
-                  isTaken={doseCount === 1
-                    ? (protocol.taken.includes(supp.name) || protocol.taken.includes(doseId(supp.name, 0)))
-                    : timeLabels.every((_, n) => protocol.taken.includes(doseId(supp.name, n)))}
-                  isExpanded={expandedTimings.has(supp.name)}
-                  medications={medications}
-                  showBorder={false}
-                  onToggleTaken={() => {
-                    if (doseCount === 1) toggleTaken(doseId(supp.name, 0));
-                  }}
-                  onToggle={() => toggleSupplement(supp.name)}
-                  onToggleExpanded={() => toggleExpanded(supp.name)}
-                />
-                {/* Multi-dose rows */}
-                {isAdded && doseCount > 1 && (
+                <View style={[s.medRow, !isLast && s.rowBorder]}>
+                  <View style={[s.medLeft, { flex: 1 }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.medName}>{supp.name}</Text>
+                      <Text style={s.medClass}>{supp.dose} · Grade {supp.evidence}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={s.removeBtn} onPress={() => toggleSupplement(supp.name)}>
+                    <Text style={s.removeTxt}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                {doseCount === 1 ? (
+                  <TouchableOpacity
+                    style={[s.doseRow, { paddingLeft: Spacing.md, marginBottom: 4 }]}
+                    onPress={() => toggleTaken(doseId(supp.name, 0))}
+                    activeOpacity={0.7}
+                  >
+                    {(() => {
+                      const taken = protocol.taken.includes(doseId(supp.name, 0)) || protocol.taken.includes(supp.name);
+                      return <>
+                        <View style={[s.dot, taken && s.dotTaken]} />
+                        <Text style={[s.doseLbl, taken && s.doseLblTaken]}>Mark taken</Text>
+                        <Text style={[s.doseTick, taken && s.doseTickDone]}>{taken ? '✓' : '○'}</Text>
+                      </>;
+                    })()}
+                  </TouchableOpacity>
+                ) : (
                   <View style={s.doseRows}>
                     {timeLabels.map((label, n) => {
                       const id = doseId(supp.name, n);
                       const taken = protocol.taken.includes(id);
                       return (
-                        <TouchableOpacity
-                          key={id}
-                          style={s.doseRow}
-                          onPress={() => toggleTaken(id)}
-                          activeOpacity={0.7}
-                        >
+                        <TouchableOpacity key={id} style={s.doseRow} onPress={() => toggleTaken(id)} activeOpacity={0.7}>
                           <View style={[s.dot, taken && s.dotTaken]} />
                           <Text style={[s.doseLbl, taken && s.doseLblTaken]}>{label}</Text>
-                          <Text style={[s.doseTick, taken && s.doseTickDone]}>
-                            {taken ? '✓' : '○'}
-                          </Text>
+                          <Text style={[s.doseTick, taken && s.doseTickDone]}>{taken ? '✓' : '○'}</Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
                 )}
-                {i < recommended.length - 1 && <View style={s.rowBorder} />}
               </View>
             );
           })}
 
-          {/* Add custom supplement CTA */}
-          <TouchableOpacity
-            style={s.addCustomBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-              setShowAddModal(true);
-            }}
-          >
-            <Text style={s.addCustomIcon}>+</Text>
-            <Text style={s.addCustomTxt}>Add custom supplement</Text>
-          </TouchableOpacity>
+          {/* Custom supplements */}
+          {customSupps.map((cs, i) => {
+            const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
+            return (
+              <View key={cs.id} style={[s.medRow, i < customSupps.length - 1 && s.rowBorder]}>
+                <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
+                  <View style={[s.dot, taken && s.dotTaken]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.medName, taken && s.nameTaken]}>{cs.name}</Text>
+                    <Text style={s.medClass}>{cs.dose}{cs.timing ? ` · ${cs.timing}` : ''}</Text>
+                    {cs.notes ? <Text style={s.medTimeLbl}>{cs.notes}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.removeBtn} onPress={() => removeCustomSupplement(cs.id)}>
+                  <Text style={s.removeTxt}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
+
+        {/* Add supplement button */}
+        <TouchableOpacity
+          style={s.addStackBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+            setShowRecommendedSheet(true);
+          }}
+        >
+          <Text style={s.addStackIcon}>+</Text>
+          <Text style={s.addStackTxt}>Add supplement</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 32 }} />
       </ScrollView>
 
+      <AddSupplementSheet
+        visible={showRecommendedSheet}
+        onClose={() => setShowRecommendedSheet(false)}
+        goal={profile?.goal ?? ''}
+        addedSupplements={protocol.addedSupplements}
+        onToggle={toggleSupplement}
+        onOpenCustom={() => setShowAddModal(true)}
+      />
       <AddCustomSupplementModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -714,6 +779,15 @@ const s = StyleSheet.create({
   },
   addCustomIcon: { fontSize: 20, color: Colors.primaryLight, width: 22, textAlign: 'center' },
   addCustomTxt: { fontSize: Typography.sizes.base, color: Colors.primaryLight, fontWeight: '500' },
+  addStackBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    marginHorizontal: Spacing.base, marginTop: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.primaryBorder,
+    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
+  },
+  addStackIcon: { fontSize: 20, color: Colors.primary, width: 22, textAlign: 'center', fontWeight: '300' },
+  addStackTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '500' },
 
   // Multi-dose supplement rows
   doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 },
