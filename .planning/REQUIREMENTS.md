@@ -97,4 +97,4 @@
 
 ---
 *Requirements defined: 2026-05-25*
-*Last updated: 2026-05-25 after initial definition*
+*Last updated: 2026-05-25 — roadmap created, all 15 requirements mapped*
