@@ -49,8 +49,8 @@ function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.bg,
-          borderTopColor: Colors.border,
+          backgroundColor: 'rgba(237, 232, 220, 0.94)',
+          borderTopColor: 'rgba(0, 0, 0, 0.06)',
           borderTopWidth: 0.5,
           paddingBottom: 8,
           paddingTop: 8,
@@ -60,8 +60,9 @@ function MainTabs() {
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '500',
+          fontWeight: '600',
           marginTop: 2,
+          letterSpacing: 0.3,
         },
       }}
     >

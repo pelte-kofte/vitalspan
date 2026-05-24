@@ -122,7 +122,7 @@ const s = StyleSheet.create({
   cta: { gap: Spacing.md },
   btnPrimary: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 15,
     alignItems: 'center',
     shadowColor: '#000',

@@ -21,6 +21,22 @@ export const Colors = {
   border: '#D4CFC4',
   borderLight: '#E2DED6',
 
+  // Biomarker status — longevity-optimized
+  status: {
+    optimal: '#52B788',
+    optimalBg: '#E8F5EE',
+    optimalBorder: '#A8D5BE',
+    optimalText: '#1C5C3A',
+    review: '#E9C46A',
+    reviewBg: '#FEF9E7',
+    reviewBorder: '#F0D88A',
+    reviewText: '#7A5B10',
+    critical: '#E76F51',
+    criticalBg: '#FDECEA',
+    criticalBorder: '#F0A898',
+    criticalText: '#8B1A0E',
+  },
+
   // Semantic
   warning: '#D4860B',
   warningBg: '#FDF3E3',

@@ -285,14 +285,14 @@ export default function DashboardScreen() {
                   end={{ x: 0.6, y: 1 }}
                   style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
                 >
-                  <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.primaryDark : Colors.warningText) : Colors.textMuted }]}>{bm.name}</Text>
-                  <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.primary : Colors.warning) : Colors.textMuted }]}>
+                  <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.status.optimalText : Colors.status.reviewText) : Colors.textMuted }]}>{bm.name}</Text>
+                  <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.status.optimal : Colors.status.review) : Colors.textMuted }]}>
                     {hasData ? String(latest.value) : '·'}
                   </Text>
                   <Text style={s.bmUnit}>{bm.unit}</Text>
                   {hasData ? (
                     <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                      <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.primaryDark : Colors.warningTextDark }]}>
+                      <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.status.optimalText : Colors.status.reviewText }]}>
                         {isOptimal ? 'Optimal' : 'Review'}
                       </Text>
                     </View>
@@ -373,7 +373,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: Spacing.base, paddingTop: Spacing.md },
   greetSmall: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  greetName: { fontSize: 22, fontWeight: '600', color: Colors.textPrimary, marginTop: 2 },
+  greetName: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginTop: 2 },
   notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   bioCardWrapper: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, marginBottom: Spacing.base },
   bioCardInner: { borderRadius: Radius.xl, padding: Spacing.base },
@@ -393,21 +393,21 @@ const s = StyleSheet.create({
   alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.warningTextDark, marginBottom: 2 },
   alertTxt: { fontSize: Typography.sizes.xs, color: Colors.warningText, lineHeight: 16 },
   sectionHdr: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: Typography.sizes.md, fontWeight: '600', color: Colors.textPrimary },
+  sectionTitle: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 },
   sectionLink: { fontSize: Typography.sizes.sm, color: Colors.primaryLight },
   sectionAddBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3 },
   sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
-  bmCard: { width: 120, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
-  bmCardWarning: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
-  bmCardGood: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  bmCardNone: { backgroundColor: Colors.bgCard, borderColor: Colors.border },
+  bmCard: { width: 120, borderRadius: Radius.xl, padding: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  bmCardWarning: { backgroundColor: Colors.status.reviewBg },
+  bmCardGood: { backgroundColor: Colors.status.optimalBg },
+  bmCardNone: { backgroundColor: Colors.bgCard },
   bmName: { fontSize: Typography.sizes.xs, marginBottom: 4 },
   bmVal: { fontSize: 22, fontWeight: '500', lineHeight: 26 },
   bmUnit: { fontSize: 10, color: Colors.textMuted, marginBottom: 6 },
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
-  bmBadgeWarn: { backgroundColor: Colors.warningBorder },
-  bmBadgeGood: { backgroundColor: Colors.primaryBorder },
+  bmBadgeWarn: { backgroundColor: Colors.status.reviewBorder },
+  bmBadgeGood: { backgroundColor: Colors.status.optimalBorder },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   bmBadgeEmpty: {
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
@@ -415,7 +415,7 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   bmBadgeEmptyTxt: { fontSize: 9, fontWeight: '500', color: Colors.primaryLight },
-  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, padding: Spacing.md },
+  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2, padding: Spacing.md },
   protoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: Spacing.sm },
   protoItemBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
   protoDot: { width: 10, height: 10, borderRadius: 5 },
@@ -427,7 +427,7 @@ const s = StyleSheet.create({
   protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
   protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
+  uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
   uploadCardIcon: { fontSize: 28 },
   uploadCardBody: { flex: 1 },
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
