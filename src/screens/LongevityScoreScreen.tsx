@@ -90,24 +90,21 @@ function healthScoreColor(bioAge?: number | null, age?: number | null): [string,
 }
 
 // Returns a display value for an orbital metric, or null when data is unavailable.
-// When isDemoMode is true we treat HealthKit-only metrics as unavailable so
-// demo numbers never appear alongside real biomarker data.
-function dataValue(snap: HealthData, key: string): string | null {
-  const isDemo = snap.isDemoMode === true;
+// isDemoMode is informational only (badge shown in UI); data is always displayed.
+function dataValue(snap: HealthData, key: string, extras?: { inflammation?: string | null }): string | null {
   switch (key) {
     case 'sleep':
-      return (!isDemo && snap.sleepHours != null) ? `${snap.sleepHours}h` : null;
+      return snap.sleepHours != null ? `${snap.sleepHours}h` : null;
     case 'hrv':
-      return (!isDemo && snap.hrv != null) ? `${snap.hrv}` : null;
+      return snap.hrv != null ? `${snap.hrv}` : null;
     case 'recovery':
-      return (!isDemo && snap.recovery != null) ? `${snap.recovery}%` : null;
+      return snap.recovery != null ? `${snap.recovery}%` : null;
     case 'inflammation':
-      return null; // derived from biomarkers, handled elsewhere
+      return extras?.inflammation ?? null;
     case 'glucose':
-      // Glucose can come from either HealthKit or biomarker entry — show if available
       return snap.glucose != null ? `${snap.glucose}` : null;
     case 'fitness':
-      return (!isDemo && snap.vo2max != null) ? `${snap.vo2max.toFixed(0)}` : null;
+      return snap.vo2max != null ? `${snap.vo2max.toFixed(0)}` : null;
     default:
       return null;
   }
@@ -215,6 +212,28 @@ export default function LongevityScoreScreen() {
     console.log('[LongevityScore] entryMap keys:', Array.from(entryMap.keys()).join(','));
     return computePhenoAge(inputs);
   }, [biomarkerEntries, profile]);
+
+  // Enrich health data with biomarker-derived values
+  const derivedHealth = React.useMemo((): HealthData => {
+    const h = { ...healthData };
+    if (h.glucose == null) {
+      const entry = biomarkerEntries
+        .filter(e => e.biomarkerId === 'fastingglucose')
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      if (entry) h.glucose = entry.value;
+    }
+    return h;
+  }, [healthData, biomarkerEntries]);
+
+  const inflammationValue = React.useMemo((): string | null => {
+    const entry = biomarkerEntries
+      .filter(e => e.biomarkerId === 'hscrp')
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (!entry) return null;
+    if (entry.value < 1) return 'Low';
+    if (entry.value < 3) return 'Mod';
+    return 'High';
+  }, [biomarkerEntries]);
 
   const bioAge = phenoResult?.biologicalAge ?? null;
   const chronoAge = profile?.age;
@@ -471,7 +490,7 @@ export default function LongevityScoreScreen() {
             <Animated.View style={[StyleSheet.absoluteFill, dpStyle]}>
               {DATA_POINTS.map(dp => {
                 const { x, y } = polarToXY(dp.angle, ORBIT_R, SPHERE_CX, SPHERE_CY);
-                const val = dataValue(healthData, dp.key);
+                const val = dataValue(derivedHealth, dp.key, { inflammation: inflammationValue });
                 const empty = METRIC_EMPTY[dp.key];
                 return (
                   <View key={dp.key} style={[s.dataOrb, { left: x - 30, top: y - 22 }, val == null && s.dataOrbEmpty]}>
@@ -513,7 +532,7 @@ export default function LongevityScoreScreen() {
           {/* Metric grid */}
           <View style={s.metricGrid}>
             {DATA_POINTS.map(dp => {
-              const val = dataValue(healthData, dp.key);
+              const val = dataValue(derivedHealth, dp.key, { inflammation: inflammationValue });
               const empty = METRIC_EMPTY[dp.key];
               return (
                 <View key={dp.key} style={[s.metricCell, val == null && s.metricCellEmpty]}>
