@@ -5,7 +5,7 @@ import {
   TextInput, Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
@@ -40,8 +40,11 @@ function formatDate(iso: string): string {
 
 export default function BiomarkerDetailScreen() {
   const nav = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, 'BiomarkerDetail'>>();
   const [entries, setEntries] = useState<StoredEntry[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    route.params?.biomarkerId ?? null
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');

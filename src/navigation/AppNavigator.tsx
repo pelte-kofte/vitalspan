@@ -25,7 +25,7 @@ export type RootStackParamList = {
   Landing: undefined;
   Onboarding: undefined;
   Main: undefined;
-  BiomarkerDetail: { biomarkerId: string };
+  BiomarkerDetail: { biomarkerId?: string };
   BiomarkerEntry: { biomarkerId?: string };
   InteractionChecker: undefined;
   LabUpload: undefined;
