@@ -539,6 +539,24 @@ export default function ProtocolScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
+        {/* Screen-level empty state — shown only when there are no items at all */}
+        {totalItems === 0 && (
+          <View style={s.emptyScreenCard}>
+            <Text style={{ fontSize: 32, textAlign: 'center', marginBottom: Spacing.md }}>💊</Text>
+            <Text style={s.emptyScreenHeadline}>Build your longevity stack</Text>
+            <Text style={s.emptyScreenSubtext}>
+              Add your medications and pharmacist-curated supplements to track your daily protocol and check for interactions.
+            </Text>
+            <TouchableOpacity
+              style={s.emptyScreenCta}
+              onPress={() => setShowRecommendedSheet(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={s.emptyScreenCtaTxt}>Get started →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Medications section */}
         <Text style={s.sectionLabel}>Medications</Text>
         <View style={s.card}>
@@ -797,6 +815,47 @@ const s = StyleSheet.create({
   },
   addStackIcon: { fontSize: 20, color: Colors.primary, width: 22, textAlign: 'center', fontWeight: '300' },
   addStackTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '500' },
+
+  // Screen-level empty state (totalItems === 0)
+  emptyScreenCard: {
+    marginHorizontal: Spacing.base,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginBottom: Spacing.base,
+  },
+  emptyScreenHeadline: {
+    fontSize: Typography.sizes.h3,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptyScreenSubtext: {
+    fontSize: Typography.sizes.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  emptyScreenCta: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+    paddingVertical: 10,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+  },
+  emptyScreenCtaTxt: {
+    color: Colors.primaryBg,
+    fontSize: Typography.sizes.base,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 
   // Multi-dose supplement rows
   doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 },
