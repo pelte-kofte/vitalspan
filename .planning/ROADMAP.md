@@ -57,7 +57,13 @@ Plans:
   3. About screen includes pharmacist name placeholder, PharmD designation, and practice focus statement
   4. About screen shows a visible "Why we built this" mission statement without requiring any expand action
   5. About screen shows medical disclaimer acceptance date and app version matching app.json
-**Plans**: TBD
+**Plans**: 2 plans in 1 wave
+
+Plans:
+
+**Wave 1** *(both plans are independent — run in parallel)*
+- [ ] 02-01-PLAN.md — App icon + splash screen generation scripts + app.json splash config (ASSET-01, ASSET-02)
+- [ ] 02-02-PLAN.md — AboutScreen: dynamic version, credential expansion, always-visible Why section, Legal card (STORE-01, STORE-02, STORE-03, STORE-04)
 
 ### Phase 3: UX Polish & TestFlight Prep
 **Goal**: Every screen renders correctly on iPhone 15 Pro and iPhone 16 Plus — no layout breaks block the TestFlight submission
@@ -78,5 +84,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. First-Run & Empty States | 3/3 | Complete ✓ | 2026-05-25 |
-| 2. App Assets & Store Polish | 0/TBD | Not started | - |
+| 2. App Assets & Store Polish | 0/2 | Not started | - |
 | 3. UX Polish & TestFlight Prep | 0/TBD | Not started | - |
