@@ -341,6 +341,8 @@ export default function ProtocolScreen() {
       setProtocol({
         ...EMPTY_PROTOCOL,
         ...saved,
+        medTimes: saved.medTimes ?? {},
+        addedSupplements: saved.addedSupplements ?? [],
         customSupplements: saved.customSupplements ?? [],
         taken: saved.takenDate === today ? (saved.taken ?? []) : [],
         takenDate: today,
