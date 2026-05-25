@@ -298,6 +298,22 @@ export default function BiomarkerDetailScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
+        {entries.length === 0 && (
+          <View style={s.emptyTabCard}>
+            <Text style={s.emptyTabIcon}>📊</Text>
+            <Text style={s.emptyTabHeading}>No biomarkers tracked yet</Text>
+            <Text style={s.emptyTabBody}>
+              Start with your most recent lab results. Three values unlock your biological age score.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              style={s.emptyTabCta}
+              onPress={() => nav.navigate('GuidedFirstRun')}
+            >
+              <Text style={s.emptyTabCtaTxt}>Log Your First Result</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {CATEGORIES.map(cat => {
           const bms = BIOMARKERS_BY_CATEGORY.get(cat.key) ?? [];
           if (bms.length === 0) return null;
@@ -449,4 +465,10 @@ const s = StyleSheet.create({
   citationTxt: {
     fontSize: 10, color: Colors.textMuted, fontStyle: 'italic', lineHeight: 15,
   },
+  emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.xl, alignItems: 'center' },
+  emptyTabIcon: { fontSize: 32, marginBottom: Spacing.md },
+  emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
+  emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
+  emptyTabCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
+  emptyTabCtaTxt: { color: Colors.bgCard, fontSize: Typography.sizes.base, fontWeight: '600' },
 });
