@@ -110,7 +110,9 @@ export default function DashboardScreen() {
         (inputs as Record<string, number>)[inputKey] = entry.value;
       }
     }
-    console.log('[Dashboard] phenoAge entryMap keys:', Array.from(entryMap.keys()).join(','));
+    if (__DEV__) {
+      console.log('[Dashboard] phenoAge entryMap keys:', Array.from(entryMap.keys()).join(','));
+    }
     return computePhenoAge(inputs);
   }, [entryMap, profile]);
 
