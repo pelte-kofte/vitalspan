@@ -279,7 +279,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {entries.length === 0 && !firstRunComplete ? (
+          {entries.length === 0 ? (
             <View style={s.emptyStateCard}>
               <Text style={s.emptyStateIcon}>🧬</Text>
               <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
@@ -294,7 +294,7 @@ export default function DashboardScreen() {
                 <Text style={s.emptyStateCtaTxt}>Log Your First Biomarkers</Text>
               </TouchableOpacity>
             </View>
-          ) : entries.length > 0 ? (
+          ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
               {BIOMARKERS.slice(0, 5).map((bm) => {
                 const latest = entryMap.get(bm.id) ?? null;
@@ -334,7 +334,7 @@ export default function DashboardScreen() {
                 );
               })}
             </ScrollView>
-          ) : null}
+          )}
 
           <TouchableOpacity
             style={s.uploadCard}
