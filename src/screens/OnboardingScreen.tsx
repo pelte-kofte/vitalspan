@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, TextInput, ScrollView, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -90,175 +91,200 @@ export default function OnboardingScreen() {
 
   if (step === 0) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        <Text style={s.stepLabel}>Step 1 of 5</Text>
-        <Text style={s.title}>{"What's your\nname?"}</Text>
-        <Text style={s.sub}>{"We'll personalize your experience."}</Text>
-        <TextInput
-          style={s.nameInput}
-          value={name}
-          onChangeText={setName}
-          placeholder="Your first name"
-          placeholderTextColor={Colors.textMuted}
-          autoFocus
-          returnKeyType="next"
-          onSubmitEditing={() => goNext(0)}
-        />
-      </ScrollView>
-      <View style={s.cta}>
-        <TouchableOpacity style={[s.btnMain, !name.trim() && s.btnMainDisabled]} onPress={() => goNext(0)}>
-          <Text style={s.btnMainTxt}>Continue</Text>
-        </TouchableOpacity>
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ProgressBar step={step} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+          <Text style={s.stepLabel}>Step 1 of 5</Text>
+          <Text style={s.title}>{"What's your\nname?"}</Text>
+          <Text style={s.sub}>{"We'll personalize your experience."}</Text>
+          <TextInput
+            style={s.nameInput}
+            value={name}
+            onChangeText={setName}
+            placeholder="Your first name"
+            placeholderTextColor={Colors.textMuted}
+            autoFocus
+            returnKeyType="next"
+            onSubmitEditing={() => goNext(0)}
+          />
+        </ScrollView>
+        <View style={s.cta}>
+          <TouchableOpacity style={[s.btnMain, !name.trim() && s.btnMainDisabled]} onPress={() => goNext(0)}>
+            <Text style={s.btnMainTxt}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
   if (step === 1) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>← Back</Text></TouchableOpacity>
-        <Text style={s.stepLabel}>Step 2 of 5</Text>
-        <Text style={s.title}>{"What's your\nmain goal?"}</Text>
-        <Text style={s.sub}>{"We'll build your protocol around this."}</Text>
-        <View style={s.optionList}>
-          {GOALS.map((g, i) => (
-            <TouchableOpacity key={i}
-              style={[s.optionCard, goal === i && s.optionCardSel]}
-              onPress={() => { setGoal(i); Haptics.selectionAsync().catch(() => null); }}>
-              <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
-                <Text style={{ fontSize: 18 }}>{g.icon}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.optionTitle}>{g.title}</Text>
-                <Text style={s.optionDesc}>{g.desc}</Text>
-              </View>
-              {goal === i && <Text style={{ color: Colors.primary, fontSize: 18 }}>✓</Text>}
-            </TouchableOpacity>
-          ))}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ProgressBar step={step} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+          <TouchableOpacity onPress={() => setStep(0)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+          <Text style={s.stepLabel}>Step 2 of 5</Text>
+          <Text style={s.title}>{"What's your\nmain goal?"}</Text>
+          <Text style={s.sub}>{"We'll build your protocol around this."}</Text>
+          <View style={s.optionList}>
+            {GOALS.map((g, i) => (
+              <TouchableOpacity key={i}
+                style={[s.optionCard, goal === i && s.optionCardSel]}
+                onPress={() => { setGoal(i); Haptics.selectionAsync().catch(() => null); }}>
+                <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
+                  <Text style={{ fontSize: 18 }}>{g.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.optionTitle}>{g.title}</Text>
+                  <Text style={s.optionDesc}>{g.desc}</Text>
+                </View>
+                {goal === i && <Text style={{ color: Colors.primary, fontSize: 18 }}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+        <View style={s.cta}>
+          <TouchableOpacity style={[s.btnMain, goal === null && s.btnMainDisabled]} onPress={() => goNext(1)}>
+            <Text style={s.btnMainTxt}>Continue</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-      <View style={s.cta}>
-        <TouchableOpacity style={[s.btnMain, goal === null && s.btnMainDisabled]} onPress={() => goNext(1)}>
-          <Text style={s.btnMainTxt}>Continue</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
   if (step === 2) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>← Back</Text></TouchableOpacity>
-        <Text style={s.stepLabel}>Step 3 of 5</Text>
-        <Text style={s.title}>{"Tell us about\nyourself"}</Text>
-        <Text style={s.sub}>Used to calibrate your biomarker ranges.</Text>
-        <Text style={s.fieldLabel}>Age</Text>
-        <View style={s.ageCard}>
-          <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.max(18, a - 1)); Haptics.selectionAsync().catch(() => null); }}>
-            <Text style={s.ageBtnTxt}>−</Text>
-          </TouchableOpacity>
-          <Text style={s.ageNum}>{age} <Text style={s.ageUnit}>years old</Text></Text>
-          <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.min(90, a + 1)); Haptics.selectionAsync().catch(() => null); }}>
-            <Text style={s.ageBtnTxt}>+</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={s.fieldLabel}>Biological sex</Text>
-        <View style={s.sexRow}>
-          {(['male', 'female'] as const).map(opt => (
-            <TouchableOpacity key={opt}
-              style={[s.sexBtn, sex === opt && s.sexBtnSel]}
-              onPress={() => { setSex(opt); Haptics.selectionAsync().catch(() => null); }}>
-              <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.primary }]}>
-                {opt.charAt(0).toUpperCase() + opt.slice(1)}
-              </Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ProgressBar step={step} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+          <TouchableOpacity onPress={() => setStep(1)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+          <Text style={s.stepLabel}>Step 3 of 5</Text>
+          <Text style={s.title}>{"Tell us about\nyourself"}</Text>
+          <Text style={s.sub}>Used to calibrate your biomarker ranges.</Text>
+          <Text style={s.fieldLabel}>Age</Text>
+          <View style={s.ageCard}>
+            <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.max(18, a - 1)); Haptics.selectionAsync().catch(() => null); }}>
+              <Text style={s.ageBtnTxt}>−</Text>
             </TouchableOpacity>
-          ))}
+            <Text style={s.ageNum}>{age} <Text style={s.ageUnit}>years old</Text></Text>
+            <TouchableOpacity style={s.ageBtn} onPress={() => { setAge(a => Math.min(90, a + 1)); Haptics.selectionAsync().catch(() => null); }}>
+              <Text style={s.ageBtnTxt}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.fieldLabel}>Biological sex</Text>
+          <View style={s.sexRow}>
+            {(['male', 'female'] as const).map(opt => (
+              <TouchableOpacity key={opt}
+                style={[s.sexBtn, sex === opt && s.sexBtnSel]}
+                onPress={() => { setSex(opt); Haptics.selectionAsync().catch(() => null); }}>
+                <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.primary }]}>
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+        <View style={s.cta}>
+          <TouchableOpacity style={s.btnMain} onPress={() => goNext(2)}>
+            <Text style={s.btnMainTxt}>Continue</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-      <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => goNext(2)}>
-          <Text style={s.btnMainTxt}>Continue</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
   if (step === 3) return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>← Back</Text></TouchableOpacity>
-        <Text style={s.stepLabel}>Step 4 of 5</Text>
-        <Text style={s.title}>{"Any existing\nconditions?"}</Text>
-        <Text style={s.sub}>Helps us flag interactions and tailor your protocol.</Text>
-        <View style={s.condGrid}>
-          {CONDITIONS.map(c => (
-            <TouchableOpacity key={c}
-              style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
-              onPress={() => { toggleCondition(c); Haptics.selectionAsync().catch(() => null); }}>
-              <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
-            </TouchableOpacity>
-          ))}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ProgressBar step={step} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+          <TouchableOpacity onPress={() => setStep(2)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+          <Text style={s.stepLabel}>Step 4 of 5</Text>
+          <Text style={s.title}>{"Any existing\nconditions?"}</Text>
+          <Text style={s.sub}>Helps us flag interactions and tailor your protocol.</Text>
+          <View style={s.condGrid}>
+            {CONDITIONS.map(c => (
+              <TouchableOpacity key={c}
+                style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
+                onPress={() => { toggleCondition(c); Haptics.selectionAsync().catch(() => null); }}>
+                <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+        <View style={s.cta}>
+          <TouchableOpacity style={s.btnMain} onPress={() => goNext(3)}>
+            <Text style={s.btnMainTxt}>Continue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => goNext(3)}>
+            <Text style={s.btnSkip}>Skip for now</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-      <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={() => goNext(3)}>
-          <Text style={s.btnMainTxt}>Continue</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => goNext(3)}>
-          <Text style={s.btnSkip}>Skip for now</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
   return (
     <SafeAreaView style={s.safe}>
-      <ProgressBar step={step} />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={() => setStep(3)}><Text style={s.back}>← Back</Text></TouchableOpacity>
-        <Text style={s.stepLabel}>Step 5 of 5</Text>
-        <Text style={s.title}>{"Current\nmedications?"}</Text>
-        <Text style={s.sub}>Our pharmacist engine checks all supplement interactions.</Text>
-        {meds.length > 0 && (
-          <View style={s.medTagRow}>
-            {meds.map(m => (
-              <TouchableOpacity key={m} style={s.medTag}
-                onPress={() => setMeds(prev => prev.filter(x => x !== m))}>
-                <Text style={s.medTagTxt}>{m} ×</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ProgressBar step={step} />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity onPress={() => setStep(3)}><Text style={s.back}>← Back</Text></TouchableOpacity>
+          <Text style={s.stepLabel}>Step 5 of 5</Text>
+          <Text style={s.title}>{"Current\nmedications?"}</Text>
+          <Text style={s.sub}>Our pharmacist engine checks all supplement interactions.</Text>
+          {meds.length > 0 && (
+            <View style={s.medTagRow}>
+              {meds.map(m => (
+                <TouchableOpacity key={m} style={s.medTag}
+                  onPress={() => setMeds(prev => prev.filter(x => x !== m))}>
+                  <Text style={s.medTagTxt}>{m} ×</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <MedicationSearch
+            onSelect={(med) => addMed(med.brandName || med.genericName)}
+            placeholder="Search by name, e.g. Metformin..."
+          />
+          <Text style={s.fieldLabel}>Common medications</Text>
+          <View style={s.quickRow}>
+            {QUICK_MEDS.map(m => (
+              <TouchableOpacity key={m} style={s.quickChip} onPress={() => addMed(m)}>
+                <Text style={s.quickChipTxt}>+ {m}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        )}
-        <MedicationSearch
-          onSelect={(med) => addMed(med.brandName || med.genericName)}
-          placeholder="Search by name, e.g. Metformin..."
-        />
-        <Text style={s.fieldLabel}>Common medications</Text>
-        <View style={s.quickRow}>
-          {QUICK_MEDS.map(m => (
-            <TouchableOpacity key={m} style={s.quickChip} onPress={() => addMed(m)}>
-              <Text style={s.quickChipTxt}>+ {m}</Text>
-            </TouchableOpacity>
-          ))}
+          <View style={s.privacyNote}>
+            <Text style={s.privacyTxt}>
+              Your medication data is encrypted locally and never shared. Used only to protect you from supplement interactions.
+            </Text>
+          </View>
+        </ScrollView>
+        <View style={s.cta}>
+          <TouchableOpacity style={s.btnMain} onPress={finish}>
+            <Text style={s.btnMainTxt}>Go to my dashboard</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={finish}>
+            <Text style={s.btnSkip}>Skip — no medications</Text>
+          </TouchableOpacity>
         </View>
-        <View style={s.privacyNote}>
-          <Text style={s.privacyTxt}>
-            Your medication data is encrypted locally and never shared. Used only to protect you from supplement interactions.
-          </Text>
-        </View>
-      </ScrollView>
-      <View style={s.cta}>
-        <TouchableOpacity style={s.btnMain} onPress={finish}>
-          <Text style={s.btnMainTxt}>Go to my dashboard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={finish}>
-          <Text style={s.btnSkip}>Skip — no medications</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

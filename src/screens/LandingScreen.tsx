@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,7 +35,7 @@ export default function LandingScreen() {
   return (
     <LinearGradient colors={[Colors.bgShade, Colors.bg]} style={s.gradient}>
       <SafeAreaView style={s.safe}>
-        <View style={s.inner}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.inner}>
 
           {/* Hero */}
           <View style={s.hero}>
@@ -67,7 +67,7 @@ export default function LandingScreen() {
             </TouchableOpacity>
           </View>
 
-        </View>
+        </ScrollView>
 
         {/* Pharmacist badge */}
         <View style={s.footer}>
@@ -84,7 +84,7 @@ const s = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
   inner: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
     gap: Spacing.xxl,
