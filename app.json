@@ -25,6 +25,16 @@
         "projectId": "4d42a8cb-bf83-4229-82a5-1b2273356a54"
       }
     },
+    "android": {
+      "package": "com.vitalspan.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2D6A4F"
+      }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       "expo-font"
     ]
