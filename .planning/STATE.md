@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-25)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 2 — App Assets & Store Polish
+**Current focus:** Phase 3 — UX Polish & TestFlight Prep
 
 ## Current Position
 
 Phase: 2 of 3 (App Assets & Store Polish)
-Plan: 0 of 2 in current phase
-Status: Phase 2 planned — ready to execute
-Last activity: 2026-05-25 — Phase 2 planned (2 plans, 1 wave)
+Plan: 2 of 2 in current phase
+Status: Phase 2 complete — ready for Phase 3
+Last activity: 2026-05-25 — Phase 2 executed (2 plans, wave 1 complete)
 
 Progress: [██████████] 100%
 
