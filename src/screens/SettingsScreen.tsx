@@ -20,6 +20,7 @@ const ALL_STORAGE_KEYS = [
   '@vitalspan_health_data',
   '@vitalspan_health_permissions',
   '@vitalspan_first_run_complete',   // Phase 1: guided first-run completion flag
+  '@vitalspan_exercise_log',         // exercise history
 ];
 
 // ── Row building blocks ──────────────────────────────────────────────────────
