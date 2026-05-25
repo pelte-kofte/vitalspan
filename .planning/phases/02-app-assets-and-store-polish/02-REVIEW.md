@@ -14,7 +14,12 @@ findings:
   warning: 5
   info: 4
   total: 11
-status: issues_found
+findings_fixed:
+  critical: 2
+  warning: 5
+  info: 0
+  total: 7
+status: fixed
 ---
 
 # Phase 02: Code Review Report
