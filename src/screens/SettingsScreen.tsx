@@ -19,6 +19,7 @@ const ALL_STORAGE_KEYS = [
   '@vitalspan_protocol_today',
   '@vitalspan_health_data',
   '@vitalspan_health_permissions',
+  '@vitalspan_first_run_complete',   // Phase 1: guided first-run completion flag
 ];
 
 const __DEV__ = true; // set false in production builds
