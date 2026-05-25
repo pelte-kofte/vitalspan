@@ -68,7 +68,7 @@ export default function BiomarkerEntryScreen() {
 
   const rawVal = parseFloat(value);
   const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
-  const isValidValue = !isNaN(rawVal) && rawVal >= 0;
+  const isValidValue = !isNaN(rawVal) && rawVal > 0;
   const status = selected && isValidValue
     ? getStatus(numVal, selected.optMin, selected.optMax)
     : null;
