@@ -1,9 +1,11 @@
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
+import { Colors } from './src/theme';
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Landing' | 'Main' | null>(null);
@@ -21,7 +23,13 @@ export default function App() {
       .catch(() => setInitialRoute('Landing'));
   }, []);
 
-  if (!initialRoute) return null;
+  if (!initialRoute) {
+    return (
+      <View style={s.loading}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -31,3 +39,12 @@ export default function App() {
     </>
   );
 }
+
+const s = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bg,
+  },
+});
