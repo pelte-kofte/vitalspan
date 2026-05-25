@@ -15,7 +15,6 @@ import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-import SupplementRow from '../components/SupplementRow';
 
 interface UserProfile {
   name: string;
