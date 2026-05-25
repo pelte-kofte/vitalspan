@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 
@@ -37,6 +38,15 @@ const CITATIONS = [
 export default function AboutScreen() {
   const nav = useNavigation();
   const [citationsExpanded, setCitationsExpanded] = useState(false);
+  const [disclaimerInfo, setDisclaimerInfo] = useState<{ version: string; acceptedAt: string } | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@vitalspan_disclaimer_accepted')
+      .then(raw => {
+        if (raw) setDisclaimerInfo(JSON.parse(raw) as { version: string; acceptedAt: string });
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <SafeAreaView style={s.safe}>
@@ -188,6 +198,20 @@ export default function AboutScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Legal */}
+        <View style={s.legalCard}>
+          <Text style={s.legalTitle}>Legal</Text>
+          <Text style={s.legalDisclaimerLine}>
+            {disclaimerInfo ? `Medical disclaimer v${disclaimerInfo.version}` : 'Medical disclaimer v1.0'}
+          </Text>
+          <Text style={s.legalDateLine}>
+            {disclaimerInfo
+              ? `Accepted: ${new Date(disclaimerInfo.acceptedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+              : 'Not yet accepted'}
+          </Text>
+          <Text style={s.legalVersionLine}>{`App version: ${VERSION}`}</Text>
+        </View>
+
         <View style={s.credits}>
           <Text style={s.creditsTxt}>Made with care for longevity.</Text>
           <Text style={s.creditsVersion}>v{VERSION}</Text>
@@ -280,6 +304,16 @@ const s = StyleSheet.create({
   disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.warningText, lineHeight: 18 },
   privacyLink: { marginTop: Spacing.sm },
   privacyLinkTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+
+  legalCard: {
+    backgroundColor: Colors.bgSecondary, borderRadius: Radius.lg, borderWidth: 0.5,
+    borderColor: Colors.border, padding: Spacing.base, marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm, borderLeftWidth: 2, borderLeftColor: Colors.primaryBorder,
+  },
+  legalTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
+  legalDisclaimerLine: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.textSecondary },
+  legalDateLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.textMuted, marginTop: Spacing.xs },
+  legalVersionLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.textMuted, marginTop: Spacing.sm },
 
   credits: { alignItems: 'center', paddingVertical: Spacing.lg },
   creditsTxt: { fontSize: Typography.sizes.sm, color: Colors.textMuted },
