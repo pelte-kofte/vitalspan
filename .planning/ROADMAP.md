@@ -79,9 +79,9 @@ Plans:
 Plans:
 
 **Wave 1** *(all three plans are independent — run in parallel)*
-- [ ] 03-01-PLAN.md — App.tsx loading indicator: replace null render with ActivityIndicator (POLISH-02)
-- [ ] 03-02-PLAN.md — ProtocolScreen cohesive empty state card when no medications or supplements added (POLISH-03)
-- [ ] 03-03-PLAN.md — Layout fixes: tab bar safe area, LandingScreen ScrollView wrap, OnboardingScreen KeyboardAvoidingView (POLISH-01)
+- [x] 03-01-PLAN.md — App.tsx loading indicator: replace null render with ActivityIndicator (POLISH-02)
+- [x] 03-02-PLAN.md — ProtocolScreen cohesive empty state card when no medications or supplements added (POLISH-03)
+- [x] 03-03-PLAN.md — Layout fixes: tab bar safe area, LandingScreen ScrollView wrap, OnboardingScreen KeyboardAvoidingView (POLISH-01)
 
 ## Progress
 
@@ -92,4 +92,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. First-Run & Empty States | 3/3 | Complete ✓ | 2026-05-25 |
 | 2. App Assets & Store Polish | 2/2 | Complete ✓ | 2026-05-25 |
-| 3. UX Polish & TestFlight Prep | 0/3 | Planned | - |
+| 3. UX Polish & TestFlight Prep | 3/3 | Complete ✓ | 2026-05-25 |
