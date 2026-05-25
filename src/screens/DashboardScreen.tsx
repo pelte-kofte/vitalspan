@@ -37,21 +37,24 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
+  const [firstRunComplete, setFirstRunComplete] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw, firstRunRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         AsyncStorage.getItem('@vitalspan_protocol_today'),
         loadHealthData(),
         AsyncStorage.getItem('@vitalspan_exercise_log'),
+        AsyncStorage.getItem('@vitalspan_first_run_complete'),
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
       if (hData) setHealthData(hData);
       if (exerciseRaw) setExerciseLogs(JSON.parse(exerciseRaw));
+      setFirstRunComplete(firstRunRaw === 'true');
 
       if (protocolRaw) {
         const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
@@ -273,45 +276,62 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
-            {BIOMARKERS.slice(0, 5).map((bm) => {
-              const latest = entryMap.get(bm.id) ?? null;
-              const hasData = latest !== null;
-              const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
-              const gradColors = (hasData
-                ? (isOptimal ? Gradients.cardGood : Gradients.cardWarn)
-                : Gradients.cardNone) as [string, string];
-              return (
-                <LinearGradient
-                  key={bm.id}
-                  colors={gradColors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0.6, y: 1 }}
-                  style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
-                >
-                  <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.status.optimalText : Colors.status.reviewText) : Colors.textMuted }]}>{bm.name}</Text>
-                  <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.status.optimal : Colors.status.review) : Colors.textMuted }]}>
-                    {hasData ? String(latest.value) : '·'}
-                  </Text>
-                  <Text style={s.bmUnit}>{bm.unit}</Text>
-                  {hasData ? (
-                    <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                      <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.status.optimalText : Colors.status.reviewText }]}>
-                        {isOptimal ? 'Optimal' : 'Review'}
-                      </Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={s.bmBadgeEmpty}
-                      onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: bm.id })}
-                    >
-                      <Text style={s.bmBadgeEmptyTxt}>+ Log first reading</Text>
-                    </TouchableOpacity>
-                  )}
-                </LinearGradient>
-              );
-            })}
-          </ScrollView>
+          {entries.length === 0 && !firstRunComplete ? (
+            <View style={s.emptyStateCard}>
+              <Text style={s.emptyStateIcon}>🧬</Text>
+              <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
+              <Text style={s.emptyStateBody}>
+                Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to unlock your Longevity Score and biological age projection.
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                style={s.emptyStateCta}
+                onPress={() => nav.navigate('GuidedFirstRun')}
+              >
+                <Text style={s.emptyStateCtaTxt}>Log Your First Biomarkers</Text>
+              </TouchableOpacity>
+            </View>
+          ) : entries.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
+              {BIOMARKERS.slice(0, 5).map((bm) => {
+                const latest = entryMap.get(bm.id) ?? null;
+                const hasData = latest !== null;
+                const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
+                const gradColors = (hasData
+                  ? (isOptimal ? Gradients.cardGood : Gradients.cardWarn)
+                  : Gradients.cardNone) as [string, string];
+                return (
+                  <LinearGradient
+                    key={bm.id}
+                    colors={gradColors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0.6, y: 1 }}
+                    style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
+                  >
+                    <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.status.optimalText : Colors.status.reviewText) : Colors.textMuted }]}>{bm.name}</Text>
+                    <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.status.optimal : Colors.status.review) : Colors.textMuted }]}>
+                      {hasData ? String(latest.value) : '·'}
+                    </Text>
+                    <Text style={s.bmUnit}>{bm.unit}</Text>
+                    {hasData ? (
+                      <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
+                        <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.status.optimalText : Colors.status.reviewText }]}>
+                          {isOptimal ? 'Optimal' : 'Review'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={s.bmBadgeEmpty}
+                        onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: bm.id })}
+                      >
+                        <Text style={s.bmBadgeEmptyTxt}>+ Log first reading</Text>
+                      </TouchableOpacity>
+                    )}
+                  </LinearGradient>
+                );
+              })}
+            </ScrollView>
+          ) : null}
 
           <TouchableOpacity
             style={s.uploadCard}
@@ -464,6 +484,12 @@ const s = StyleSheet.create({
   protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
   protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
+  emptyStateCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base },
+  emptyStateIcon: { fontSize: 32, marginBottom: Spacing.md },
+  emptyStateHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
+  emptyStateBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
+  emptyStateCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
+  emptyStateCtaTxt: { color: Colors.bgCard, fontSize: Typography.sizes.base, fontWeight: '600' },
   uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
   exerciseCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.status.optimalBg, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
   exerciseCardIcon: { fontSize: 28 },
