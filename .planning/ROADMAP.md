@@ -12,7 +12,7 @@ The core app is built. This milestone closes the gap between a working prototype
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: First-Run & Empty States** - Guide new users to their first clinical insight immediately after onboarding
+- [x] **Phase 1: First-Run & Empty States** - Guide new users to their first clinical insight immediately after onboarding
 - [ ] **Phase 2: App Assets & Store Polish** - Replace placeholder assets with branded ones and strengthen pharmacist credibility signals
 - [ ] **Phase 3: UX Polish & TestFlight Prep** - Verify all screens on current iPhone form factors and eliminate blocking layout issues
 
@@ -35,11 +35,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 
 **Wave 1**
-- [ ] 01-01-PLAN.md — Data + GuidedFirstRunScreen + navigation wiring (FIRST-01, FIRST-02, FIRST-03, FIRST-04)
+- [x] 01-01-PLAN.md — Data + GuidedFirstRunScreen + navigation wiring (FIRST-01, FIRST-02, FIRST-03, FIRST-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-02-PLAN.md — Dashboard and Biomarkers tab empty states (EMPTY-01, EMPTY-02, FIRST-03 re-trigger)
-- [ ] 01-03-PLAN.md — BiomarkerEntry explanation card + SettingsScreen key registration (FIRST-02, FIRST-03)
+- [x] 01-02-PLAN.md — Dashboard and Biomarkers tab empty states (EMPTY-01, EMPTY-02, FIRST-03 re-trigger)
+- [x] 01-03-PLAN.md — BiomarkerEntry explanation card + SettingsScreen key registration (FIRST-02, FIRST-03)
 
 **Cross-cutting constraints:**
 - All files use `Colors.*` tokens — no hardcoded hex values
@@ -77,6 +77,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First-Run & Empty States | 0/3 | Ready to execute | - |
+| 1. First-Run & Empty States | 3/3 | Complete ✓ | 2026-05-25 |
 | 2. App Assets & Store Polish | 0/TBD | Not started | - |
 | 3. UX Polish & TestFlight Prep | 0/TBD | Not started | - |
