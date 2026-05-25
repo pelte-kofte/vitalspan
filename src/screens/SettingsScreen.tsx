@@ -22,8 +22,6 @@ const ALL_STORAGE_KEYS = [
   '@vitalspan_first_run_complete',   // Phase 1: guided first-run completion flag
 ];
 
-const __DEV__ = true; // set false in production builds
-
 // ── Row building blocks ──────────────────────────────────────────────────────
 interface RowProps {
   icon: string;
