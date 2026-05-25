@@ -7,10 +7,12 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography, Motion } from '../theme';
 import { BIOMARKERS, Biomarker } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
+import BreathingCard from '../components/BreathingCard';
+import { FIRST_RUN_CONTENT_MAP } from '../data/firstRunContent';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Source = 'Blood test' | 'Home kit' | 'Hospital' | 'Private clinic';
@@ -163,6 +165,15 @@ export default function BiomarkerEntryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        {selected !== null && FIRST_RUN_CONTENT_MAP[selected.id] !== undefined && (
+          <BreathingCard style={s.explanationWrapper}>
+            <View style={s.explanationInner}>
+              <Text style={s.explanationIcon}>{FIRST_RUN_CONTENT_MAP[selected.id].icon}</Text>
+              <Text style={s.explanationHeadline}>{FIRST_RUN_CONTENT_MAP[selected.id].headline}</Text>
+              <Text style={s.explanationBody}>{FIRST_RUN_CONTENT_MAP[selected.id].body}</Text>
+            </View>
+          </BreathingCard>
+        )}
         <View style={s.valueCard}>
           <TextInput
             style={s.valueInput}
@@ -325,4 +336,9 @@ const s = StyleSheet.create({
   unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
   unitChipTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
   convertedVal: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+  explanationWrapper: { marginBottom: Spacing.md },
+  explanationInner: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.base },
+  explanationIcon: { fontSize: 24, marginBottom: Spacing.sm },
+  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
+  explanationBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, lineHeight: 24 },
 });
