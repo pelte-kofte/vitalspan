@@ -27,15 +27,24 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. User completing onboarding is immediately shown a guided flow prompting Glucose, HbA1c, and Cholesterol — not a blank dashboard
   2. Each biomarker step shows a plain-English card explaining why that value matters for longevity before the entry input
   3. User can skip the guided flow and re-trigger it from the Dashboard empty state CTA
-  4. After completing the guided flow, Dashboard displays entered data and Longevity Score card is unlocked
+  4. After completing the guided flow, Dashboard displays entered data and FutureSelf transitions to partial-progress state (checklist with logged items checked; full biological age unlocks once 5+ PhenoAge biomarkers are logged)
   5. Biomarkers tab shows an explanatory empty state with "Start tracking" CTA when no entries exist
-**Plans**: 3 plans
+**Plans**: 3 plans in 2 waves
 **UI hint**: yes
 
 Plans:
+
+**Wave 1**
 - [ ] 01-01-PLAN.md — Data + GuidedFirstRunScreen + navigation wiring (FIRST-01, FIRST-02, FIRST-03, FIRST-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — Dashboard and Biomarkers tab empty states (EMPTY-01, EMPTY-02, FIRST-03 re-trigger)
 - [ ] 01-03-PLAN.md — BiomarkerEntry explanation card + SettingsScreen key registration (FIRST-02, FIRST-03)
+
+**Cross-cutting constraints:**
+- All files use `Colors.*` tokens — no hardcoded hex values
+- All spacing from `Spacing.*` — no hardcoded margin/padding numbers
+- `@vitalspan_first_run_complete` written as string `'true'`, read with `=== 'true'` comparison
 
 ### Phase 2: App Assets & Store Polish
 **Goal**: The app looks and reads like a credible, pharmacist-built product — not an Expo starter
