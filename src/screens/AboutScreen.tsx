@@ -3,9 +3,10 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 
-const VERSION = '0.1.0';
+const VERSION = Constants.expoConfig?.version ?? '—';
 
 const EVIDENCE_GRADES = [
   { grade: 'A', desc: 'Strong evidence — multiple RCTs or large cohort studies', color: Colors.primary, bg: Colors.primaryBg, border: Colors.primaryBorder },
@@ -36,7 +37,6 @@ const CITATIONS = [
 export default function AboutScreen() {
   const nav = useNavigation();
   const [citationsExpanded, setCitationsExpanded] = useState(false);
-  const [whyExpanded, setWhyExpanded] = useState(false);
 
   return (
     <SafeAreaView style={s.safe}>
@@ -59,52 +59,44 @@ export default function AboutScreen() {
           </View>
         </View>
 
-        {/* Founder */}
+        {/* About the builder */}
         <View style={s.section}>
           <View style={s.founderRow}>
             <View style={s.founderAvatar}>
               <Text style={s.founderAvatarTxt}>Rx</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.founderName}>Founded by a Clinical Pharmacist</Text>
-              <Text style={s.founderCred}>PharmD · Longevity Medicine · Drug–Supplement Interactions</Text>
+              <Text style={s.founderName}>Dr. Bekircem Kusdemir, PharmD</Text>
+              <Text style={s.founderCred}>PharmD · Clinical Pharmacist</Text>
             </View>
           </View>
+          <Text style={s.founderPracticeFocus}>
+            Longevity medicine, metabolic health optimization, and drug–supplement interaction safety.
+          </Text>
           <Text style={s.bodyTxt}>
             Every biomarker range, supplement recommendation, and interaction warning in Vitalspan is pharmacist-reviewed. We hold ourselves to the standard of clinical practice — not wellness trends.
           </Text>
         </View>
 
         {/* Why pharmacist-built matters */}
-        <TouchableOpacity
-          style={s.section}
-          onPress={() => setWhyExpanded(e => !e)}
-          activeOpacity={0.8}
-        >
-          <View style={s.expandHeader}>
-            <Text style={s.sectionTitle}>Why pharmacist-built matters</Text>
-            <Text style={s.expandArrow}>{whyExpanded ? '▲' : '▼'}</Text>
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Why pharmacist-built matters</Text>
+          <Text style={s.bodyTxt}>
+            Most health apps are built by engineers, not clinicians. This leads to dangerous oversimplifications — recommending supplements without checking your medications, using population-average ranges rather than longevity targets, and missing critical interactions.
+          </Text>
+          <View style={s.whyPoint}>
+            <Text style={s.whyIcon}>💊</Text>
+            <Text style={s.whyTxt}>Every supplement recommendation checks your medication list for interactions using our pharmacist-curated database of 200+ drugs.</Text>
           </View>
-          {whyExpanded && (
-            <>
-              <Text style={s.bodyTxt}>
-                Most health apps are built by engineers, not clinicians. This leads to dangerous oversimplifications — recommending supplements without checking your medications, using population-average ranges rather than longevity targets, and missing critical interactions.
-              </Text>
-              <View style={s.whyPoint}>
-                <Text style={s.whyIcon}>💊</Text>
-                <Text style={s.whyTxt}>Every supplement recommendation checks your medication list for interactions using our pharmacist-curated database of 200+ drugs.</Text>
-              </View>
-              <View style={s.whyPoint}>
-                <Text style={s.whyIcon}>🎯</Text>
-                <Text style={s.whyTxt}>Biomarker targets are based on longevity medicine literature, not standard lab normals designed to detect disease.</Text>
-              </View>
-              <View style={s.whyPoint}>
-                <Text style={s.whyIcon}>🔬</Text>
-                <Text style={s.whyTxt}>Biological age is calculated using the validated Levine PhenoAge algorithm, not a proprietary black-box score.</Text>
-              </View>
-            </>
-          )}
-        </TouchableOpacity>
+          <View style={s.whyPoint}>
+            <Text style={s.whyIcon}>🎯</Text>
+            <Text style={s.whyTxt}>Biomarker targets are based on longevity medicine literature, not standard lab normals designed to detect disease.</Text>
+          </View>
+          <View style={s.whyPoint}>
+            <Text style={s.whyIcon}>🔬</Text>
+            <Text style={s.whyTxt}>Biological age is calculated using the validated Levine PhenoAge algorithm, not a proprietary black-box score.</Text>
+          </View>
+        </View>
 
         {/* Mission */}
         <View style={s.section}>
@@ -248,6 +240,7 @@ const s = StyleSheet.create({
   founderAvatarTxt: { fontSize: 16, fontWeight: '700', color: Colors.primary },
   founderName: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
   founderCred: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 3 },
+  founderPracticeFocus: { fontSize: Typography.sizes.xs, fontWeight: '400', color: Colors.textSecondary, marginTop: Spacing.sm },
 
   whyPoint: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
   whyIcon: { fontSize: 16, width: 22 },
