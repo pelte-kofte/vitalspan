@@ -84,7 +84,12 @@ export default function OnboardingScreen() {
       medications: meds,
       onboardingComplete: true,
     };
-    await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
+    try {
+      await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
+    } catch {
+      Alert.alert('Save failed', 'Could not save your profile. Please try again.');
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
     nav.reset({ index: 0, routes: [{ name: 'GuidedFirstRun' }] });
   }
