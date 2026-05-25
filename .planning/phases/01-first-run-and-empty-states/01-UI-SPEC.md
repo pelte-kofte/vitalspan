@@ -43,7 +43,7 @@ All values from `Spacing.*` in `src/theme/index.ts`. Never hardcode margin/paddi
 | `Spacing.xxl` | 32 | Screen top padding, footer bottom padding |
 
 Exceptions:
-- Touch targets for primary CTA buttons: minimum 44pt height (iOS HIG) — use `paddingVertical: 14` inside a container with fixed `Spacing.base` horizontal padding to reach 44pt naturally.
+- Touch targets for primary CTA buttons: minimum 44pt height (iOS HIG) — use `paddingVertical: 16` inside a container with fixed `Spacing.base` horizontal padding to reach 48pt touch target height.
 - Skip/defer link: minimum 44pt touch target via `paddingVertical: 12` on the touchable row.
 - Step progress indicator top bar: `paddingTop: Spacing.xl` to clear the status bar on fullScreenModal.
 
@@ -56,7 +56,7 @@ All values from `Typography.sizes.*` in `src/theme/index.ts`. Never hardcode fon
 | Role | Token | Size | Weight | Line Height |
 |------|-------|------|--------|-------------|
 | Body copy (card explanation) | `Typography.sizes.body` | 15px | 400 (regular) | 1.6 (24px) |
-| Label / supporting text | `Typography.sizes.sm` | 12px | 500 (medium) | 1.4 |
+| Label / supporting text | `Typography.sizes.sm` | 12px | 400 (regular) | 1.4 |
 | Card headline ("Why Glucose Matters") | `Typography.sizes.h3` | 18px | 600 (semibold) | 1.2 |
 | Screen / section heading ("Step 1 of 3") | `Typography.sizes.lg` | 16px | 600 (semibold) | 1.2 |
 
@@ -80,10 +80,9 @@ All values from `Colors.*` in `src/theme/index.ts`. Never hardcode hex values in
 | Destructive | n/a | — | No destructive actions in this phase |
 
 **Accent reserved for (explicit list):**
-1. Primary CTA button background ("Get started", "Log it")
+1. Primary CTA button background ("Log Glucose", "Log HbA1c", "Finish & See My Dashboard", "Log Your First Biomarkers", "Log Your First Result")
 2. Step progress indicator active state (filled dot or active text)
 3. Checkmark / completion indicator on FutureSelf locked checklist rows
-4. "Start tracking" CTA button on Biomarkers empty state
 
 Accent is NOT used for: card borders, body copy, icons, backgrounds, or secondary labels.
 
@@ -104,6 +103,8 @@ Components to create or modify in this phase:
 
 ### New: `GuidedFirstRunScreen` (`src/screens/GuidedFirstRunScreen.tsx`)
 
+**Primary focal point:** the BreathingCard explanation card — the animated glow draws the eye first and establishes clinical context before the user interacts with the input field.
+
 **Layout:**
 - `SafeAreaView` with `backgroundColor: Colors.bg` — no NeuralGrid background (clean, focused)
 - Top bar: `paddingTop: Spacing.xl`, centered step label + horizontal pill progress track
@@ -112,7 +113,7 @@ Components to create or modify in this phase:
 - Main content: `ScrollView` with `paddingHorizontal: Spacing.base`
 - Explanation card: `BreathingCard` wrapper (glowColor default `Colors.primaryDark`, period `Motion.breath`) containing a plain `View` with `backgroundColor: Colors.bgCard`, `borderRadius: Radius.lg`, `borderWidth: 1`, `borderColor: Colors.borderLight`, `padding: Spacing.base`
 - Inside explanation card: clinical icon (see Copywriting Contract), headline (`Typography.sizes.h3 / weight 600 / Colors.textPrimary`), body copy (`Typography.sizes.body / weight 400 / Colors.textSecondary`, `lineHeight: 24`)
-- Entry field: `TextInput` with `keyboardType: 'decimal-pad'`, height 52, `borderRadius: Radius.md`, `borderWidth: 1.5`, `borderColor: Colors.border` (focus state: `Colors.primary`), `fontSize: Typography.sizes.xl`, `fontWeight: '600'`, `color: Colors.textPrimary`, right-side unit label in `Colors.textMuted`
+- Entry field: `TextInput` with `keyboardType: 'decimal-pad'`, height 52, `borderRadius: Radius.md`, `borderWidth: 1.5`, `borderColor: Colors.border` (focus state: `Colors.primary`), `fontSize: Typography.sizes.h3`, `fontWeight: '600'`, `color: Colors.textPrimary`, right-side unit label in `Colors.textMuted`
 - RangeBar: render existing `RangeBar` component below the entry field — shows longevity target range visually before user types
 - Footer: fixed-position footer with `paddingHorizontal: Spacing.base`, `paddingBottom: Spacing.xxl`, `paddingTop: Spacing.md`, `backgroundColor: Colors.bg`
   - Primary CTA button: `backgroundColor: Colors.primary`, `borderRadius: Radius.xl`, height 52, label in `Colors.bgCard / weight 600 / 16px`
@@ -223,7 +224,7 @@ Note: "I'll do this later" writes `@vitalspan_first_run_complete: true` and call
 | Icon | `🧬` |
 | Heading | "Your longevity data starts here" |
 | Body | "Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to unlock your Longevity Score and biological age projection." |
-| CTA button | "Get started" |
+| CTA button | "Log Your First Biomarkers" |
 
 ### Biomarkers Tab Empty State Card
 
@@ -232,7 +233,7 @@ Note: "I'll do this later" writes `@vitalspan_first_run_complete: true` and call
 | Icon | `📊` |
 | Heading | "No biomarkers tracked yet" |
 | Body | "Start with your most recent lab results. Three values unlock your biological age score." |
-| CTA button | "Start tracking" |
+| CTA button | "Log Your First Result" |
 
 ### Error States
 
@@ -265,14 +266,14 @@ None in this phase. The "I'll do this later" skip is not destructive — it is a
 
 | Interaction | Behavior |
 |-------------|---------|
-| Tap "Get started" | `nav.navigate('GuidedFirstRun')` |
+| Tap "Log Your First Biomarkers" | `nav.navigate('GuidedFirstRun')` |
 | FutureSelf card in locked state | Tappable — shows the existing `showExplainer` modal explaining how projection unlocks |
 
 ### Biomarkers Tab Empty State
 
 | Interaction | Behavior |
 |-------------|---------|
-| Tap "Start tracking" | `nav.navigate('GuidedFirstRun')` |
+| Tap "Log Your First Result" | `nav.navigate('GuidedFirstRun')` |
 
 ---
 
