@@ -47,6 +47,7 @@ All values from `Spacing.*` in `src/theme/index.ts`. Never hardcode margin/paddi
 Exceptions:
 - Founder avatar circle: fixed 48×48pt (existing pattern from Phase 1 UI-SPEC, unchanged)
 - Section card `borderWidth: 0.5` — sub-pixel border is intentional and matches existing AboutScreen pattern
+- **Credential subtitle top nudge: 3pt** — optical compensation for DM Sans cap-height alignment with the founder name; this pre-existing value in `founderCred` StyleSheet is preserved unchanged as an approved exception. Do NOT change to 4pt — doing so introduces a visual regression.
 
 ---
 
@@ -54,18 +55,22 @@ Exceptions:
 
 All values from `Typography.sizes.*` in `src/theme/index.ts`. Never hardcode font sizes.
 
+**This phase's type contract uses exactly 2 weights for all new content:**
+
 | Role | Token | Size | Weight | Line Height | Usage in This Phase |
 |------|-------|------|--------|-------------|---------------------|
-| Section title | `Typography.sizes.base` | 14px | 600 (semibold) | 1.3 (18px) | Card section headings: "Why we built this", "About the builder", "Legal" |
-| Body copy | `Typography.sizes.base` | 14px | 400 (regular) | 1.57 (22px) | Mission statement body, credential description, legal paragraph |
-| Supporting label | `Typography.sizes.xs` | 11px | 400 (regular) | 1.5 | Acceptance date line, version string, credential line (PharmD · ...) |
-| Hero title | `Typography.sizes.display3` | 36px | 300 (light) | 1.2 | "Vitalspan" hero — existing pattern, unchanged |
+| Section title | `Typography.sizes.base` | 14px | **600 (semibold)** | 1.3 (18px) | All new section headings: "About the builder", "Legal"; also existing "Why pharmacist-built matters" title rendered without toggle |
+| Body copy / labels | `Typography.sizes.base` or `Typography.sizes.xs` | 14px / 11px | **400 (regular)** | 1.57 (22px) / 1.5 | All new body copy, credential subtitle, practice focus, legal date lines, version string, acceptance date |
 
-Only two weights used across all new content: **400 (regular)** for body copy, **600 (semibold)** for section titles and credential name. Hero uses 300 (light) — this is the existing pattern; do not change it.
+**Inherited invariant — not governed by this phase's type contract:**
+
+> Weight 300 (light) — used for the "Vitalspan" hero title (`Typography.sizes.display3`, 36px) in the existing `AboutScreen.tsx` code. This is a pre-existing pattern that predates this phase. The executor must NOT change it. It is excluded from the 2-weight contract above because it is not new content added in this phase.
+
+The 2-weight contract applies exclusively to all content added or modified in this phase. Existing code that already uses weight 300 is left untouched.
 
 Letter spacing: `Typography.letterSpacing.normal` (0) for all new body content; existing patterns unchanged.
 
-Source: Confirmed from existing AboutScreen.tsx StyleSheet — `bodyTxt` uses `fontSize: Typography.sizes.base`, `sectionTitle` uses `fontWeight: '600'`.
+Source: Confirmed from existing AboutScreen.tsx StyleSheet — `bodyTxt` uses `fontSize: Typography.sizes.base`, `sectionTitle` uses `fontWeight: '600'`, hero title uses `fontWeight: '300'` as existing invariant.
 
 ---
 
@@ -248,7 +253,7 @@ const VERSION = Constants.expoConfig?.version ?? '—';
 - Avatar: 48×48pt circle, `backgroundColor: Colors.primaryBg`, `borderWidth: 1`, `borderColor: Colors.primaryBorder` — existing pattern
 - Avatar text: "Rx" at 16px weight 700, `Colors.primary` — existing pattern
 - Name line: `Typography.sizes.base / weight 600 / Colors.textPrimary`
-- Credential subtitle: `Typography.sizes.xs / weight 400 / Colors.textMuted`, `marginTop: 3`
+- Credential subtitle: `Typography.sizes.xs / weight 400 / Colors.textMuted`, `marginTop: 3` — see Spacing exceptions: approved optical compensation, do not change to 4
 - Practice focus line: `Typography.sizes.xs / weight 400 / Colors.textSecondary`, `marginTop: Spacing.sm`
 - Body paragraph: `Typography.sizes.base / weight 400 / Colors.textSecondary`, `lineHeight: 22`, `marginTop: Spacing.md`
 
