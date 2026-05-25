@@ -99,7 +99,7 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: Typography.serif,
-    fontSize: 56,
+    fontSize: Typography.sizes.display1,
     fontWeight: '400',
     color: Colors.textPrimary,
     letterSpacing: -0.5,
