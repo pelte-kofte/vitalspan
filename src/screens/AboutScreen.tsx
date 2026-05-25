@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -206,7 +206,10 @@ export default function AboutScreen() {
           <Text style={s.disclaimerTxt}>
             Vitalspan is a wellness tracking tool, not a medical device. It does not diagnose, treat, or cure any condition. All content is for educational purposes only. Always consult a qualified healthcare provider before making changes to your medications or supplements.
           </Text>
-          <TouchableOpacity style={s.privacyLink}>
+          <TouchableOpacity
+            style={s.privacyLink}
+            onPress={() => Linking.openURL('https://vitalspan.app/privacy')}
+          >
             <Text style={s.privacyLinkTxt}>Privacy Policy →</Text>
           </TouchableOpacity>
         </View>
