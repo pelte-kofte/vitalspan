@@ -38,6 +38,7 @@ export default function GuidedFirstRunScreen() {
   const [inputValue, setInputValue] = useState('');
   const [inputError, setInputError] = useState('');
   const [focused, setFocused] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function saveEntry(stepIndex: number): Promise<void> {
     const parsed = parseFloat(inputValue);
@@ -60,20 +61,27 @@ export default function GuidedFirstRunScreen() {
   }
 
   async function handleStepAdvance() {
+    if (saving) return;
+    setSaving(true);
     try {
       await saveEntry(step);
     } catch {
+      setSaving(false);
       return;
     }
     Haptics.selectionAsync().catch(() => null);
     setInputValue('');
     setStep(s => s + 1);
+    setSaving(false);
   }
 
   async function handleFinish() {
+    if (saving) return;
+    setSaving(true);
     try {
       await saveEntry(step);
     } catch {
+      setSaving(false);
       return;
     }
     await AsyncStorage.setItem('@vitalspan_first_run_complete', 'true');
@@ -125,11 +133,12 @@ export default function GuidedFirstRunScreen() {
         </ScrollView>
         <View style={s.footer}>
           <TouchableOpacity
-            activeOpacity={0.82}
+            activeOpacity={saving ? 1 : 0.82}
             style={s.btnMain}
             onPress={step === 2 ? handleFinish : handleStepAdvance}
+            disabled={saving}
           >
-            <Text style={s.btnMainTxt}>{CTA_LABELS[step]}</Text>
+            <Text style={s.btnMainTxt}>{saving ? 'Saving…' : CTA_LABELS[step]}</Text>
           </TouchableOpacity>
           {step < 2 && (
             <TouchableOpacity onPress={handleSkip} style={s.skipTouchable}>
