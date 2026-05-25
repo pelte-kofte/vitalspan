@@ -43,7 +43,20 @@ export default function AboutScreen() {
   useEffect(() => {
     AsyncStorage.getItem('@vitalspan_disclaimer_accepted')
       .then(raw => {
-        if (raw) setDisclaimerInfo(JSON.parse(raw) as { version: string; acceptedAt: string });
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (
+            parsed &&
+            typeof parsed.version === 'string' &&
+            typeof parsed.acceptedAt === 'string' &&
+            !isNaN(new Date(parsed.acceptedAt).getTime())
+          ) {
+            setDisclaimerInfo(parsed as { version: string; acceptedAt: string });
+          }
+        } catch {
+          // corrupt storage — leave as null (shows "Not yet accepted")
+        }
       })
       .catch(() => {});
   }, []);
