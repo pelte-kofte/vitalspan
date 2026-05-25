@@ -23,14 +23,14 @@ const SOURCES: Source[] = ['Blood test', 'Home kit', 'Hospital', 'Private clinic
 // Biomarkers that have a common mmol/L alternate input unit
 const MMOL_CONVERTIBLE: Record<string, { factor: number; altUnit: string }> = {
   fastingglucose: { factor: 18.018, altUnit: 'mmol/L' },  // mg/dL = mmol/L × 18.018
-  hba1c: { factor: 10.929, altUnit: 'mmol/mol' },          // % = mmol/mol / 10.929
+  hba1c: { factor: 10.929, altUnit: 'mmol/mol' },          // mmol/mol = % × 10.929 (divide mmol/mol by factor to get %)
 };
 
 function convertToNative(val: number, biomarkerId: string, inputUnit: InputUnit): number {
   if (inputUnit === 'native') return val;
   const conv = MMOL_CONVERTIBLE[biomarkerId];
   if (!conv) return val;
-  return Math.round(val * conv.factor * 100) / 100;
+  return Math.round((val / conv.factor) * 100) / 100;
 }
 
 export interface StoredEntry {
