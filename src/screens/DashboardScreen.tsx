@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, RefreshControl,
+  StyleSheet, SafeAreaView, RefreshControl, Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -62,7 +62,8 @@ export default function DashboardScreen() {
         setTakenItems(date === today ? new Set(taken) : new Set());
       }
     } catch (e) {
-      console.error(e);
+      console.error('[loadData] parse error', e);
+      Alert.alert('Data error', 'Some saved data could not be read. If this persists, use Settings → Clear all data to reset.');
     }
   }, []);
 
