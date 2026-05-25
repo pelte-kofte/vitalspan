@@ -17,6 +17,7 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import LandingScreen from '../screens/LandingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
+import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 
 import { Colors } from '../theme';
 
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   InteractionChecker: undefined;
   LabUpload: undefined;
   LongevityScore: undefined;
+  GuidedFirstRun: undefined;
   Settings: undefined;
   About: undefined;
 };
@@ -161,6 +163,11 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="LongevityScore"
           component={LongevityScoreScreen}
           options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
+        />
+        <Stack.Screen
+          name="GuidedFirstRun"
+          component={GuidedFirstRunScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom', gestureEnabled: false }}
         />
         <Stack.Screen
           name="Settings"

@@ -85,7 +85,7 @@ export default function OnboardingScreen() {
     };
     await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
-    nav.reset({ index: 0, routes: [{ name: 'Main' }] });
+    nav.reset({ index: 0, routes: [{ name: 'GuidedFirstRun' }] });
   }
 
   if (step === 0) return (
