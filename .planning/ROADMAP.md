@@ -92,4 +92,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. First-Run & Empty States | 3/3 | Complete ✓ | 2026-05-25 |
 | 2. App Assets & Store Polish | 2/2 | Complete ✓ | 2026-05-25 |
-| 3. UX Polish & TestFlight Prep | 0/3 | Not started | - |
+| 3. UX Polish & TestFlight Prep | 0/3 | Planned | - |

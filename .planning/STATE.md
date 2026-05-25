@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 
 ## Current Position
 
-Phase: 2 of 3 (App Assets & Store Polish)
-Plan: 2 of 2 in current phase
-Status: Phase 2 complete — ready for Phase 3
-Last activity: 2026-05-25 — Phase 2 executed (2 plans, wave 1 complete)
+Phase: 3 of 3 (UX Polish & TestFlight Prep)
+Plan: 0 of 3 in current phase
+Status: Phase 3 planned — ready to execute
+Last activity: 2026-05-25 — Phase 3 planned (3 plans, 1 wave)
 
 Progress: [██████████] 100%
 
