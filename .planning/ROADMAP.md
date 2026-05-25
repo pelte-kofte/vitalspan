@@ -29,8 +29,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can skip the guided flow and re-trigger it from the Dashboard empty state CTA
   4. After completing the guided flow, Dashboard displays entered data and Longevity Score card is unlocked
   5. Biomarkers tab shows an explanatory empty state with "Start tracking" CTA when no entries exist
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 01-01-PLAN.md — Data + GuidedFirstRunScreen + navigation wiring (FIRST-01, FIRST-02, FIRST-03, FIRST-04)
+- [ ] 01-02-PLAN.md — Dashboard and Biomarkers tab empty states (EMPTY-01, EMPTY-02, FIRST-03 re-trigger)
+- [ ] 01-03-PLAN.md — BiomarkerEntry explanation card + SettingsScreen key registration (FIRST-02, FIRST-03)
 
 ### Phase 2: App Assets & Store Polish
 **Goal**: The app looks and reads like a credible, pharmacist-built product — not an Expo starter
@@ -63,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First-Run & Empty States | 0/TBD | Not started | - |
+| 1. First-Run & Empty States | 0/3 | Ready to execute | - |
 | 2. App Assets & Store Polish | 0/TBD | Not started | - |
 | 3. UX Polish & TestFlight Prep | 0/TBD | Not started | - |
