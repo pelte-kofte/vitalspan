@@ -88,6 +88,21 @@ export const Colors = {
     purple: '#A78BFA',
     coral: '#F87171',
   },
+
+  // Warm Beige palette — used by Phase 6 warm-screen redesign
+  Beige: {
+    bg: '#EDE8DC',
+    bgSecondary: '#EDE8DC',
+    bgShade: '#E4E0D4',
+    card: '#FFFFFF',
+    border: '#D4CFC4',
+    borderLight: '#E2DED6',
+    text: '#1A1A18',
+    textSecondary: '#4A4A45',
+    textMuted: '#8A8A82',
+    divider: '#C8C0B0',
+    headerBg: '#F5F0E8',
+  },
 };
 
 export const Typography = {
