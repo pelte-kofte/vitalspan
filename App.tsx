@@ -15,12 +15,18 @@ export default function App() {
     const init = async () => {
       const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
       if (raw) {
-        const profile = JSON.parse(raw);
-        setInitialRoute(profile.onboardingComplete ? 'Main' : 'Landing');
+        try {
+          const profile = JSON.parse(raw);
+          setInitialRoute(profile.onboardingComplete ? 'Main' : 'Landing');
+        } catch {
+          setInitialRoute('Landing');
+        }
       } else {
         setInitialRoute('Landing');
       }
-      initSupabaseSession().catch(() => null);
+      initSupabaseSession().catch((err) =>
+        console.warn('[App] initSupabaseSession unexpected error:', err)
+      );
     };
     init();
   }, []);

@@ -29,11 +29,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
+// Stored to prevent duplicate listeners on Fast Refresh in development.
+let _appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null
+
 // Register AppState listener once at module load time to manage JWT lifecycle.
 // Guarded by Platform.OS !== 'web' because AppState-driven refresh is only
 // relevant on native — the web SDK handles its own visibility-based refresh.
-if (Platform.OS !== 'web') {
-  AppState.addEventListener('change', (nextAppState) => {
+if (Platform.OS !== 'web' && !_appStateSubscription) {
+  _appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
     if (nextAppState === 'active') {
       supabase.auth.startAutoRefresh()
     } else {
