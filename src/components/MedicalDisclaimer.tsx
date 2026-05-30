@@ -1,8 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 
@@ -41,25 +40,15 @@ interface MedicalDisclaimerProps {
 export default function MedicalDisclaimer({ onAccepted }: MedicalDisclaimerProps) {
   const [visible, setVisible] = useState(false);
 
-  const checkDisclaimer = useCallback(async () => {
-    try {
-      const raw = await AsyncStorage.getItem(DISCLAIMER_KEY);
-      if (!raw) {
-        setVisible(true);
-        return;
-      }
-      const stored = JSON.parse(raw) as { version: string; acceptedAt: string };
-      if (stored.version !== DISCLAIMER_VERSION) {
-        setVisible(true);
-      }
-    } catch {
-      setVisible(true);
-    }
+  useEffect(() => {
+    AsyncStorage.getItem(DISCLAIMER_KEY)
+      .then(raw => {
+        if (!raw) { setVisible(true); return; }
+        const stored = JSON.parse(raw) as { version: string; acceptedAt: string };
+        if (stored.version !== DISCLAIMER_VERSION) setVisible(true);
+      })
+      .catch(() => setVisible(true));
   }, []);
-
-  useFocusEffect(
-    useCallback(() => { checkDisclaimer(); }, [checkDisclaimer]),
-  );
 
   async function handleAccept() {
     await AsyncStorage.setItem(
