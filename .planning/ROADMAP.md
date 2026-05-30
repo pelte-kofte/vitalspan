@@ -80,7 +80,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. App foregrounded after 1+ hour in background reconnects to Supabase without 401 errors on subsequent sync calls
   3. A grep/audit of the entire source tree finds zero occurrences of the Supabase URL or anon key — all values read from `process.env.EXPO_PUBLIC_*`
   4. `src/lib/supabase.ts` singleton is importable by any service without re-initializing the client
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
+
+Plans:
+- [ ] 04-P1-PLAN.md — Install packages + create supabase.ts singleton + .env.example (SUPA-01, SEC-01)
+- [ ] 04-P2-PLAN.md — Wire App.tsx anonymous auth init + AppState JWT refresh + human verification (SUPA-02, SUPA-03)
+
 **UI hint**: no
 
 ### Phase 5: Design Tokens & Icons
@@ -159,7 +164,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 1. First-Run & Empty States | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
-| 4. Supabase Foundation | v2.0 | 0/TBD | Not started | - |
+| 4. Supabase Foundation | v2.0 | 0/2 | Not started | - |
 | 5. Design Tokens & Icons | v2.0 | 0/TBD | Not started | - |
 | 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
