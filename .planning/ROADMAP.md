@@ -61,7 +61,7 @@ v1 shipped a functional, credible prototype to TestFlight. v2 transforms it into
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management
+- [x] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management (P1 complete; P2 pending)
 - [ ] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul
 - [ ] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens
 - [ ] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals
@@ -85,7 +85,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 
 **Wave 1**
-- [ ] 04-P1-PLAN.md — Install packages + create supabase.ts singleton + .env.example (SUPA-01, SEC-01)
+- [x] 04-P1-PLAN.md — Install packages + create supabase.ts singleton + .env.example (SUPA-01, SEC-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 04-P2-PLAN.md — Wire App.tsx anonymous auth init + AppState JWT refresh + human verification (SUPA-02, SUPA-03)
@@ -172,7 +172,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 1. First-Run & Empty States | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
-| 4. Supabase Foundation | v2.0 | 0/2 | Not started | - |
+| 4. Supabase Foundation | v2.0 | 1/2 | In progress | - |
 | 5. Design Tokens & Icons | v2.0 | 0/TBD | Not started | - |
 | 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |

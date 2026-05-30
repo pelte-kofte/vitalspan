@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 4 of 9 (Supabase Foundation)
-Plan: 0 of 2 in current phase
-Status: Ready to execute
-Last activity: 2026-05-30 — Phase 4 planned, 2 plans in 2 waves
+Plan: 1 of 2 in current phase
+Status: In progress — P1 complete, P2 ready
+Last activity: 2026-05-30 — 04-P1 executed: Supabase singleton + packages installed
 
 Progress: [███░░░░░░░] 33% (v1 complete; 6 v2 phases ahead)
 
@@ -48,6 +48,8 @@ Recent decisions affecting current work:
 - v2.0: AsyncStorage keys preserved as offline fallback layer — Supabase is additive, not replacement
 - v2.0: Selective UI overhaul — warm beige on list/data screens, dark neural untouched on LongevityScore + orbital
 - v2.0: API keys in `.env` only — `process.env.EXPO_PUBLIC_*` exclusively
+- 04-P1: JSDoc header placed after polyfill import (line 2+) — polyfill must be absolute line 1; takes precedence over "JSDoc before first import" style note
+- 04-P1: Anonymous-only auth for v2 — initSupabaseSession() uses signInAnonymously() guarded by prior getSession() check to avoid clobbering returning users' sessions
 
 ### Pending Todos
 
@@ -73,5 +75,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-05-30
-Stopped at: v2.0 roadmap created — Phase 4 ready to plan
+Stopped at: 04-P1 complete — Supabase singleton created; 04-P2 is next (Wire App.tsx anonymous auth init)
 Resume file: None

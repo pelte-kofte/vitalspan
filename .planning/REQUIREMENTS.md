@@ -7,7 +7,7 @@
 
 ### Supabase Infrastructure
 
-- [ ] **SUPA-01**: Supabase client singleton (`src/lib/supabase.ts`) initialized with `storage: AsyncStorage`, `persistSession: true`, `detectSessionInUrl: false`, `autoRefreshToken: true`
+- [x] **SUPA-01**: Supabase client singleton (`src/lib/supabase.ts`) initialized with `storage: AsyncStorage`, `persistSession: true`, `detectSessionInUrl: false`, `autoRefreshToken: true`
 - [ ] **SUPA-02**: Anonymous auth initiated on first app launch; session UUID persists across restarts as stable `user_id`
 - [ ] **SUPA-03**: AppState listener calls `startAutoRefresh()` on `active` and `stopAutoRefresh()` on `background`/`inactive` to prevent JWT expiry after 1h backgrounding
 - [ ] **SUPA-04**: `biomarker_definitions` table seeded with longevity-optimized ranges; public-read RLS (`anon` role); app falls back to static `biomarkers.ts` when offline
@@ -17,7 +17,7 @@
 
 ### Security
 
-- [ ] **SEC-01**: No Supabase URL or anon key exists in any source file — all read from `process.env.EXPO_PUBLIC_*`; confirmed by audit
+- [x] **SEC-01**: No Supabase URL or anon key exists in any source file — all read from `process.env.EXPO_PUBLIC_*`; confirmed by audit
 
 ### SVG Icons
 
@@ -95,10 +95,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SUPA-01 | Phase 4 | Pending |
+| SUPA-01 | Phase 4 | Complete |
 | SUPA-02 | Phase 4 | Pending |
 | SUPA-03 | Phase 4 | Pending |
-| SEC-01 | Phase 4 | Pending |
+| SEC-01 | Phase 4 | Complete |
 | ICON-01 | Phase 5 | Pending |
 | ICON-02 | Phase 5 | Pending |
 | THEME-01 | Phase 5 | Pending |
