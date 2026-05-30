@@ -1,22 +1,18 @@
-# Roadmap: Vitalspan v1 TestFlight
+# Roadmap: Vitalspan v2.0 — Premium, Backend & Exercise
+
+## Milestones
+
+- ✅ **v1.0 TestFlight** - Phases 1-3 (shipped 2026-05-25)
+- 🚧 **v2.0 Premium, Backend & Exercise** - Phases 4-9 (in progress)
 
 ## Overview
 
-The core app is built. This milestone closes the gap between a working prototype and a TestFlight-ready product. Three phases: wire the guided first-run so new users get immediate clinical value, replace placeholder assets with branded ones, then verify every screen renders correctly on current iPhone form factors. When all three phases complete, the build ships to TestFlight.
+v1 shipped a functional, credible prototype to TestFlight. v2 transforms it into a product: a secure Supabase-backed foundation is laid first (auth + secrets), then the visual layer is upgraded in two steps (token foundation, then warm-screen application), then the exercise screen and reference data tables are built on top of those foundations, then the biomarker write/sync path is added, and finally the PhenoAge formula is corrected and release quality is verified. Each phase delivers a coherent capability that the next phase can build on. The order eliminates rework — you never apply theme tokens before they exist, and you never write sync code before the auth layer is stable.
 
-## Phases
+---
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: First-Run & Empty States** - Guide new users to their first clinical insight immediately after onboarding
-- [ ] **Phase 2: App Assets & Store Polish** - Replace placeholder assets with branded ones and strengthen pharmacist credibility signals
-- [ ] **Phase 3: UX Polish & TestFlight Prep** - Verify all screens on current iPhone form factors and eliminate blocking layout issues
-
-## Phase Details
+<details>
+<summary>✅ v1.0 TestFlight (Phases 1-3) — SHIPPED 2026-05-25</summary>
 
 ### Phase 1: First-Run & Empty States
 **Goal**: New users arrive at a purposeful, guided experience — not a blank dashboard
@@ -27,24 +23,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. User completing onboarding is immediately shown a guided flow prompting Glucose, HbA1c, and Cholesterol — not a blank dashboard
   2. Each biomarker step shows a plain-English card explaining why that value matters for longevity before the entry input
   3. User can skip the guided flow and re-trigger it from the Dashboard empty state CTA
-  4. After completing the guided flow, Dashboard displays entered data and FutureSelf transitions to partial-progress state (checklist with logged items checked; full biological age unlocks once 5+ PhenoAge biomarkers are logged)
+  4. After completing the guided flow, Dashboard displays entered data and FutureSelf transitions to partial-progress state
   5. Biomarkers tab shows an explanatory empty state with "Start tracking" CTA when no entries exist
 **Plans**: 3 plans in 2 waves
-**UI hint**: yes
-
-Plans:
-
-**Wave 1**
-- [x] 01-01-PLAN.md — Data + GuidedFirstRunScreen + navigation wiring (FIRST-01, FIRST-02, FIRST-03, FIRST-04)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 01-02-PLAN.md — Dashboard and Biomarkers tab empty states (EMPTY-01, EMPTY-02, FIRST-03 re-trigger)
-- [x] 01-03-PLAN.md — BiomarkerEntry explanation card + SettingsScreen key registration (FIRST-02, FIRST-03)
-
-**Cross-cutting constraints:**
-- All files use `Colors.*` tokens — no hardcoded hex values
-- All spacing from `Spacing.*` — no hardcoded margin/padding numbers
-- `@vitalspan_first_run_complete` written as string `'true'`, read with `=== 'true'` comparison
 
 ### Phase 2: App Assets & Store Polish
 **Goal**: The app looks and reads like a credible, pharmacist-built product — not an Expo starter
@@ -52,18 +33,10 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: ASSET-01, ASSET-02, STORE-01, STORE-02, STORE-03, STORE-04
 **Success Criteria** (what must be TRUE):
-  1. App icon on device home screen shows the custom Vitalspan brand mark (green palette, no Expo default)
-  2. Launch sequence shows the branded Vitalspan splash with app name and tagline — not a solid-color fallback
-  3. About screen includes pharmacist name placeholder, PharmD designation, and practice focus statement
-  4. About screen shows a visible "Why we built this" mission statement without requiring any expand action
-  5. About screen shows medical disclaimer acceptance date and app version matching app.json
+  1. App icon on device home screen shows the custom Vitalspan brand mark
+  2. Launch sequence shows the branded Vitalspan splash with app name and tagline
+  3. About screen includes pharmacist credential section and always-visible mission statement
 **Plans**: 2 plans in 1 wave
-
-Plans:
-
-**Wave 1** *(both plans are independent — run in parallel)*
-- [x] 02-01-PLAN.md — App icon + splash screen generation scripts + app.json splash config (ASSET-01, ASSET-02)
-- [x] 02-02-PLAN.md — AboutScreen: dynamic version, credential expansion, always-visible Why section, Legal card (STORE-01, STORE-02, STORE-03, STORE-04)
 
 ### Phase 3: UX Polish & TestFlight Prep
 **Goal**: Every screen renders correctly on iPhone 15 Pro and iPhone 16 Plus — no layout breaks block the TestFlight submission
@@ -71,25 +44,124 @@ Plans:
 **Depends on**: Phase 2
 **Requirements**: POLISH-01, POLISH-02, POLISH-03
 **Success Criteria** (what must be TRUE):
-  1. No screen has overflow, clipping, or layout breaks on iPhone 15 Pro (6.1") or iPhone 16 Plus (6.7") form factors
-  2. Completing onboarding on a fresh install navigates reliably to Main tabs — no stuck loading state
-  3. Protocol tab shows a meaningful empty state message when no medications or supplements are added
+  1. No screen has overflow, clipping, or layout breaks on iPhone 15 Pro or iPhone 16 Plus form factors
+  2. Completing onboarding on a fresh install navigates reliably to Main tabs
+  3. Protocol tab shows a meaningful empty state when no medications or supplements are added
 **Plans**: 3 plans in 1 wave
 
-Plans:
+</details>
 
-**Wave 1** *(all three plans are independent — run in parallel)*
-- [x] 03-01-PLAN.md — App.tsx loading indicator: replace null render with ActivityIndicator (POLISH-02)
-- [x] 03-02-PLAN.md — ProtocolScreen cohesive empty state card when no medications or supplements added (POLISH-03)
-- [x] 03-03-PLAN.md — Layout fixes: tab bar safe area, LandingScreen ScrollView wrap, OnboardingScreen KeyboardAvoidingView (POLISH-01)
+---
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (4, 5, 6...): Planned milestone work
+- Decimal phases (4.1, 4.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management
+- [ ] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul
+- [ ] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens
+- [ ] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals
+- [ ] **Phase 8: Biomarker Sync Write Path** - Add fire-and-forget Supabase sync for new biomarker entries and one-time migration of existing AsyncStorage history
+- [ ] **Phase 9: PhenoAge Fix & Release Quality** - Correct the biological age calculation and verify zero crashes and zero TypeScript errors before v2 submission
+
+## Phase Details
+
+### Phase 4: Supabase Foundation
+**Goal**: The app initializes a Supabase session on first launch, the session persists across restarts, JWT never expires silently after backgrounding, and no secrets exist in source code
+**Mode:** mvp
+**Depends on**: Phase 3 (v1 complete)
+**Requirements**: SUPA-01, SUPA-02, SUPA-03, SEC-01
+**Success Criteria** (what must be TRUE):
+  1. App opens and a Supabase anonymous session is created silently — user sees no auth prompt; the session UUID is stable across app restarts
+  2. App foregrounded after 1+ hour in background reconnects to Supabase without 401 errors on subsequent sync calls
+  3. A grep/audit of the entire source tree finds zero occurrences of the Supabase URL or anon key — all values read from `process.env.EXPO_PUBLIC_*`
+  4. `src/lib/supabase.ts` singleton is importable by any service without re-initializing the client
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 5: Design Tokens & Icons
+**Goal**: The Beige color token block exists in the theme and five custom SVG icons replace emoji placeholders in the tab bar — the visual building blocks are in place before any screen is rethemed
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: ICON-01, ICON-02, THEME-01
+**Success Criteria** (what must be TRUE):
+  1. Tab bar displays five custom stroke-based SVG icons (Home, Biomarkers, Protocol, Exercise, Profile) — no emoji visible
+  2. Active tab icon renders in the navigation accent color; inactive renders in muted color — no manual focused-state logic required
+  3. `Colors.Beige.*` tokens are accessible from `src/theme/index.ts`; no existing `Colors.*` constant is renamed or removed; `tsc --noEmit` passes
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Warm UI Overhaul
+**Goal**: Biomarkers, Protocol, Exercise, Profile, Settings, and About screens use warm Beige tokens throughout; LongevityScore, Dashboard neural sections, and Landing remain dark; every warm screen has correct status bar style; motivating empty states exist on Exercise, Protocol, and Profile
+**Mode:** mvp
+**Depends on**: Phase 5
+**Requirements**: THEME-02, THEME-03, THEME-04, THEME-05, THEME-06
+**Success Criteria** (what must be TRUE):
+  1. Biomarkers, Protocol, Exercise, Profile, Settings, and About screens render with warm cream/beige backgrounds and card surfaces — no dark backgrounds visible on these screens
+  2. LongevityScore, Dashboard neural sections, and Landing screen retain their dark neural aesthetic — no beige bleed onto these screens
+  3. Status bar text is dark (readable) on warm screens and light on dark screens, switching correctly when navigating between them
+  4. Exercise, Protocol, and Profile screens each show a motivating empty state with an outcome-focused headline and a single CTA when the user has no data
+  5. `tsc --noEmit` passes and no hardcoded hex values appear in modified screen files
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 7: Reference Data & Exercise Screen
+**Goal**: The exercise library and biomarker definitions are served from Supabase with static fallback; the exercise screen is rebuilt with Today/This Week/History log grouping, Supabase-backed library, intensity pills, and color-coded log entries
+**Mode:** mvp
+**Depends on**: Phase 6
+**Requirements**: SUPA-04, SUPA-05, EX-01, EX-02, EX-03, EX-04
+**Success Criteria** (what must be TRUE):
+  1. App online: biomarker definitions and exercise library load from Supabase; app offline: both fall back to static data arrays without error
+  2. Exercise screen shows today's logged sessions at the top, then this week, then the last 14 days of history — sections are empty-state-aware
+  3. User can browse the exercise library filtered by category; selecting an exercise shows its metadata (loaded from Supabase or static fallback)
+  4. Logging an exercise shows Easy/Moderate/Hard intensity pills with green/amber/coral color coding and haptic feedback on selection
+  5. Log entries are color-coded by intensity; swiping a log entry left reveals a delete action that removes it
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 8: Biomarker Sync Write Path
+**Goal**: New biomarker entries are written to Supabase after AsyncStorage save; existing AsyncStorage history is migrated to Supabase once on first authenticated session; Dashboard pulls fresh data on mount
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: SUPA-06, SUPA-07
+**Success Criteria** (what must be TRUE):
+  1. User enters a biomarker value: it saves to AsyncStorage immediately (as before), then a fire-and-forget Supabase write is attempted — app behavior is unchanged if Supabase write fails
+  2. On first authenticated session after upgrade, all existing `@vitalspan_biomarkers` entries appear in the Supabase `biomarker_entries` table; the migration does not run again on subsequent launches (idempotency flag `@vitalspan_migrated_v2` is set)
+  3. Dashboard pulls biomarker entries from Supabase on mount when the cached data is stale; stale pull errors fall back to AsyncStorage silently
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 9: PhenoAge Fix & Release Quality
+**Goal**: The Levine PhenoAge formula returns correct biological age values verified against published coefficients; TypeScript compiles clean with zero errors; all key user flows are crash-free on device
+**Mode:** mvp
+**Depends on**: Phase 8
+**Requirements**: PHENO-01, QUAL-01, QUAL-02, QUAL-03
+**Success Criteria** (what must be TRUE):
+  1. A user with known biomarker values (e.g. published reference set) sees a biological age output from PhenoAge that matches the expected value from the Levine 2018 paper coefficients
+  2. `tsc --noEmit` exits with zero errors — no `any` types, no missing type annotations
+  3. The full key flow — onboarding → biomarker entry → protocol → exercise log → LongevityScore — completes without crash on iOS simulator or device
+  4. Source audit (grep) confirms zero occurrences of Supabase URL or anon key in any source file
+**Plans**: TBD
+**UI hint**: no
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
+(Note: Phase 8 depends on Phase 4, not Phase 7 — can run in parallel with Phase 7 if needed)
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. First-Run & Empty States | 3/3 | Complete ✓ | 2026-05-25 |
-| 2. App Assets & Store Polish | 2/2 | Complete ✓ | 2026-05-25 |
-| 3. UX Polish & TestFlight Prep | 3/3 | Complete ✓ | 2026-05-25 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. First-Run & Empty States | v1.0 | 3/3 | Complete | 2026-05-25 |
+| 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
+| 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
+| 4. Supabase Foundation | v2.0 | 0/TBD | Not started | - |
+| 5. Design Tokens & Icons | v2.0 | 0/TBD | Not started | - |
+| 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
+| 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
+| 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
+| 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |

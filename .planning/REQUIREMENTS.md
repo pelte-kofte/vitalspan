@@ -95,36 +95,36 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SUPA-01 | TBD | Pending |
-| SUPA-02 | TBD | Pending |
-| SUPA-03 | TBD | Pending |
-| SUPA-04 | TBD | Pending |
-| SUPA-05 | TBD | Pending |
-| SUPA-06 | TBD | Pending |
-| SUPA-07 | TBD | Pending |
-| SEC-01 | TBD | Pending |
-| ICON-01 | TBD | Pending |
-| ICON-02 | TBD | Pending |
-| THEME-01 | TBD | Pending |
-| THEME-02 | TBD | Pending |
-| THEME-03 | TBD | Pending |
-| THEME-04 | TBD | Pending |
-| THEME-05 | TBD | Pending |
-| THEME-06 | TBD | Pending |
-| EX-01 | TBD | Pending |
-| EX-02 | TBD | Pending |
-| EX-03 | TBD | Pending |
-| EX-04 | TBD | Pending |
-| PHENO-01 | TBD | Pending |
-| QUAL-01 | TBD | Pending |
-| QUAL-02 | TBD | Pending |
-| QUAL-03 | TBD | Pending |
+| SUPA-01 | Phase 4 | Pending |
+| SUPA-02 | Phase 4 | Pending |
+| SUPA-03 | Phase 4 | Pending |
+| SEC-01 | Phase 4 | Pending |
+| ICON-01 | Phase 5 | Pending |
+| ICON-02 | Phase 5 | Pending |
+| THEME-01 | Phase 5 | Pending |
+| THEME-02 | Phase 6 | Pending |
+| THEME-03 | Phase 6 | Pending |
+| THEME-04 | Phase 6 | Pending |
+| THEME-05 | Phase 6 | Pending |
+| THEME-06 | Phase 6 | Pending |
+| SUPA-04 | Phase 7 | Pending |
+| SUPA-05 | Phase 7 | Pending |
+| EX-01 | Phase 7 | Pending |
+| EX-02 | Phase 7 | Pending |
+| EX-03 | Phase 7 | Pending |
+| EX-04 | Phase 7 | Pending |
+| SUPA-06 | Phase 8 | Pending |
+| SUPA-07 | Phase 8 | Pending |
+| PHENO-01 | Phase 9 | Pending |
+| QUAL-01 | Phase 9 | Pending |
+| QUAL-02 | Phase 9 | Pending |
+| QUAL-03 | Phase 9 | Pending |
 
 **Coverage:**
 - v2 requirements: 24 total
-- Mapped to phases: 0 (roadmapper will fill)
-- Unmapped: 24 ⚠ (pending roadmap)
+- Mapped to phases: 24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-30 after initial definition*
+*Last updated: 2026-05-30 — phase assignments added by roadmapper*

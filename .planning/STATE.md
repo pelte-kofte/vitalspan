@@ -5,33 +5,35 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v2.0 — Milestone started, defining requirements
+**Current focus:** Phase 4 — Supabase Foundation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-30 — Milestone v2.0 started
+Phase: 4 of 9 (Supabase Foundation)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-05-30 — v2.0 roadmap created, 24/24 requirements mapped
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33% (v1 complete; 6 v2 phases ahead)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+- Total plans completed: 8 (v1 phases 1-3)
 - Average duration: -
-- Total execution time: 0 hours
+- Total execution time: -
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1 (v1) | 3/3 | - | - |
+| 2 (v1) | 2/2 | - | - |
+| 3 (v1) | 3/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: none yet
-- Trend: -
+- Last 5 plans: v1 execution (all complete)
+- Trend: Stable
 
 *Updated after each plan completion*
 
@@ -42,11 +44,10 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- v2.0: Selective UI overhaul — warm beige/cream on list/data screens, dark neural preserved on LongevityScore + orbital
-- v2.0: Supabase integration for reference data (biomarker ranges, exercise DB) + user biomarker history sync with auth
-- v2.0: AsyncStorage keys preserved as offline/fallback layer even as Supabase sync is added
-- v2.0: Exercise screen replaced from scratch — purpose-built hub with daily log, library, visuals, history
-- v2.0: Supabase project ID PROJECT-REF-REDACTED — API keys must live in .env only
+- v2.0: Supabase anonymous auth only (no email/password UI) — email upgrade deferred to v3
+- v2.0: AsyncStorage keys preserved as offline fallback layer — Supabase is additive, not replacement
+- v2.0: Selective UI overhaul — warm beige on list/data screens, dark neural untouched on LongevityScore + orbital
+- v2.0: API keys in `.env` only — `process.env.EXPO_PUBLIC_*` exclusively
 
 ### Pending Todos
 
@@ -54,7 +55,8 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- Phase 4: Verify Supabase RLS anon read policy is set in dashboard before writing any client fetch code — silent `[]` returns if missing
+- Phase 4: `react-native-url-polyfill` must be first import in `src/lib/supabase.ts` — before any Supabase import
 
 ## Deferred Items
 
@@ -66,9 +68,10 @@ Items carried forward to future milestone:
 | Monetization | RevenueCat paywall | v3+ | v1 init |
 | Notifications | Protocol + labs reminders | v3+ | v1 init |
 | Biomarkers | Trend charts / sparklines | v3+ | v1 init |
+| Auth | Email/password + linkIdentity() | v3 | v2 planning |
 
 ## Session Continuity
 
 Last session: 2026-05-30
-Stopped at: Milestone v2.0 started — defining requirements
+Stopped at: v2.0 roadmap created — Phase 4 ready to plan
 Resume file: None
