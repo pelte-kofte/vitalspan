@@ -8,61 +8,88 @@ Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It let
 
 Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
 
+## Current Milestone: v2.0 Premium — Design, Backend & Exercise
+
+**Goal:** Transform Vitalspan from a functional prototype into a polished, Supabase-backed product with a premium feel, accurate science, and a purpose-built exercise hub.
+
+**Target features:**
+- Selective UI/UX overhaul (warm beige/cream on list screens and cards; dark neural preserved on immersive screens; custom SVG tab bar icons; premium card layouts; motivating empty states)
+- Supabase integration — biomarker reference data + exercise database from Supabase tables; user biomarker history synced to Supabase; auth layer
+- PhenoAge formula fix — correct the formula currently returning wrong biological age values
+- New purpose-built exercise screen — daily log, exercise library (from Supabase), intensity visuals, history
+- Security — all API keys (Supabase URL + anon key) in `.env`, not hardcoded
+- Release quality — zero crashes, TypeScript strict clean
+
 ## Requirements
 
 ### Validated
 
-- ✓ Biomarker tracking with longevity-optimized ranges (not standard lab normals)
-- ✓ Levine PhenoAge biological age calculation
-- ✓ Supplement/medication protocol with pharmacist-verified interaction checking
-- ✓ Exercise logging with intensity and calorie estimation
-- ✓ LongevityScore screen with orbital data visualization
-- ✓ Medical disclaimer wired at app launch (AsyncStorage-gated, accepts once)
-- ✓ About screen with pharmacist branding and citation list
-- ✓ Onboarding flow (name, age, sex, goal, conditions, medications)
-- ✓ EAS build configured, TestFlight-ready build pipeline
+- ✓ Biomarker tracking with longevity-optimized ranges (not standard lab normals) — v1
+- ✓ Levine PhenoAge biological age calculation — v1
+- ✓ Supplement/medication protocol with pharmacist-verified interaction checking — v1
+- ✓ Exercise logging with intensity and calorie estimation — v1
+- ✓ LongevityScore screen with orbital data visualization — v1
+- ✓ Medical disclaimer wired at app launch (AsyncStorage-gated, accepts once) — v1
+- ✓ About screen with pharmacist branding and citation list — v1
+- ✓ Onboarding flow (name, age, sex, goal, conditions, medications) — v1
+- ✓ EAS build configured, TestFlight-ready build pipeline — v1
+- ✓ Guided first-run flow for Glucose, HbA1c, Cholesterol — Phase 1
+- ✓ Motivating empty states on Dashboard and Biomarkers tab — Phase 1
+- ✓ Custom Vitalspan app icon and branded splash screen — Phase 2
+- ✓ About screen pharmacist credential section and mission statement — Phase 2
+- ✓ UX polish pass — all screens verified on iPhone 15/16 form factors — Phase 3
 
 ### Active
 
-- [ ] Guided first-run: after onboarding, walk user through entering Glucose, HbA1c, Cholesterol with per-biomarker explanation cards
-- [ ] Custom app icon: Vitalspan-branded icon replacing Expo default
-- [ ] Custom splash screen: branded splash image, replacing solid-color fallback
-- [ ] Empty state improvements: meaningful empty state UI on Dashboard and Biomarkers when no data is entered
-- [ ] About screen polish: pharmacist credential section with more detail, app mission statement
-- [ ] General UX polish pass: verify all screens render correctly on iPhone 15 / 16 form factors, fix any layout overflows
+- [ ] Selective UI/UX overhaul — warm beige/cream on list screens, cards, modals; dark preserved on LongevityScore and orbital dashboard
+- [ ] Custom SVG tab bar icons replacing emoji placeholders
+- [ ] Premium card layouts across all screens
+- [ ] Motivating empty states on all remaining screens
+- [ ] Supabase biomarker reference data table (longevity-optimized ranges served from DB)
+- [ ] Supabase exercise database (exercise library with metadata)
+- [ ] User biomarker history synced to Supabase with auth layer
+- [ ] PhenoAge formula fix — correct calculation returning wrong biological age values
+- [ ] New purpose-built exercise screen — daily log, library, intensity visuals, history
+- [ ] Security — Supabase URL + anon key in `.env` file, not hardcoded in source
+- [ ] Release quality — zero crashes, TypeScript strict, no `any` types
 
 ### Out of Scope
 
-- Real Apple HealthKit integration — deferred post-v1 (mock layer ready, just not wired to native)
-- RevenueCat paywall — deferred until app has traction with beta users
-- Push notifications — deferred post-v1 TestFlight feedback
-- Supabase backend — deferred; AsyncStorage is sufficient for v1 beta
-- Trend charts (BiomarkerDetail sparklines) — deferred; useful but not blocking TestFlight
+- Real Apple HealthKit integration — deferred post-v2 (mock layer ready)
+- RevenueCat paywall — deferred until beta user traction
+- Push notifications — deferred post-v2 TestFlight feedback
+- Full AsyncStorage replacement — user data syncs to Supabase but AsyncStorage keys preserved as fallback/offline
+- Trend charts (BiomarkerDetail sparklines) — deferred; not blocking v2
+- Android support — iOS-only by architecture decision
 
 ## Context
 
-This is a subsequent milestone — the core app is built and functional. The v1 TestFlight milestone is a quality and onboarding milestone, not a feature milestone. The gap is that non-clinical lay users (longevity-curious friends/family) open the app, see empty state everywhere, and don't know what to do or why any of it matters.
+v1 TestFlight shipped. The app is functional and credible but shows its prototype origins: no consistent design language, wrong biological age calculations, no real backend, and a workout screen that doesn't reflect the exercise database. v2 is the quality milestone — it should feel like a product, not a prototype.
 
-The guided first-run is the highest-leverage item: it turns a confusing empty dashboard into a purposeful first interaction. The pharmacist credibility signal (About screen, branding) matters for this audience because they'll ask "who made this and why should I trust the ranges?"
+The Supabase project is provisioned: `PROJECT-REF-REDACTED`. Integration scope for v2 is reference data (biomarker ranges, exercise DB) plus user biomarker history sync with auth. AsyncStorage keys are preserved for offline resilience.
 
-EAS build is already working. The bottleneck is app readiness, not build infrastructure.
+The selective UI overhaul preserves the dark neural aesthetic on immersive/branded screens (LongevityScore orbital, dashboard cards) while introducing warm beige/cream on navigational and data-entry screens where readability matters more than atmosphere.
 
-**Tech environment:** React Native + Expo ~54, TypeScript strict, AsyncStorage, expo-haptics, expo-linear-gradient. iOS only. No Android.
+**Tech environment:** React Native + Expo ~54, TypeScript strict, AsyncStorage + Supabase, expo-haptics, expo-linear-gradient. iOS only. No Android.
 
 ## Constraints
 
 - **Tech Stack**: Expo SDK ~54 — no new packages without checking Expo SDK 54 compatibility first
-- **AsyncStorage Keys**: Must preserve existing keys (`@vitalspan_*`) — changing them would break existing installations
+- **AsyncStorage Keys**: Must preserve existing `@vitalspan_*` keys — they are fallback/offline layer even as Supabase sync is added
 - **iOS Only**: No Android support planned or configured
 - **Pharmacist-first**: Every biomarker range, interaction warning, and recommendation must be clinically defensible
+- **Supabase Project**: `PROJECT-REF-REDACTED` — use `@supabase/supabase-js` compatible with Expo SDK 54
+- **Security**: No API keys or secrets in source — `.env` + `expo-constants` or `process.env`
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Guided first-run for Glucose, HbA1c, Cholesterol | Most common annual checkup values — lay users are likely to have these | — Pending |
-| Defer HealthKit to post-v1 | Mock layer already built; adding real HealthKit entitlement complicates first TestFlight submission | — Pending |
-| AsyncStorage for v1 | No backend needed for single-device beta testing; reduces surface area | — Pending |
+| Guided first-run for Glucose, HbA1c, Cholesterol | Most common annual checkup values — lay users are likely to have these | ✓ Good — shipped Phase 1 |
+| Defer HealthKit to post-v1 | Mock layer already built; real entitlement complicates TestFlight submission | ✓ Good — still deferred |
+| AsyncStorage for v1 | No backend needed for single-device beta | ✓ Good — now adding Supabase as sync layer in v2 |
+| Selective UI overhaul (not full redesign) | Preserve dark aesthetic on immersive screens; warm beige on data/list screens | — Pending |
+| Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | — Pending |
 
 ## Evolution
 
@@ -82,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-25 after initialization*
+*Last updated: 2026-05-30 after v2.0 milestone start*

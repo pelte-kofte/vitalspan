@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-25)
+See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 3 — UX Polish & TestFlight Prep
+**Current focus:** v2.0 — Milestone started, defining requirements
 
 ## Current Position
 
-Phase: 3 of 3 (UX Polish & TestFlight Prep)
-Plan: 3 of 3 in current phase
-Status: Phase 3 complete — all plans executed
-Last activity: 2026-05-25 — Phase 3 executed (3 plans, wave 1 complete)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-30 — Milestone v2.0 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -42,9 +42,11 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Init: Guided first-run targets Glucose, HbA1c, Cholesterol (most common annual checkup values)
-- Init: Defer HealthKit to post-v1 (mock layer ready; real entitlement complicates first TestFlight submission)
-- Init: AsyncStorage only for v1 (no backend needed for single-device beta)
+- v2.0: Selective UI overhaul — warm beige/cream on list/data screens, dark neural preserved on LongevityScore + orbital
+- v2.0: Supabase integration for reference data (biomarker ranges, exercise DB) + user biomarker history sync with auth
+- v2.0: AsyncStorage keys preserved as offline/fallback layer even as Supabase sync is added
+- v2.0: Exercise screen replaced from scratch — purpose-built hub with daily log, library, visuals, history
+- v2.0: Supabase project ID PROJECT-REF-REDACTED — API keys must live in .env only
 
 ### Pending Todos
 
@@ -56,17 +58,17 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items carried forward to future milestone:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| HealthKit | Real HK integration (HK-01..03) | v2 | Init |
-| Monetization | RevenueCat paywall (PAY-01..03) | v2 | Init |
-| Notifications | Protocol + labs reminders (NOTIF-01..02) | v2 | Init |
-| Backend | Supabase auth + sync (SUPA-01..03) | v2 | Init |
+| HealthKit | Real HK integration | v3+ | v1 init |
+| Monetization | RevenueCat paywall | v3+ | v1 init |
+| Notifications | Protocol + labs reminders | v3+ | v1 init |
+| Biomarkers | Trend charts / sparklines | v3+ | v1 init |
 
 ## Session Continuity
 
-Last session: 2026-05-25
-Stopped at: Roadmap created — ready to plan Phase 1
+Last session: 2026-05-30
+Stopped at: Milestone v2.0 started — defining requirements
 Resume file: None
