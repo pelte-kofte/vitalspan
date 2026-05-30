@@ -114,7 +114,7 @@ Plans:
 - [x] 05-02-PLAN.md — Create src/components/TabIcons.tsx with 5 named SVG neural-dots icons (ICON-01, ICON-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 05-03-PLAN.md — Wire SVG icons into AppNavigator.tsx + switch tab bar backgroundColor to Colors.Beige.bg + human visual verification (ICON-01, ICON-02, THEME-01)
+- [ ] 05-03-PLAN.md — Wire SVG icons into AppNavigator.tsx + switch tab bar backgroundColor to Colors.Beige.bg + human visual verification (ICON-01, ICON-02, THEME-01) — Task 1 committed; at human-verify checkpoint
 
 **UI hint**: yes
 
@@ -183,7 +183,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
-| 5. Design Tokens & Icons | v2.0 | 0/3 | Not started | - |
+| 5. Design Tokens & Icons | v2.0 | 2/3 | In progress (05-03 at checkpoint) | - |
 | 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
