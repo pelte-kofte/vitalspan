@@ -105,7 +105,17 @@ Plans:
   1. Tab bar displays five custom stroke-based SVG icons (Home, Biomarkers, Protocol, Exercise, Profile) — no emoji visible
   2. Active tab icon renders in the navigation accent color; inactive renders in muted color — no manual focused-state logic required
   3. `Colors.Beige.*` tokens are accessible from `src/theme/index.ts`; no existing `Colors.*` constant is renamed or removed; `tsc --noEmit` passes
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 05-01-PLAN.md — Append Colors.Beige token block (11 tokens) to src/theme/index.ts (THEME-01)
+- [ ] 05-02-PLAN.md — Create src/components/TabIcons.tsx with 5 named SVG neural-dots icons (ICON-01, ICON-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 05-03-PLAN.md — Wire SVG icons into AppNavigator.tsx + switch tab bar backgroundColor to Colors.Beige.bg + human visual verification (ICON-01, ICON-02, THEME-01)
+
 **UI hint**: yes
 
 ### Phase 6: Warm UI Overhaul
@@ -173,7 +183,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
-| 5. Design Tokens & Icons | v2.0 | 0/TBD | Not started | - |
+| 5. Design Tokens & Icons | v2.0 | 0/3 | Not started | - |
 | 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
