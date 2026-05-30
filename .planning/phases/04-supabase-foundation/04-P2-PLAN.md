@@ -136,7 +136,7 @@ src/lib/supabase.ts exports (from Plan P1):
       cd /Users/bekircemkusdemir/Downloads/vitalspan && npx tsc --noEmit
 
       # 6. No hardcoded secrets introduced by this edit
-      grep -rn --include="*.ts" --include="*.tsx" "PROJECT-REF-REDACTED\|sb_publishable_\|supabase\.co" /Users/bekircemkusdemir/Downloads/vitalspan/src/ /Users/bekircemkusdemir/Downloads/vitalspan/App.tsx
+      grep -rn --include="*.ts" --include="*.tsx" "<PROJECT-REF>\|sb_publishable_\|supabase\.co" /Users/bekircemkusdemir/Downloads/vitalspan/src/ /Users/bekircemkusdemir/Downloads/vitalspan/App.tsx
     </automated>
   </verify>
 
@@ -160,7 +160,7 @@ src/lib/supabase.ts exports (from Plan P1):
   </what-built>
   <how-to-verify>
     Step 1 — Enable anonymous sign-ins in Supabase dashboard (prerequisite):
-      1. Open https://supabase.com/dashboard/project/PROJECT-REF-REDACTED/auth/providers
+      1. Open the Supabase dashboard > Authentication > Providers
       2. Find "Anonymous Sign-ins" toggle under "User Signups"
       3. Enable it if not already enabled
       4. Save changes
@@ -169,7 +169,7 @@ src/lib/supabase.ts exports (from Plan P1):
       1. Run: npx expo start --ios (or use Xcode simulator)
       2. If the app was previously installed with data, clear it: Settings > General > iPhone Storage > Vitalspan > Delete App, then reinstall
       3. Open the app — it should load the landing/main screen with no auth prompt
-      4. Open Supabase dashboard > Authentication > Users (https://supabase.com/dashboard/project/PROJECT-REF-REDACTED/auth/users)
+      4. Open Supabase dashboard > Authentication > Users
       5. Confirm a new anonymous user appeared with a UUID (is_anonymous: true)
       6. Note the UUID shown in the Supabase Users list
 

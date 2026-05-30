@@ -134,7 +134,7 @@ AsyncStorage import (healthkit.ts line 17):
       head -1 /Users/bekircemkusdemir/Downloads/vitalspan/src/lib/supabase.ts | grep -c "react-native-url-polyfill/auto"
 
       # 3. No hardcoded Supabase URL or key in source files (SEC-01 audit)
-      grep -rn --include="*.ts" --include="*.tsx" "PROJECT-REF-REDACTED\|sb_publishable_\|supabase\.co" /Users/bekircemkusdemir/Downloads/vitalspan/src/ /Users/bekircemkusdemir/Downloads/vitalspan/App.tsx
+      grep -rn --include="*.ts" --include="*.tsx" "<PROJECT-REF>\|sb_publishable_\|supabase\.co" /Users/bekircemkusdemir/Downloads/vitalspan/src/ /Users/bekircemkusdemir/Downloads/vitalspan/App.tsx
 
       # 4. Required exports exist
       grep -c "export const supabase" /Users/bekircemkusdemir/Downloads/vitalspan/src/lib/supabase.ts
@@ -160,7 +160,7 @@ AsyncStorage import (healthkit.ts line 17):
     - createClient options include: storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false
     - AppState listener is inside if (Platform.OS !== 'web') block
     - initSupabaseSession() calls getSession() before signInAnonymously() — signInAnonymously is only reached when session is null
-    - grep for "PROJECT-REF-REDACTED" and "sb_publishable_" across src/ and App.tsx returns zero matches
+    - grep for project ref and `sb_publishable_` prefix across src/ and App.tsx returns zero matches
     - .env.example exists with EXPO_PUBLIC_SUPABASE_URL= and EXPO_PUBLIC_SUPABASE_ANON_KEY= (placeholder values only)
     - npx tsc --noEmit exits with code 0
   </acceptance_criteria>
@@ -192,7 +192,7 @@ AsyncStorage import (healthkit.ts line 17):
 
 <verification>
 After Task 2 completes:
-1. grep -rn --include="*.ts" --include="*.tsx" "PROJECT-REF-REDACTED\|sb_publishable_\|supabase\.co" src/ App.tsx → zero matches
+1. grep -rn --include="*.ts" --include="*.tsx" "<PROJECT-REF>\|sb_publishable_\|supabase\.co" src/ App.tsx → zero matches
 2. head -1 src/lib/supabase.ts → import 'react-native-url-polyfill/auto'
 3. npx tsc --noEmit → exit 0
 4. .env.example exists with two EXPO_PUBLIC_* lines and placeholder values only

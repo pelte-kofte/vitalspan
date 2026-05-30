@@ -222,12 +222,12 @@ No manual `package.json` editing is needed — `npx expo install` writes the cor
 
 Both keys are already present and confirmed:
 ```
-EXPO_PUBLIC_SUPABASE_URL=https://PROJECT-REF-REDACTED.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=REDACTED
+EXPO_PUBLIC_SUPABASE_URL=https://<PROJECT-REF>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<REDACTED>
 ```
 The planner must include a verify-only task (not a write task) for `.env`. The SEC-01 audit command to confirm no keys appear in source:
 ```bash
-grep -rn "PROJECT-REF-REDACTED\|sb_publishable_" src/ App.tsx --include="*.ts" --include="*.tsx"
+grep -rn "<PROJECT-REF>\|sb_publishable_" src/ App.tsx --include="*.ts" --include="*.tsx"
 ```
 Expected output: zero matches.
 

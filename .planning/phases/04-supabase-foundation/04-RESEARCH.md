@@ -239,8 +239,8 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 **The `.env` file (already exists):**
 ```
-EXPO_PUBLIC_SUPABASE_URL=https://PROJECT-REF-REDACTED.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=REDACTED
+EXPO_PUBLIC_SUPABASE_URL=https://<PROJECT-REF>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<REDACTED>
 ```
 Both keys are already present. `app.json` does NOT need an `extra` block for these vars — the `EXPO_PUBLIC_*` system is separate from `Constants.expoConfig.extra`. The existing `app.json` only has `extra.eas.projectId`, which is correct and unrelated.
 
@@ -399,7 +399,7 @@ useEffect(() => {
 ### SEC-01 Audit Command
 ```bash
 # Run from project root — should return zero matches
-grep -rn "PROJECT-REF-REDACTED\|sb_publishable_" src/ App.tsx --include="*.ts" --include="*.tsx"
+grep -rn "<PROJECT-REF>\|sb_publishable_" src/ App.tsx --include="*.ts" --include="*.tsx"
 # Also check for any literal supabase URL pattern
 grep -rn "supabase\.co" src/ App.tsx --include="*.ts" --include="*.tsx"
 ```
@@ -436,7 +436,7 @@ grep -rn "supabase\.co" src/ App.tsx --include="*.ts" --include="*.tsx"
 
 1. **Anonymous sign-in dashboard toggle state**
    - What we know: Anonymous sign-ins must be enabled in Supabase dashboard (Auth > Settings > User Signups).
-   - What's unclear: Whether it is already enabled for project `PROJECT-REF-REDACTED`.
+   - What's unclear: Whether it is already enabled for the project.
    - Recommendation: Make enabling this a prerequisite task in Wave 0 of the plan. If not enabled, `signInAnonymously()` returns an error immediately.
    - RESOLVED: Made a blocking `checkpoint:human-verify` task in P2 Task 2 Step 1 — executor must confirm toggle is enabled before verifying session persistence.
 

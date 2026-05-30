@@ -35,11 +35,11 @@ This phase introduces the Supabase client singleton, anonymous auth initializati
 
 **File:** `.planning/phases/04-supabase-foundation/04-PATTERNS.md` (committed in `952e4a9`) and `.planning/phases/04-supabase-foundation/04-RESEARCH.md` (committed in `376f33d`)
 
-**Issue:** The actual Supabase anon key `REDACTED` and the project ref `PROJECT-REF-REDACTED` appear verbatim in two planning documents that are tracked in git history. The `.env` file itself is correctly gitignored, but the same credential was pasted into planning artifacts which were then committed. SEC-01 requires zero hardcoded credentials in any source file; git-tracked planning files are part of the repository and expose the same risk. Any clone of this repository contains the key in full.
+**Issue:** The actual Supabase anon key `<REDACTED>` and the project ref `<PROJECT-REF>` appear verbatim in two planning documents that are tracked in git history. The `.env` file itself is correctly gitignored, but the same credential was pasted into planning artifacts which were then committed. SEC-01 requires zero hardcoded credentials in any source file; git-tracked planning files are part of the repository and expose the same risk. Any clone of this repository contains the key in full.
 
 **Fix:** This requires two actions:
 
-1. **Rotate the key immediately.** Log into `https://supabase.com/dashboard/project/PROJECT-REF-REDACTED/settings/api` and regenerate the anon key. The current key is now compromised regardless of further git operations.
+1. **Rotate the key immediately.** Log into the Supabase dashboard > Settings > API and regenerate the anon key. The original key is compromised regardless of further git operations.
 
 2. **Remove the key from git history.** Use `git filter-repo` (preferred over `git filter-branch`) to rewrite the commits that introduced the credential:
    ```bash
@@ -49,7 +49,7 @@ This phase introduces the Supabase client singleton, anonymous auth initializati
    ```
    Or scrub only the credential string while preserving the files:
    ```bash
-   git filter-repo --replace-text <(echo "REDACTED==>REDACTED")
+   git filter-repo --replace-text <(echo "<REDACTED>==>REDACTED")
    ```
    After rewriting history, force-push all branches and ensure any existing clones are discarded or updated.
 
