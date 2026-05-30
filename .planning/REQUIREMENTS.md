@@ -8,8 +8,8 @@
 ### Supabase Infrastructure
 
 - [x] **SUPA-01**: Supabase client singleton (`src/lib/supabase.ts`) initialized with `storage: AsyncStorage`, `persistSession: true`, `detectSessionInUrl: false`, `autoRefreshToken: true`
-- [ ] **SUPA-02**: Anonymous auth initiated on first app launch; session UUID persists across restarts as stable `user_id`
-- [ ] **SUPA-03**: AppState listener calls `startAutoRefresh()` on `active` and `stopAutoRefresh()` on `background`/`inactive` to prevent JWT expiry after 1h backgrounding
+- [x] **SUPA-02**: Anonymous auth initiated on first app launch; session UUID persists across restarts as stable `user_id`
+- [x] **SUPA-03**: AppState listener calls `startAutoRefresh()` on `active` and `stopAutoRefresh()` on `background`/`inactive` to prevent JWT expiry after 1h backgrounding
 - [ ] **SUPA-04**: `biomarker_definitions` table seeded with longevity-optimized ranges; public-read RLS (`anon` role); app falls back to static `biomarkers.ts` when offline
 - [ ] **SUPA-05**: `exercises` table seeded with exercise library; public-read RLS; app falls back to static data when offline
 - [ ] **SUPA-06**: User biomarker entries written to Supabase `biomarker_entries` after AsyncStorage save (fire-and-forget); Dashboard pulls on mount with staleness gate
@@ -96,8 +96,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SUPA-01 | Phase 4 | Complete |
-| SUPA-02 | Phase 4 | Pending |
-| SUPA-03 | Phase 4 | Pending |
+| SUPA-02 | Phase 4 | Complete |
+| SUPA-03 | Phase 4 | Complete |
 | SEC-01 | Phase 4 | Complete |
 | ICON-01 | Phase 5 | Pending |
 | ICON-02 | Phase 5 | Pending |
