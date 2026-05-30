@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 4 — Supabase Foundation
+**Current focus:** Phase 5 — Design Tokens & Icons
 
 ## Current Position
 
-Phase: 4 of 9 (Supabase Foundation)
-Plan: 2 of 2 in current phase (phase complete)
-Status: Phase 4 complete — ready for Phase 5 (Design Tokens & Icons)
-Last activity: 2026-05-30 — 04-P2 executed: App.tsx wired with initSupabaseSession() fire-and-forget call
+Phase: 5 of 9 (Design Tokens & Icons)
+Plan: 0 of TBD in current phase (not started)
+Status: Phase 4 verified and closed — ready for Phase 5 (Design Tokens & Icons)
+Last activity: 2026-05-30 — 04 security: redacted credentials from planning docs, rewrote git history with filter-repo, fixed CR-02/WR-02/WR-03, ran phase verifier (3/4 automated; 1 human runtime test pending)
 
 Progress: [████░░░░░░] 40% (v1 complete; Phase 4 complete; 5 v2 phases ahead)
 
@@ -59,8 +59,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 4: Verify Supabase RLS anon read policy is set in dashboard before writing any client fetch code — silent `[]` returns if missing
-- Phase 4: `react-native-url-polyfill` must be first import in `src/lib/supabase.ts` — before any Supabase import
+- Phase 5: No blockers identified yet — plan-phase 5 is the next step
+- Phase 4 (resolved): Supabase RLS anon read policy — verify in dashboard before client fetch code in Phase 7
+- Phase 4 (resolved): polyfill ordering constraint — enforced in supabase.ts line 1
 
 ## Deferred Items
 
@@ -77,5 +78,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-05-30
-Stopped at: 04-P2 complete — App.tsx wired with initSupabaseSession() fire-and-forget; Phase 4 all plans done; Phase 5 is next
+Stopped at: Phase 4 fully closed — all plans executed, code review fixes applied (CR-02/WR-02/WR-03), credentials redacted and git history rewritten, verification report created. Human runtime test pending (session persistence + JWT refresh on device). Phase 5 is next.
 Resume file: None
