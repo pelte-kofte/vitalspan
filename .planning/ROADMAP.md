@@ -83,8 +83,16 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans in 2 waves
 
 Plans:
+
+**Wave 1**
 - [ ] 04-P1-PLAN.md — Install packages + create supabase.ts singleton + .env.example (SUPA-01, SEC-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 04-P2-PLAN.md — Wire App.tsx anonymous auth init + AppState JWT refresh + human verification (SUPA-02, SUPA-03)
+
+**Cross-cutting constraints:**
+- `react-native-url-polyfill/auto` must be first import in supabase.ts (P1 + P2 both reference this file)
+- No Supabase URL or anon key in any source file — `process.env.EXPO_PUBLIC_*` only (P1, P2)
 
 **UI hint**: no
 

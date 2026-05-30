@@ -432,22 +432,25 @@ grep -rn "supabase\.co" src/ App.tsx --include="*.ts" --include="*.tsx"
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Anonymous sign-in dashboard toggle state**
    - What we know: Anonymous sign-ins must be enabled in Supabase dashboard (Auth > Settings > User Signups).
    - What's unclear: Whether it is already enabled for project `PROJECT-REF-REDACTED`.
    - Recommendation: Make enabling this a prerequisite task in Wave 0 of the plan. If not enabled, `signInAnonymously()` returns an error immediately.
+   - RESOLVED: Made a blocking `checkpoint:human-verify` task in P2 Task 2 Step 1 — executor must confirm toggle is enabled before verifying session persistence.
 
 2. **TypeScript type for the Supabase client**
    - What we know: `createClient<Database>()` requires a generated `Database` type from `supabase gen types`. No tables are queried in Phase 4.
    - What's unclear: Whether to add the generic now (as `createClient<never>()` or a placeholder) or wait for Phase 7 when tables are seeded.
    - Recommendation: Omit the Database generic in Phase 4. Add it in Phase 7 alongside `supabase gen types`. Strict TS will still pass without the generic.
+   - RESOLVED: Omit Database generic in Phase 4; add in Phase 7 with `supabase gen types`.
 
 3. **AppState listener cleanup**
    - What we know: `AppState.addEventListener` in React Native returns a subscription object that should be removed on cleanup.
    - What's unclear: Module-level listeners (outside React components) cannot be cleaned up. Official Supabase examples register it at module level without cleanup.
    - Recommendation: Follow the official pattern (module-level, no cleanup). This is a singleton and the listener lives for the app's lifetime.
+   - RESOLVED: Follow official pattern — module-level, no cleanup, singleton lifetime.
 
 ---
 
