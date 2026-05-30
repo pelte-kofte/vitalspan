@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initSupabaseSession } from './src/lib/supabase';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
@@ -11,16 +12,17 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Landing' | 'Main' | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('@vitalspan_user_profile')
-      .then(raw => {
-        if (raw) {
-          const profile = JSON.parse(raw);
-          setInitialRoute(profile.onboardingComplete ? 'Main' : 'Landing');
-        } else {
-          setInitialRoute('Landing');
-        }
-      })
-      .catch(() => setInitialRoute('Landing'));
+    const init = async () => {
+      const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
+      if (raw) {
+        const profile = JSON.parse(raw);
+        setInitialRoute(profile.onboardingComplete ? 'Main' : 'Landing');
+      } else {
+        setInitialRoute('Landing');
+      }
+      initSupabaseSession().catch(() => null);
+    };
+    init();
   }, []);
 
   if (!initialRoute) {
