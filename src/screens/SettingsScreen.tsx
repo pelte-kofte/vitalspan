@@ -106,9 +106,13 @@ export default function SettingsScreen() {
           text: 'Delete everything',
           style: 'destructive',
           onPress: async () => {
-            await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
-            nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            try {
+              await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
+              nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            } catch {
+              Alert.alert('Clear failed', 'Could not delete all data. Please try again.');
+            }
           },
         },
       ],
