@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 5 — Design Tokens & Icons
+**Current focus:** Phase 7 — Reference Data & Exercise Screen
 
 ## Current Position
 
-Phase: 5 of 9 (Design Tokens & Icons)
-Plan: 0 of TBD in current phase (not started)
-Status: Phase 4 verified and closed — ready for Phase 5 (Design Tokens & Icons)
-Last activity: 2026-05-30 — 04 security: redacted credentials from planning docs, rewrote git history with filter-repo, fixed CR-02/WR-02/WR-03, ran phase verifier (3/4 automated; 1 human runtime test pending)
+Phase: 7 of 9 (Reference Data & Exercise Screen — in progress)
+Plan: 3/4
+Status: Phase 7 executing (2026-06-01); Wave 2 complete
+Last activity: 2026-06-01 — 07-02 + 07-03 complete (parallel): biomarker screens migrated to getBiomarkers(); ExerciseScreen rebuilt with getExercises(), 3-section log (Today/This Week/History), intensity color coding on pills and dots.
 
-Progress: [████░░░░░░] 40% (v1 complete; Phase 4 complete; 5 v2 phases ahead)
+Progress: [██████░░░░] 55% (v1 complete; Phases 4-6 complete)
 
 ## Performance Metrics
 
@@ -77,6 +77,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-05-30
-Stopped at: Phase 4 fully closed — all plans executed, code review fixes applied (CR-02/WR-02/WR-03), credentials redacted and git history rewritten, verification report created. Human runtime test pending (session persistence + JWT refresh on device). Phase 5 is next.
-Resume file: None
+Last session: 2026-05-31
+Stopped at: Phase 7 context gathered. Ready for /gsd:plan-phase 7.
+Resume file: .planning/phases/07-reference-data-and-exercise-screen/07-CONTEXT.md

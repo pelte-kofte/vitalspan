@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Switch, Alert, Share,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -60,6 +62,8 @@ export default function SettingsScreen() {
   const [weeklyReport, setWeeklyReport] = useState(true);
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
 
+  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+
   function handleToggleNotif(val: boolean) {
     Haptics.selectionAsync().catch(() => null);
     setNotificationsEnabled(val);
@@ -102,9 +106,13 @@ export default function SettingsScreen() {
           text: 'Delete everything',
           style: 'destructive',
           onPress: async () => {
-            await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
-            nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            try {
+              await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
+              nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            } catch {
+              Alert.alert('Clear failed', 'Could not delete all data. Please try again.');
+            }
           },
         },
       ],
@@ -164,7 +172,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <SettingsRow icon="👤" title="Edit profile" subtitle="Name, age, conditions" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon="👤" title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
           <SettingsRow icon="🔒" title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
@@ -179,8 +187,8 @@ export default function SettingsScreen() {
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleToggleNotif}
-                trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
-                thumbColor={notificationsEnabled ? Colors.primary : Colors.textMuted}
+                trackColor={{ false: Colors.Beige.border, true: Colors.primaryBorder }}
+                thumbColor={notificationsEnabled ? Colors.primary : Colors.Beige.textMuted}
               />
             }
           />
@@ -193,8 +201,8 @@ export default function SettingsScreen() {
               <Switch
                 value={weeklyReport}
                 onValueChange={handleToggleReport}
-                trackColor={{ false: Colors.border, true: Colors.primaryBorder }}
-                thumbColor={weeklyReport ? Colors.primary : Colors.textMuted}
+                trackColor={{ false: Colors.Beige.border, true: Colors.primaryBorder }}
+                thumbColor={weeklyReport ? Colors.primary : Colors.Beige.textMuted}
               />
             }
           />
@@ -257,55 +265,56 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
+    backgroundColor: Colors.Beige.headerBg,
   },
   closeBtn: { paddingVertical: Spacing.xs },
   closeTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
-  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
+  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
   scroll: { flex: 1 },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: Colors.textMuted,
+    fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   card: {
-    marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard,
-    borderRadius: 20, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 12, elevation: 2,
+    marginHorizontal: Spacing.base, backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl, overflow: 'hidden',
+    borderWidth: 0.5, borderColor: Colors.Beige.border,
+    ...Elevation.sm,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.border },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.divider },
   rowIconWrap: {
     width: 32, height: 32, borderRadius: 8,
-    backgroundColor: Colors.bgSecondary, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.Beige.bgShade, alignItems: 'center', justifyContent: 'center',
   },
   rowIcon: { fontSize: 16 },
   rowBody: { flex: 1 },
-  rowTitle: { fontSize: Typography.sizes.base, color: Colors.textPrimary, fontWeight: '400' },
+  rowTitle: { fontSize: Typography.sizes.base, color: Colors.Beige.text, fontWeight: '400' },
   rowDanger: { color: Colors.danger },
-  rowSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  rowArrow: { fontSize: 18, color: Colors.textMuted, fontWeight: '300' },
+  rowSub: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  rowArrow: { fontSize: 18, color: Colors.Beige.textMuted, fontWeight: '300' },
   unitToggle: {
-    flexDirection: 'row', backgroundColor: Colors.bg,
+    flexDirection: 'row', backgroundColor: Colors.Beige.bgShade,
     borderRadius: Radius.md, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.border,
+    borderWidth: 0.5, borderColor: Colors.Beige.border,
   },
   unitOpt: { paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1 },
   unitOptActive: { backgroundColor: Colors.primary, borderRadius: Radius.md },
-  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, fontWeight: '500' },
+  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, fontWeight: '500' },
   unitOptTxtActive: { color: Colors.primaryBg },
   disclaimer: {
     marginHorizontal: Spacing.base, marginTop: Spacing.base,
-    backgroundColor: Colors.bgCard, borderRadius: Radius.md,
+    backgroundColor: Colors.Beige.card, borderRadius: Radius.md,
     padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
-  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
-  versionTxt: { fontSize: 10, color: Colors.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
+  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, lineHeight: 18 },
+  versionTxt: { fontSize: 10, color: Colors.Beige.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
 });

@@ -21,8 +21,8 @@
 
 ### SVG Icons
 
-- [ ] **ICON-01**: Five custom SVG tab bar icon components replace the emoji `TabIcon`: Home, Biomarkers, Protocol, Exercise, Profile
-- [ ] **ICON-02**: All tab icons use `viewBox="0 0 24 24"`, stroke-based at `strokeWidth={1.5}`, accepting `color` and `size` props from React Navigation
+- [x] **ICON-01**: Five custom SVG tab bar icon components replace the emoji `TabIcon`: Home, Biomarkers, Protocol, Exercise, Profile — validated Phase 5
+- [x] **ICON-02**: All tab icons use `viewBox="0 0 24 24"`, stroke-based at `strokeWidth={1.5}`, accepting `color` and `size` props from React Navigation — validated Phase 5
 
 ### UI/UX Overhaul
 

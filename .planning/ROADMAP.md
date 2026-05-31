@@ -62,8 +62,8 @@ v1 shipped a functional, credible prototype to TestFlight. v2 transforms it into
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management (P1 complete; P2 complete)
-- [ ] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul
-- [ ] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens
+- [x] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul (complete 2026-05-30)
+- [x] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens (complete 2026-05-31)
 - [ ] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals
 - [ ] **Phase 8: Biomarker Sync Write Path** - Add fire-and-forget Supabase sync for new biomarker entries and one-time migration of existing AsyncStorage history
 - [ ] **Phase 9: PhenoAge Fix & Release Quality** - Correct the biological age calculation and verify zero crashes and zero TypeScript errors before v2 submission
@@ -105,7 +105,17 @@ Plans:
   1. Tab bar displays five custom stroke-based SVG icons (Home, Biomarkers, Protocol, Exercise, Profile) — no emoji visible
   2. Active tab icon renders in the navigation accent color; inactive renders in muted color — no manual focused-state logic required
   3. `Colors.Beige.*` tokens are accessible from `src/theme/index.ts`; no existing `Colors.*` constant is renamed or removed; `tsc --noEmit` passes
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [x] 05-01-PLAN.md — Append Colors.Beige token block (11 tokens) to src/theme/index.ts (THEME-01)
+- [x] 05-02-PLAN.md — Create src/components/TabIcons.tsx with 5 named SVG neural-dots icons (ICON-01, ICON-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 05-03-PLAN.md — Wire SVG icons into AppNavigator.tsx + switch tab bar backgroundColor to Colors.Beige.bg + human visual verification (ICON-01, ICON-02, THEME-01)
+
 **UI hint**: yes
 
 ### Phase 6: Warm UI Overhaul
@@ -119,7 +129,26 @@ Plans:
   3. Status bar text is dark (readable) on warm screens and light on dark screens, switching correctly when navigating between them
   4. Exercise, Protocol, and Profile screens each show a motivating empty state with an outcome-focused headline and a single CTA when the user has no data
   5. `tsc --noEmit` passes and no hardcoded hex values appear in modified screen files
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 06-01-PLAN.md — Fix Colors.Beige.textMuted token + migrate SettingsScreen + AboutScreen (THEME-02, THEME-03, THEME-04, THEME-05)
+- [ ] 06-02-PLAN.md — Migrate ProtocolScreen + upgrade empty state (THEME-02, THEME-04, THEME-05, THEME-06)
+
+**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+- [x] 06-03-PLAN.md — Migrate BiomarkerDetailScreen + BiomarkerEntryScreen (THEME-02, THEME-04, THEME-05)
+- [x] 06-04-PLAN.md — Migrate ExerciseScreen + add motivating empty state (THEME-02, THEME-04, THEME-05, THEME-06)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 06-05-PLAN.md — Migrate ProfileScreen + add motivating empty state + full phase audit + human visual checkpoint (THEME-02, THEME-03, THEME-04, THEME-05, THEME-06)
+
+**Cross-cutting constraints:**
+- Colors.Beige.textMuted must be fixed to '#6B6B64' (Plan 01) before any screen is verified
+- Dark screens (DashboardScreen, LandingScreen, LongevityScoreScreen) must not be touched in any plan
+- Every warm screen must have useFocusEffect + setStatusBarStyle('dark')
+
 **UI hint**: yes
 
 ### Phase 7: Reference Data & Exercise Screen
@@ -133,7 +162,20 @@ Plans:
   3. User can browse the exercise library filtered by category; selecting an exercise shows its metadata (loaded from Supabase or static fallback)
   4. Logging an exercise shows Easy/Moderate/Hard intensity pills with green/amber/coral color coding and haptic feedback on selection
   5. Log entries are color-coded by intensity; swiping a log entry left reveals a delete action that removes it
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [x] 07-01-PLAN.md — SQL seed files + exerciseService + biomarkerService with Supabase-first + static fallback (SUPA-04, SUPA-05)
+
+**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+- [x] 07-02-PLAN.md — Wire biomarkerService into BiomarkerDetailScreen + BiomarkerEntryScreen (SUPA-04)
+- [x] 07-03-PLAN.md — Rebuild ExerciseScreen: exerciseService + 3-section log + intensity colors (EX-01, EX-02, EX-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 07-04-PLAN.md — Swipe-to-delete: GestureHandlerRootView + SwipeableLogRow + ExerciseScreen wire-up (EX-04)
+
 **UI hint**: yes
 
 ### Phase 8: Biomarker Sync Write Path
@@ -173,8 +215,8 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 2. App Assets & Store Polish | v1.0 | 2/2 | Complete | 2026-05-25 |
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
-| 5. Design Tokens & Icons | v2.0 | 0/TBD | Not started | - |
-| 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
-| 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
+| 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
+| 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
+| 7. Reference Data & Exercise Screen | v2.0 | 3/4 | In progress | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |

@@ -42,7 +42,7 @@ Users get their first clinically meaningful insight within minutes of opening th
 ### Active
 
 - [ ] Selective UI/UX overhaul — warm beige/cream on list screens, cards, modals; dark preserved on LongevityScore and orbital dashboard
-- [ ] Custom SVG tab bar icons replacing emoji placeholders
+- ✓ Custom SVG tab bar icons replacing emoji placeholders — Phase 5
 - [ ] Premium card layouts across all screens
 - [ ] Motivating empty states on all remaining screens
 - [ ] Supabase biomarker reference data table (longevity-optimized ranges served from DB)

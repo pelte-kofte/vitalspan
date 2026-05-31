@@ -1,5 +1,4 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -21,6 +20,7 @@ import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 
 import { Colors } from '../theme';
+import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
 
 export type RootStackParamList = {
   Landing: undefined;
@@ -36,16 +36,16 @@ export type RootStackParamList = {
   About: undefined;
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator();
+export type MainTabParamList = {
+  Home: undefined;
+  Biomarkers: undefined;
+  Protocol: undefined;
+  Exercise: undefined;
+  Profile: undefined;
+};
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 20, color: focused ? Colors.primary : Colors.textMuted }}>
-      {emoji}
-    </Text>
-  );
-}
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
@@ -54,7 +54,7 @@ function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.bg,
+          backgroundColor: Colors.Beige.bg,
           borderTopColor: 'rgba(0, 0, 0, 0.06)',
           borderTopWidth: 0.5,
           paddingBottom: Math.max(insets.bottom, 8),
@@ -76,7 +76,7 @@ function MainTabs() {
         component={DashboardScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <HomeIcon color={color} focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -84,7 +84,7 @@ function MainTabs() {
         component={BiomarkerDetailScreen}
         options={{
           tabBarLabel: 'Biomarkers',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <BiomarkersIcon color={color} focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -92,7 +92,7 @@ function MainTabs() {
         component={ProtocolScreen}
         options={{
           tabBarLabel: 'Protocol',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💊" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <ProtocolIcon color={color} focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -100,7 +100,7 @@ function MainTabs() {
         component={ExerciseScreen}
         options={{
           tabBarLabel: 'Exercise',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏃" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <ExerciseIcon color={color} focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -108,7 +108,7 @@ function MainTabs() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <ProfileIcon color={color} focused={focused} />,
         }}
       />
     </Tab.Navigator>
