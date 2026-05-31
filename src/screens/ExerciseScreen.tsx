@@ -10,9 +10,10 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import {
-  EXERCISES, EXERCISE_CATEGORIES, Exercise, ExerciseCategory, ExerciseLogEntry,
+  EXERCISE_CATEGORIES, Exercise, ExerciseCategory, ExerciseLogEntry,
   ExerciseIntensity, CATEGORY_MET,
 } from '../data/exercises';
+import { getExercises } from '../lib/exerciseService';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   'Cardio':     '🏃',
@@ -43,6 +44,32 @@ const INTENSITY_OPTIONS: { key: ExerciseIntensity; label: string; met_mult: numb
   { key: 'moderate', label: 'Moderate', met_mult: 1.0 },
   { key: 'hard',     label: 'Hard',     met_mult: 1.3 },
 ];
+
+const INTENSITY_COLORS: Record<ExerciseIntensity, { bg: string; border: string; text: string }> = {
+  easy:     { bg: Colors.status.optimalBg,  border: Colors.status.optimalBorder,  text: Colors.status.optimalText },
+  moderate: { bg: Colors.status.reviewBg,   border: Colors.status.reviewBorder,   text: Colors.status.reviewText },
+  hard:     { bg: Colors.status.criticalBg, border: Colors.status.criticalBorder, text: Colors.status.criticalText },
+};
+
+const INTENSITY_DOT: Record<ExerciseIntensity, string> = {
+  easy: Colors.status.optimal,
+  moderate: Colors.status.review,
+  hard: Colors.status.critical,
+};
+
+function getMondayStr(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getYesterdayStr(date: Date): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
 
 function estimateCalories(category: string, durationMin: number, intensity: ExerciseIntensity, weightKg = 75): number {
   const met = (CATEGORY_MET[category] ?? 5.0) * (INTENSITY_OPTIONS.find(i => i.key === intensity)?.met_mult ?? 1);
@@ -124,10 +151,19 @@ function QuickLogModal({ exercise, onClose, onSave, userWeightKg }: QuickLogModa
           {INTENSITY_OPTIONS.map(opt => (
             <TouchableOpacity
               key={opt.key}
-              style={[s.intensityChip, intensity === opt.key && s.intensityChipActive]}
+              style={[
+                s.intensityChip,
+                intensity === opt.key && {
+                  backgroundColor: INTENSITY_COLORS[opt.key].bg,
+                  borderColor: INTENSITY_COLORS[opt.key].border,
+                },
+              ]}
               onPress={() => { setIntensity(opt.key); Haptics.selectionAsync().catch(() => null); }}
             >
-              <Text style={[s.intensityTxt, intensity === opt.key && s.intensityTxtActive]}>{opt.label}</Text>
+              <Text style={[
+                s.intensityTxt,
+                intensity === opt.key && { color: INTENSITY_COLORS[opt.key].text, fontWeight: '600' },
+              ]}>{opt.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -154,28 +190,29 @@ export default function ExerciseScreen() {
   const [logs, setLogs] = useState<ExerciseLogEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [userWeightKg, setUserWeightKg] = useState<number | undefined>(undefined);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
 
-  const loadLogs = useCallback(() => {
+  const loadData = useCallback(() => {
     return Promise.all([
       AsyncStorage.getItem('@vitalspan_exercise_log'),
       AsyncStorage.getItem('@vitalspan_user_profile'),
-    ])
-      .then(([rawLogs, rawProfile]) => {
-        if (rawLogs) setLogs(JSON.parse(rawLogs));
-        if (rawProfile) {
-          const p = JSON.parse(rawProfile);
-          if (p.weightKg) setUserWeightKg(p.weightKg);
-        }
-      })
-      .catch(console.error);
+      getExercises(),
+    ]).then(([rawLogs, rawProfile, exs]) => {
+      if (rawLogs) setLogs(JSON.parse(rawLogs));
+      if (rawProfile) {
+        const p = JSON.parse(rawProfile);
+        if (p.weightKg) setUserWeightKg(p.weightKg);
+      }
+      setExercises(exs);
+    }).catch(console.error);
   }, []);
 
-  useFocusEffect(useCallback(() => { void loadLogs(); }, [loadLogs]));
+  useFocusEffect(useCallback(() => { void loadData(); }, [loadData]));
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
-    await loadLogs();
+    await loadData();
     setRefreshing(false);
   }
 
@@ -204,18 +241,26 @@ export default function ExerciseScreen() {
     ]);
   }
 
-  const filtered = useMemo(() =>
-    selectedCat === 'All' ? EXERCISES : EXERCISES.filter(e => e.category === selectedCat),
-  [selectedCat]);
+  const filtered = useMemo(
+    () => selectedCat === 'All' ? exercises : exercises.filter(e => e.category === selectedCat),
+    [selectedCat, exercises],
+  );
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const mondayStr = getMondayStr(now);
+  const yesterdayStr = getYesterdayStr(now);
+  const historyStartStr = (() => { const d = new Date(mondayStr); d.setDate(d.getDate() - 14); return d.toISOString().slice(0, 10); })();
+
   const todayLogs = useMemo(() => logs.filter(l => l.date === todayStr), [logs, todayStr]);
+  const thisWeekLogs = useMemo(() => logs.filter(l => l.date >= mondayStr && l.date <= yesterdayStr), [logs, mondayStr, yesterdayStr]);
+  const historyLogs = useMemo(() => logs.filter(l => l.date >= historyStartStr && l.date < mondayStr), [logs, historyStartStr, mondayStr]);
 
-  const todayTotals = useMemo(() => {
-    const totalMin = todayLogs.reduce((sum, l) => sum + (l.durationMin ?? 0), 0);
-    const totalCal = todayLogs.reduce((sum, l) => sum + (l.caloriesEstimated ?? 0), 0);
-    return { totalMin, totalCal, count: todayLogs.length };
-  }, [todayLogs]);
+  const todayTotals = useMemo(() => ({
+    totalMin: todayLogs.reduce((sum, l) => sum + (l.durationMin ?? 0), 0),
+    totalCal: todayLogs.reduce((sum, l) => sum + (l.caloriesEstimated ?? 0), 0),
+    count: todayLogs.length,
+  }), [todayLogs]);
 
   function toggleExpand(id: string) {
     Haptics.selectionAsync().catch(() => null);
@@ -306,7 +351,7 @@ export default function ExerciseScreen() {
               style={s.emptyStateCta}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-                setLogModal(EXERCISES[0]);
+                setLogModal(exercises[0] ?? null);
               }}
               activeOpacity={0.82}
             >
@@ -315,10 +360,10 @@ export default function ExerciseScreen() {
           </View>
         )}
 
-        {/* Today's log */}
+        {/* Today section */}
         {todayLogs.length > 0 && (
           <>
-            <Text style={s.sectionLabel}>Logged today</Text>
+            <Text style={s.sectionLabel}>Today</Text>
             <View style={s.card}>
               {todayLogs.map((log, i) => (
                 <TouchableOpacity
@@ -334,64 +379,119 @@ export default function ExerciseScreen() {
                       {log.durationMin ? ` · ${log.durationMin}min` : ''}
                     </Text>
                   </View>
-                  <View style={s.logDot} />
+                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
                 </TouchableOpacity>
               ))}
             </View>
           </>
         )}
 
-        <Text style={s.sectionLabel}>
-          {selectedCat === 'All' ? 'All exercises' : selectedCat} · {filtered.length}
-        </Text>
-
-        <View style={s.card}>
-          {filtered.map((ex, i) => {
-            const isExpanded = expandedId === ex.id;
-            return (
-              <View key={ex.id} style={i < filtered.length - 1 && s.rowBorder}>
+        {/* This Week section */}
+        {thisWeekLogs.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>This Week</Text>
+            <View style={s.card}>
+              {thisWeekLogs.map((log, i) => (
                 <TouchableOpacity
-                  style={s.exerciseRow}
-                  onPress={() => toggleExpand(ex.id)}
-                  activeOpacity={0.75}
+                  key={log.id}
+                  style={[s.logRow, i < thisWeekLogs.length - 1 && s.rowBorder]}
+                  onLongPress={() => deleteLog(log.id)}
                 >
-                  <View style={s.exLeft}>
-                    <Text style={s.exName}>{ex.name}</Text>
-                    <View style={s.exMeta}>
-                      <View style={s.equipChip}>
-                        <Text style={s.equipChipTxt}>{equipShort(ex.equipment)}</Text>
-                      </View>
-                      <Text style={s.exTarget}>{ex.target}</Text>
-                    </View>
+                  <View style={s.logLeft}>
+                    <Text style={s.logName}>{log.exerciseName}</Text>
+                    <Text style={s.logMeta}>
+                      {log.date} · {log.category}
+                      {log.durationMin ? ` · ${log.durationMin}min` : ''}
+                    </Text>
                   </View>
-                  <View style={s.exRight}>
-                    <TouchableOpacity
-                      style={s.logBtn}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-                        setLogModal(ex);
-                      }}
-                    >
-                      <Text style={s.logBtnTxt}>+ Log</Text>
-                    </TouchableOpacity>
-                    <Text style={s.chevron}>{isExpanded ? '▲' : '▼'}</Text>
-                  </View>
+                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
                 </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
-                {isExpanded && (
-                  <View style={s.expandedContent}>
-                    {ex.secondaryMuscles.length > 0 && (
-                      <Text style={s.musclesTxt}>
-                        Also works: {ex.secondaryMuscles.join(', ')}
-                      </Text>
-                    )}
-                    <Text style={s.instructionsTxt}>{ex.instructions}</Text>
+        {/* History section */}
+        {historyLogs.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>History</Text>
+            <View style={s.card}>
+              {historyLogs.map((log, i) => (
+                <TouchableOpacity
+                  key={log.id}
+                  style={[s.logRow, i < historyLogs.length - 1 && s.rowBorder]}
+                  onLongPress={() => deleteLog(log.id)}
+                >
+                  <View style={s.logLeft}>
+                    <Text style={s.logName}>{log.exerciseName}</Text>
+                    <Text style={s.logMeta}>
+                      {log.date} · {log.category}
+                      {log.durationMin ? ` · ${log.durationMin}min` : ''}
+                    </Text>
                   </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
+                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Exercise library */}
+        {exercises.length > 0 && (
+          <>
+            <Text style={s.sectionLabel}>
+              {selectedCat === 'All' ? 'All exercises' : selectedCat} · {filtered.length}
+            </Text>
+
+            <View style={s.card}>
+              {filtered.map((ex, i) => {
+                const isExpanded = expandedId === ex.id;
+                return (
+                  <View key={ex.id} style={i < filtered.length - 1 && s.rowBorder}>
+                    <TouchableOpacity
+                      style={s.exerciseRow}
+                      onPress={() => toggleExpand(ex.id)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={s.exLeft}>
+                        <Text style={s.exName}>{ex.name}</Text>
+                        <View style={s.exMeta}>
+                          <View style={s.equipChip}>
+                            <Text style={s.equipChipTxt}>{equipShort(ex.equipment)}</Text>
+                          </View>
+                          <Text style={s.exTarget}>{ex.target}</Text>
+                        </View>
+                      </View>
+                      <View style={s.exRight}>
+                        <TouchableOpacity
+                          style={s.logBtn}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                            setLogModal(ex);
+                          }}
+                        >
+                          <Text style={s.logBtnTxt}>+ Log</Text>
+                        </TouchableOpacity>
+                        <Text style={s.chevron}>{isExpanded ? '▲' : '▼'}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                      <View style={s.expandedContent}>
+                        {ex.secondaryMuscles.length > 0 && (
+                          <Text style={s.musclesTxt}>
+                            Also works: {ex.secondaryMuscles.join(', ')}
+                          </Text>
+                        )}
+                        <Text style={s.instructionsTxt}>{ex.instructions}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -581,9 +681,7 @@ const s = StyleSheet.create({
   intensityLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm, marginTop: Spacing.md },
   intensityRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
   intensityChip: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.full, backgroundColor: Colors.Beige.bgShade, borderWidth: 1, borderColor: Colors.Beige.border, alignItems: 'center' },
-  intensityChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.Beige.textMuted },
-  intensityTxtActive: { color: Colors.primary, fontWeight: '600' },
   calEstimate: { fontSize: Typography.sizes.sm, color: Colors.primaryLight, fontWeight: '500', textAlign: 'center', marginBottom: Spacing.sm },
 
   // Quick log modal
