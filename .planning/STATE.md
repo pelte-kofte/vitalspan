@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 7 of 9 (Reference Data & Exercise Screen — in progress)
-Plan: 0/TBD
-Status: Phase 7 context gathered (2026-05-31); ready for planning
-Last activity: 2026-05-31 — Phase 7 context captured: service files pattern, biomarker_definitions schema, log section grouping (calendar-week), swipe-to-delete via Reanimated.
+Plan: 1/4
+Status: Phase 7 executing (2026-06-01); Wave 1 complete
+Last activity: 2026-06-01 — 07-01 complete: SQL seed files (exercises 60 rows, biomarker_definitions 51 rows) + exerciseService.ts + biomarkerService.ts with Supabase-first + static fallback.
 
 Progress: [██████░░░░] 55% (v1 complete; Phases 4-6 complete)
 
