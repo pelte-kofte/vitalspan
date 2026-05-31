@@ -82,10 +82,14 @@ export default function ProfileScreen() {
       sex: editSex,
       conditions: editConditions,
     };
-    await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(updated));
-    setProfile(updated);
-    setEditing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    try {
+      await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(updated));
+      setProfile(updated);
+      setEditing(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    } catch {
+      Alert.alert('Save failed', 'Could not save your profile. Please try again.');
+    }
   }
 
   function cancelEdit() {
