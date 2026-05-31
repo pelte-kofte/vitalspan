@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 6 — Warm UI Overhaul
+**Current focus:** Phase 7 — Reference Data & Exercise Screen
 
 ## Current Position
 
-Phase: 6 of 9 (Warm UI Overhaul — complete)
-Plan: 5 of 5 (Phase 6 complete — all 5 plans done)
-Status: Phase 6 complete (2026-05-31) — 5/5 plans complete; all 7 warm screens migrated, visual checkpoint approved
-Last activity: 2026-05-31 — Plan 06-05 complete: ProfileScreen migrated to Beige tokens (43 references), motivating empty state, Elevation.sm cards, status bar dark on focus. Full phase audit passed. Human visual checkpoint approved on iOS simulator.
+Phase: 7 of 9 (Reference Data & Exercise Screen — in progress)
+Plan: 0/TBD
+Status: Phase 7 context gathered (2026-05-31); ready for planning
+Last activity: 2026-05-31 — Phase 7 context captured: service files pattern, biomarker_definitions schema, log section grouping (calendar-week), swipe-to-delete via Reanimated.
 
 Progress: [██████░░░░] 55% (v1 complete; Phases 4-6 complete)
 
@@ -78,5 +78,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-05-31
-Stopped at: Phase 6 complete — Plan 05 done, visual checkpoint approved. All 7 warm screens migrated. Phase 7 (next) is the Supabase backend integration phase.
-Resume file: None
+Stopped at: Phase 7 context gathered. Ready for /gsd:plan-phase 7.
+Resume file: .planning/phases/07-reference-data-and-exercise-screen/07-CONTEXT.md
