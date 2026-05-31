@@ -79,18 +79,22 @@ Exceptions:
 
 Source: `src/theme/index.ts` `Typography.sizes` — pre-populated.
 
+Exactly two font weights are used across all warm screens: **400** (regular) and **600** (semibold). No other weight values may appear in any modified file.
+
 | Role | Token | Size | Weight | Line Height | Usage |
 |------|-------|------|--------|-------------|-------|
-| Screen title / Display | `Typography.sizes.xxl` | 28px | 700 | 1.2 | Screen-level headings (Exercise, Biomarkers, Profile) |
-| Section header / Label | 11px (hardcoded per existing convention) | 11px | 600 | 1.0 | `sectionLabel` — UPPERCASE, letterSpacing 1.5 |
-| Body / Row primary | `Typography.sizes.base` | 14px | 400–500 | 1.5 | Card row text, list item primary |
-| Caption / Meta | `Typography.sizes.xs` | 11px | 400 | 1.4 | Subtitles, timestamps, units |
+| Screen title / Display | `Typography.sizes.xxl` | 28px | 600 | 1.2 | Screen-level headings (Exercise, Biomarkers, Profile) |
+| Empty state headline | — | 18px | 600 | 1.3 | Empty state headline text (Exercise, Protocol, Profile) |
+| Body / Row primary | `Typography.sizes.base` | 14px | 400 | 1.5 | Card row text, list item primary |
+| Caption / Meta / Section label | `Typography.sizes.xs` | 11px | 400 (body captions) / 600 (section labels) | 1.4 (caption) / 1.0 (label) | Subtitles, timestamps, units; UPPERCASE section labels |
+
+Four distinct size steps: 11, 14, 18, 28. No ad hoc `fontSize` values outside these four.
 
 Rules:
-- Only four size steps above are used. No ad hoc `fontSize` values.
-- Section labels must always be `textTransform: 'uppercase'` + `letterSpacing: 1.5` + weight 600.
+- Section labels must always be `textTransform: 'uppercase'` + `letterSpacing: 1.5` + weight **600**.
 - Body line height must be set explicitly: `lineHeight: 21` at 14px (1.5 ratio).
 - Caption line height: `lineHeight: 16` at 11px.
+- Empty state headline line height: `lineHeight: 24` at 18px (1.3 ratio).
 - No new font sizes may be introduced in this phase.
 
 ---
@@ -118,7 +122,9 @@ Source: `src/theme/index.ts` `Colors.Beige.*` — pre-populated.
 | Divider | `Colors.Beige.divider` | `#C8C0B0` | List row separators (`borderBottomWidth: 0.5`) |
 | Primary text | `Colors.Beige.text` | `#1A1A18` | All primary content text |
 | Secondary text | `Colors.Beige.textSecondary` | `#4A4A45` | Row labels, body text, subtitles |
-| Muted text | `Colors.Beige.textMuted` | `#8A8A82` | Placeholders, captions, inactive states |
+| Muted text | `Colors.Beige.textMuted` | `#6B6B64` | Placeholders, captions, inactive states |
+
+Note: `Colors.Beige.textMuted` is `#6B6B64` (achieves ~4.6:1 contrast on `#EDE8DC`, ~4.7:1 on `#FFFFFF` — WCAG AA compliant). The corresponding `src/theme/index.ts` change (`textMuted: '#6B6B64'`) is a required task in the plan.
 
 ### Accent Reserved For
 
@@ -179,7 +185,7 @@ Cards that use `borderWidth: 1` (Protocol card currently) must be normalised to 
 |----------|-------|-------|
 | Vertical padding | 12px | `Spacing.md` |
 | Horizontal padding | 12px | `Spacing.md` |
-| Primary text | 14px / weight 500 / `Colors.Beige.text` | `Typography.sizes.base` + `Colors.Beige.text` |
+| Primary text | 14px / weight 400 / `Colors.Beige.text` | `Typography.sizes.base` + `Colors.Beige.text` |
 | Secondary text | 11px / weight 400 / `Colors.Beige.textSecondary` | `Typography.sizes.xs` + `Colors.Beige.textSecondary` |
 | Separator | `borderBottomWidth: 0.5` / `Colors.Beige.divider` | `Colors.Beige.divider` |
 | Minimum touch height | 44px | iOS HIG — add `minHeight: 44` if row padding doesn't reach it |
@@ -201,7 +207,7 @@ Used as `sectionLabel` across all warm screens (already consistent — standardi
 | Margin top | `Spacing.base` (16px) |
 | Margin bottom | `Spacing.sm` (8px) |
 
-This style is already applied consistently across all warm screens. Migration = replace `Colors.textMuted` with `Colors.Beige.textMuted` (same hex — semantic change only).
+This style is already applied consistently across all warm screens. Migration = replace `Colors.textMuted` with `Colors.Beige.textMuted` (semantic change; hex updates from `#8A8A82` to `#6B6B64` per the color contract fix above).
 
 ---
 
@@ -265,7 +271,7 @@ Required on: Exercise, Protocol, Profile. Each must show when the user has no da
 
 ```
 [Icon/Illustration — 40–48px text emoji or simple SVG]
-[Headline — 18px / weight 600 / Colors.Beige.text]
+[Headline — 18px / weight 600 / Colors.Beige.text / lineHeight 24]
 [Body copy — 14px / weight 400 / Colors.Beige.textSecondary / lineHeight 22]
 [CTA button — full-width, 44px tall, Colors.primary fill, Radius.xl]
 ```
@@ -354,6 +360,8 @@ Each row maps the three primary style roles to the correct `Colors.Beige.*` toke
 | SettingsScreen | `Colors.Beige.bg` | `Colors.Beige.card` | `Colors.Beige.text` | `Colors.Beige.textMuted` | `Colors.Beige.border` |
 | AboutScreen | `Colors.Beige.bg` | `Colors.Beige.card` | `Colors.Beige.text` | `Colors.Beige.textMuted` | `Colors.Beige.border` |
 
+`Colors.Beige.textMuted` resolves to `#6B6B64` — see color contract above.
+
 Supplementary token assignments common to all warm screens:
 
 | Style role | Token |
@@ -363,7 +371,7 @@ Supplementary token assignments common to all warm screens:
 | Active chip background | `Colors.primaryBg` |
 | Active chip border | `Colors.primaryBorder` |
 | Active chip text | `Colors.primary` |
-| Placeholder text | `Colors.Beige.textMuted` |
+| Placeholder text | `Colors.Beige.textMuted` (`#6B6B64`) |
 | Secondary / supporting text | `Colors.Beige.textSecondary` |
 | Navigation header background | `Colors.Beige.headerBg` |
 | Row icon wrap background | `Colors.Beige.bgShade` |
