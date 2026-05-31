@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadProfile(); }, [loadProfile]));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -104,9 +106,22 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={s.safe}>
-        <View style={s.empty}>
-          <Text style={s.emptyTxt}>No profile found.</Text>
-          <Text style={s.emptySub}>Complete onboarding to set up your profile.</Text>
+        <View style={s.topBar}>
+          <Text style={s.screenTitle}>Profile</Text>
+        </View>
+        <View style={s.emptyStateCard}>
+          <Text style={s.emptyStateIcon}>👤</Text>
+          <Text style={s.emptyStateHeadline}>Your health story starts here.</Text>
+          <Text style={s.emptyStateBody}>
+            Complete your profile so Vitalspan can personalise your biomarker targets and flag relevant drug interactions.
+          </Text>
+          <TouchableOpacity
+            style={s.emptyStateCta}
+            onPress={() => nav.navigate('Onboarding')}
+            activeOpacity={0.82}
+          >
+            <Text style={s.emptyStateCtaTxt}>Complete Onboarding</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -138,7 +153,7 @@ export default function ProfileScreen() {
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Your name"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={Colors.Beige.textMuted}
               />
             </View>
             <View style={[s.inputRow, s.rowBorder]}>
@@ -317,29 +332,27 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
   scroll: { flex: 1 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-  emptyTxt: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  emptySub: { fontSize: Typography.sizes.base, color: Colors.textMuted, textAlign: 'center' },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.base,
     paddingTop: Spacing.md,
+    backgroundColor: Colors.Beige.bg,
   },
-  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.textPrimary },
+  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   editBtn: {
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 1,
     borderWidth: 0.5,
-    borderColor: Colors.border,
+    borderColor: Colors.Beige.border,
   },
-  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary },
+  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.Beige.textSecondary },
   settingsBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   hero: { alignItems: 'center', padding: Spacing.xl, paddingBottom: Spacing.base },
   avatar: {
@@ -354,7 +367,7 @@ const s = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   avatarTxt: { fontSize: 28, color: Colors.primary, fontWeight: '500' },
-  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.sm },
+  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text, marginBottom: Spacing.sm },
   agePill: {
     backgroundColor: Colors.primaryBg,
     borderRadius: Radius.full,
@@ -367,7 +380,7 @@ const s = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: Colors.Beige.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
@@ -376,56 +389,50 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderRadius: Radius.xl,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.border },
-  rowLabel: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
-  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.divider },
+  rowLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary },
+  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
   tagRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md },
   medDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primaryLight },
-  tagTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
+  tagTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
   emptyRow: { padding: Spacing.md },
-  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
   settingsCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
   },
   aboutCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
   },
-  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
-  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
+  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
+  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.Beige.textMuted },
 
   // Edit mode
   editHeader: {
@@ -435,35 +442,84 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.Beige.border,
+    backgroundColor: Colors.Beige.bg,
   },
-  editCancel: { fontSize: Typography.sizes.base, color: Colors.textMuted },
-  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
+  editCancel: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
+  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
   editSave: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
-  inputLabel: { fontSize: Typography.sizes.base, color: Colors.textMuted, width: 64 },
-  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.textPrimary },
+  inputLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted, width: 64 },
+  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.Beige.text },
   ageRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: Spacing.md },
-  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.bg, borderWidth: 0.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  ageBtnTxt: { fontSize: 18, color: Colors.textPrimary },
-  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.textPrimary, minWidth: 32, textAlign: 'center' },
+  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.Beige.bgShade, borderWidth: 0.5, borderColor: Colors.Beige.border, alignItems: 'center', justifyContent: 'center' },
+  ageBtnTxt: { fontSize: 18, color: Colors.Beige.text },
+  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.Beige.text, minWidth: 32, textAlign: 'center' },
   sexRow: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
-  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.border, backgroundColor: Colors.bg },
+  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.bgShade },
   sexBtnActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
+  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary },
   sexBtnTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
   condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  condBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.border },
+  condBtn: { backgroundColor: Colors.Beige.card, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.Beige.border },
   condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
+  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
   editNote: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderWidth: 0.5,
-    borderColor: Colors.border,
+    borderColor: Colors.Beige.border,
   },
-  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
+  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, lineHeight: 18 },
+
+  // Motivating empty state
+  emptyStateCard: {
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.xl,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  emptyStateIcon: {
+    fontSize: 40,
+    marginBottom: Spacing.md,
+  },
+  emptyStateHeadline: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.Beige.text,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Spacing.sm,
+  },
+  emptyStateBody: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: Colors.Beige.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  emptyStateCta: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.xl,
+    minHeight: 44,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+  },
+  emptyStateCtaTxt: {
+    color: Colors.Beige.card,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
