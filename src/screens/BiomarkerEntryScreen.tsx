@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, TextInput,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography, Motion } from '../theme';
+import { setStatusBarStyle } from 'expo-status-bar';
+import { Colors, Spacing, Radius, Typography, Motion, Elevation } from '../theme';
 import { BIOMARKERS, Biomarker } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
@@ -65,6 +66,8 @@ export default function BiomarkerEntryScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [inputUnit, setInputUnit] = useState<InputUnit>('native');
+
+  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   const rawVal = parseFloat(value);
   const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
@@ -128,7 +131,7 @@ export default function BiomarkerEntryScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Search biomarkers..."
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={Colors.Beige.textMuted}
           autoFocus
         />
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -181,7 +184,7 @@ export default function BiomarkerEntryScreen() {
             onChangeText={setValue}
             keyboardType="decimal-pad"
             placeholder="—"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={Colors.Beige.textMuted}
             autoFocus
           />
           <Text style={s.valueUnit}>{inputUnit === 'native' ? selected.unit : (altUnit ?? selected.unit)}</Text>
@@ -250,7 +253,7 @@ export default function BiomarkerEntryScreen() {
             value={customDate}
             onChangeText={setCustomDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={Colors.Beige.textMuted}
           />
         )}
 
@@ -273,7 +276,7 @@ export default function BiomarkerEntryScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder="Add a note..."
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={Colors.Beige.textMuted}
           multiline
           numberOfLines={3}
         />
@@ -292,23 +295,23 @@ export default function BiomarkerEntryScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.base, paddingTop: Spacing.md },
-  headerTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
-  cancel: { fontSize: Typography.sizes.base, color: Colors.primaryLight, minWidth: 56 },
+  headerTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
+  cancel: { fontSize: Typography.sizes.base, color: Colors.primary, minWidth: 56 },
   headerSpacer: { minWidth: 56 },
-  searchInput: { marginHorizontal: Spacing.base, marginBottom: Spacing.sm, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border },
-  pickRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, backgroundColor: Colors.bgCard },
-  pickRowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
+  searchInput: { marginHorizontal: Spacing.base, marginBottom: Spacing.sm, backgroundColor: Colors.Beige.card, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.Beige.text, borderWidth: 0.5, borderColor: Colors.Beige.border },
+  pickRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, backgroundColor: Colors.Beige.card },
+  pickRowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
   pickInfo: { flex: 1 },
-  pickName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
-  pickUnit: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  pickName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
+  pickUnit: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
   catBadge: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   catBadgeTxt: { fontSize: 10, color: Colors.primaryDark, fontWeight: '500' },
   content: { padding: Spacing.base },
-  valueCard: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border, padding: Spacing.base, marginBottom: Spacing.md, gap: Spacing.sm },
-  valueInput: { flex: 1, fontSize: 44, fontWeight: '300', color: Colors.textPrimary },
-  valueUnit: { fontSize: Typography.sizes.md, color: Colors.textMuted, paddingBottom: 10 },
+  valueCard: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.Beige.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.Beige.border, ...Elevation.sm, padding: Spacing.base, marginBottom: Spacing.md, gap: Spacing.sm },
+  valueInput: { flex: 1, fontSize: 44, fontWeight: '300', color: Colors.Beige.text },
+  valueUnit: { fontSize: Typography.sizes.md, color: Colors.Beige.textMuted, paddingBottom: 10 },
   statusBadge: { alignSelf: 'flex-start', borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1, marginBottom: Spacing.base, borderWidth: 0.5 },
   statusOpt: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   statusSub: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
@@ -318,27 +321,27 @@ const s = StyleSheet.create({
   statusTxtSub: { color: Colors.warningText },
   statusTxtOut: { color: Colors.danger },
   section: { marginBottom: Spacing.base },
-  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: Spacing.sm, marginTop: Spacing.sm },
+  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: Spacing.sm, marginTop: Spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  chip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.card },
   chipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  chipTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
+  chipTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary },
   chipTxtActive: { color: Colors.primaryDark, fontWeight: '500' },
-  customDateInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border, marginBottom: Spacing.md },
-  notesInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.textPrimary, borderWidth: 0.5, borderColor: Colors.border, minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.xl },
+  customDateInput: { backgroundColor: Colors.Beige.card, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.Beige.text, borderWidth: 0.5, borderColor: Colors.Beige.border, marginBottom: Spacing.md },
+  notesInput: { backgroundColor: Colors.Beige.card, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.Beige.text, borderWidth: 0.5, borderColor: Colors.Beige.border, minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.xl },
   saveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: 16, alignItems: 'center' },
   saveBtnDisabled: { opacity: 0.4 },
   saveBtnTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
   unitConvertRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
-  unitConvertLabel: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  unitConvertLabel: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted },
+  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.card },
   unitChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
+  unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textSecondary },
   unitChipTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
   convertedVal: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
   explanationWrapper: { marginBottom: Spacing.md },
-  explanationInner: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.base },
+  explanationInner: { backgroundColor: Colors.Beige.card, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.Beige.borderLight, padding: Spacing.base },
   explanationIcon: { fontSize: 24, marginBottom: Spacing.sm },
-  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  explanationBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, lineHeight: 24 },
+  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.Beige.text, marginBottom: Spacing.sm },
+  explanationBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.Beige.textSecondary, lineHeight: 24 },
 });
