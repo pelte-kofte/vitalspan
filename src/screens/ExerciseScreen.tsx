@@ -5,9 +5,10 @@ import {
   Modal, TextInput, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import {
   EXERCISES, EXERCISE_CATEGORIES, Exercise, ExerciseCategory, ExerciseLogEntry,
   ExerciseIntensity, CATEGORY_MET,
@@ -113,7 +114,7 @@ function QuickLogModal({ exercise, onClose, onSave, userWeightKg }: QuickLogModa
           </View>
           <View style={[s.fieldRow, s.fieldRowBorder]}>
             <Text style={s.fieldLabel}>Notes</Text>
-            <TextInput style={[s.fieldInput, { flex: 1 }]} value={notes} onChangeText={setNotes} placeholder="Optional notes" placeholderTextColor={Colors.textMuted} />
+            <TextInput style={[s.fieldInput, { flex: 1 }]} value={notes} onChangeText={setNotes} placeholder="Optional notes" placeholderTextColor={Colors.Beige.textMuted} />
           </View>
         </View>
 
@@ -170,6 +171,7 @@ export default function ExerciseScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadLogs(); }, [loadLogs]));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -292,6 +294,27 @@ export default function ExerciseScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
+        {/* Motivating empty state — shown when no logs at all */}
+        {logs.length === 0 && (
+          <View style={s.emptyStateCard}>
+            <Text style={s.emptyStateIcon}>🏃</Text>
+            <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
+            <Text style={s.emptyStateBody}>
+              Log your first workout to start tracking your movement. Consistency compounds — even a 20-minute walk counts.
+            </Text>
+            <TouchableOpacity
+              style={s.emptyStateCta}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                setLogModal(EXERCISES[0]);
+              }}
+              activeOpacity={0.82}
+            >
+              <Text style={s.emptyStateCtaTxt}>Log a Workout</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Today's log */}
         {todayLogs.length > 0 && (
           <>
@@ -386,7 +409,7 @@ export default function ExerciseScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -394,8 +417,8 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
   },
-  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.textPrimary },
-  subtitle: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
+  subtitle: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
   todayPill: {
     backgroundColor: Colors.status.optimalBg,
     borderRadius: Radius.full,
@@ -410,22 +433,22 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: Radius.full,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.Beige.border,
   },
   tabActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
+  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, fontWeight: '500' },
   tabTxtActive: { color: Colors.primaryBg, fontWeight: '600' },
 
   scroll: { flex: 1 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: Colors.Beige.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
@@ -434,16 +457,14 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
     overflow: 'hidden',
   },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
 
   // Exercise row
   exerciseRow: {
@@ -453,16 +474,16 @@ const s = StyleSheet.create({
     gap: Spacing.sm,
   },
   exLeft: { flex: 1 },
-  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary, marginBottom: 4 },
+  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text, marginBottom: 4 },
   exMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   equipChip: {
-    backgroundColor: Colors.bgSecondary,
+    backgroundColor: Colors.Beige.bgShade,
     borderRadius: Radius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  equipChipTxt: { fontSize: 10, fontWeight: '600', color: Colors.textMuted },
-  exTarget: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  equipChipTxt: { fontSize: 10, fontWeight: '600', color: Colors.Beige.textMuted },
+  exTarget: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted },
   exRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   logBtn: {
     backgroundColor: Colors.primary,
@@ -471,7 +492,7 @@ const s = StyleSheet.create({
     paddingVertical: Spacing.xs + 1,
   },
   logBtnTxt: { fontSize: 11, fontWeight: '600', color: Colors.primaryBg },
-  chevron: { fontSize: 10, color: Colors.textMuted },
+  chevron: { fontSize: 10, color: Colors.Beige.textMuted },
 
   // Expanded
   expandedContent: {
@@ -480,42 +501,88 @@ const s = StyleSheet.create({
     gap: 6,
   },
   musclesTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
-  instructionsTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, lineHeight: 20 },
+  instructionsTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 20 },
 
   // Today log
   logRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
   logLeft: { flex: 1 },
-  logName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
-  logMeta: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
+  logName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
+  logMeta: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
   logDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.status.optimal },
 
   // Today's activity card
   activityCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.bgCard,
-    borderRadius: 20,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
     padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
   },
-  activityLabel: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
+  activityLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
   activityRow: { flexDirection: 'row', alignItems: 'center' },
   activityStat: { flex: 1, alignItems: 'center' },
-  activityStatVal: { fontSize: 24, fontWeight: '600', color: Colors.textPrimary, lineHeight: 28 },
-  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.border },
-  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.textMuted },
+  activityStatVal: { fontSize: 24, fontWeight: '600', color: Colors.Beige.text, lineHeight: 28 },
+  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.Beige.divider },
+  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted },
+
+  // Empty state
+  emptyStateCard: {
+    marginHorizontal: Spacing.base,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginBottom: Spacing.base,
+    overflow: 'hidden',
+  },
+  emptyStateIcon: {
+    fontSize: 40,
+    marginBottom: Spacing.md,
+  },
+  emptyStateHeadline: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.Beige.text,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Spacing.sm,
+  },
+  emptyStateBody: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: Colors.Beige.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  emptyStateCta: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.xl,
+    minHeight: 44,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+  },
+  emptyStateCtaTxt: {
+    color: Colors.Beige.card,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   // Intensity picker
-  intensityLabel: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm, marginTop: Spacing.md },
+  intensityLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm, marginTop: Spacing.md },
   intensityRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  intensityChip: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.full, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, alignItems: 'center' },
+  intensityChip: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.full, backgroundColor: Colors.Beige.bgShade, borderWidth: 1, borderColor: Colors.Beige.border, alignItems: 'center' },
   intensityChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textMuted },
+  intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.Beige.textMuted },
   intensityTxtActive: { color: Colors.primary, fontWeight: '600' },
   calEstimate: { fontSize: Typography.sizes.sm, color: Colors.primaryLight, fontWeight: '500', textAlign: 'center', marginBottom: Spacing.sm },
 
@@ -529,7 +596,7 @@ const s = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.Beige.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: Spacing.base,
@@ -539,14 +606,14 @@ const s = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.Beige.border,
     alignSelf: 'center',
     marginBottom: Spacing.md,
   },
-  sheetTitle: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  sheetCat: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginBottom: Spacing.base },
+  sheetTitle: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.Beige.text, marginBottom: 4 },
+  sheetCat: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginBottom: Spacing.base },
   logFields: {
-    backgroundColor: Colors.bg,
+    backgroundColor: Colors.Beige.bg,
     borderRadius: Radius.xl,
     marginBottom: Spacing.base,
     overflow: 'hidden',
@@ -557,12 +624,12 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
   },
-  fieldRowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.border },
-  fieldLabel: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
+  fieldRowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.border },
+  fieldLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary },
   fieldInput: {
     fontSize: Typography.sizes.base,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: Colors.Beige.text,
     textAlign: 'right',
     minWidth: 64,
   },
@@ -580,5 +647,5 @@ const s = StyleSheet.create({
   },
   saveBtnTxt: { fontSize: Typography.sizes.base, fontWeight: '700', color: Colors.primaryBg },
   cancelBtn: { padding: Spacing.sm, alignItems: 'center' },
-  cancelBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  cancelBtnTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
 });
