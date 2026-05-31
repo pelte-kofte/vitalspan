@@ -138,7 +138,7 @@ Plans:
 - [ ] 06-02-PLAN.md — Migrate ProtocolScreen + upgrade empty state (THEME-02, THEME-04, THEME-05, THEME-06)
 
 **Wave 2** *(blocked on Wave 1 completion, run in parallel)*
-- [ ] 06-03-PLAN.md — Migrate BiomarkerDetailScreen + BiomarkerEntryScreen (THEME-02, THEME-04, THEME-05)
+- [x] 06-03-PLAN.md — Migrate BiomarkerDetailScreen + BiomarkerEntryScreen (THEME-02, THEME-04, THEME-05)
 - [ ] 06-04-PLAN.md — Migrate ExerciseScreen + add motivating empty state (THEME-02, THEME-04, THEME-05, THEME-06)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -203,7 +203,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
-| 6. Warm UI Overhaul | v2.0 | 0/5 | Planned | - |
+| 6. Warm UI Overhaul | v2.0 | 3/5 | In Progress | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
