@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
-  Modal, TextInput, Alert,
+  Modal, TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { setStatusBarStyle } from 'expo-status-bar';
@@ -14,6 +14,7 @@ import {
   ExerciseIntensity, CATEGORY_MET,
 } from '../data/exercises';
 import { getExercises } from '../lib/exerciseService';
+import { SwipeableLogRow } from '../components/SwipeableLogRow';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   'Cardio':     '🏃',
@@ -49,12 +50,6 @@ const INTENSITY_COLORS: Record<ExerciseIntensity, { bg: string; border: string; 
   easy:     { bg: Colors.status.optimalBg,  border: Colors.status.optimalBorder,  text: Colors.status.optimalText },
   moderate: { bg: Colors.status.reviewBg,   border: Colors.status.reviewBorder,   text: Colors.status.reviewText },
   hard:     { bg: Colors.status.criticalBg, border: Colors.status.criticalBorder, text: Colors.status.criticalText },
-};
-
-const INTENSITY_DOT: Record<ExerciseIntensity, string> = {
-  easy: Colors.status.optimal,
-  moderate: Colors.status.review,
-  hard: Colors.status.critical,
 };
 
 function getMondayStr(date: Date): string {
@@ -228,17 +223,9 @@ export default function ExerciseScreen() {
   }
 
   async function deleteLog(id: string) {
-    Alert.alert('Delete entry', 'Remove this log entry?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          const updated = logs.filter(l => l.id !== id);
-          setLogs(updated);
-          await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify(updated)).catch(console.error);
-        },
-      },
-    ]);
+    const updated = logs.filter(l => l.id !== id);
+    setLogs(updated);
+    await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify(updated)).catch(console.error);
   }
 
   const filtered = useMemo(
@@ -366,21 +353,12 @@ export default function ExerciseScreen() {
             <Text style={s.sectionLabel}>Today</Text>
             <View style={s.card}>
               {todayLogs.map((log, i) => (
-                <TouchableOpacity
+                <SwipeableLogRow
                   key={log.id}
-                  style={[s.logRow, i < todayLogs.length - 1 && s.rowBorder]}
-                  onLongPress={() => deleteLog(log.id)}
-                >
-                  <View style={s.logLeft}>
-                    <Text style={s.logName}>{log.exerciseName}</Text>
-                    <Text style={s.logMeta}>
-                      {log.category}
-                      {log.sets ? ` · ${log.sets}×${log.reps}` : ''}
-                      {log.durationMin ? ` · ${log.durationMin}min` : ''}
-                    </Text>
-                  </View>
-                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
-                </TouchableOpacity>
+                  log={log}
+                  onDelete={deleteLog}
+                  showBorder={i < todayLogs.length - 1}
+                />
               ))}
             </View>
           </>
@@ -392,20 +370,12 @@ export default function ExerciseScreen() {
             <Text style={s.sectionLabel}>This Week</Text>
             <View style={s.card}>
               {thisWeekLogs.map((log, i) => (
-                <TouchableOpacity
+                <SwipeableLogRow
                   key={log.id}
-                  style={[s.logRow, i < thisWeekLogs.length - 1 && s.rowBorder]}
-                  onLongPress={() => deleteLog(log.id)}
-                >
-                  <View style={s.logLeft}>
-                    <Text style={s.logName}>{log.exerciseName}</Text>
-                    <Text style={s.logMeta}>
-                      {log.date} · {log.category}
-                      {log.durationMin ? ` · ${log.durationMin}min` : ''}
-                    </Text>
-                  </View>
-                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
-                </TouchableOpacity>
+                  log={log}
+                  onDelete={deleteLog}
+                  showBorder={i < thisWeekLogs.length - 1}
+                />
               ))}
             </View>
           </>
@@ -417,20 +387,12 @@ export default function ExerciseScreen() {
             <Text style={s.sectionLabel}>History</Text>
             <View style={s.card}>
               {historyLogs.map((log, i) => (
-                <TouchableOpacity
+                <SwipeableLogRow
                   key={log.id}
-                  style={[s.logRow, i < historyLogs.length - 1 && s.rowBorder]}
-                  onLongPress={() => deleteLog(log.id)}
-                >
-                  <View style={s.logLeft}>
-                    <Text style={s.logName}>{log.exerciseName}</Text>
-                    <Text style={s.logMeta}>
-                      {log.date} · {log.category}
-                      {log.durationMin ? ` · ${log.durationMin}min` : ''}
-                    </Text>
-                  </View>
-                  <View style={[s.logDot, log.intensity && { backgroundColor: INTENSITY_DOT[log.intensity] }]} />
-                </TouchableOpacity>
+                  log={log}
+                  onDelete={deleteLog}
+                  showBorder={i < historyLogs.length - 1}
+                />
               ))}
             </View>
           </>
@@ -602,13 +564,6 @@ const s = StyleSheet.create({
   },
   musclesTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
   instructionsTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 20 },
-
-  // Today log
-  logRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
-  logLeft: { flex: 1 },
-  logName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
-  logMeta: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
-  logDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.status.optimal },
 
   // Today's activity card
   activityCard: {

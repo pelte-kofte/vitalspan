@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initSupabaseSession } from './src/lib/supabase';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -40,11 +41,11 @@ export default function App() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="auto" />
       <AppNavigator initialRoute={initialRoute} />
       <MedicalDisclaimer />
-    </>
+    </GestureHandlerRootView>
   );
 }
 
