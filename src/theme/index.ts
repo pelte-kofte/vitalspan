@@ -99,7 +99,7 @@ export const Colors = {
     borderLight: '#E2DED6',
     text: '#1A1A18',
     textSecondary: '#4A4A45',
-    textMuted: '#8A8A82',
+    textMuted: '#6B6B64',
     divider: '#C8C0B0',
     headerBg: '#F5F0E8',
   },
