@@ -55,7 +55,7 @@ export default function ProfileScreen() {
       .catch(console.error);
   }, []);
 
-  useFocusEffect(useCallback(() => { loadProfile(); }, [loadProfile]));
+  useFocusEffect(useCallback(() => { void loadProfile(); }, [loadProfile]));
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {

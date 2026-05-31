@@ -170,7 +170,7 @@ export default function ExerciseScreen() {
       .catch(console.error);
   }, []);
 
-  useFocusEffect(useCallback(() => { loadLogs(); }, [loadLogs]));
+  useFocusEffect(useCallback(() => { void loadLogs(); }, [loadLogs]));
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {

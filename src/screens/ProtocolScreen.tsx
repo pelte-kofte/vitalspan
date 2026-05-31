@@ -351,7 +351,7 @@ export default function ProtocolScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadData().catch(console.error); }, [loadData]));
+  useFocusEffect(useCallback(() => { void loadData(); }, [loadData]));
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {

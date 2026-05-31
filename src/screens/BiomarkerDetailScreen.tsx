@@ -57,7 +57,7 @@ export default function BiomarkerDetailScreen() {
   }, []);
 
   useFocusEffect(
-    useCallback(() => { loadEntries(); }, [loadEntries])
+    useCallback(() => { void loadEntries(); }, [loadEntries])
   );
 
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
