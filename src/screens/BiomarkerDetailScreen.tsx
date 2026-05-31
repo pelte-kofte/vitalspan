@@ -106,7 +106,12 @@ export default function BiomarkerDetailScreen() {
 
   // ── Detail view ───────────────────────────────────────────────────────────
   if (selectedId) {
-    const bm = BIOMARKERS.find(b => b.id === selectedId)!;
+    const bm = BIOMARKERS.find(b => b.id === selectedId);
+    if (!bm) {
+      // Unknown id (stale deep-link or deleted biomarker) — fall back to list
+      setSelectedId(null);
+      return null;
+    }
     const latest = latestFor(selectedId);
     const history = historyFor(selectedId);
     const status = latest ? getStatus(latest.value, bm.optMin, bm.optMax) : null;
