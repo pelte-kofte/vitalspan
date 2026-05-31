@@ -129,7 +129,26 @@ Plans:
   3. Status bar text is dark (readable) on warm screens and light on dark screens, switching correctly when navigating between them
   4. Exercise, Protocol, and Profile screens each show a motivating empty state with an outcome-focused headline and a single CTA when the user has no data
   5. `tsc --noEmit` passes and no hardcoded hex values appear in modified screen files
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 06-01-PLAN.md — Fix Colors.Beige.textMuted token + migrate SettingsScreen + AboutScreen (THEME-02, THEME-03, THEME-04, THEME-05)
+- [ ] 06-02-PLAN.md — Migrate ProtocolScreen + upgrade empty state (THEME-02, THEME-04, THEME-05, THEME-06)
+
+**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+- [ ] 06-03-PLAN.md — Migrate BiomarkerDetailScreen + BiomarkerEntryScreen (THEME-02, THEME-04, THEME-05)
+- [ ] 06-04-PLAN.md — Migrate ExerciseScreen + add motivating empty state (THEME-02, THEME-04, THEME-05, THEME-06)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 06-05-PLAN.md — Migrate ProfileScreen + add motivating empty state + full phase audit + human visual checkpoint (THEME-02, THEME-03, THEME-04, THEME-05, THEME-06)
+
+**Cross-cutting constraints:**
+- Colors.Beige.textMuted must be fixed to '#6B6B64' (Plan 01) before any screen is verified
+- Dark screens (DashboardScreen, LandingScreen, LongevityScoreScreen) must not be touched in any plan
+- Every warm screen must have useFocusEffect + setStatusBarStyle('dark')
+
 **UI hint**: yes
 
 ### Phase 7: Reference Data & Exercise Screen
@@ -184,7 +203,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 3. UX Polish & TestFlight Prep | v1.0 | 3/3 | Complete | 2026-05-25 |
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
-| 6. Warm UI Overhaul | v2.0 | 0/TBD | Not started | - |
+| 6. Warm UI Overhaul | v2.0 | 0/5 | Not started | - |
 | 7. Reference Data & Exercise Screen | v2.0 | 0/TBD | Not started | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
