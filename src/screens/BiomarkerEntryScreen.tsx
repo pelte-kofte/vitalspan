@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, TextInput,
@@ -9,7 +9,8 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Motion, Elevation } from '../theme';
-import { BIOMARKERS, Biomarker } from '../data/biomarkers';
+import type { Biomarker } from '../data/biomarkers';
+import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
 import BreathingCard from '../components/BreathingCard';
@@ -55,9 +56,8 @@ export default function BiomarkerEntryScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'BiomarkerEntry'>>();
   const paramId = route.params?.biomarkerId;
 
-  const [selected, setSelected] = useState<Biomarker | null>(
-    () => (paramId ? BIOMARKERS.find(b => b.id === paramId) ?? null : null)
-  );
+  const [biomarkers, setBiomarkers] = useState<Biomarker[]>([]);
+  const [selected, setSelected] = useState<Biomarker | null>(null);
   const [search, setSearch] = useState('');
   const [value, setValue] = useState('');
   const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'other'>('today');
@@ -66,6 +66,19 @@ export default function BiomarkerEntryScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [inputUnit, setInputUnit] = useState<InputUnit>('native');
+
+  useEffect(() => {
+    getBiomarkers().then(loaded => {
+      setBiomarkers(loaded);
+      // If a biomarkerId param was provided, set the selected biomarker once data is available
+      if (paramId && selected === null) {
+        const found = loaded.find(b => b.id === paramId) ?? null;
+        setSelected(found);
+      }
+    }).catch(console.error);
+  // Run once on mount — paramId and selected are intentionally excluded from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
@@ -78,7 +91,7 @@ export default function BiomarkerEntryScreen() {
   const canConvert = selected ? !!MMOL_CONVERTIBLE[selected.id] : false;
   const altUnit = selected ? MMOL_CONVERTIBLE[selected.id]?.altUnit : undefined;
 
-  const filtered = BIOMARKERS.filter(bm =>
+  const filtered = biomarkers.filter(bm =>
     bm.name.toLowerCase().includes(search.toLowerCase()) ||
     bm.categoryLabel.toLowerCase().includes(search.toLowerCase())
   );
