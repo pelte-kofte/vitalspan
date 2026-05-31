@@ -47,7 +47,7 @@ completed: 2026-06-01
 - **Duration:** 18 min
 - **Started:** 2026-06-01T00:00:00Z
 - **Completed:** 2026-06-01T00:18:00Z
-- **Tasks:** 3 of 4 complete (Task 4 is a checkpoint awaiting human visual verification)
+- **Tasks:** 4 of 4 complete
 - **Files modified:** 3 (App.tsx, src/components/SwipeableLogRow.tsx, src/screens/ExerciseScreen.tsx)
 
 ## Accomplishments
@@ -62,7 +62,7 @@ Each task was committed atomically:
 1. **Task 1: Add GestureHandlerRootView to App.tsx** - `580f261` (feat)
 2. **Task 2: Create SwipeableLogRow component** - `06d17f0` (feat)
 3. **Task 3: Wire SwipeableLogRow into ExerciseScreen + remove onLongPress** - `d879123` (feat)
-4. **Task 4: Human visual verification** - PENDING CHECKPOINT
+4. **Task 4: Human visual verification** - APPROVED by user 2026-06-01
 
 ## Files Created/Modified
 - `App.tsx` — Added GestureHandlerRootView import and wrapper around app root; polyfill side-effect import stays at line 1
@@ -99,8 +99,8 @@ None beyond the branch-behind-main merge (documented as deviation above).
 None — no external service configuration required.
 
 ## Next Phase Readiness
-- Task 4 (human visual verification) is pending — requires running `npx expo start --ios` or `npx expo run:ios`
-- Once Task 4 is verified: swipe-to-delete is complete and the ExerciseScreen feature set for Phase 7 is done
+- All tasks complete including human visual verification (approved 2026-06-01)
+- ExerciseScreen feature set for Phase 7 fully delivered
 - No blockers for subsequent phases
 
 ## Known Stubs
@@ -123,4 +123,4 @@ Commits exist:
 
 ---
 *Phase: 07-reference-data-and-exercise-screen*
-*Completed: 2026-06-01 (Tasks 1-3; Task 4 pending human verification)*
+*Completed: 2026-06-01 (all 4 tasks, including human verification)*
