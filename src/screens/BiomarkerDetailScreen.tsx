@@ -116,6 +116,17 @@ export default function BiomarkerDetailScreen() {
     const history = historyFor(selectedId);
     const status = latest ? getStatus(latest.value, bm.optMin, bm.optMax) : null;
 
+    const insightBg = status === 'optimal'
+      ? Colors.status.optimalBg
+      : status === 'suboptimal'
+      ? Colors.status.reviewBg
+      : Colors.status.criticalBg;
+    const insightTextColor = status === 'optimal'
+      ? Colors.status.optimalText
+      : status === 'suboptimal'
+      ? Colors.status.reviewText
+      : Colors.status.criticalText;
+
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.detailHeader}>
@@ -184,8 +195,8 @@ export default function BiomarkerDetailScreen() {
           </View>
 
           {latest && (
-            <View style={s.insightCard}>
-              <Text style={s.insightTxt}>{bm.insight}</Text>
+            <View style={[s.insightCard, { backgroundColor: insightBg }]}>
+              <Text style={[s.insightTxt, { color: insightTextColor }]}>{bm.insight}</Text>
             </View>
           )}
 
@@ -444,8 +455,8 @@ const s = StyleSheet.create({
   statusTxtOut: { color: Colors.status.criticalText },
   targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.card },
   targetTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textSecondary },
-  insightCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.status.optimalBg, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base, shadowColor: Colors.status.optimalBg, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
-  insightTxt: { fontSize: Typography.sizes.sm, color: Colors.status.optimalText, lineHeight: 20 },
+  insightCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  insightTxt: { fontSize: Typography.sizes.sm, lineHeight: 20 },
   sectionLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm },
   histLeft: { flex: 1 },
