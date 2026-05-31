@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 7 of 9 (Reference Data & Exercise Screen — in progress)
-Plan: 1/4
-Status: Phase 7 executing (2026-06-01); Wave 1 complete
-Last activity: 2026-06-01 — 07-01 complete: SQL seed files (exercises 60 rows, biomarker_definitions 51 rows) + exerciseService.ts + biomarkerService.ts with Supabase-first + static fallback.
+Plan: 3/4
+Status: Phase 7 executing (2026-06-01); Wave 2 complete
+Last activity: 2026-06-01 — 07-02 + 07-03 complete (parallel): biomarker screens migrated to getBiomarkers(); ExerciseScreen rebuilt with getExercises(), 3-section log (Today/This Week/History), intensity color coding on pills and dots.
 
 Progress: [██████░░░░] 55% (v1 complete; Phases 4-6 complete)
 

@@ -170,8 +170,8 @@ Plans:
 - [x] 07-01-PLAN.md — SQL seed files + exerciseService + biomarkerService with Supabase-first + static fallback (SUPA-04, SUPA-05)
 
 **Wave 2** *(blocked on Wave 1 completion, run in parallel)*
-- [ ] 07-02-PLAN.md — Wire biomarkerService into BiomarkerDetailScreen + BiomarkerEntryScreen (SUPA-04)
-- [ ] 07-03-PLAN.md — Rebuild ExerciseScreen: exerciseService + 3-section log + intensity colors (EX-01, EX-02, EX-03)
+- [x] 07-02-PLAN.md — Wire biomarkerService into BiomarkerDetailScreen + BiomarkerEntryScreen (SUPA-04)
+- [x] 07-03-PLAN.md — Rebuild ExerciseScreen: exerciseService + 3-section log + intensity colors (EX-01, EX-02, EX-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 07-04-PLAN.md — Swipe-to-delete: GestureHandlerRootView + SwipeableLogRow + ExerciseScreen wire-up (EX-04)
@@ -217,6 +217,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
-| 7. Reference Data & Exercise Screen | v2.0 | 1/4 | In progress | - |
+| 7. Reference Data & Exercise Screen | v2.0 | 3/4 | In progress | - |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
