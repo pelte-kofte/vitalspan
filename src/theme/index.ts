@@ -15,6 +15,10 @@ export const Colors = {
   // Text
   textPrimary: '#1A1A18',
   textSecondary: '#4A4A45',
+  // NOTE: intentionally lighter than Colors.Beige.textMuted (#6B6B64).
+  // This value (#8A8A82) is used by dark-background screens and the tab bar.
+  // Phase 6 warm screens use Colors.Beige.textMuted instead.
+  // Do NOT unify these values without auditing all dark-screen usages.
   textMuted: '#8A8A82',
 
   // Border
