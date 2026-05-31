@@ -45,11 +45,11 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ Custom SVG tab bar icons replacing emoji placeholders — Phase 5
 - [ ] Premium card layouts across all screens
 - [ ] Motivating empty states on all remaining screens
-- [ ] Supabase biomarker reference data table (longevity-optimized ranges served from DB)
-- [ ] Supabase exercise database (exercise library with metadata)
+- ✓ Supabase biomarker reference data table (longevity-optimized ranges served from DB) — Phase 7
+- ✓ Supabase exercise database (exercise library with metadata, static fallback) — Phase 7
+- ✓ New purpose-built exercise screen — daily log (Today/This Week/History), library, intensity visuals, swipe-to-delete — Phase 7
 - [ ] User biomarker history synced to Supabase with auth layer
 - [ ] PhenoAge formula fix — correct calculation returning wrong biological age values
-- [ ] New purpose-built exercise screen — daily log, library, intensity visuals, history
 - [ ] Security — Supabase URL + anon key in `.env` file, not hardcoded in source
 - [ ] Release quality — zero crashes, TypeScript strict, no `any` types
 
@@ -88,8 +88,10 @@ The selective UI overhaul preserves the dark neural aesthetic on immersive/brand
 | Guided first-run for Glucose, HbA1c, Cholesterol | Most common annual checkup values — lay users are likely to have these | ✓ Good — shipped Phase 1 |
 | Defer HealthKit to post-v1 | Mock layer already built; real entitlement complicates TestFlight submission | ✓ Good — still deferred |
 | AsyncStorage for v1 | No backend needed for single-device beta | ✓ Good — now adding Supabase as sync layer in v2 |
-| Selective UI overhaul (not full redesign) | Preserve dark aesthetic on immersive screens; warm beige on data/list screens | — Pending |
-| Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | — Pending |
+| Selective UI overhaul (not full redesign) | Preserve dark aesthetic on immersive screens; warm beige on data/list screens | ✓ Complete — Phase 6 |
+| Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | ✓ Partial — ref data done (Phase 7); user sync pending (Phase 8) |
+| exerciseService / biomarkerService Supabase-first with static fallback | Remote updates without app release; offline resilience | ✓ Phase 7 |
+| Swipe-to-delete for exercise log (RNGH v2 Gesture.Pan) | Cleaner UX than long-press+Alert; no confirmation dialog needed for single-device local data | ✓ Phase 7 |
 
 ## Evolution
 
