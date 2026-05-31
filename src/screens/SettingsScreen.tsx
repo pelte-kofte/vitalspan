@@ -168,7 +168,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <SettingsRow icon="👤" title="Edit profile" subtitle="Name, age, conditions" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon="👤" title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
           <SettingsRow icon="🔒" title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
