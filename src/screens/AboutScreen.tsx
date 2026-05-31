@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Linking,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const VERSION = Constants.expoConfig?.version ?? '—';
 
@@ -38,7 +41,7 @@ const CITATIONS = [
 ];
 
 export default function AboutScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<Nav>();
   const [citationsExpanded, setCitationsExpanded] = useState(false);
   const [disclaimerInfo, setDisclaimerInfo] = useState<{ version: string; acceptedAt: string } | null>(null);
 
