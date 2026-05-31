@@ -3,15 +3,19 @@ import {
   View, Text, ScrollView, StyleSheet, SafeAreaView,
   TouchableOpacity, TextInput, Alert, RefreshControl,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 interface UserProfile {
   name: string;
@@ -305,7 +309,7 @@ export default function ProfileScreen() {
         <Text style={s.sectionLabel}>Medications</Text>
         <View style={s.card}>
           {profile.medications.length === 0 ? (
-            <TouchableOpacity style={s.emptyRow} onPress={() => nav.navigate('Protocol' as never)}>
+            <TouchableOpacity style={s.emptyRow} onPress={() => nav.navigate('Protocol')}>
               <Text style={s.emptyRowTxt}>None logged — go to Protocol to add</Text>
             </TouchableOpacity>
           ) : (

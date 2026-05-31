@@ -4,18 +4,22 @@ import {
   StyleSheet, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { setStatusBarStyle } from 'expo-status-bar';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { INTERACTIONS } from '../data/biomarkers';
 import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 interface UserProfile {
   name: string;
@@ -568,7 +572,7 @@ export default function ProtocolScreen() {
               <Text style={s.emptyTxt}>No medications in your profile</Text>
               <TouchableOpacity
                 style={s.emptyCtaBtn}
-                onPress={() => nav.navigate('Profile' as never)}
+                onPress={() => nav.navigate('Profile')}
               >
                 <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
               </TouchableOpacity>

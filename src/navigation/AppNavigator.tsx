@@ -36,8 +36,16 @@ export type RootStackParamList = {
   About: undefined;
 };
 
+export type MainTabParamList = {
+  Home: undefined;
+  Biomarkers: undefined;
+  Protocol: undefined;
+  Exercise: undefined;
+  Profile: undefined;
+};
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
