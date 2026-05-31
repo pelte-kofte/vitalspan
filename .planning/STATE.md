@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 6 of 9 (Warm UI Overhaul — in progress)
-Plan: 3 of 5 (Phase 6 in progress — Plans 01, 02, 03 complete; Plans 04, 05 remaining)
-Status: Phase 6 in progress (2026-05-31) — 3/5 plans complete; Wave 2 done (BiomarkerDetailScreen + BiomarkerEntryScreen migrated)
-Last activity: 2026-05-31 — Plan 06-03 complete: BiomarkerDetailScreen (43 Beige tokens) and BiomarkerEntryScreen (25 Beige tokens) migrated; status bar on both; tsc passes
+Plan: 4 of 5 (Phase 6 in progress — Plans 01, 02, 03, 04 complete; Plan 05 remaining)
+Status: Phase 6 in progress (2026-05-31) — 4/5 plans complete; Wave 2 done (ExerciseScreen migrated)
+Last activity: 2026-05-31 — Plan 06-04 complete: ExerciseScreen migrated to Beige tokens (43 references), Elevation.sm cards, status bar dark on focus, motivating empty state (logs.length === 0) with 🏃 icon, "Move daily. Live longer." headline, "Log a Workout" CTA; tsc passes
 
-Progress: [████░░░░░░] 42% (v1 complete; Phases 4-5 complete; Phase 6 in progress 3/5 plans)
+Progress: [█████░░░░░] 48% (v1 complete; Phases 4-5 complete; Phase 6 in progress 4/5 plans)
 
 ## Performance Metrics
 
@@ -78,5 +78,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-05-31
-Stopped at: Phase 6 Plan 03 complete — BiomarkerDetailScreen and BiomarkerEntryScreen migrated to Beige tokens. Wave 2 done. Plan 04 (ExerciseScreen) is next.
+Stopped at: Phase 6 Plan 04 complete — ExerciseScreen migrated to Beige tokens, Elevation.sm cards, empty state added. Wave 2 done. Plan 05 (ProfileScreen + SettingsScreen + AboutScreen) is next.
 Resume file: None
