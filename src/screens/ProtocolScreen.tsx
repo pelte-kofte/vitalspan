@@ -545,8 +545,8 @@ export default function ProtocolScreen() {
         {/* Screen-level empty state — shown only when there are no items at all */}
         {totalItems === 0 && (
           <View style={s.emptyScreenCard}>
-            <Text style={{ fontSize: 32, textAlign: 'center', marginBottom: Spacing.md }}>💊</Text>
-            <Text style={s.emptyScreenHeadline}>Build your longevity stack</Text>
+            <Text style={{ fontSize: 40, textAlign: 'center', marginBottom: Spacing.md }}>💊</Text>
+            <Text style={s.emptyScreenHeadline}>Build your longevity stack.</Text>
             <Text style={s.emptyScreenSubtext}>
               Add your medications and pharmacist-curated supplements to track your daily protocol and check for interactions.
             </Text>
@@ -555,7 +555,7 @@ export default function ProtocolScreen() {
               onPress={() => setShowRecommendedSheet(true)}
               activeOpacity={0.8}
             >
-              <Text style={s.emptyScreenCtaTxt}>Get started →</Text>
+              <Text style={s.emptyScreenCtaTxt}>Get Started</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -826,39 +826,42 @@ const s = StyleSheet.create({
   // Screen-level empty state (totalItems === 0)
   emptyScreenCard: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
     padding: Spacing.xl,
     alignItems: 'center',
     marginBottom: Spacing.base,
+    overflow: 'hidden',
   },
   emptyScreenHeadline: {
     fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: Colors.Beige.text,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   emptyScreenSubtext: {
     fontSize: Typography.sizes.base,
-    color: Colors.textSecondary,
+    color: Colors.Beige.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   emptyScreenCta: {
     backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-    paddingVertical: 10,
+    borderRadius: Radius.xl,
+    minHeight: 44,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'stretch',
+    paddingHorizontal: Spacing.base,
   },
   emptyScreenCtaTxt: {
-    color: Colors.primaryBg,
+    color: Colors.Beige.card,
     fontSize: Typography.sizes.base,
     fontWeight: '600',
     textAlign: 'center',
