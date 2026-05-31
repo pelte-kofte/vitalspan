@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 5 — Design Tokens & Icons
+**Current focus:** Phase 6 — Warm UI Overhaul
 
 ## Current Position
 
-Phase: 6 of 9 (Warm UI Overhaul — next)
-Plan: 0 of ? in next phase (Phase 5 complete, Phase 6 not yet planned)
-Status: Phase 5 complete (2026-05-30) — verification passed 7/7; Phase 6 is next
-Last activity: 2026-05-30 — Phase 5 complete: Colors.Beige tokens + SVG tab icons delivered; human checkpoint approved; verification 7/7 passed
+Phase: 6 of 9 (Warm UI Overhaul — in progress)
+Plan: 0 of 5 (Phase 6 planned — 5 plans in 3 waves; ready to execute)
+Status: Phase 6 planned (2026-05-31) — 5 plans, verification passed; ready to execute
+Last activity: 2026-05-31 — Phase 6 planning complete: 5 plans in 3 waves covering THEME-02 through THEME-06 (warm Beige migration, status bar, empty states)
 
 Progress: [████░░░░░░] 40% (v1 complete; Phase 4 complete; 5 v2 phases ahead)
 
