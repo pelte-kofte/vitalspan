@@ -2,7 +2,7 @@
 phase: "06-warm-ui-overhaul"
 plan: "05"
 subsystem: "ProfileScreen + Phase 6 audit"
-status: "awaiting-checkpoint"
+status: "complete"
 tags: ["warm-ui", "beige-tokens", "empty-state", "status-bar", "profile", "phase-audit"]
 dependency_graph:
   requires: ["06-03", "06-04"]
@@ -24,6 +24,7 @@ key_decisions:
   - "card rowBorder uses Colors.Beige.divider (not Colors.Beige.border) — list separators darker per Row Spec"
   - "ageBtn/sexBtn migrated to Colors.Beige.bgShade (form field background) not Colors.Beige.bg — matches supplementary token table (inactive chip bg = bgShade)"
   - "Task 2 verification committed as empty commit — no code changes, audit confirms all 7 screens clean"
+  - "Task 3 visual checkpoint approved by human reviewer on iOS simulator — all 7 warm screens correct, dark screens untouched"
 requirements:
   - THEME-02
   - THEME-03
@@ -33,14 +34,15 @@ requirements:
 metrics:
   duration: "~8 minutes"
   completed: "2026-05-31T15:52:56Z"
-  tasks_completed: 2
+  checkpoint_approved: "2026-05-31"
+  tasks_completed: 3
   tasks_total: 3
   files_modified: 1
 ---
 
 # Phase 06 Plan 05: ProfileScreen Migration + Phase 6 Audit Summary
 
-ProfileScreen fully migrated to Beige tokens (43 references) with motivating empty state showing "Your health story starts here.", dark status bar on focus, and Elevation.sm cards. Full phase audit confirms all 7 warm screens pass: zero legacy tokens, zero hardcoded hex, dark screens untouched, tsc exits 0. Awaiting human visual checkpoint.
+ProfileScreen fully migrated to Beige tokens (43 references) with motivating empty state showing "Your health story starts here.", dark status bar on focus, and Elevation.sm cards. Full phase audit confirms all 7 warm screens pass: zero legacy tokens, zero hardcoded hex, dark screens untouched, tsc exits 0. Human visual checkpoint approved on iOS simulator — Phase 6 complete.
 
 ## Tasks Completed
 
@@ -48,10 +50,11 @@ ProfileScreen fully migrated to Beige tokens (43 references) with motivating emp
 |---|------|--------|-------|
 | 1 | Migrate ProfileScreen stylesheet and replace empty state | d637da1 | src/screens/ProfileScreen.tsx |
 | 2 | Full phase verification — tsc + grep audit across all 7 screens | 960e649 | (verification only — no file changes) |
+| 3 | Human visual checkpoint — iOS simulator review | APPROVED | All 7 warm screens verified; dark screens untouched |
 
-## Task 3: Awaiting Human Checkpoint
+## Checkpoint Outcome
 
-Task 3 is a `checkpoint:human-verify` gate — human visual confirmation of all 7 warm screens on iOS simulator/device is required before this plan can be marked complete.
+Task 3 was a `checkpoint:human-verify` gate. Human reviewer ran the app on iOS simulator and confirmed all 7 warm screens look correct and all dark screens are untouched. Checkpoint approved 2026-05-31.
 
 ## What Was Built
 
@@ -115,7 +118,7 @@ None. Pure cosmetic token migration plus empty state wiring. The empty state CTA
 8. Return to Dashboard — dark neural aesthetic restored, status bar light
 9. LongevityScore modal (tap score card on Dashboard) — dark immersive modal (not beige)
 
-**Resume signal:** Type "approved" if all screens look correct, or describe issues found.
+**Checkpoint result:** APPROVED — human reviewer confirmed all 7 warm screens correct on iOS simulator, dark screens (Dashboard + LongevityScore) untouched.
 
 ## Self-Check: PASSED
 
@@ -128,5 +131,5 @@ None. Pure cosmetic token migration plus empty state wiring. The empty state CTA
 
 ---
 *Phase: 06-warm-ui-overhaul*
-*Plan status: awaiting-checkpoint (Task 3 human-verify gate)*
-*Completed tasks: 2/3*
+*Plan status: complete — all tasks done, visual checkpoint approved*
+*Completed tasks: 3/3*
