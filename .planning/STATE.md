@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 7 — Reference Data & Exercise Screen
+**Current focus:** Phase 8 — Biomarker Sync Write Path
 
 ## Current Position
 
-Phase: 7 of 9 (Reference Data & Exercise Screen — in progress)
-Plan: 3/4
-Status: Phase 7 executing (2026-06-01); Wave 2 complete
-Last activity: 2026-06-01 — 07-02 + 07-03 complete (parallel): biomarker screens migrated to getBiomarkers(); ExerciseScreen rebuilt with getExercises(), 3-section log (Today/This Week/History), intensity color coding on pills and dots.
+Phase: 8 of 9 (Biomarker Sync Write Path — not started)
+Plan: 0/TBD
+Status: Phase 7 complete (2026-06-01); ready for Phase 8
+Last activity: 2026-06-01 — Phase 7 complete: service layer (exerciseService + biomarkerService), biomarker screens migrated, ExerciseScreen rebuilt (3-section log, intensity colors, swipe-to-delete). All 4 plans done, tsc clean.
 
-Progress: [██████░░░░] 55% (v1 complete; Phases 4-6 complete)
+Progress: [███████░░░] 67% (v1 complete; Phases 4-7 complete)
 
 ## Performance Metrics
 
@@ -78,5 +78,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-05-31
-Stopped at: Phase 7 context gathered. Ready for /gsd:plan-phase 7.
-Resume file: .planning/phases/07-reference-data-and-exercise-screen/07-CONTEXT.md
+Stopped at: Phase 7 complete. Ready for /gsd:discuss-phase 8 or /gsd:plan-phase 8.
+Resume file: .planning/STATE.md

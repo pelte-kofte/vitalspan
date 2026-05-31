@@ -64,7 +64,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management (P1 complete; P2 complete)
 - [x] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul (complete 2026-05-30)
 - [x] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens (complete 2026-05-31)
-- [ ] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals
+- [x] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals (complete 2026-06-01)
 - [ ] **Phase 8: Biomarker Sync Write Path** - Add fire-and-forget Supabase sync for new biomarker entries and one-time migration of existing AsyncStorage history
 - [ ] **Phase 9: PhenoAge Fix & Release Quality** - Correct the biological age calculation and verify zero crashes and zero TypeScript errors before v2 submission
 
@@ -174,7 +174,7 @@ Plans:
 - [x] 07-03-PLAN.md — Rebuild ExerciseScreen: exerciseService + 3-section log + intensity colors (EX-01, EX-02, EX-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 07-04-PLAN.md — Swipe-to-delete: GestureHandlerRootView + SwipeableLogRow + ExerciseScreen wire-up (EX-04)
+- [x] 07-04-PLAN.md — Swipe-to-delete: GestureHandlerRootView + SwipeableLogRow + ExerciseScreen wire-up (EX-04)
 
 **UI hint**: yes
 
@@ -217,6 +217,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 4. Supabase Foundation | v2.0 | 2/2 | Complete | 2026-05-30 |
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
-| 7. Reference Data & Exercise Screen | v2.0 | 3/4 | In progress | - |
+| 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
