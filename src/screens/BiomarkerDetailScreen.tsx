@@ -10,7 +10,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { BIOMARKERS } from '../data/biomarkers';
+import type { Biomarker } from '../data/biomarkers';
+import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry, getStatus } from './BiomarkerEntryScreen';
 
@@ -30,11 +31,6 @@ const CATEGORIES = [
   { key: 'longevity',     label: 'Longevity' },
 ] as const;
 
-// Precomputed at module level — BIOMARKERS is static
-const BIOMARKERS_BY_CATEGORY = new Map(
-  CATEGORIES.map(cat => [cat.key, BIOMARKERS.filter(b => b.category === cat.key)])
-);
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -42,6 +38,7 @@ function formatDate(iso: string): string {
 export default function BiomarkerDetailScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<RouteProp<RootStackParamList, 'BiomarkerDetail'>>();
+  const [biomarkers, setBiomarkers] = useState<Biomarker[]>([]);
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(
     route.params?.biomarkerId ?? null
@@ -50,21 +47,24 @@ export default function BiomarkerDetailScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  const loadEntries = useCallback(() => {
-    return AsyncStorage.getItem('@vitalspan_biomarkers')
-      .then(raw => { if (raw) setEntries(JSON.parse(raw)); })
-      .catch(console.error);
+  const loadData = useCallback(() => {
+    return Promise.all([
+      getBiomarkers().then(setBiomarkers),
+      AsyncStorage.getItem('@vitalspan_biomarkers')
+        .then(raw => { if (raw) setEntries(JSON.parse(raw)); })
+        .catch(console.error),
+    ]).catch(console.error);
   }, []);
 
   useFocusEffect(
-    useCallback(() => { void loadEntries(); }, [loadEntries])
+    useCallback(() => { void loadData(); }, [loadData])
   );
 
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
-    await loadEntries();
+    await loadData();
     setRefreshing(false);
   }
 
@@ -81,6 +81,11 @@ export default function BiomarkerDetailScreen() {
     setEditingValue('');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
   }
+
+  const biomarkersByCategory = useMemo(
+    () => new Map(CATEGORIES.map(cat => [cat.key, biomarkers.filter(b => b.category === cat.key)])),
+    [biomarkers]
+  );
 
   // Single O(n) pass — builds sorted lists per biomarker
   const entryMap = useMemo(() => {
@@ -106,7 +111,7 @@ export default function BiomarkerDetailScreen() {
 
   // ── Detail view ───────────────────────────────────────────────────────────
   if (selectedId) {
-    const bm = BIOMARKERS.find(b => b.id === selectedId);
+    const bm = biomarkers.find(b => b.id === selectedId);
     if (!bm) {
       // Unknown id (stale deep-link or deleted biomarker) — fall back to list
       setSelectedId(null);
@@ -337,7 +342,7 @@ export default function BiomarkerDetailScreen() {
           </View>
         )}
         {CATEGORIES.map(cat => {
-          const bms = BIOMARKERS_BY_CATEGORY.get(cat.key) ?? [];
+          const bms = biomarkersByCategory.get(cat.key) ?? [];
           if (bms.length === 0) return null;
           return (
             <View key={cat.key}>
