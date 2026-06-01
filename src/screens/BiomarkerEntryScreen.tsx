@@ -11,6 +11,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Motion, Elevation } from '../theme';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
+import { syncEntry } from '../lib/biomarkerWriteService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
 import BreathingCard from '../components/BreathingCard';
@@ -121,6 +122,7 @@ export default function BiomarkerEntryScreen() {
         notes: notes.trim(),
       });
       await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
+      syncEntry(entries[entries.length - 1]);  // fire-and-forget — void return intentional
       nav.goBack();
     } catch (e) {
       console.error(e);
