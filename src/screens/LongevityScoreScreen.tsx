@@ -267,7 +267,7 @@ export default function LongevityScoreScreen() {
     bioAge != null && chronoAge != null
       ? `${85 + yearsDiff}–${92 + yearsDiff} years`
       : phenoResult != null
-        ? `Log ${phenoResult.missingCount} more biomarkers to unlock`
+        ? `Log ${phenoResult.missingBiomarkers[0] ?? 'missing biomarkers'} to unlock`
         : 'Log biomarkers to unlock';
 
   // ── Explainer sheet ──────────────────────────────────────────────────────
@@ -473,7 +473,7 @@ export default function LongevityScoreScreen() {
                   <Text style={s.bioAgePending}>—</Text>
                   <Text style={s.bioAgeLabel}>
                     {phenoResult != null
-                      ? `${phenoResult.missingCount} MORE BMs`
+                      ? `Missing: ${phenoResult.missingBiomarkers.slice(0, 2).join(', ')}${phenoResult.missingBiomarkers.length > 2 ? ` +${phenoResult.missingBiomarkers.length - 2}` : ''}`
                       : 'LOG BIOMARKERS'}
                   </Text>
                 </>
