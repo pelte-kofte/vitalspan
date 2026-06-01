@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 8 — Biomarker Sync Write Path
+**Current focus:** Phase 9 — PhenoAge Fix & Release Quality
 
 ## Current Position
 
-Phase: 9 of 9 (PhenoAge Fix & Release Quality — not started)
-Plan: 0/TBD
-Status: Phase 8 complete (2026-06-01); ready for Phase 9
-Last activity: 2026-06-01 — Phase 8 complete: biomarker_entries SQL + RLS (authenticated role), biomarkerWriteService.ts (syncEntry + migrateHistory), wired BiomarkerEntryScreen + App.tsx (migration chained after session) + DashboardScreen (Supabase-first pull). 2 code-review blockers found and fixed. 9/9 automated checks passed, 4 human UAT items pending.
+Phase: 9 of 9 (PhenoAge Fix & Release Quality — ready to execute)
+Plan: 0/3
+Status: Planned (2026-06-01); 3 plans in 2 waves
+Last activity: 2026-06-01 — Phase 9 planned: 3 plans (P1: formula fix + verify script, P2: TS audit + security, P3: null UI + EAS build). Verification passed all dimensions.
 
 Progress: [████████░░] 89% (v1 complete; Phases 4-8 complete)
 
