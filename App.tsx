@@ -27,19 +27,22 @@ export default function App() {
       } else {
         setInitialRoute('Landing');
       }
-      initSupabaseSession().catch((err) =>
-        console.warn('[App] initSupabaseSession unexpected error:', err)
-      );
-      AsyncStorage.getItem('@vitalspan_migrated_v2').then((migrated) => {
-        if (!migrated) {
-          AsyncStorage.getItem('@vitalspan_biomarkers').then((raw) => {
-            const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
-            migrateHistory(entries)
-              .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
-              .catch(() => null);
+      initSupabaseSession()
+        .then(() => {
+          AsyncStorage.getItem('@vitalspan_migrated_v2').then((migrated) => {
+            if (!migrated) {
+              AsyncStorage.getItem('@vitalspan_biomarkers').then((biomarkersRaw) => {
+                const entries: StoredEntry[] = biomarkersRaw ? JSON.parse(biomarkersRaw) : [];
+                migrateHistory(entries)
+                  .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
+                  .catch(() => null);
+              }).catch(() => null);
+            }
           }).catch(() => null);
-        }
-      }).catch(() => null);
+        })
+        .catch((err) => {
+          console.warn('[App] initSupabaseSession unexpected error:', err);
+        });
     };
     init();
   }, []);

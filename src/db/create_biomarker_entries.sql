@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS biomarker_entries (
 ALTER TABLE biomarker_entries ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "users select own entries" ON biomarker_entries
-  FOR SELECT TO anon USING (user_id = auth.uid());
+  FOR SELECT TO authenticated USING (user_id = auth.uid());
 
 CREATE POLICY "users insert own entries" ON biomarker_entries
-  FOR INSERT TO anon WITH CHECK (user_id = auth.uid());
+  FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 -- No UPDATE or DELETE policies: biomarker entries are append-only from the app.
