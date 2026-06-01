@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 8 of 9 (Biomarker Sync Write Path — in progress)
-Plan: 1/3
-Status: Phase 8 executing (2026-06-01); Plan 01 complete
-Last activity: 2026-06-01 — Plan 08-01 complete: created src/db/create_biomarker_entries.sql with CREATE TABLE IF NOT EXISTS, RLS enabled, SELECT + INSERT policies scoped to auth.uid(), append-only (no UPDATE/DELETE). Table contract established for Plan 08-02.
+Plan: 2/3
+Status: Phase 8 executing (2026-06-01); Plans 01-02 complete
+Last activity: 2026-06-01 — Plan 08-02 complete: created src/lib/biomarkerWriteService.ts with syncEntry (void, fire-and-forget) and migrateHistory (Promise<void>, bulk upsert with onConflict: 'id'). Both error-safe, user_id from getUser(). tsc --noEmit clean. Ready for Plan 08-03.
 
-Progress: [███████░░░] 68% (v1 complete; Phases 4-7 complete; Phase 8 plan 1/3 done)
+Progress: [███████░░░] 71% (v1 complete; Phases 4-7 complete; Phase 8 plans 2/3 done)
 
 ## Performance Metrics
 
@@ -80,5 +80,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-01
-Stopped at: Phase 8 Plan 01 complete. src/db/create_biomarker_entries.sql created. Ready for Plan 08-02 (biomarkerWriteService.ts).
+Stopped at: Phase 8 Plan 02 complete. src/lib/biomarkerWriteService.ts created (syncEntry + migrateHistory). Ready for Plan 08-03 (BiomarkerEntryScreen + App.tsx + DashboardScreen wiring).
 Resume file: .planning/STATE.md
