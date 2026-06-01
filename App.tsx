@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initSupabaseSession } from './src/lib/supabase';
+import { migrateHistory } from './src/lib/biomarkerWriteService';
+import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
@@ -28,6 +30,16 @@ export default function App() {
       initSupabaseSession().catch((err) =>
         console.warn('[App] initSupabaseSession unexpected error:', err)
       );
+      AsyncStorage.getItem('@vitalspan_migrated_v2').then((migrated) => {
+        if (!migrated) {
+          AsyncStorage.getItem('@vitalspan_biomarkers').then((raw) => {
+            const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
+            migrateHistory(entries)
+              .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
+              .catch(() => null);
+          }).catch(() => null);
+        }
+      }).catch(() => null);
     };
     init();
   }, []);

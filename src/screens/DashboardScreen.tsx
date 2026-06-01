@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -51,7 +52,36 @@ export default function DashboardScreen() {
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
-      if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+
+      // Supabase-first biomarker entries pull (D-04: every mount, D-06: silent fallback)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: sbEntries, error: sbError } = await supabase
+            .from('biomarker_entries')
+            .select('id, biomarker_id, value, date, source, notes')
+            .eq('user_id', user.id);
+          if (!sbError && sbEntries && sbEntries.length > 0) {
+            setEntries(
+              sbEntries.map((row) => ({
+                id: row.id as string,
+                biomarkerId: row.biomarker_id as string,
+                value: row.value as number,
+                date: row.date as string,
+                source: row.source as string,
+                notes: (row.notes ?? '') as string,
+              }))
+            );
+          } else {
+            if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+          }
+        } else {
+          if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+        }
+      } catch {
+        if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+      }
+
       if (hData) setHealthData(hData);
       if (exerciseRaw) setExerciseLogs(JSON.parse(exerciseRaw));
       setFirstRunComplete(firstRunRaw === 'true');
