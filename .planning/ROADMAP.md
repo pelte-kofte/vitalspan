@@ -221,7 +221,7 @@ Plans:
 - [x] 09-P2-PLAN.md — Strip console.log from src/, run tsc --noEmit + fix errors, security grep audit (QUAL-01, QUAL-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 09-P3-PLAN.md — Update 4 UI consumers for null biologicalAge + full flow iOS simulator verification + EAS preview build (QUAL-02)
+- [x] 09-P3-PLAN.md — Update 4 UI consumers for null biologicalAge + full flow iOS simulator verification + EAS preview build (QUAL-02)
 
 **Cross-cutting constraints:**
 - phenoAge.verify.ts is dev-only — not imported by any app code
