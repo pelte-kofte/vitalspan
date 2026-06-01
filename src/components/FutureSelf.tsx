@@ -150,9 +150,9 @@ export default function FutureSelf({
           {isLocked ? (
             <View style={s.lockedState}>
               <Text style={s.lockedIcon}>🔒</Text>
-              <Text style={s.lockedMsg}>Log these 5 biomarkers to unlock projection</Text>
+              <Text style={s.lockedMsg}>Log these {PHENO_BIOMARKER_LIST.length} biomarkers to unlock projection</Text>
               <View style={s.checklistBox}>
-                {PHENO_BIOMARKER_LIST.slice(0, 5).map(b => {
+                {PHENO_BIOMARKER_LIST.map(b => {
                   const logged = loggedBiomarkerIds.includes(b.id);
                   return (
                     <TouchableOpacity
@@ -171,9 +171,9 @@ export default function FutureSelf({
                     </TouchableOpacity>
                   );
                 })}
-                {loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length < 5 && (
+                {loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length < PHENO_BIOMARKER_LIST.length && (
                   <Text style={s.checklistNote}>
-                    {5 - Math.min(loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length, 5)} more needed — tap any row to log
+                    {PHENO_BIOMARKER_LIST.length - Math.min(loggedBiomarkerIds.filter(id => PHENO_BIOMARKER_LIST.some(b => b.id === id)).length, PHENO_BIOMARKER_LIST.length)} more needed — tap any row to log
                   </Text>
                 )}
               </View>

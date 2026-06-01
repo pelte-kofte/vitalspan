@@ -275,10 +275,19 @@ export default function ProfileScreen() {
             <Text style={s.rowLabel}>Sex</Text>
             <Text style={s.rowValue}>{capitalize(profile.sex)}</Text>
           </View>
-          {profile.biologicalAge != null && (
+          {profile.biologicalAge != null ? (
             <View style={[s.row, s.rowBorder]}>
               <Text style={s.rowLabel}>Biological age</Text>
               <Text style={[s.rowValue, { color: Colors.primary }]}>{profile.biologicalAge}</Text>
+            </View>
+          ) : (
+            <View style={[s.row, s.rowBorder]}>
+              <Text style={s.rowLabel}>Biological age</Text>
+              <TouchableOpacity onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}>
+                <Text style={[s.rowValue, { color: Colors.primary }]}>
+                  Log 9 PhenoAge biomarkers to compute
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           {!!profile.goal && (

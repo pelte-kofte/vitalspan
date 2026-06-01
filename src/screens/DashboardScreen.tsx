@@ -238,11 +238,6 @@ export default function DashboardScreen() {
                         <Text style={s.bioPillTxt}>↓ improving</Text>
                       </View>
                     )}
-                    {phenoResult?.confidence === 'medium' && (
-                      <Text style={s.bioConfidence}>
-                        Estimated · Log {phenoResult.missingCount} more biomarkers for precision
-                      </Text>
-                    )}
                   </>
                 ) : (
                   <>
