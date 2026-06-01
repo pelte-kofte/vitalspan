@@ -212,7 +212,22 @@ Plans:
   2. `tsc --noEmit` exits with zero errors — no `any` types, no missing type annotations
   3. The full key flow — onboarding → biomarker entry → protocol → exercise log → LongevityScore — completes without crash on iOS simulator or device
   4. Source audit (grep) confirms zero occurrences of Supabase URL or anon key in any source file
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 09-P1-PLAN.md — Fix phenoAge.ts formula (remove LAMBDA + MEDIANS, correct Gompertz mortality) + write phenoAge.verify.ts (PHENO-01)
+- [ ] 09-P2-PLAN.md — Strip console.log from src/, run tsc --noEmit + fix errors, security grep audit (QUAL-01, QUAL-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 09-P3-PLAN.md — Update 4 UI consumers for null biologicalAge + full flow iOS simulator verification + EAS preview build (QUAL-02)
+
+**Cross-cutting constraints:**
+- phenoAge.verify.ts is dev-only — not imported by any app code
+- No new packages installed in any plan
+- No AsyncStorage key changes
+
 **UI hint**: no
 
 ## Progress
@@ -231,4 +246,4 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
-| 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
+| 9. PhenoAge Fix & Release Quality | v2.0 | 0/3 | Not started | - |
