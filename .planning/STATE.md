@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 8 of 9 (Biomarker Sync Write Path — in progress)
-Plan: 2/3
-Status: Phase 8 executing (2026-06-01); Plans 01-02 complete
-Last activity: 2026-06-01 — Plan 08-02 complete: created src/lib/biomarkerWriteService.ts with syncEntry (void, fire-and-forget) and migrateHistory (Promise<void>, bulk upsert with onConflict: 'id'). Both error-safe, user_id from getUser(). tsc --noEmit clean. Ready for Plan 08-03.
+Phase: 9 of 9 (PhenoAge Fix & Release Quality — not started)
+Plan: 0/TBD
+Status: Phase 8 complete (2026-06-01); ready for Phase 9
+Last activity: 2026-06-01 — Phase 8 complete: biomarker_entries SQL + RLS (authenticated role), biomarkerWriteService.ts (syncEntry + migrateHistory), wired BiomarkerEntryScreen + App.tsx (migration chained after session) + DashboardScreen (Supabase-first pull). 2 code-review blockers found and fixed. 9/9 automated checks passed, 4 human UAT items pending.
 
-Progress: [███████░░░] 71% (v1 complete; Phases 4-7 complete; Phase 8 plans 2/3 done)
+Progress: [████████░░] 89% (v1 complete; Phases 4-8 complete)
 
 ## Performance Metrics
 
@@ -80,5 +80,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-01
-Stopped at: Phase 8 Plan 02 complete. src/lib/biomarkerWriteService.ts created (syncEntry + migrateHistory). Ready for Plan 08-03 (BiomarkerEntryScreen + App.tsx + DashboardScreen wiring).
+Stopped at: Phase 8 complete. Supabase sync write path shipped. Ready for /gsd:discuss-phase 9 or /gsd:plan-phase 9 (PhenoAge Fix & Release Quality).
 Resume file: .planning/STATE.md

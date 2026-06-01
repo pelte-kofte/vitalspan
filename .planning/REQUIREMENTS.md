@@ -12,8 +12,8 @@
 - [x] **SUPA-03**: AppState listener calls `startAutoRefresh()` on `active` and `stopAutoRefresh()` on `background`/`inactive` to prevent JWT expiry after 1h backgrounding
 - [ ] **SUPA-04**: `biomarker_definitions` table seeded with longevity-optimized ranges; public-read RLS (`anon` role); app falls back to static `biomarkers.ts` when offline
 - [ ] **SUPA-05**: `exercises` table seeded with exercise library; public-read RLS; app falls back to static data when offline
-- [ ] **SUPA-06**: User biomarker entries written to Supabase `biomarker_entries` after AsyncStorage save (fire-and-forget); Dashboard pulls on mount with staleness gate
-- [ ] **SUPA-07**: One-time migration on first authenticated session — all existing `@vitalspan_biomarkers` entries inserted into `biomarker_entries`; guarded by `@vitalspan_migrated_v2` idempotency flag
+- [x] **SUPA-06**: User biomarker entries written to Supabase `biomarker_entries` after AsyncStorage save (fire-and-forget); Dashboard pulls on mount with staleness gate
+- [x] **SUPA-07**: One-time migration on first authenticated session — all existing `@vitalspan_biomarkers` entries inserted into `biomarker_entries`; guarded by `@vitalspan_migrated_v2` idempotency flag
 
 ### Security
 

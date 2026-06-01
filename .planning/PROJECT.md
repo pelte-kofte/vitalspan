@@ -48,7 +48,7 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ Supabase biomarker reference data table (longevity-optimized ranges served from DB) — Phase 7
 - ✓ Supabase exercise database (exercise library with metadata, static fallback) — Phase 7
 - ✓ New purpose-built exercise screen — daily log (Today/This Week/History), library, intensity visuals, swipe-to-delete — Phase 7
-- [ ] User biomarker history synced to Supabase with auth layer
+- ✓ User biomarker history synced to Supabase — syncEntry (fire-and-forget), migrateHistory (one-time, idempotent), Dashboard Supabase-first pull — Phase 8
 - [ ] PhenoAge formula fix — correct calculation returning wrong biological age values
 - [ ] Security — Supabase URL + anon key in `.env` file, not hardcoded in source
 - [ ] Release quality — zero crashes, TypeScript strict, no `any` types
@@ -89,7 +89,7 @@ The selective UI overhaul preserves the dark neural aesthetic on immersive/brand
 | Defer HealthKit to post-v1 | Mock layer already built; real entitlement complicates TestFlight submission | ✓ Good — still deferred |
 | AsyncStorage for v1 | No backend needed for single-device beta | ✓ Good — now adding Supabase as sync layer in v2 |
 | Selective UI overhaul (not full redesign) | Preserve dark aesthetic on immersive screens; warm beige on data/list screens | ✓ Complete — Phase 6 |
-| Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | ✓ Partial — ref data done (Phase 7); user sync pending (Phase 8) |
+| Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | ✓ Complete — ref data (Phase 7) + user biomarker sync (Phase 8) |
 | exerciseService / biomarkerService Supabase-first with static fallback | Remote updates without app release; offline resilience | ✓ Phase 7 |
 | Swipe-to-delete for exercise log (RNGH v2 Gesture.Pan) | Cleaner UX than long-press+Alert; no confirmation dialog needed for single-device local data | ✓ Phase 7 |
 
