@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** Phase 9 — PhenoAge Fix & Release Quality
+**Current focus:** v2.0 milestone complete — all 9 phases shipped
 
 ## Current Position
 
-Phase: 9 of 9 (PhenoAge Fix & Release Quality — ready to execute)
-Plan: 0/3
-Status: Planned (2026-06-01); 3 plans in 2 waves
-Last activity: 2026-06-01 — Phase 9 planned: 3 plans (P1: formula fix + verify script, P2: TS audit + security, P3: null UI + EAS build). Verification passed all dimensions.
+Phase: 9 of 9 (PhenoAge Fix & Release Quality — Complete)
+Plan: 3/3
+Status: Complete (2026-06-02)
+Last activity: 2026-06-02 — Phase 9 complete: PhenoAge Gompertz formula corrected, 15/15 behavioral tests pass, 3/3 Levine reference cases pass, zero TS errors, zero console.log in app, zero hardcoded credentials, iOS simulator verified, EAS preview build passed. 2 code-review items carried forward (CR-01: stale profile.biologicalAge, CR-02: loadAll try/catch).
 
-Progress: [████████░░] 89% (v1 complete; Phases 4-8 complete)
+Progress: [██████████] 100% (v2.0 complete — all phases 1-9 shipped)
 
 ## Performance Metrics
 

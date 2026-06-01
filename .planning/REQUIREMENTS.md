@@ -42,13 +42,13 @@
 
 ### PhenoAge Fix
 
-- [ ] **PHENO-01**: Levine PhenoAge formula in `src/lib/phenoAge.ts` corrected; verified against published coefficients; biological age output matches expected values
+- [x] **PHENO-01**: Levine PhenoAge formula in `src/lib/phenoAge.ts` corrected; verified against published coefficients; biological age output matches expected values
 
 ### Release Quality
 
-- [ ] **QUAL-01**: `tsc --noEmit` passes with zero errors — no `any` types
-- [ ] **QUAL-02**: Key flows verified crash-free on device/simulator: onboarding → biomarker entry → protocol → exercise log → LongevityScore
-- [ ] **QUAL-03**: Source audit confirms no hardcoded Supabase URL or anon key — all from `process.env.EXPO_PUBLIC_*`
+- [x] **QUAL-01**: `tsc --noEmit` passes with zero errors — no `any` types
+- [x] **QUAL-02**: Key flows verified crash-free on device/simulator: onboarding → biomarker entry → protocol → exercise log → LongevityScore
+- [x] **QUAL-03**: Source audit confirms no hardcoded Supabase URL or anon key — all from `process.env.EXPO_PUBLIC_*`
 
 ## v3 Requirements (Deferred)
 
@@ -115,10 +115,10 @@
 | EX-04 | Phase 7 | Pending |
 | SUPA-06 | Phase 8 | In Progress (08-01 done) |
 | SUPA-07 | Phase 8 | In Progress (08-01 done) |
-| PHENO-01 | Phase 9 | Pending |
-| QUAL-01 | Phase 9 | Pending |
-| QUAL-02 | Phase 9 | Pending |
-| QUAL-03 | Phase 9 | Pending |
+| PHENO-01 | Phase 9 | Complete |
+| QUAL-01 | Phase 9 | Complete |
+| QUAL-02 | Phase 9 | Complete |
+| QUAL-03 | Phase 9 | Complete |
 
 **Coverage:**
 - v2 requirements: 24 total
