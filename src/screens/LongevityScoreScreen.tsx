@@ -209,7 +209,6 @@ export default function LongevityScoreScreen() {
       const entry = entryMap.get(biomarkerId);
       if (entry) (inputs as Record<string, number>)[inputKey] = entry.value;
     }
-    console.log('[LongevityScore] entryMap keys:', Array.from(entryMap.keys()).join(','));
     return computePhenoAge(inputs);
   }, [biomarkerEntries, profile]);
 
