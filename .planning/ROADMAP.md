@@ -187,7 +187,19 @@ Plans:
   1. User enters a biomarker value: it saves to AsyncStorage immediately (as before), then a fire-and-forget Supabase write is attempted — app behavior is unchanged if Supabase write fails
   2. On first authenticated session after upgrade, all existing `@vitalspan_biomarkers` entries appear in the Supabase `biomarker_entries` table; the migration does not run again on subsequent launches (idempotency flag `@vitalspan_migrated_v2` is set)
   3. Dashboard pulls biomarker entries from Supabase on mount when the cached data is stale; stale pull errors fall back to AsyncStorage silently
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 08-01-PLAN.md — Create src/db/create_biomarker_entries.sql — table schema + RLS policies (SUPA-06, SUPA-07)
+
+**Wave 2** *(blocked on Wave 1 — table contract must exist before service is written)*
+- [ ] 08-02-PLAN.md — Create src/lib/biomarkerWriteService.ts — syncEntry + migrateHistory (SUPA-06, SUPA-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 08-03-PLAN.md — Wire BiomarkerEntryScreen + App.tsx + DashboardScreen + tsc verification (SUPA-06, SUPA-07)
+
 **UI hint**: no
 
 ### Phase 9: PhenoAge Fix & Release Quality
@@ -218,5 +230,5 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
-| 8. Biomarker Sync Write Path | v2.0 | 0/TBD | Not started | - |
+| 8. Biomarker Sync Write Path | v2.0 | 0/3 | Not started | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
