@@ -192,7 +192,7 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 08-01-PLAN.md — Create src/db/create_biomarker_entries.sql — table schema + RLS policies (SUPA-06, SUPA-07)
+- [x] 08-01-PLAN.md — Create src/db/create_biomarker_entries.sql — table schema + RLS policies (SUPA-06, SUPA-07)
 
 **Wave 2** *(blocked on Wave 1 — table contract must exist before service is written)*
 - [ ] 08-02-PLAN.md — Create src/lib/biomarkerWriteService.ts — syncEntry + migrateHistory (SUPA-06, SUPA-07)
@@ -230,5 +230,5 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
-| 8. Biomarker Sync Write Path | v2.0 | 0/3 | Planned | - |
+| 8. Biomarker Sync Write Path | v2.0 | 1/3 | In Progress | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |

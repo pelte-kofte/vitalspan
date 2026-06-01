@@ -113,8 +113,8 @@
 | EX-02 | Phase 7 | Pending |
 | EX-03 | Phase 7 | Pending |
 | EX-04 | Phase 7 | Pending |
-| SUPA-06 | Phase 8 | Pending |
-| SUPA-07 | Phase 8 | Pending |
+| SUPA-06 | Phase 8 | In Progress (08-01 done) |
+| SUPA-07 | Phase 8 | In Progress (08-01 done) |
 | PHENO-01 | Phase 9 | Pending |
 | QUAL-01 | Phase 9 | Pending |
 | QUAL-02 | Phase 9 | Pending |
@@ -127,4 +127,4 @@
 
 ---
 *Requirements defined: 2026-05-30*
-*Last updated: 2026-05-30 — phase assignments added by roadmapper*
+*Last updated: 2026-06-01 — SUPA-06/07 in progress after 08-01 (table schema done)*

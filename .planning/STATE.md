@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 8 of 9 (Biomarker Sync Write Path — planned, ready to execute)
-Plan: 0/3
-Status: Phase 8 planned (2026-06-01); ready to execute
-Last activity: 2026-06-01 — Phase 8 planned: 3 plans in 3 waves — SQL table provisioning, biomarkerWriteService.ts, and wiring (BiomarkerEntryScreen + App.tsx + DashboardScreen). SUPA-06, SUPA-07 covered.
+Phase: 8 of 9 (Biomarker Sync Write Path — in progress)
+Plan: 1/3
+Status: Phase 8 executing (2026-06-01); Plan 01 complete
+Last activity: 2026-06-01 — Plan 08-01 complete: created src/db/create_biomarker_entries.sql with CREATE TABLE IF NOT EXISTS, RLS enabled, SELECT + INSERT policies scoped to auth.uid(), append-only (no UPDATE/DELETE). Table contract established for Plan 08-02.
 
-Progress: [███████░░░] 67% (v1 complete; Phases 4-7 complete)
+Progress: [███████░░░] 68% (v1 complete; Phases 4-7 complete; Phase 8 plan 1/3 done)
 
 ## Performance Metrics
 
@@ -52,6 +52,8 @@ Recent decisions affecting current work:
 - 04-P1: Anonymous-only auth for v2 — initSupabaseSession() uses signInAnonymously() guarded by prior getSession() check to avoid clobbering returning users' sessions
 - 04-P2: initSupabaseSession() is fire-and-forget (.catch(() => null)) — session establishment must never block the loading spinner resolving
 - 04-P2: Route determination (setInitialRoute) runs before initSupabaseSession() — AsyncStorage profile check is the gating dependency, Supabase is non-blocking
+- 08-P1: biomarker_entries id column is text PK — preserves AsyncStorage-generated string IDs, no UUID remapping
+- 08-P1: biomarker_entries is append-only — SELECT + INSERT RLS policies only, no UPDATE or DELETE from client
 
 ### Pending Todos
 
@@ -77,6 +79,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-05-31
-Stopped at: Phase 7 complete. Ready for /gsd:discuss-phase 8 or /gsd:plan-phase 8.
+Last session: 2026-06-01
+Stopped at: Phase 8 Plan 01 complete. src/db/create_biomarker_entries.sql created. Ready for Plan 08-02 (biomarkerWriteService.ts).
 Resume file: .planning/STATE.md
