@@ -163,8 +163,10 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
   }
   const phenoAge = 141.50225 + Math.log(innerLog) / 0.090165;
 
-  // Range guard: results outside 15–95 are physiologically implausible
-  if (phenoAge < 15 || phenoAge > 95) {
+  // Range guard: results outside 10–120 are physiologically implausible.
+  // Upper bound matches the Gompertz time horizon (120 years). Lower bound (10)
+  // prevents numeric artifacts at extreme young-adult biomarker values.
+  if (phenoAge < 10 || phenoAge > 120) {
     return {
       biologicalAge: null,
       confidence: 'insufficient',
