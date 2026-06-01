@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 8 of 9 (Biomarker Sync Write Path — not started)
-Plan: 0/TBD
-Status: Phase 7 complete (2026-06-01); ready for Phase 8
-Last activity: 2026-06-01 — Phase 7 complete: service layer (exerciseService + biomarkerService), biomarker screens migrated, ExerciseScreen rebuilt (3-section log, intensity colors, swipe-to-delete). All 4 plans done, tsc clean.
+Phase: 8 of 9 (Biomarker Sync Write Path — planned, ready to execute)
+Plan: 0/3
+Status: Phase 8 planned (2026-06-01); ready to execute
+Last activity: 2026-06-01 — Phase 8 planned: 3 plans in 3 waves — SQL table provisioning, biomarkerWriteService.ts, and wiring (BiomarkerEntryScreen + App.tsx + DashboardScreen). SUPA-06, SUPA-07 covered.
 
 Progress: [███████░░░] 67% (v1 complete; Phases 4-7 complete)
 

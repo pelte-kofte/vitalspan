@@ -230,5 +230,5 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 5. Design Tokens & Icons | v2.0 | 3/3 | Complete | 2026-05-30 |
 | 6. Warm UI Overhaul | v2.0 | 5/5 | Complete | 2026-05-31 |
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
-| 8. Biomarker Sync Write Path | v2.0 | 0/3 | Not started | - |
+| 8. Biomarker Sync Write Path | v2.0 | 0/3 | Planned | - |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 0/TBD | Not started | - |
