@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl, Alert,
@@ -143,6 +143,15 @@ export default function DashboardScreen() {
     }
     return computePhenoAge(inputs);
   }, [entryMap, profile]);
+
+  // CR-01: persist computed biological age back to profile so ProfileScreen stays current
+  useEffect(() => {
+    if (!phenoResult || phenoResult.biologicalAge == null || !profile) return;
+    const updated = { ...profile, biologicalAge: phenoResult.biologicalAge };
+    AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(updated)).catch(
+      (e) => console.error('[bioAge sync]', e),
+    );
+  }, [phenoResult?.biologicalAge, profile]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
