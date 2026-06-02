@@ -17,17 +17,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Guard: missing env vars crash createClient at module load time (silent black
+// screen in production). Log clearly so EAS build logs surface the root cause.
+// The app starts and works offline; only Supabase calls will fail gracefully.
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    '[Supabase] EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY is missing. ' +
+    'Run: eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value <url> ' +
+    'and eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <key>',
+  )
+}
+
+export const supabase = createClient(
+  supabaseUrl ?? 'https://placeholder.supabase.co',
+  supabaseAnonKey ?? 'placeholder-anon-key',
+  {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
-})
+}
+)
 
 // Stored to prevent duplicate listeners on Fast Refresh in development.
 let _appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null
