@@ -36,11 +36,11 @@ All spacing uses `Spacing.*` tokens from `src/theme/index.ts`. No hardcoded marg
 
 | Token | Value | Usage in This Phase |
 |-------|-------|---------------------|
-| `Spacing.xs` | 4 | Icon gaps, badge inner padding |
+| `Spacing.xs` | 4 | Icon gaps, badge inner padding, Research CTA subtitle marginTop, relevance tag paddingVertical |
 | `Spacing.sm` | 8 | Row gap between label + value, compact vertical rhythm |
-| `Spacing.md` | 12 | Card inner padding (compact), chip padding |
+| `Spacing.md` | 12 | Card inner padding (compact), chip padding — project-specific token (`src/theme/index.ts` line 161) |
 | `Spacing.base` | 16 | Card horizontal padding, screen horizontal margins |
-| `Spacing.lg` | 20 | Section vertical gap |
+| `Spacing.lg` | 20 | Section vertical gap — project-specific token (`src/theme/index.ts` line 163) |
 | `Spacing.xl` | 24 | Card stack gap, list item separator breathing room |
 | `Spacing.xxl` | 32 | Screen bottom padding |
 
@@ -49,7 +49,7 @@ Exceptions:
 - Orbital orb size: `width: 60, height: 44` (inherited from LongevityScoreScreen existing `dataOrb` style — do not change).
 - Permission prompt card: `paddingVertical: 20` (= Spacing.lg) to give it visual weight distinct from info cards.
 
-> Source: `src/theme/index.ts` Spacing export; LongevityScoreScreen `s.dataOrb` style; CLAUDE.md spacing rule.
+> Source: `src/theme/index.ts` Spacing export (verified — Spacing.md=12, Spacing.lg=20 are genuine project tokens); LongevityScoreScreen `s.dataOrb` style; CLAUDE.md spacing rule.
 
 ---
 
@@ -59,11 +59,10 @@ All type uses `Typography.sizes.*` tokens. No hardcoded font size numbers in new
 
 | Role | Token | Size | Weight | Line Height | Usage in This Phase |
 |------|-------|------|--------|-------------|---------------------|
-| Screen heading | `Typography.sizes.h2` | 22px | 700 | 1.2 | ArticlesScreen section title (none on LongevityScore — existing unchanged) |
+| Screen heading | `Typography.sizes.h2` | 22px | 600 | 1.2 | ArticlesScreen section title (none on LongevityScore — existing unchanged) |
 | Body | `Typography.sizes.body` | 15px | 400 | 1.5 | Article abstract snippet, permission prompt body text |
 | Label / Card title | `Typography.sizes.base` | 14px | 600 | 1.3 | Article card title, permission prompt headline |
-| Caption / Meta | `Typography.sizes.sm` | 12px | 400 | 1.4 | Journal name, publication date, last-sync timestamp |
-| Eyebrow / Tag | `Typography.sizes.xs` | 11px | 600 | 1.0 | "RESEARCH" section eyebrow on Dashboard, orbital metric labels (existing `s.dataOrbLabel` pattern) |
+| Eyebrow / Tag / Caption / Meta | `Typography.sizes.xs` | 11px | 400 or 600 | 1.0–1.4 | Journal name (400), publication date (400), last-sync timestamp (400); "RESEARCH" section eyebrow (600); orbital metric labels (600, existing `s.dataOrbLabel` pattern); relevance tag text (600) |
 
 Weights used: **400 (regular)** and **600 (semibold)** only. Do not introduce 500 or 700 on new UI elements — match existing screen conventions.
 
@@ -71,7 +70,7 @@ Letter spacing:
 - Eyebrow / section labels: `Typography.letterSpacing.widest` (3) — matches existing `s.sectionTitle` pattern.
 - All other new text: `Typography.letterSpacing.normal` (0).
 
-> Source: `src/theme/index.ts` Typography export; `src/screens/DashboardScreen.tsx` StyleSheet `s` (inspected); CLAUDE.md typography rule.
+> Source: `src/theme/index.ts` Typography export; `src/screens/DashboardScreen.tsx` StyleSheet `s` (inspected); CLAUDE.md typography rule. Consolidated from 5 sizes to 4 by merging `sm` (12px) caption/meta usage into `xs` (11px). h2 weight changed from 700 to 600 to enforce 2-weight maximum.
 
 ---
 
@@ -126,11 +125,11 @@ A touchable card displaying one PubMed article. Max 200 lines — extract from A
 - Container: `backgroundColor: Colors.bgCard`, `borderRadius: Radius.xl` (20), `marginHorizontal: Spacing.base`, `marginBottom: Spacing.sm`, `padding: Spacing.base`
 - Shadow: `Elevation.sm` from theme (`shadowOpacity: 0.06, shadowRadius: 8, elevation: 2`)
 - Layout: vertical stack — [eyebrow row] → [title] → [abstract snippet] → [meta row]
-- **Eyebrow row**: `Colors.Beige.textMuted` (`#6B6B64`) journal name at `Typography.sizes.sm` (12px) weight 400, left-aligned. Publication date at same size, right-aligned. Row uses `flexDirection: 'row', justifyContent: 'space-between'`.
+- **Eyebrow row**: `Colors.Beige.textMuted` (`#6B6B64`) journal name at `Typography.sizes.xs` (11px) weight 400, left-aligned. Publication date at same size, right-aligned. Row uses `flexDirection: 'row', justifyContent: 'space-between'`.
 - **Title**: `Typography.sizes.base` (14px) weight 600, `Colors.textPrimary` (`#1A1A18`), `lineHeight: 20`, `marginTop: Spacing.xs` (4), max 2 lines (`numberOfLines: 2, ellipsizeMode: 'tail'`).
 - **Abstract snippet**: `Typography.sizes.body` (15px) weight 400, `Colors.textSecondary` (`#4A4A45`), `lineHeight: 22`, `marginTop: Spacing.sm` (8), max 3 lines (`numberOfLines: 3, ellipsizeMode: 'tail'`).
-- **Meta row**: `marginTop: Spacing.sm` (8), `flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'`. Left side: relevance tag (if article is ranked for an out-of-range biomarker). Right side: "Read →" in `Colors.primary` (`#2D6A4F`), `Typography.sizes.sm` (12px) weight 600.
-- **Relevance tag** (shown only when article surfaces for an out-of-range biomarker): pill shape, `backgroundColor: Colors.status.reviewBg` (`#FEF9E7`), `borderColor: Colors.status.reviewBorder`, `borderWidth: 0.5`, `borderRadius: Radius.full`, `paddingHorizontal: 8, paddingVertical: 2`. Text: biomarker name in `Typography.sizes.xs` (11px) weight 600, `Colors.status.reviewText` (`#7A5B10`).
+- **Meta row**: `marginTop: Spacing.sm` (8), `flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'`. Left side: relevance tag (if article is ranked for an out-of-range biomarker). Right side: "Read article →" in `Colors.primary` (`#2D6A4F`), `Typography.sizes.xs` (11px) weight 600.
+- **Relevance tag** (shown only when article surfaces for an out-of-range biomarker): pill shape, `backgroundColor: Colors.status.reviewBg` (`#FEF9E7`), `borderColor: Colors.status.reviewBorder`, `borderWidth: 0.5`, `borderRadius: Radius.full`, `paddingHorizontal: Spacing.sm` (8), `paddingVertical: Spacing.xs` (4). Text: biomarker name in `Typography.sizes.xs` (11px) weight 600, `Colors.status.reviewText` (`#7A5B10`).
 - Touch: `TouchableOpacity`, `activeOpacity: 0.82`, haptic: `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)` on press.
 
 #### 2. Permission prompt card — inline in `LongevityScoreScreen.tsx` (not a separate file)
@@ -162,7 +161,7 @@ Shown when empty reads are detected after `initHealthKit` resolves (iOS cannot r
 - Body: "Enable Health access in Settings to see live HRV, sleep and recovery data." — same style.
 - CTA button: same dimensions as State A. Label: "Open Settings" — same label style.
 - CTA action: `Linking.openURL('app-settings:')` — no navigation.
-- Secondary link below CTA: "Continue without Health data" in `Colors.dark.textMuted`, `Typography.sizes.sm` (12px), centered, `marginTop: Spacing.sm`. Tap dismisses the card (user proceeds with manual biomarker data only).
+- Secondary link below CTA: "Continue without Health data" in `Colors.dark.textMuted`, `Typography.sizes.xs` (11px), centered, `marginTop: Spacing.sm`. Tap dismisses the card (user proceeds with manual biomarker data only).
 
 #### 3. Research CTA card — inline in `DashboardScreen.tsx`
 
@@ -171,8 +170,8 @@ A tappable card added to the Dashboard scroll view (below the Protocol section, 
 - Matches the `s.uploadCard` pattern exactly: `backgroundColor: Colors.primaryBg` (`#E8F5EE`), `borderRadius: Radius.xl`, `padding: Spacing.md`, `marginHorizontal: Spacing.base`, `marginBottom: Spacing.base`, `flexDirection: 'row', alignItems: 'center', gap: Spacing.md`.
 - Shadow: `Elevation.sm`.
 - Left icon: `'📄'` glyph, `fontSize: 28`.
-- Body: title "Longevity Research" at `Typography.sizes.base` (14px) weight 600, `Colors.textPrimary`. Subtitle "Personalised PubMed articles for your biomarker profile" at `Typography.sizes.xs` (11px), `Colors.textMuted`, `marginTop: 2`.
-- Right arrow: `'→'` at `Typography.sizes.md` (15px), `Colors.textMuted`.
+- Body: title "Longevity Research" at `Typography.sizes.base` (14px) weight 600, `Colors.textPrimary`. Subtitle "Personalised PubMed articles for your biomarker profile" at `Typography.sizes.xs` (11px), `Colors.textMuted`, `marginTop: Spacing.xs` (4).
+- Right arrow: `'→'` at `Typography.sizes.body` (15px), `Colors.textMuted`.
 - Touch: `TouchableOpacity`, `activeOpacity: 0.82`, haptic: `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)`, action: `nav.navigate('Articles')`.
 
 ### Existing Components Used (do not modify)
@@ -194,6 +193,7 @@ A tappable card added to the Dashboard scroll view (below the Protocol section, 
 - `FlatList` below top bar, full height. `contentContainerStyle: { paddingTop: Spacing.base, paddingBottom: Spacing.xxl }`.
 - `ItemSeparatorComponent`: none — `ArticleCard` uses `marginBottom: Spacing.sm` to create gap.
 - `keyExtractor`: `(item) => item.pmid`.
+- **Primary focal point:** the ranked FlatList of ArticleCards — the first card's title is the first element the eye reaches after the top bar.
 
 **Loading state:**
 - When Supabase returns no cached data yet: show a centred `ActivityIndicator` in `Colors.primary`. No skeleton — app is offline-first so empty cache is edge case (first-ever open before background fetch).
@@ -263,7 +263,7 @@ ArticleCard tap
 
 No new UI component required beyond a destructive row in existing ProfileScreen. The visual contract:
 - Row label: "Disconnect Apple Health" in `Colors.danger` (`#B13126`), `Typography.sizes.base` (14px) weight 400. Shown only when `granted: true` in `@vitalspan_health_permissions`.
-- Tap: `Alert.alert('Disconnect Apple Health', 'Orbitals will revert to manual-entry data. You can reconnect anytime.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Disconnect', style: 'destructive', onPress: handleDisconnect }])`.
+- Tap: `Alert.alert('Disconnect Apple Health', 'Orbitals will revert to manual-entry data. You can reconnect anytime.', [{ text: 'Keep Connected', style: 'cancel' }, { text: 'Disconnect Health', style: 'destructive', onPress: handleDisconnect }])`.
 - `handleDisconnect`: clears `@vitalspan_health_permissions` and `@vitalspan_health_data`, sets `permissionState` to `'pre-request'` in LongevityScoreScreen on next focus.
 
 ---
@@ -290,7 +290,7 @@ No new UI component required beyond a destructive row in existing ProfileScreen.
 |---------|------|
 | Screen title | "Research" |
 | Empty state body | "No articles available. Check your connection and pull to refresh." |
-| Article card "Read" link | "Read →" |
+| Article card "Read" link | "Read article →" |
 | Dashboard CTA card title | "Longevity Research" |
 | Dashboard CTA card subtitle | "Personalised PubMed articles for your biomarker profile" |
 | Loading state | (no text — ActivityIndicator only) |
@@ -302,15 +302,15 @@ No new UI component required beyond a destructive row in existing ProfileScreen.
 |---------|------|
 | Alert title | "Disconnect Apple Health" |
 | Alert body | "Orbitals will revert to manual-entry data. You can reconnect anytime." |
-| Alert cancel | "Cancel" |
-| Alert confirm | "Disconnect" (destructive style) |
+| Alert cancel | "Keep Connected" |
+| Alert confirm | "Disconnect Health" (destructive style) |
 | Profile row label | "Disconnect Apple Health" |
 
 ### Destructive Actions
 
 | Action | Confirmation Approach |
 |--------|-----------------------|
-| Disconnect Apple Health | `Alert.alert` with two buttons: Cancel (default) + Disconnect (destructive). No bottom sheet — consistent with existing Alert usage in LongevityScoreScreen. |
+| Disconnect Apple Health | `Alert.alert` with two buttons: Keep Connected (default/cancel) + Disconnect Health (destructive). No bottom sheet — consistent with existing Alert usage in LongevityScoreScreen. |
 
 > No other destructive actions exist in Phase 10.
 
