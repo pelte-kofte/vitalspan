@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 10 (executing)
-Plan: Wave 2 — 10-03 complete (10-04 remaining in wave)
-Status: 3/5 plans done. 10-03 complete: three-state HealthKit permission flow + ProfileScreen disconnect row.
-Last activity: 2026-06-03 — LongevityScoreScreen upgraded with permissionState machine (pre-request/granted/denied), animated prompt cards, real initHealthKit flow. ProfileScreen Disconnect Apple Health row with Alert confirmation. TypeScript clean.
+Plan: Wave 3 — 10-04 complete (10-05 remaining)
+Status: 4/5 plans done. 10-04 complete: ArticleCard component + ArticlesScreen + AppNavigator Articles route + DashboardScreen Research CTA.
+Last activity: 2026-06-03 — ArticleCard (eyebrow/title/abstract/relevance tag), ArticlesScreen (stale-while-revalidate FlatList, PubMed WebBrowser), Articles stack route wired, Research CTA card on Dashboard. TypeScript clean.
 
-Progress: [███░░░░░░░] 60% (v3.0 Phase 10 in progress)
+Progress: [████░░░░░░] 80% (v3.0 Phase 10 in progress)
 
 ## Performance Metrics
 
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - 10-03: permissionState derived from hasRequestedHealthKit flag on every focus — ensures ProfileScreen disconnect reflects on next LongevityScore open
 - 10-03: handleDismissPrompt sets permissionState to 'granted' (not a separate dismissed state) — empty orbitals with no prompt is user's chosen state
 - 10-03: iOS empty HRV probe heuristic used to detect denial — iOS privacy design prevents direct denial status reporting
+- 10-04: onPress callback passed to ArticleCard from ArticlesScreen — WebBrowser import stays in ArticlesScreen, not in ArticleCard
+- 10-04: cancelled flag in ArticlesScreen useEffect prevents state updates after unmount
+- 10-04: Research CTA uses style composition [s.uploadCard, s.researchCard] — researchCard only overrides backgroundColor
 
 ### Pending Todos
 
@@ -84,5 +87,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-03
-Stopped at: Phase 10 Plan 03 complete. LongevityScoreScreen three-state permission flow + ProfileScreen disconnect. Wave 2 continuing (10-04 next).
+Stopped at: Phase 10 Plan 04 complete. ArticleCard + ArticlesScreen + AppNavigator Articles route + DashboardScreen Research CTA. Wave 3 next (10-05: source audits + Supabase checkpoint + EAS preview build).
 Resume file: .planning/STATE.md

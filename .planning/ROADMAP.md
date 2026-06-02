@@ -243,7 +243,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion, run in parallel)*
 - [x] 10-03-PLAN.md — Upgrade LongevityScoreScreen three-state permission flow + ProfileScreen disconnect row (HK-01, HK-02, HK-03, HK-04)
-- [ ] 10-04-PLAN.md — Create ArticlesScreen + ArticleCard + wire AppNavigator + Dashboard Research CTA (ART-02, ART-03)
+- [x] 10-04-PLAN.md — Create ArticlesScreen + ArticleCard + wire AppNavigator + Dashboard Research CTA (ART-02, ART-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 10-05-PLAN.md — Source audits + Supabase table creation checkpoint + EAS preview build + UI verification (HK-01–HK-04, ART-01–ART-04)
@@ -316,7 +316,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
-| 10. Apple Health + Articles | v3.0 | 3/5 | In progress | - |
+| 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
 | 11. Supplement & Drug Database | v3.0 | 0/TBD | Not started | - |
 | 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
