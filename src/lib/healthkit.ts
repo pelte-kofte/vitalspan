@@ -11,7 +11,7 @@
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
+import AppleHealthKit, { HealthKitPermissions, HealthValue } from 'react-native-health';
 
 const STORAGE_KEY = '@vitalspan_health_data';
 const PERMISSIONS_KEY = '@vitalspan_health_permissions';
@@ -200,7 +200,7 @@ export async function syncHealthData(): Promise<SyncResult> {
         (o, cb) => AppleHealthKit.getVo2MaxSamples(o, cb),
         { startDate: thirtyDaysAgo, limit: 1, ascending: false, unit: 'ml/(kg * min)' },
       ),
-      wrapSample<{ value: string; startDate: string; endDate: string }>(
+      wrapSample<HealthValue>(
         (o, cb) => AppleHealthKit.getSleepSamples(o, cb),
         { startDate: yesterday },
       ),
@@ -241,9 +241,10 @@ export async function syncHealthData(): Promise<SyncResult> {
     let sleepTotalMs = 0;
     for (const s of sleepResults) {
       const dur = new Date(s.endDate).getTime() - new Date(s.startDate).getTime();
-      if (s.value === 'DEEP') sleepDeepMs += dur;
-      else if (s.value === 'REM') sleepRemMs += dur;
-      else if (s.value === 'ASLEEP' || s.value === 'CORE') sleepTotalMs += dur;
+      const stage = s.value as unknown as string; // runtime value is a string stage; library type is incorrect
+      if (stage === 'DEEP') sleepDeepMs += dur;
+      else if (stage === 'REM') sleepRemMs += dur;
+      else if (stage === 'ASLEEP' || stage === 'CORE') sleepTotalMs += dur;
     }
     const sleepHours = sleepTotalMs > 0 ? Math.round((sleepTotalMs / 3600000) * 10) / 10 : undefined;
     const sleepDeep = sleepDeepMs > 0 ? Math.round((sleepDeepMs / 3600000) * 10) / 10 : undefined;
