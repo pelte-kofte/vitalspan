@@ -149,18 +149,9 @@ export function computePhenoAge(inputs: PhenoAgeInputs): PhenoAgeResult {
   }
 
   // Convert to phenotypic age (inversion constants verified against Levine 2018)
+  // innerLog is guaranteed positive after clamping to [0.0001, 0.9999] — no guard needed
   const clampedProb = Math.max(0.0001, Math.min(0.9999, mortProb));
   const innerLog = -0.00553 * Math.log(1 - clampedProb);
-  if (innerLog <= 0) {
-    return {
-      biologicalAge: null,
-      confidence: 'insufficient',
-      missingCount: 0,
-      totalRequired: REQUIRED_FIELDS.length,
-      missingBiomarkers: [],
-      yearsYounger: null,
-    };
-  }
   const phenoAge = 141.50225 + Math.log(innerLog) / 0.090165;
 
   // Range guard: results outside 10–120 are physiologically implausible.
