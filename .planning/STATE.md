@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 10 (not started)
+Phase: 10 (planned)
 Plan: —
-Status: Roadmap created — ready for /gsd:plan-phase 10
-Last activity: 2026-06-02 — v3.0 roadmap created. 5 phases (10–14): Apple Health + Articles, Supplement/Drug DB, Exercise UI Overhaul, Design System, Auth & Login. 29 requirements mapped, coverage 100%.
+Status: Ready to execute — 5 plans in 3 waves
+Last activity: 2026-06-03 — Phase 10 planned. 5 plans (10-01 through 10-05): HealthKit install, articleService + SQL, LongevityScore permission flow, ArticlesScreen UI, verification. All 8 requirements (HK-01–HK-04, ART-01–ART-04) covered.
 
 Progress: [░░░░░░░░░░] 0% (v3.0 starting)
 

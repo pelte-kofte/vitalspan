@@ -20,7 +20,7 @@ No new tab bar items. No new packages beyond `expo-health` (and expo's existing 
 ## Implementation Decisions
 
 ### HealthKit Package
-- **D-01:** Use `expo-health` (the package already referenced in the mock file's comments). Stays in Expo managed workflow — no ejecting. Verify Expo SDK 54 compatibility before install (`npx expo install expo-health`).
+- **D-01:** Use `react-native-health` v1.19.0 (Agency Enterprise). **`expo-health` is a non-functional placeholder stub (v0.0.0, 50 bytes) — do not install it.** Research confirmed this; the name in the original mock comment was aspirational, not an installable package. `react-native-health` stays in Expo managed workflow via its config plugin — requires EAS build (no Expo Go). Install via `npx expo install react-native-health expo-web-browser`.
 - **D-02:** Read the same 8 data types the mock already returns: HRV (RMSSD), resting heart rate, VO₂max, sleep analysis (total/deep/REM), respiratory rate, steps, mindful minutes, blood glucose. No `HealthData` interface changes required — the mock's return shape is already correct.
 - **D-03:** No `expo-dev-client`. HealthKit changes are tested via EAS preview builds only (same pattern as Phase 9's EAS verification step).
 - **D-04:** Add HealthKit entitlement to `app.json` (`com.apple.developer.healthkit` and `com.apple.developer.healthkit.background-delivery` if needed for the 4hr staleness check). Add usage description string for NSHealthShareUsageDescription.
@@ -38,7 +38,7 @@ No new tab bar items. No new packages beyond `expo-health` (and expo's existing 
 
 ### Article Personalization & Caching
 - **D-12:** Fetch articles using **per-biomarker keyword queries** via NCBI eSearch API. Each biomarker ID maps to a search query string (e.g., `"ApoB longevity lifespan"`, `"CRP inflammation aging"`, `"HbA1c biological age"`). Researcher should produce the biomarker→query map for all biomarkers in `BIOMARKERS` data.
-- **D-13:** Supabase `articles` table caches by PMID. Schema minimum: `pmid (text PK)`, `title`, `journal`, `pub_date`, `abstract`, `biomarker_tags (text[])`, `fetched_at`. Shared across all users (no per-user state). RLS: public read, service-role write.
+- **D-13:** Supabase `articles` table caches by PMID. Schema minimum: `pmid (text PK)`, `title`, `journal`, `pub_date`, `abstract`, `biomarker_tags (text[])`, `fetched_at`. Shared across all users (no per-user state). RLS: public read (`SELECT FOR ALL`), anon-role write (`INSERT/UPDATE WITH CHECK (true)` for the anon role). The service-role key cannot be embedded in a React Native client app (security violation — bypasses all RLS). Because articles are a shared non-PII cache, permissive anon-write RLS achieves the same intent safely.
 - **D-14:** Client-side ranking: articles tagged to biomarkers that are **outside the user's longevity-optimized range** are sorted to the top. The existing `BIOMARKERS` data with `min`/`max`/`optimal` range fields is the source of truth for range status. A user with out-of-range ApoB sees ApoB-tagged articles first.
 - **D-15:** Cache refresh strategy: **on app open if >24 hours since last fetch**. Check `fetched_at` of the most recent article in Supabase (or a `@vitalspan_articles_last_fetched` AsyncStorage timestamp). Refresh runs in the background without blocking the articles list render (show cached data immediately, swap in new data when fetch resolves).
 
@@ -97,7 +97,7 @@ No new tab bar items. No new packages beyond `expo-health` (and expo's existing 
 - The `generateMockData()` function in `healthkit.ts` should be removed (or kept for simulator testing only) once the real `expo-health` reads are wired. The mock was designed as a clean swap — the commented-out real implementation blocks are already present in the file.
 - NCBI eSearch base URL: `https://eapis.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi` and eFetch: `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi`. No API key required for low-volume use (≤3 requests/second without key). The researcher should confirm current rate limits.
 - The ROADMAP success criterion for articles: "a user with elevated CRP sees inflammation-focused articles surface higher than metabolic articles" — this is the exact out-of-range ranking behavior captured in D-14.
-- The `expo-health` entitlement in `app.json` must include the `NSHealthShareUsageDescription` string (required by App Store Review). Suggested copy: "Vitalspan reads your health data to display longevity metrics on your dashboard."
+- The `react-native-health` config plugin in `app.json` sets `NSHealthShareUsageDescription` via its `healthSharePermission` field (required by App Store Review). Suggested copy: "Vitalspan reads your health data to display longevity metrics on your dashboard."
 
 </specifics>
 
