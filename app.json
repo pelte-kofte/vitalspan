@@ -14,8 +14,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.vitalspan.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      },
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Vitalspan reads your health data to track biomarkers and biological age.",
         "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -36,7 +38,13 @@
       "**/*"
     ],
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-health",
+        {
+          "healthSharePermission": "Vitalspan reads your health data to display longevity metrics on your dashboard."
+        }
+      ]
     ]
   }
 }
