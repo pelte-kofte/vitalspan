@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 10 (executing)
-Plan: Wave 2 starting (10-01, 10-02 complete)
-Status: Wave 1 complete — 2/5 plans done. Wave 2 dispatching (10-03, 10-04).
-Last activity: 2026-06-03 — Wave 1 complete: react-native-health installed, healthkit.ts rewritten with real HealthKit reads (8 metrics), articles SQL + articleService created. TypeScript clean.
+Plan: Wave 2 — 10-03 complete (10-04 remaining in wave)
+Status: 3/5 plans done. 10-03 complete: three-state HealthKit permission flow + ProfileScreen disconnect row.
+Last activity: 2026-06-03 — LongevityScoreScreen upgraded with permissionState machine (pre-request/granted/denied), animated prompt cards, real initHealthKit flow. ProfileScreen Disconnect Apple Health row with Alert confirmation. TypeScript clean.
 
-Progress: [██░░░░░░░░] 40% (v3.0 Phase 10 in progress)
+Progress: [███░░░░░░░] 60% (v3.0 Phase 10 in progress)
 
 ## Performance Metrics
 
@@ -57,6 +57,9 @@ Recent decisions affecting current work:
 - v3.0: HealthKit mock layer already in src/lib/healthkit.ts — Phase 10 upgrades the mock to real expo-health entitlement
 - v3.0: Articles cached in Supabase articles table — avoid repeat PubMed API calls; 24-hour background refresh ceiling
 - v3.0: Auth uses linkIdentity() for anonymous-to-authenticated migration — existing local data preserved on account creation
+- 10-03: permissionState derived from hasRequestedHealthKit flag on every focus — ensures ProfileScreen disconnect reflects on next LongevityScore open
+- 10-03: handleDismissPrompt sets permissionState to 'granted' (not a separate dismissed state) — empty orbitals with no prompt is user's chosen state
+- 10-03: iOS empty HRV probe heuristic used to detect denial — iOS privacy design prevents direct denial status reporting
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-06-02
-Stopped at: v3.0 roadmap created. Phases 10-14 defined. Ready for /gsd:plan-phase 10 (Apple Health + Articles).
+Last session: 2026-06-03
+Stopped at: Phase 10 Plan 03 complete. LongevityScoreScreen three-state permission flow + ProfileScreen disconnect. Wave 2 continuing (10-04 next).
 Resume file: .planning/STATE.md
