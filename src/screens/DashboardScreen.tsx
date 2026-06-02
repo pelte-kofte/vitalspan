@@ -415,6 +415,24 @@ export default function DashboardScreen() {
             );
           })()}
 
+          {/* Research CTA */}
+          <TouchableOpacity
+            style={[s.uploadCard, s.researchCard]}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+              nav.navigate('Articles');
+            }}
+          >
+            <Text style={s.researchIcon}>📄</Text>
+            <View style={s.uploadCardBody}>
+              <Text style={s.uploadCardTitle}>Longevity Research</Text>
+              <Text style={s.uploadCardSub}>Personalised PubMed articles for your biomarker profile</Text>
+            </View>
+            <Text style={s.uploadCardArrow}>→</Text>
+          </TouchableOpacity>
+
           <View style={s.sectionHdr}>
             <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
             <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
@@ -532,4 +550,6 @@ const s = StyleSheet.create({
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
   uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
+  researchCard: { backgroundColor: Colors.primaryBg },
+  researchIcon: { fontSize: 28 },
 });

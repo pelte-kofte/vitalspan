@@ -18,6 +18,7 @@ import LandingScreen from '../screens/LandingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
+import ArticlesScreen from '../screens/ArticlesScreen';
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   GuidedFirstRun: undefined;
   Settings: undefined;
   About: undefined;
+  Articles: undefined;
 };
 
 export type MainTabParamList = {
@@ -180,6 +182,11 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="About"
           component={AboutScreen}
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="Articles"
+          component={ArticlesScreen}
+          options={{ presentation: 'card' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
