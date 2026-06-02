@@ -216,7 +216,7 @@ export default function LongevityScoreScreen() {
     const inputs: PhenoAgeInputs = { age: profile.age };
     for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
       const entry = entryMap.get(biomarkerId);
-      if (entry) (inputs as Record<string, number>)[inputKey] = entry.value;
+      if (entry != null && entry.value != null) inputs[inputKey] = entry.value;
     }
     return computePhenoAge(inputs);
   }, [biomarkerEntries, profile]);
