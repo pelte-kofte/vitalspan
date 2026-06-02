@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 10 (executing)
-Plan: Wave 3 — 10-04 complete (10-05 remaining)
-Status: 4/5 plans done. 10-04 complete: ArticleCard component + ArticlesScreen + AppNavigator Articles route + DashboardScreen Research CTA.
-Last activity: 2026-06-03 — ArticleCard (eyebrow/title/abstract/relevance tag), ArticlesScreen (stale-while-revalidate FlatList, PubMed WebBrowser), Articles stack route wired, Research CTA card on Dashboard. TypeScript clean.
+Phase: 11 (next)
+Plan: —
+Status: Phase 10 complete (human UAT pending for EAS build + on-device testing). Phase 11 ready to plan.
+Last activity: 2026-06-03 — Phase 10 complete: HealthKit upgrade, articles service+UI, permission flow, code review fixes (CR-01/03/04/05). 22/22 automated must-haves verified. 6 items in 10-HUMAN-UAT.md.
 
-Progress: [████░░░░░░] 80% (v3.0 Phase 10 in progress)
+Progress: [░░░░░░░░░░] 0% (v3.0 Phase 11 starting)
 
 ## Performance Metrics
 
