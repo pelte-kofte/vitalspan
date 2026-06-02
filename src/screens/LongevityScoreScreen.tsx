@@ -112,6 +112,155 @@ function dataValue(snap: HealthData, key: string, extras?: { inflammation?: stri
 }
 
 
+// ── Explainer sheet (module-level to prevent unmount on parent re-render) ──
+interface ExplainerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConnectHealth: () => void;
+  nav: Nav;
+}
+function ExplainerModal({ visible, onClose, onConnectHealth, nav }: ExplainerModalProps) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={s.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={s.explainerSheet}>
+          <View style={s.sheetHandle} />
+          <Text style={s.sheetTitle}>Your Longevity Mission Control</Text>
+          <Text style={s.sheetBody}>
+            This screen is your biological dashboard — a real-time map of how your body is aging.
+          </Text>
+          <View style={s.explainItem}>
+            <Text style={s.explainEmoji}>🧬</Text>
+            <View style={s.explainText}>
+              <Text style={s.explainHead}>Sphere center</Text>
+              <Text style={s.explainDesc}>Your PhenoAge — computed from 9 blood biomarkers using the Levine 2018 formula (Aging Cell, DOI: 10.1111/acel.12748).</Text>
+            </View>
+          </View>
+          <View style={s.explainItem}>
+            <Text style={s.explainEmoji}>⌚</Text>
+            <View style={s.explainText}>
+              <Text style={s.explainHead}>Orbital metrics</Text>
+              <Text style={s.explainDesc}>Sleep, HRV, Recovery, Fitness, Glucose, and Inflammation — pulled from Apple Health in real-time.</Text>
+            </View>
+          </View>
+          <View style={s.explainItem}>
+            <Text style={s.explainEmoji}>📈</Text>
+            <View style={s.explainText}>
+              <Text style={s.explainHead}>Projected lifespan</Text>
+              <Text style={s.explainDesc}>Baseline of 88–92 years adjusted by your bio age vs chronological age delta.</Text>
+            </View>
+          </View>
+          <View style={s.quickActions}>
+            <TouchableOpacity
+              style={s.qaBtn}
+              onPress={() => { onClose(); nav.navigate('BiomarkerEntry', { biomarkerId: undefined }); }}
+            >
+              <Text style={s.qaBtnTxt}>Log Biomarkers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.qaBtn, s.qaBtnSecondary]}
+              onPress={() => { onClose(); onConnectHealth(); }}
+            >
+              <Text style={s.qaBtnTxt}>Connect Apple Health</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ── Score transparency sheet (module-level to prevent unmount on parent re-render) ──
+interface TransparencyModalProps {
+  visible: boolean;
+  onClose: () => void;
+  bioConfidence: number;
+  loggedPhenoCount: number;
+  totalPhenoCount: number;
+  isConnected: boolean;
+  entryMap: Map<string, StoredEntry>;
+  bioAge: number | null;
+  chronoAge: number | undefined;
+  yearsDiff: number;
+}
+function TransparencyModal({
+  visible, onClose, bioConfidence, loggedPhenoCount, totalPhenoCount,
+  isConnected, entryMap, bioAge, chronoAge, yearsDiff,
+}: TransparencyModalProps) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={s.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={[s.explainerSheet, { maxHeight: '85%' }]}>
+          <View style={s.sheetHandle} />
+          <Text style={s.sheetTitle}>How is this calculated?</Text>
+          <Text style={s.sheetBody}>
+            Score confidence: <Text style={{ color: Colors.viz.bioGreen, fontWeight: '700' }}>{bioConfidence}%</Text>
+            {' '}based on {loggedPhenoCount}/{totalPhenoCount} biomarkers logged{isConnected ? ' + Apple Health connected' : ''}.
+          </Text>
+
+          <Text style={s.transparencySubHead}>PhenoAge Biomarkers</Text>
+          {PHENO_BIOMARKER_LIST.map(b => {
+            const logged = entryMap.has(b.id);
+            return (
+              <View key={b.id} style={s.transparencyRow}>
+                <Text style={[s.transparencyCheck, { color: logged ? Colors.viz.bioGreen : Colors.dark.textMuted }]}>
+                  {logged ? '✓' : '○'}
+                </Text>
+                <Text style={[s.transparencyLabel, { color: logged ? Colors.dark.text : Colors.dark.textMuted }]}>
+                  {b.label}
+                </Text>
+                <Text style={s.transparencyUnit}>{b.unit}</Text>
+              </View>
+            );
+          })}
+
+          <View style={s.improvementSection}>
+            <Text style={s.transparencySubHead}>What improves this score?</Text>
+            {!isConnected && (
+              <View style={s.improvementRow}>
+                <Text style={s.improvementAction}>Connect Apple Health</Text>
+                <Text style={s.improvementGain}>+25% confidence</Text>
+              </View>
+            )}
+            {loggedPhenoCount < totalPhenoCount && (
+              <View style={s.improvementRow}>
+                <Text style={s.improvementAction}>
+                  Log {PHENO_BIOMARKER_LIST.find(b => !entryMap.has(b.id))?.label ?? 'next biomarker'}
+                </Text>
+                <Text style={s.improvementGain}>+{Math.round(60 / totalPhenoCount)}% confidence</Text>
+              </View>
+            )}
+            {bioAge != null && chronoAge != null && chronoAge > bioAge && (
+              <View style={s.improvementRow}>
+                <Text style={s.improvementAction}>Lower ApoB to &lt;70</Text>
+                <Text style={s.improvementGain}>−1.2 bio years</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 export default function LongevityScoreScreen() {
   const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -278,130 +427,6 @@ export default function LongevityScoreScreen() {
       : phenoResult != null
         ? `Log ${phenoResult.missingBiomarkers[0] ?? 'missing biomarkers'} to unlock`
         : 'Log biomarkers to unlock';
-
-  // ── Explainer sheet ──────────────────────────────────────────────────────
-  const ExplainerModal = () => (
-    <Modal
-      visible={showExplainer}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowExplainer(false)}
-    >
-      <TouchableOpacity
-        style={s.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowExplainer(false)}
-      >
-        <View style={s.explainerSheet}>
-          <View style={s.sheetHandle} />
-          <Text style={s.sheetTitle}>Your Longevity Mission Control</Text>
-          <Text style={s.sheetBody}>
-            This screen is your biological dashboard — a real-time map of how your body is aging.
-          </Text>
-          <View style={s.explainItem}>
-            <Text style={s.explainEmoji}>🧬</Text>
-            <View style={s.explainText}>
-              <Text style={s.explainHead}>Sphere center</Text>
-              <Text style={s.explainDesc}>Your PhenoAge — computed from 9 blood biomarkers using the Levine 2018 formula (Aging Cell, DOI: 10.1111/acel.12748).</Text>
-            </View>
-          </View>
-          <View style={s.explainItem}>
-            <Text style={s.explainEmoji}>⌚</Text>
-            <View style={s.explainText}>
-              <Text style={s.explainHead}>Orbital metrics</Text>
-              <Text style={s.explainDesc}>Sleep, HRV, Recovery, Fitness, Glucose, and Inflammation — pulled from Apple Health in real-time.</Text>
-            </View>
-          </View>
-          <View style={s.explainItem}>
-            <Text style={s.explainEmoji}>📈</Text>
-            <View style={s.explainText}>
-              <Text style={s.explainHead}>Projected lifespan</Text>
-              <Text style={s.explainDesc}>Baseline of 88–92 years adjusted by your bio age vs chronological age delta.</Text>
-            </View>
-          </View>
-          <View style={s.quickActions}>
-            <TouchableOpacity
-              style={s.qaBtn}
-              onPress={() => { setShowExplainer(false); nav.navigate('BiomarkerEntry', { biomarkerId: undefined }); }}
-            >
-              <Text style={s.qaBtnTxt}>Log Biomarkers</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.qaBtn, s.qaBtnSecondary]}
-              onPress={() => { setShowExplainer(false); handleConnectHealth(); }}
-            >
-              <Text style={s.qaBtnTxt}>Connect Apple Health</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-
-  // ── Score transparency sheet ─────────────────────────────────────────────
-  const TransparencyModal = () => (
-    <Modal
-      visible={showTransparency}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowTransparency(false)}
-    >
-      <TouchableOpacity
-        style={s.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowTransparency(false)}
-      >
-        <View style={[s.explainerSheet, { maxHeight: '85%' }]}>
-          <View style={s.sheetHandle} />
-          <Text style={s.sheetTitle}>How is this calculated?</Text>
-          <Text style={s.sheetBody}>
-            Score confidence: <Text style={{ color: Colors.viz.bioGreen, fontWeight: '700' }}>{bioConfidence}%</Text>
-            {' '}based on {loggedPhenoCount}/{totalPhenoCount} biomarkers logged{isConnected ? ' + Apple Health connected' : ''}.
-          </Text>
-
-          <Text style={s.transparencySubHead}>PhenoAge Biomarkers</Text>
-          {PHENO_BIOMARKER_LIST.map(b => {
-            const logged = entryMap.has(b.id);
-            return (
-              <View key={b.id} style={s.transparencyRow}>
-                <Text style={[s.transparencyCheck, { color: logged ? Colors.viz.bioGreen : Colors.dark.textMuted }]}>
-                  {logged ? '✓' : '○'}
-                </Text>
-                <Text style={[s.transparencyLabel, { color: logged ? Colors.dark.text : Colors.dark.textMuted }]}>
-                  {b.label}
-                </Text>
-                <Text style={s.transparencyUnit}>{b.unit}</Text>
-              </View>
-            );
-          })}
-
-          <View style={s.improvementSection}>
-            <Text style={s.transparencySubHead}>What improves this score?</Text>
-            {!isConnected && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>Connect Apple Health</Text>
-                <Text style={s.improvementGain}>+25% confidence</Text>
-              </View>
-            )}
-            {loggedPhenoCount < totalPhenoCount && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>
-                  Log {PHENO_BIOMARKER_LIST.find(b => !entryMap.has(b.id))?.label ?? 'next biomarker'}
-                </Text>
-                <Text style={s.improvementGain}>+{Math.round(60 / totalPhenoCount)}% confidence</Text>
-              </View>
-            )}
-            {bioAge != null && chronoAge != null && chronoAge > bioAge && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>Lower ApoB to &lt;70</Text>
-                <Text style={s.improvementGain}>−1.2 bio years</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
 
   return (
     <LinearGradient colors={['#080D09', '#0C1410', '#0F1C14']} style={s.gradient}>
@@ -626,8 +651,24 @@ export default function LongevityScoreScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        <ExplainerModal />
-        <TransparencyModal />
+        <ExplainerModal
+          visible={showExplainer}
+          onClose={() => setShowExplainer(false)}
+          onConnectHealth={handleConnectHealth}
+          nav={nav}
+        />
+        <TransparencyModal
+          visible={showTransparency}
+          onClose={() => setShowTransparency(false)}
+          bioConfidence={bioConfidence}
+          loggedPhenoCount={loggedPhenoCount}
+          totalPhenoCount={totalPhenoCount}
+          isConnected={isConnected}
+          entryMap={entryMap}
+          bioAge={bioAge}
+          chronoAge={chronoAge}
+          yearsDiff={yearsDiff}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
