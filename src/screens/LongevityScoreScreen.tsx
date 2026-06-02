@@ -10,6 +10,7 @@ import {
   Modal,
   RefreshControl,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -41,6 +42,7 @@ import {
   connectAndSync,
   loadHealthData,
   loadPermissionStatus,
+  requestHealthKitPermissions,
   formatSyncTime,
   HealthData,
 } from '../lib/healthkit';
@@ -91,7 +93,6 @@ function healthScoreColor(bioAge?: number | null, age?: number | null): [string,
 }
 
 // Returns a display value for an orbital metric, or null when data is unavailable.
-// isDemoMode is informational only (badge shown in UI); data is always displayed.
 function dataValue(snap: HealthData, key: string, extras?: { inflammation?: string | null }): string | null {
   switch (key) {
     case 'sleep':
@@ -270,20 +271,37 @@ export default function LongevityScoreScreen() {
   const [showExplainer, setShowExplainer] = useState(false);
   const [showTransparency, setShowTransparency] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [permissionState, setPermissionState] = useState<'pre-request' | 'granted' | 'denied' | 'loading'>('loading');
+
+  // Derived for backward compat with bioConfidence calculation
+  const isConnected = permissionState === 'granted';
+
+  // Prompt fade-in animation
+  const promptOpacity = useSharedValue(0);
+  const promptStyle = useAnimatedStyle(() => ({ opacity: promptOpacity.value }));
 
   const loadAll = useCallback(async () => {
     try {
-      const [pRaw, hRaw, bRaw, perms] = await Promise.all([
+      const [pRaw, bRaw, perms] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
-        AsyncStorage.getItem('@vitalspan_health_data'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         loadPermissionStatus(),
       ]);
       if (pRaw) setProfile(JSON.parse(pRaw));
-      if (hRaw) setHealthData(JSON.parse(hRaw));
       if (bRaw) setBiomarkerEntries(JSON.parse(bRaw));
-      setIsConnected(perms?.granted ?? false);
+
+      // Derive permission state
+      if (perms == null || !perms.hasRequestedHealthKit) {
+        setPermissionState('pre-request');
+        promptOpacity.value = withTiming(1.0, { duration: 400 });
+      } else if (perms.hasRequestedHealthKit && perms.granted) {
+        setPermissionState('granted');
+        const hData = await loadHealthData();
+        if (hData) setHealthData(hData);
+      } else {
+        setPermissionState('denied');
+        promptOpacity.value = withTiming(1.0, { duration: 400 });
+      }
     } catch (e) {
       console.error('[LongevityScore loadAll]', e);
       Alert.alert(
@@ -291,7 +309,7 @@ export default function LongevityScoreScreen() {
         'Some saved data could not be read. If this persists, use Settings → Clear all data.',
       );
     }
-  }, []);
+  }, [promptOpacity]);
 
   useFocusEffect(
     useCallback(() => {
@@ -305,21 +323,53 @@ export default function LongevityScoreScreen() {
     setRefreshing(false);
   }
 
-  async function handleConnectHealth() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+  async function handleRequestPermission() {
     setConnecting(true);
     try {
-      const result = await connectAndSync();
-      if (result.success && result.data) {
-        setHealthData(result.data);
-        setIsConnected(true);
+      await requestHealthKitPermissions();
+      // Probe HRV to determine if user actually granted access
+      // iOS does not report denial status directly (privacy design)
+      const hData = await loadHealthData();
+      const syncResult = await connectAndSync();
+      const effectiveData = syncResult.success && syncResult.data ? syncResult.data : (hData ?? {});
+      if (effectiveData.hrv != null) {
+        // HRV non-null = reads succeeded = granted
+        await AsyncStorage.setItem('@vitalspan_health_permissions', JSON.stringify({
+          granted: true,
+          categories: { heart: true, sleep: true, activity: true, glucose: true },
+          requestedAt: new Date().toISOString(),
+          hasRequestedHealthKit: true,
+        }));
+        setHealthData(effectiveData);
+        setPermissionState('granted');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+      } else {
+        // HRV null after init = iOS denied (empty reads heuristic)
+        await AsyncStorage.setItem('@vitalspan_health_permissions', JSON.stringify({
+          granted: false,
+          categories: { heart: false, sleep: false, activity: false, glucose: false },
+          requestedAt: new Date().toISOString(),
+          hasRequestedHealthKit: true,
+        }));
+        setPermissionState('denied');
+        promptOpacity.value = withTiming(1.0, { duration: 400 });
       }
     } catch (e) {
-      console.error(e);
+      console.error('[LongevityScore handleRequestPermission]', e);
+      setPermissionState('denied');
+      promptOpacity.value = withTiming(1.0, { duration: 400 });
     } finally {
       setConnecting(false);
     }
+  }
+
+  async function handleOpenSettings() {
+    await Linking.openURL('app-settings:');
+  }
+
+  function handleDismissPrompt() {
+    // User chose to continue without Health data — show empty orbitals
+    setPermissionState('granted');
   }
 
   // Animations
@@ -428,6 +478,83 @@ export default function LongevityScoreScreen() {
         ? `Log ${phenoResult.missingBiomarkers[0] ?? 'missing biomarkers'} to unlock`
         : 'Log biomarkers to unlock';
 
+  // Render the HealthKit card area based on permission state
+  function renderHealthKitArea() {
+    if (permissionState === 'loading') {
+      return null;
+    }
+
+    if (permissionState === 'pre-request') {
+      return (
+        <Animated.View style={[s.permissionPromptCard, promptStyle]}>
+          <Text style={s.permissionPromptIcon}>⌚</Text>
+          <Text style={s.permissionPromptHeadline}>Connect Apple Health</Text>
+          <Text style={s.permissionPromptBody}>
+            Sync HRV, sleep, VO₂ max and glucose to power your longevity orbitals.
+          </Text>
+          <TouchableOpacity
+            style={s.permissionCta}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+              handleRequestPermission();
+            }}
+            disabled={connecting}
+            accessibilityRole="button"
+            accessibilityLabel="Connect Apple Health"
+          >
+            <Text style={s.permissionCtaTxt}>
+              {connecting ? 'Connecting…' : 'Connect Apple Health'}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+
+    if (permissionState === 'denied') {
+      return (
+        <Animated.View style={[s.permissionPromptCard, promptStyle]}>
+          <Text style={[s.permissionDeniedIcon, { color: Colors.warning }]}>⚠</Text>
+          <Text style={s.permissionPromptHeadline}>Apple Health access needed</Text>
+          <Text style={s.permissionPromptBody}>
+            Enable Health access in Settings to see live HRV, sleep and recovery data.
+          </Text>
+          <TouchableOpacity
+            style={s.permissionCta}
+            onPress={handleOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
+          >
+            <Text style={s.permissionCtaTxt}>Open Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDismissPrompt}
+            accessibilityRole="button"
+          >
+            <Text style={s.permissionDismissLink}>Continue without Health data</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+
+    // State B — granted: preserve existing connected card
+    return (
+      <TouchableOpacity
+        style={[s.healthKitCard, s.healthKitCardConnected]}
+        onPress={handleRefresh}
+        disabled={connecting}
+      >
+        <Text style={s.hkIcon}>✓</Text>
+        <View style={s.hkBody}>
+          <Text style={s.hkTitle}>Apple Health connected</Text>
+          <Text style={s.hkSub}>
+            {`Last sync: ${formatSyncTime(healthData.lastSynced)}`}
+          </Text>
+        </View>
+        <Text style={s.hkArrow}>↻</Text>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <LinearGradient colors={['#080D09', '#0C1410', '#0F1C14']} style={s.gradient}>
       <SafeAreaView style={s.safe}>
@@ -461,8 +588,6 @@ export default function LongevityScoreScreen() {
               <Text style={s.helpBtnTxt}>?</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Demo chip — only shown inline on orbital data orbs, not as banner */}
 
           {/* Sphere + orbit visualization */}
           <Animated.View style={[s.sphereArea, sphereContainerStyle]}>
@@ -526,7 +651,6 @@ export default function LongevityScoreScreen() {
                       <>
                         <Text style={s.dataOrbVal}>{val}</Text>
                         <Text style={s.dataOrbLabel}>{dp.label}</Text>
-                        {healthData.isDemoMode && <Text style={s.dataOrbDemoChip}>demo</Text>}
                       </>
                     ) : (
                       <>
@@ -570,7 +694,6 @@ export default function LongevityScoreScreen() {
                       <Text style={s.metricVal}>{val}</Text>
                       <Text style={s.metricLabel}>{dp.label}</Text>
                       {dp.unit !== '' && <Text style={s.metricUnit}>{dp.unit}</Text>}
-                      {healthData.isDemoMode && <Text style={s.metricDemoChip}>demo</Text>}
                     </>
                   ) : (
                     <>
@@ -600,25 +723,8 @@ export default function LongevityScoreScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Connect HealthKit */}
-          <TouchableOpacity
-            style={[s.healthKitCard, isConnected && s.healthKitCardConnected]}
-            onPress={isConnected ? handleRefresh : handleConnectHealth}
-            disabled={connecting}
-          >
-            <Text style={s.hkIcon}>{isConnected ? '✓' : '⌚'}</Text>
-            <View style={s.hkBody}>
-              <Text style={s.hkTitle}>
-                {connecting ? 'Connecting…' : isConnected ? 'Apple Health connected' : 'Connect Apple Health'}
-              </Text>
-              <Text style={s.hkSub}>
-                {isConnected
-                  ? `Last sync: ${formatSyncTime(healthData.lastSynced)}${healthData.isDemoMode ? ' · Demo data' : ''}`
-                  : 'Sync HRV, sleep, VO₂ max & glucose automatically'}
-              </Text>
-            </View>
-            <Text style={s.hkArrow}>{isConnected ? '↻' : '→'}</Text>
-          </TouchableOpacity>
+          {/* HealthKit area — three permission states */}
+          {renderHealthKitArea()}
 
           {/* Quick actions */}
           <View style={s.quickActionRow}>
@@ -632,8 +738,12 @@ export default function LongevityScoreScreen() {
             <TouchableOpacity
               style={s.quickActionBtn}
               onPress={() => {
-                if (!isConnected) handleConnectHealth();
-                else handleRefresh();
+                if (permissionState !== 'granted') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+                  handleRequestPermission();
+                } else {
+                  handleRefresh();
+                }
               }}
             >
               <Text style={s.quickActionIcon}>⌚</Text>
@@ -654,7 +764,7 @@ export default function LongevityScoreScreen() {
         <ExplainerModal
           visible={showExplainer}
           onClose={() => setShowExplainer(false)}
-          onConnectHealth={handleConnectHealth}
+          onConnectHealth={handleRequestPermission}
           nav={nav}
         />
         <TransparencyModal
@@ -784,6 +894,62 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: 'rgba(74,222,128,0.3)',
   },
   confidenceTxt: { fontSize: Typography.sizes.xs, color: Colors.viz.bioGreen, fontWeight: '600' },
+
+  // Permission prompt card (States A and C)
+  permissionPromptCard: {
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.base,
+    backgroundColor: 'rgba(20,25,22,0.85)',
+    borderWidth: 0.5,
+    borderColor: Colors.dark.border,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.base,
+  },
+  permissionPromptIcon: {
+    fontSize: 28,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  permissionDeniedIcon: {
+    fontSize: 20,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  permissionPromptHeadline: {
+    fontSize: Typography.sizes.base,
+    fontWeight: '600',
+    color: Colors.dark.text,
+    textAlign: 'center',
+  },
+  permissionPromptBody: {
+    fontSize: Typography.sizes.body,
+    fontWeight: '400',
+    color: Colors.dark.textMuted,
+    lineHeight: 22,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+  },
+  permissionCta: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.xl,
+    height: 44,
+    marginTop: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permissionCtaTxt: {
+    fontSize: Typography.sizes.base,
+    fontWeight: '600',
+    color: Colors.dark.bg,
+  },
+  permissionDismissLink: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.dark.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
 
   healthKitCard: {
     marginHorizontal: Spacing.base, marginTop: Spacing.base,
