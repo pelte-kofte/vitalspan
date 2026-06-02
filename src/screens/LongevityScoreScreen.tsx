@@ -9,6 +9,7 @@ import {
   ScrollView,
   Modal,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -123,16 +124,24 @@ export default function LongevityScoreScreen() {
   const [isConnected, setIsConnected] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const [pRaw, hRaw, bRaw, perms] = await Promise.all([
-      AsyncStorage.getItem('@vitalspan_user_profile'),
-      AsyncStorage.getItem('@vitalspan_health_data'),
-      AsyncStorage.getItem('@vitalspan_biomarkers'),
-      loadPermissionStatus(),
-    ]);
-    if (pRaw) setProfile(JSON.parse(pRaw));
-    if (hRaw) setHealthData(JSON.parse(hRaw));
-    if (bRaw) setBiomarkerEntries(JSON.parse(bRaw));
-    setIsConnected(perms?.granted ?? false);
+    try {
+      const [pRaw, hRaw, bRaw, perms] = await Promise.all([
+        AsyncStorage.getItem('@vitalspan_user_profile'),
+        AsyncStorage.getItem('@vitalspan_health_data'),
+        AsyncStorage.getItem('@vitalspan_biomarkers'),
+        loadPermissionStatus(),
+      ]);
+      if (pRaw) setProfile(JSON.parse(pRaw));
+      if (hRaw) setHealthData(JSON.parse(hRaw));
+      if (bRaw) setBiomarkerEntries(JSON.parse(bRaw));
+      setIsConnected(perms?.granted ?? false);
+    } catch (e) {
+      console.error('[LongevityScore loadAll]', e);
+      Alert.alert(
+        'Data error',
+        'Some saved data could not be read. If this persists, use Settings → Clear all data.',
+      );
+    }
   }, []);
 
   useFocusEffect(
