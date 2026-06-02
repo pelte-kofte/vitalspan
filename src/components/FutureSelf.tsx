@@ -18,10 +18,7 @@ import Svg, {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withRepeat,
-  withSequence,
   withTiming,
-  withDelay,
   Easing,
 } from 'react-native-reanimated';
 import { Colors, Spacing, Typography, Radius } from '../theme';
@@ -98,25 +95,9 @@ export default function FutureSelf({
   const dashOffset = CIRC * (1 - Math.min(Math.max(optimality, 0), 1));
 
   const fadeIn = useSharedValue(0);
-  const ringProgress = useSharedValue(CIRC);
 
   useEffect(() => {
     fadeIn.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.quad) });
-    ringProgress.value = withDelay(
-      400,
-      withTiming(dashOffset, { duration: 1200, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [dashOffset]);
-
-  const ringGlow = useSharedValue(0.5);
-  useEffect(() => {
-    ringGlow.value = withRepeat(
-      withSequence(
-        withTiming(1.0, { duration: 2400, easing: Easing.bezier(0.37, 0, 0.63, 1) }),
-        withTiming(0.5, { duration: 2400, easing: Easing.bezier(0.37, 0, 0.63, 1) }),
-      ),
-      -1, false,
-    );
   }, []);
 
   const containerStyle = useAnimatedStyle(() => ({ opacity: fadeIn.value }));
