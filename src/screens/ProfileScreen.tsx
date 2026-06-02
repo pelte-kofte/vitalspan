@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
+import { loadPermissionStatus } from '../lib/healthkit';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -43,10 +44,11 @@ export default function ProfileScreen() {
   const [editSex, setEditSex] = useState<'male' | 'female'>('male');
   const [editConditions, setEditConditions] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [healthConnected, setHealthConnected] = useState(false);
 
   const loadProfile = useCallback(() => {
     return AsyncStorage.getItem('@vitalspan_user_profile')
-      .then(raw => {
+      .then(async raw => {
         if (raw) {
           const p = JSON.parse(raw) as UserProfile;
           setProfile(p);
@@ -55,6 +57,8 @@ export default function ProfileScreen() {
           setEditSex(p.sex);
           setEditConditions(p.conditions ?? []);
         }
+        const perms = await loadPermissionStatus();
+        setHealthConnected(perms?.granted ?? false);
       })
       .catch(console.error);
   }, []);
@@ -66,6 +70,11 @@ export default function ProfileScreen() {
     setRefreshing(true);
     await loadProfile();
     setRefreshing(false);
+  }
+
+  async function handleDisconnect() {
+    await AsyncStorage.multiRemove(['@vitalspan_health_permissions', '@vitalspan_health_data']);
+    setHealthConnected(false);
   }
 
   function startEdit() {
@@ -342,6 +351,26 @@ export default function ProfileScreen() {
           <Text style={s.settingsCardArrow}>→</Text>
         </TouchableOpacity>
 
+        {healthConnected && (
+          <TouchableOpacity
+            style={s.disconnectCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+              Alert.alert(
+                'Disconnect Apple Health',
+                'Orbitals will revert to manual-entry data. You can reconnect anytime.',
+                [
+                  { text: 'Keep Connected', style: 'cancel' },
+                  { text: 'Disconnect Health', style: 'destructive', onPress: handleDisconnect },
+                ],
+              );
+            }}
+          >
+            <Text style={[s.settingsCardTxt, { color: Colors.danger }]}>Disconnect Apple Health</Text>
+            <Text style={[s.settingsCardArrow, { color: Colors.danger }]}>→</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
@@ -436,6 +465,19 @@ const s = StyleSheet.create({
     ...Elevation.sm,
   },
   aboutCard: {
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    ...Elevation.sm,
+  },
+  disconnectCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.sm,
     backgroundColor: Colors.Beige.card,
