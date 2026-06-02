@@ -233,7 +233,21 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. When HealthKit permissions are denied, the LongevityScore screen shows a "Connect Health" prompt with a CTA — not stale demo numbers — and tapping it navigates to Profile/Settings where the user can connect Apple Health
   3. User can open the Articles section and see a list of longevity-relevant PubMed articles (title, journal, date, abstract summary); articles load from cache on subsequent opens without waiting for a network request
   4. Article recommendations visibly reflect the user's biomarker profile — a user with elevated CRP sees inflammation-focused articles surface higher than metabolic articles
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 10-01-PLAN.md — Install react-native-health + app.json HealthKit entitlement + upgrade healthkit.ts to real reads (HK-01, HK-02)
+- [ ] 10-02-PLAN.md — Create Supabase articles table SQL + create articleService.ts with NCBI fetch + ranking (ART-01, ART-03, ART-04)
+
+**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+- [ ] 10-03-PLAN.md — Upgrade LongevityScoreScreen three-state permission flow + ProfileScreen disconnect row (HK-01, HK-02, HK-03, HK-04)
+- [ ] 10-04-PLAN.md — Create ArticlesScreen + ArticleCard + wire AppNavigator + Dashboard Research CTA (ART-02, ART-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 10-05-PLAN.md — Source audits + Supabase table creation checkpoint + EAS preview build + UI verification (HK-01–HK-04, ART-01–ART-04)
+
 **UI hint**: yes
 
 ### Phase 11: Supplement & Drug Database
@@ -302,7 +316,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
-| 10. Apple Health + Articles | v3.0 | 0/TBD | Not started | - |
+| 10. Apple Health + Articles | v3.0 | 0/5 | In progress | - |
 | 11. Supplement & Drug Database | v3.0 | 0/TBD | Not started | - |
 | 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
