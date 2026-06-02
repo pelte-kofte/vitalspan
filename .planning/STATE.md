@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v3.0 — Intelligence & Growth (defining requirements)
+**Current focus:** v3.0 — Intelligence & Growth (roadmap created, ready for Phase 10 planning)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 10 (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-02 — Milestone v3.0 started: Intelligence & Growth. 5 phases planned (10–14): Apple Health + Articles, Supplement/Drug DB, Exercise UI Overhaul, Design System, Auth & Login.
+Status: Roadmap created — ready for /gsd:plan-phase 10
+Last activity: 2026-06-02 — v3.0 roadmap created. 5 phases (10–14): Apple Health + Articles, Supplement/Drug DB, Exercise UI Overhaul, Design System, Auth & Login. 29 requirements mapped, coverage 100%.
 
 Progress: [░░░░░░░░░░] 0% (v3.0 starting)
 
@@ -54,6 +54,9 @@ Recent decisions affecting current work:
 - 04-P2: Route determination (setInitialRoute) runs before initSupabaseSession() — AsyncStorage profile check is the gating dependency, Supabase is non-blocking
 - 08-P1: biomarker_entries id column is text PK — preserves AsyncStorage-generated string IDs, no UUID remapping
 - 08-P1: biomarker_entries is append-only — SELECT + INSERT RLS policies only, no UPDATE or DELETE from client
+- v3.0: HealthKit mock layer already in src/lib/healthkit.ts — Phase 10 upgrades the mock to real expo-health entitlement
+- v3.0: Articles cached in Supabase articles table — avoid repeat PubMed API calls; 24-hour background refresh ceiling
+- v3.0: Auth uses linkIdentity() for anonymous-to-authenticated migration — existing local data preserved on account creation
 
 ### Pending Todos
 
@@ -61,9 +64,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 5: No blockers identified yet — plan-phase 5 is the next step
-- Phase 4 (resolved): Supabase RLS anon read policy — verify in dashboard before client fetch code in Phase 7
-- Phase 4 (resolved): polyfill ordering constraint — enforced in supabase.ts line 1
+- Phase 10: expo-health package requires HealthKit entitlement in app.json — verify Expo SDK 54 compatibility before install
+- Phase 10: PubMed NCBI API is free / no key required — confirm rate limits before caching strategy is finalized
+- Phase 14: linkIdentity() behavior with existing anonymous session must be tested — confirm Supabase JS client version supports it
 
 ## Deferred Items
 
@@ -71,14 +74,12 @@ Items carried forward to future milestone:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| HealthKit | Real HK integration | v3+ | v1 init |
-| Monetization | RevenueCat paywall | v3+ | v1 init |
-| Notifications | Protocol + labs reminders | v3+ | v1 init |
-| Biomarkers | Trend charts / sparklines | v3+ | v1 init |
-| Auth | Email/password + linkIdentity() | v3 | v2 planning |
+| Monetization | RevenueCat paywall | v4+ | v1 init |
+| Notifications | Protocol + labs reminders | v4+ | v1 init |
+| Biomarkers | Trend charts / sparklines | v4+ | v1 init |
 
 ## Session Continuity
 
-Last session: 2026-06-01
-Stopped at: Phase 8 complete. Supabase sync write path shipped. Ready for /gsd:discuss-phase 9 or /gsd:plan-phase 9 (PhenoAge Fix & Release Quality).
+Last session: 2026-06-02
+Stopped at: v3.0 roadmap created. Phases 10-14 defined. Ready for /gsd:plan-phase 10 (Apple Health + Articles).
 Resume file: .planning/STATE.md

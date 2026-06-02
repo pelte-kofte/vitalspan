@@ -1,13 +1,14 @@
-# Roadmap: Vitalspan v2.0 — Premium, Backend & Exercise
+# Roadmap: Vitalspan
 
 ## Milestones
 
 - ✅ **v1.0 TestFlight** - Phases 1-3 (shipped 2026-05-25)
-- 🚧 **v2.0 Premium, Backend & Exercise** - Phases 4-9 (in progress)
+- ✅ **v2.0 Premium, Backend & Exercise** - Phases 4-9 (complete 2026-06-02)
+- 🚧 **v3.0 Intelligence & Growth** - Phases 10-14 (in progress)
 
 ## Overview
 
-v1 shipped a functional, credible prototype to TestFlight. v2 transforms it into a product: a secure Supabase-backed foundation is laid first (auth + secrets), then the visual layer is upgraded in two steps (token foundation, then warm-screen application), then the exercise screen and reference data tables are built on top of those foundations, then the biomarker write/sync path is added, and finally the PhenoAge formula is corrected and release quality is verified. Each phase delivers a coherent capability that the next phase can build on. The order eliminates rework — you never apply theme tokens before they exist, and you never write sync code before the auth layer is stable.
+v2 shipped a backend-connected, visually coherent product to TestFlight. v3 elevates Vitalspan from a manual-entry tracker to an intelligent longevity platform: live Apple Health data replaces demo orbitals, a PubMed article feed surfaces research personalized to the user's biomarker profile, the supplement and drug database is expanded with evidence-graded longevity compounds, every exercise in the library gets fitness-app-quality illustrations and muscle maps, the visual layer is unified under a clinical-premium design system, and full Supabase Auth ships with guest mode and seamless anonymous-to-authenticated data migration. Each phase builds on the last — live health data before articles that reference it, complete supplement data before the design system that renders it, design system before auth screens that must match it.
 
 ---
 
@@ -53,22 +54,8 @@ v1 shipped a functional, credible prototype to TestFlight. v2 transforms it into
 
 ---
 
-## Phases
-
-**Phase Numbering:**
-- Integer phases (4, 5, 6...): Planned milestone work
-- Decimal phases (4.1, 4.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 4: Supabase Foundation** - Establish secure Supabase client, anonymous auth, and JWT lifecycle management (P1 complete; P2 complete)
-- [x] **Phase 5: Design Tokens & Icons** - Add the Beige token block and custom SVG tab bar icons as visual building blocks for the UI overhaul (complete 2026-05-30)
-- [x] **Phase 6: Warm UI Overhaul** - Apply Beige tokens to all list/data screens and add motivating empty states, preserving the dark neural aesthetic on immersive screens (complete 2026-05-31)
-- [x] **Phase 7: Reference Data & Exercise Screen** - Seed Supabase reference tables and rebuild the exercise screen with library, log grouping, and intensity visuals (complete 2026-06-01)
-- [x] **Phase 8: Biomarker Sync Write Path** - Add fire-and-forget Supabase sync for new biomarker entries and one-time migration of existing AsyncStorage history (complete 2026-06-01)
-- [x] **Phase 9: PhenoAge Fix & Release Quality** - Correct the biological age calculation and verify zero crashes and zero TypeScript errors before v2 submission
-
-## Phase Details
+<details>
+<summary>✅ v2.0 Premium, Backend & Exercise (Phases 4-9) — COMPLETE 2026-06-02</summary>
 
 ### Phase 4: Supabase Foundation
 **Goal**: The app initializes a Supabase session on first launch, the session persists across restarts, JWT never expires silently after backgrounding, and no secrets exist in source code
@@ -89,10 +76,6 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 04-P2-PLAN.md — Wire App.tsx anonymous auth init + AppState JWT refresh + human verification (SUPA-02, SUPA-03)
-
-**Cross-cutting constraints:**
-- `react-native-url-polyfill/auto` must be first import in supabase.ts (P1 + P2 both reference this file)
-- No Supabase URL or anon key in any source file — `process.env.EXPO_PUBLIC_*` only (P1, P2)
 
 **UI hint**: no
 
@@ -134,20 +117,15 @@ Plans:
 Plans:
 
 **Wave 1** *(run in parallel)*
-- [ ] 06-01-PLAN.md — Fix Colors.Beige.textMuted token + migrate SettingsScreen + AboutScreen (THEME-02, THEME-03, THEME-04, THEME-05)
-- [ ] 06-02-PLAN.md — Migrate ProtocolScreen + upgrade empty state (THEME-02, THEME-04, THEME-05, THEME-06)
+- [x] 06-01-PLAN.md — Fix Colors.Beige.textMuted token + migrate SettingsScreen + AboutScreen (THEME-02, THEME-03, THEME-04, THEME-05)
+- [x] 06-02-PLAN.md — Migrate ProtocolScreen + upgrade empty state (THEME-02, THEME-04, THEME-05, THEME-06)
 
 **Wave 2** *(blocked on Wave 1 completion, run in parallel)*
 - [x] 06-03-PLAN.md — Migrate BiomarkerDetailScreen + BiomarkerEntryScreen (THEME-02, THEME-04, THEME-05)
 - [x] 06-04-PLAN.md — Migrate ExerciseScreen + add motivating empty state (THEME-02, THEME-04, THEME-05, THEME-06)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 06-05-PLAN.md — Migrate ProfileScreen + add motivating empty state + full phase audit + human visual checkpoint (THEME-02, THEME-03, THEME-04, THEME-05, THEME-06)
-
-**Cross-cutting constraints:**
-- Colors.Beige.textMuted must be fixed to '#6B6B64' (Plan 01) before any screen is verified
-- Dark screens (DashboardScreen, LandingScreen, LongevityScoreScreen) must not be touched in any plan
-- Every warm screen must have useFocusEffect + setStatusBarStyle('dark')
+- [x] 06-05-PLAN.md — Migrate ProfileScreen + add motivating empty state + full phase audit + human visual checkpoint (THEME-02, THEME-03, THEME-04, THEME-05, THEME-06)
 
 **UI hint**: yes
 
@@ -194,7 +172,7 @@ Plans:
 **Wave 1**
 - [x] 08-01-PLAN.md — Create src/db/create_biomarker_entries.sql — table schema + RLS policies (SUPA-06, SUPA-07)
 
-**Wave 2** *(blocked on Wave 1 — table contract must exist before service is written)*
+**Wave 2** *(blocked on Wave 1)*
 - [x] 08-02-PLAN.md — Create src/lib/biomarkerWriteService.ts — syncEntry + migrateHistory (SUPA-06, SUPA-07)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -223,18 +201,95 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 09-P3-PLAN.md — Update 4 UI consumers for null biologicalAge + full flow iOS simulator verification + EAS preview build (QUAL-02)
 
-**Cross-cutting constraints:**
-- phenoAge.verify.ts is dev-only — not imported by any app code
-- No new packages installed in any plan
-- No AsyncStorage key changes
-
 **UI hint**: no
+
+</details>
+
+---
+
+## Phases — v3.0 Intelligence & Growth
+
+**Phase Numbering:**
+- Integer phases (10, 11, 12...): Planned milestone work
+- Decimal phases (10.1, 10.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 10: Apple Health + Articles** - Replace demo orbital values with live HealthKit data and add a PubMed-powered longevity article feed
+- [ ] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
+- [ ] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary
+- [ ] **Phase 13: UI / Design System** - Replace patchwork styling with a clinical-premium design system: intentional color tokens, full SVG icon conversion, verified rendering, documented typography scale, and spacing audit
+- [ ] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration
+
+## Phase Details
+
+### Phase 10: Apple Health + Articles
+**Goal**: LongevityScore orbitals show live Apple Health data (HRV, sleep, recovery, glucose, fitness) instead of demo values, and users can read PubMed longevity articles personalized to their current biomarker profile
+**Mode:** standard
+**Depends on**: Phase 9
+**Requirements**: HK-01, HK-02, HK-03, HK-04, ART-01, ART-02, ART-03, ART-04
+**Success Criteria** (what must be TRUE):
+  1. On first launch after install, the app requests HealthKit read permissions; granting them causes LongevityScore orbitals to display real values instead of demo placeholders within the same session
+  2. When HealthKit permissions are denied, the LongevityScore screen shows a "Connect Health" prompt with a CTA — not stale demo numbers — and tapping it navigates to Profile/Settings where the user can connect Apple Health
+  3. User can open the Articles section and see a list of longevity-relevant PubMed articles (title, journal, date, abstract summary); articles load from cache on subsequent opens without waiting for a network request
+  4. Article recommendations visibly reflect the user's biomarker profile — a user with elevated CRP sees inflammation-focused articles surface higher than metabolic articles
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 11: Supplement & Drug Database
+**Goal**: The protocol screen surfaces 8 evidence-graded longevity supplements and 5 drug classes with mechanism summaries, and the interaction checker evaluates the user's entire current stack with color-coded flags and plain-language recommendations
+**Mode:** standard
+**Depends on**: Phase 10
+**Requirements**: SUPP-01, SUPP-02, SUPP-03, SUPP-04
+**Success Criteria** (what must be TRUE):
+  1. User browsing the supplement library sees all 8 longevity supplements (Urolithin A, NMN, NR, Spermidine, Fisetin, Quercetin, Rapamycin, Metformin) with dose, timing, evidence grade (A/B/C), and a one-line longevity relevance summary
+  2. User browsing the drug database sees all 5 drug classes (Ibuprofen, Aspirin, Statins, Levothyroxine, Metformin) with the same field structure
+  3. User running the interaction checker on a multi-item stack sees results grouped by severity (red/yellow/green flags) with a plain-language explanation and a specific recommendation for each flagged pair
+  4. Every interaction flag shown to the user includes an actionable recommendation — no flag is displayed without a "what to do" instruction
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 12: Exercise UI Overhaul
+**Goal**: Every exercise in the 60-exercise library displays an SVG illustration, a neural-dot muscle map with primary/secondary groups highlighted, a form cue, and longevity-optimized sets/reps; the library is filterable by muscle group; Dashboard shows a weekly movement summary
+**Mode:** standard
+**Depends on**: Phase 11
+**Requirements**: EX-01, EX-02, EX-03, EX-04, EX-05, EX-06
+**Success Criteria** (what must be TRUE):
+  1. Opening any exercise detail shows an SVG movement illustration, a neural-dot muscle map with primary muscles in accent color and secondary muscles in muted color, a 1–2 sentence form cue, and a longevity-optimized sets/reps recommendation
+  2. User can tap a muscle region on the exercise library's visual muscle map selector and see the list filtered to exercises targeting that group; clearing the filter restores the full list
+  3. Dashboard displays a weekly movement summary card showing total sessions, total active minutes, and the most-trained muscle group for the current week
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 13: UI / Design System
+**Goal**: The entire app is rendered using intentional clinical-premium color tokens from `src/theme/index.ts`, all icons are consistent SVG neural-dot style with verified production rendering, typography uses a documented scale with no hardcoded sizes, and all spacing uses `Spacing.*` tokens
+**Mode:** standard
+**Depends on**: Phase 12
+**Requirements**: DS-01, DS-02, DS-03, DS-04, DS-05
+**Success Criteria** (what must be TRUE):
+  1. A developer opening `src/theme/index.ts` sees the full clinical-premium token set (`primary`, `surface`, `surfaceElevated`, `accent`, `accentMuted`, `semantic.*`) and the documented typography scale; no screen file outside dynamic styles contains hardcoded hex values, font sizes, or margin/padding numbers
+  2. Every icon in the app — across all screens, modals, and empty states — renders as a consistent SVG neural-dot style with no placeholder icons, question marks, or emoji remaining
+  3. An EAS production build installs and runs with all SVG icons rendering correctly on device — no blank spaces, missing glyphs, or native module errors
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 14: Auth & Login
+**Goal**: Unauthenticated users are greeted by a Welcome screen and can sign up, log in, or continue as guest; authenticated users have session persistence, email verification, and their data linked to their Supabase `user_id` with anonymous data migrated on account creation
+**Mode:** standard
+**Depends on**: Phase 13
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09
+**Success Criteria** (what must be TRUE):
+  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, links the existing anonymous session via `linkIdentity()`, and all previously entered data remains intact after account creation
+  2. A returning user logging in with correct credentials is taken directly to the main app with their biomarker history visible; a user logging in with wrong credentials sees a specific error message ("Incorrect password" not "Something went wrong")
+  3. User who forgets password can trigger a reset email from the Login screen and sees a confirmation screen; after clicking the reset link, they can set a new password and log in successfully
+  4. After backgrounding the app for any duration and reopening it, the user remains logged in without re-entering credentials; logging out clears the session, returns to the Welcome screen, and local AsyncStorage data is still accessible in guest mode
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
-(Note: Phase 8 depends on Phase 4, not Phase 7 — can run in parallel with Phase 7 if needed)
+Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -247,3 +302,8 @@ Phases execute in numeric order: 4 → 5 → 6 → 7 → 8 → 9
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
+| 10. Apple Health + Articles | v3.0 | 0/TBD | Not started | - |
+| 11. Supplement & Drug Database | v3.0 | 0/TBD | Not started | - |
+| 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
+| 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
+| 14. Auth & Login | v3.0 | 0/TBD | Not started | - |
