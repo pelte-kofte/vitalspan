@@ -326,31 +326,15 @@ export default function LongevityScoreScreen() {
   async function handleRequestPermission() {
     setConnecting(true);
     try {
-      await requestHealthKitPermissions();
-      // Probe HRV to determine if user actually granted access
-      // iOS does not report denial status directly (privacy design)
-      const hData = await loadHealthData();
-      const syncResult = await connectAndSync();
-      const effectiveData = syncResult.success && syncResult.data ? syncResult.data : (hData ?? {});
-      if (effectiveData.hrv != null) {
-        // HRV non-null = reads succeeded = granted
-        await AsyncStorage.setItem('@vitalspan_health_permissions', JSON.stringify({
-          granted: true,
-          categories: { heart: true, sleep: true, activity: true, glucose: true },
-          requestedAt: new Date().toISOString(),
-          hasRequestedHealthKit: true,
-        }));
-        setHealthData(effectiveData);
+      const perms = await requestHealthKitPermissions();
+      if (perms.granted) {
+        // initHealthKit succeeded — load whatever data is available (no Watch = empty orbitals, not denied)
+        const syncResult = await connectAndSync();
+        if (syncResult.success && syncResult.data) setHealthData(syncResult.data);
         setPermissionState('granted');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       } else {
-        // HRV null after init = iOS denied (empty reads heuristic)
-        await AsyncStorage.setItem('@vitalspan_health_permissions', JSON.stringify({
-          granted: false,
-          categories: { heart: false, sleep: false, activity: false, glucose: false },
-          requestedAt: new Date().toISOString(),
-          hasRequestedHealthKit: true,
-        }));
+        // initHealthKit error callback fired — user denied at system level
         setPermissionState('denied');
         promptOpacity.value = withTiming(1.0, { duration: 400 });
       }

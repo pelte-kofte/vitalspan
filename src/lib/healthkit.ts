@@ -242,8 +242,8 @@ export async function syncHealthData(): Promise<SyncResult> {
     for (const s of sleepResults) {
       const dur = new Date(s.endDate).getTime() - new Date(s.startDate).getTime();
       const stage = s.value as unknown as string; // runtime value is a string stage; library type is incorrect
-      if (stage === 'DEEP') sleepDeepMs += dur;
-      else if (stage === 'REM') sleepRemMs += dur;
+      if (stage === 'DEEP') { sleepDeepMs += dur; sleepTotalMs += dur; }
+      else if (stage === 'REM') { sleepRemMs += dur; sleepTotalMs += dur; }
       else if (stage === 'ASLEEP' || stage === 'CORE') sleepTotalMs += dur;
     }
     const sleepHours = sleepTotalMs > 0 ? Math.round((sleepTotalMs / 3600000) * 10) / 10 : undefined;

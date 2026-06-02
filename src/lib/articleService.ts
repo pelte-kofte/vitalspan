@@ -53,9 +53,15 @@ export const BIOMARKER_QUERIES: Record<string, string> = {
 // Internal helpers ------------------------------------------------------------
 
 async function searchPubMed(query: string, retmax = 5): Promise<string[]> {
-  const url = `${ESEARCH_BASE}?db=pubmed&term=${encodeURIComponent(query)}&retmax=${retmax}&retmode=json`;
-  const json = (await (await fetch(url)).json()) as NCBIESearchResponse;
-  return json.esearchresult.idlist;
+  try {
+    const url = `${ESEARCH_BASE}?db=pubmed&term=${encodeURIComponent(query)}&retmax=${retmax}&retmode=json`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as NCBIESearchResponse;
+    return json?.esearchresult?.idlist ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function fetchAbstract(pmid: string): Promise<string | null> {
@@ -80,21 +86,29 @@ async function fetchAllBiomarkerArticles(): Promise<Article[]> {
   if (allPmids.length === 0) return [];
 
   // Phase 2: one eSummary batch for all unique PMIDs
-  const summaryUrl = `${ESUMMARY_BASE}?db=pubmed&id=${allPmids.join(',')}&retmode=json`;
-  const summaryJson = (await (await fetch(summaryUrl)).json()) as NCBISummaryResponse;
+  let summaryJson: NCBISummaryResponse = { result: {} };
+  try {
+    const summaryUrl = `${ESUMMARY_BASE}?db=pubmed&id=${allPmids.join(',')}&retmode=json`;
+    const summaryRes = await fetch(summaryUrl);
+    if (summaryRes.ok) summaryJson = (await summaryRes.json()) as NCBISummaryResponse;
+  } catch {
+    // eSummary failed — return empty rather than crash
+    return [];
+  }
 
-  // Phase 3: eFetch abstracts — 350ms delay between calls (3 req/sec ceiling)
+  // Phase 3: eFetch abstracts — delay AFTER each call (3 req/sec ceiling)
   const articles: Article[] = [];
   for (const pmid of allPmids) {
     const meta = summaryJson.result[pmid];
     if (!meta) continue;
-    await new Promise<void>((r) => setTimeout(r, 350));
+    const abstract = await fetchAbstract(pmid);
+    await new Promise<void>((r) => setTimeout(r, 350)); // delay after fetch, not before
     articles.push({
       pmid,
       title: meta.title,
       journal: meta.fulljournalname,
       pub_date: meta.pubdate,
-      abstract: await fetchAbstract(pmid),
+      abstract,
       biomarker_tags: pmidToKeys.get(pmid) ?? [],
       fetched_at: new Date().toISOString(),
     });
