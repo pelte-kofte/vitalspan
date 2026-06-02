@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v2.0 milestone complete — all 9 phases shipped
+**Current focus:** v3.0 — Intelligence & Growth (defining requirements)
 
 ## Current Position
 
-Phase: 9 of 9 (PhenoAge Fix & Release Quality — Complete)
-Plan: 3/3
-Status: Complete (2026-06-02)
-Last activity: 2026-06-02 — Phase 9 complete: PhenoAge Gompertz formula corrected, 15/15 behavioral tests pass, 3/3 Levine reference cases pass, zero TS errors, zero console.log in app, zero hardcoded credentials, iOS simulator verified, EAS preview build passed. 2 code-review items carried forward (CR-01: stale profile.biologicalAge, CR-02: loadAll try/catch).
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-02 — Milestone v3.0 started: Intelligence & Growth. 5 phases planned (10–14): Apple Health + Articles, Supplement/Drug DB, Exercise UI Overhaul, Design System, Auth & Login.
 
-Progress: [██████████] 100% (v2.0 complete — all phases 1-9 shipped)
+Progress: [░░░░░░░░░░] 0% (v3.0 starting)
 
 ## Performance Metrics
 

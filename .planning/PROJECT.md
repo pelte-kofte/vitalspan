@@ -8,17 +8,17 @@ Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It let
 
 Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
 
-## Current Milestone: v2.0 Premium — Design, Backend & Exercise
+## Current Milestone: v3.0 — Intelligence & Growth
 
-**Goal:** Transform Vitalspan from a functional prototype into a polished, Supabase-backed product with a premium feel, accurate science, and a purpose-built exercise hub.
+**Goal:** Elevate Vitalspan from a manual-entry tracker to an intelligent longevity platform — live Apple Health data, PubMed-powered longevity articles, a complete supplement/drug interaction database, fitness-app-quality exercise UI, a clinical design system, and full Supabase authentication.
 
 **Target features:**
-- Selective UI/UX overhaul (warm beige/cream on list screens and cards; dark neural preserved on immersive screens; custom SVG tab bar icons; premium card layouts; motivating empty states)
-- Supabase integration — biomarker reference data + exercise database from Supabase tables; user biomarker history synced to Supabase; auth layer
-- PhenoAge formula fix — correct the formula currently returning wrong biological age values
-- New purpose-built exercise screen — daily log, exercise library (from Supabase), intensity visuals, history
-- Security — all API keys (Supabase URL + anon key) in `.env`, not hardcoded
-- Release quality — zero crashes, TypeScript strict clean
+- Apple HealthKit integration — live HRV, sleep, recovery, glucose, fitness data replacing demo orbitals in LongevityScore
+- PubMed NCBI article feed — longevity/PhenoAge/healthspan articles cached in Supabase, personalized by user biomarkers
+- Expanded supplement + drug database — 8 longevity supplements, 5 drug classes, evidence grades, interaction checker
+- Exercise UI overhaul — per-exercise SVG illustrations, muscle maps, form cues, longevity-optimized sets/reps
+- Clinical design system — intentional color tokens, full SVG neural-dot icon system, typography audit
+- Full Supabase Auth — sign up/login/reset/verify, session persistence, guest mode, profile linked to user ID
 
 ## Requirements
 
