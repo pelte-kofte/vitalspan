@@ -238,8 +238,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 
 **Wave 1** *(run in parallel)*
-- [ ] 10-01-PLAN.md — Install react-native-health + app.json HealthKit entitlement + upgrade healthkit.ts to real reads (HK-01, HK-02)
-- [ ] 10-02-PLAN.md — Create Supabase articles table SQL + create articleService.ts with NCBI fetch + ranking (ART-01, ART-03, ART-04)
+- [x] 10-01-PLAN.md — Install react-native-health + app.json HealthKit entitlement + upgrade healthkit.ts to real reads (HK-01, HK-02)
+- [x] 10-02-PLAN.md — Create Supabase articles table SQL + create articleService.ts with NCBI fetch + ranking (ART-01, ART-03, ART-04)
 
 **Wave 2** *(blocked on Wave 1 completion, run in parallel)*
 - [ ] 10-03-PLAN.md — Upgrade LongevityScoreScreen three-state permission flow + ProfileScreen disconnect row (HK-01, HK-02, HK-03, HK-04)
