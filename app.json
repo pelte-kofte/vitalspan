@@ -14,7 +14,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.vitalspan.app",
-      "newArchEnabled": false,
       "entitlements": {
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.access": []
@@ -42,9 +41,10 @@
     "plugins": [
       "expo-font",
       [
-        "react-native-health",
+        "@kingstinct/react-native-healthkit",
         {
-          "healthSharePermission": "Vitalspan reads your health data to display longevity metrics on your dashboard."
+          "NSHealthShareUsageDescription": "Vitalspan reads your health data to display longevity metrics on your dashboard.",
+          "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
         }
       ]
     ]

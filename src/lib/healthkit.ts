@@ -1,29 +1,38 @@
 /**
- * HealthKit integration layer.
+ * HealthKit integration via @kingstinct/react-native-healthkit (Nitro Modules, New Architecture).
+ * Replaces react-native-health (old Bridge API — incompatible with RN New Arch / reanimated v4).
  *
- * Real HealthKit reads via react-native-health (Agency Enterprise).
- * Requires EAS build — does not run in Expo Go.
- * Entitlement: com.apple.developer.healthkit (set in app.json)
- *
- * Data types read: HRV (RMSSD), resting HR, VO2max, sleep analysis,
+ * Data types read: HRV (SDNN ms), resting HR, VO2max, sleep analysis,
  * respiratory rate, steps, mindful minutes, blood glucose.
  */
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import AppleHealthKit, { HealthKitPermissions, HealthValue } from 'react-native-health';
+import {
+  isHealthDataAvailable,
+  requestAuthorization,
+  queryQuantitySamples,
+  queryCategorySamples,
+  CategoryValueSleepAnalysis,
+} from '@kingstinct/react-native-healthkit';
+import type { ObjectTypeIdentifier } from '@kingstinct/react-native-healthkit';
 
 const STORAGE_KEY = '@vitalspan_health_data';
 const PERMISSIONS_KEY = '@vitalspan_health_permissions';
 
-/**
- * Module-level initialization guard.
- * Reads must not execute before initHealthKit callback fires (Pitfall 2).
- */
-let _isInitialized = false;
+const READ_TYPES: readonly ObjectTypeIdentifier[] = [
+  'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+  'HKQuantityTypeIdentifierRestingHeartRate',
+  'HKQuantityTypeIdentifierVO2Max',
+  'HKCategoryTypeIdentifierSleepAnalysis',
+  'HKQuantityTypeIdentifierRespiratoryRate',
+  'HKQuantityTypeIdentifierStepCount',
+  'HKCategoryTypeIdentifierMindfulSession',
+  'HKQuantityTypeIdentifierBloodGlucose',
+];
 
 export interface HealthData {
-  hrv?: number;               // ms, rmssd — Heart Rate Variability
+  hrv?: number;               // ms, SDNN
   restingHeartRate?: number;  // bpm
   vo2max?: number;            // mL/kg/min
   sleepHours?: number;        // last night total
@@ -35,7 +44,7 @@ export interface HealthData {
   glucose?: number;           // mg/dL, last reading
   recovery?: number;          // 0–100 composite score
   lastSynced?: string;        // ISO date
-  isDemoMode?: boolean;       // true when using mock data
+  isDemoMode?: boolean;
 }
 
 export interface PermissionStatus {
@@ -47,7 +56,7 @@ export interface PermissionStatus {
     glucose: boolean;
   };
   requestedAt?: string;
-  hasRequestedHealthKit?: boolean; // first-visit gate flag (D-05); Plan 03 depends on this field
+  hasRequestedHealthKit?: boolean;
 }
 
 export interface SyncResult {
@@ -57,28 +66,12 @@ export interface SyncResult {
   isDemoMode?: boolean;
 }
 
-const PERMISSIONS: HealthKitPermissions = {
-  permissions: {
-    read: [
-      AppleHealthKit.Constants.Permissions.HeartRateVariability,
-      AppleHealthKit.Constants.Permissions.RestingHeartRate,
-      AppleHealthKit.Constants.Permissions.Vo2Max,
-      AppleHealthKit.Constants.Permissions.SleepAnalysis,
-      AppleHealthKit.Constants.Permissions.RespiratoryRate,
-      AppleHealthKit.Constants.Permissions.Steps,
-      AppleHealthKit.Constants.Permissions.MindfulSession,
-      AppleHealthKit.Constants.Permissions.BloodGlucose,
-    ],
-    write: [],
-  },
-};
+export type HealthState = 'neutral' | 'good' | 'poor' | 'stressed';
 
-/** Returns true if HealthKit is available on this device/platform. */
 export function isHealthKitAvailable(): boolean {
-  return Platform.OS === 'ios';
+  return Platform.OS === 'ios' && isHealthDataAvailable();
 }
 
-/** Load saved permission status. */
 export async function loadPermissionStatus(): Promise<PermissionStatus | null> {
   try {
     const raw = await AsyncStorage.getItem(PERMISSIONS_KEY);
@@ -88,96 +81,41 @@ export async function loadPermissionStatus(): Promise<PermissionStatus | null> {
   }
 }
 
-/** Save permission status. */
 async function savePermissionStatus(status: PermissionStatus): Promise<void> {
-  await AsyncStorage.setItem(PERMISSIONS_KEY, JSON.stringify(status));
+  await AsyncStorage.setItem(PERMISSIONS_KEY, JSON.stringify(status)).catch(() => null);
 }
 
-/**
- * Request HealthKit permissions via AppleHealthKit.initHealthKit.
- * Calls the iOS system HealthKit permission prompt.
- * Sets _isInitialized = true on success so reads can proceed.
- *
- * NOTE: iOS does not report "denied" status to the app (privacy design).
- * If the user denies, initHealthKit may still succeed but reads return empty.
- * Per Pitfall 2: all reads are guarded by _isInitialized flag.
- */
-export function requestHealthKitPermissions(): Promise<PermissionStatus> {
-  return new Promise((resolve) => {
-    if (!isHealthKitAvailable()) {
-      const status: PermissionStatus = {
-        granted: false,
-        categories: { heart: false, sleep: false, activity: false, glucose: false },
-        hasRequestedHealthKit: false,
-      };
-      resolve(status);
-      return;
-    }
-
-    AppleHealthKit.initHealthKit(PERMISSIONS, (error: string) => {
-      if (error) {
-        console.error('[HealthKit] initHealthKit error', error);
-        _isInitialized = false;
-        const status: PermissionStatus = {
-          granted: false,
-          categories: { heart: false, sleep: false, activity: false, glucose: false },
-          requestedAt: new Date().toISOString(),
-          hasRequestedHealthKit: true,
-        };
-        savePermissionStatus(status).catch(() => null);
-        resolve(status);
-        return;
-      }
-
-      _isInitialized = true;
-      const status: PermissionStatus = {
-        granted: true,
-        categories: { heart: true, sleep: true, activity: true, glucose: true },
-        requestedAt: new Date().toISOString(),
-        hasRequestedHealthKit: true,
-      };
-      savePermissionStatus(status)
-        .then(() => resolve(status))
-        .catch(() => resolve(status));
-    });
-  });
-}
-
-/**
- * Wrap a react-native-health callback method into a Promise.
- * Returns undefined on error or empty results rather than throwing.
- */
-function wrapSample<T>(
-  fn: (opts: Record<string, unknown>, cb: (err: string, results: T[]) => void) => void,
-  opts: Record<string, unknown>,
-): Promise<T[]> {
-  return new Promise((resolve) => {
-    fn(opts, (err: string, results: T[]) => {
-      if (err || !results) {
-        resolve([]);
-      } else {
-        resolve(results);
-      }
-    });
-  });
-}
-
-/**
- * Pull latest data from HealthKit and persist to AsyncStorage.
- * All 8 metric reads run concurrently via Promise.all.
- * Guard: returns error if _isInitialized is false (initHealthKit not yet called).
- */
-export async function syncHealthData(): Promise<SyncResult> {
-  if (!_isInitialized) {
-    return { success: false, error: 'HealthKit not initialized — call requestHealthKitPermissions first' };
-  }
-
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-
+export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
   try {
+    await requestAuthorization({ toRead: READ_TYPES });
+    const status: PermissionStatus = {
+      granted: true,
+      categories: { heart: true, sleep: true, activity: true, glucose: true },
+      requestedAt: new Date().toISOString(),
+      hasRequestedHealthKit: true,
+    };
+    await savePermissionStatus(status);
+    return status;
+  } catch (e) {
+    console.error('[healthkit requestHealthKitPermissions]', e);
+    const denied: PermissionStatus = {
+      granted: false,
+      categories: { heart: false, sleep: false, activity: false, glucose: false },
+      requestedAt: new Date().toISOString(),
+      hasRequestedHealthKit: true,
+    };
+    await savePermissionStatus(denied);
+    return denied;
+  }
+}
+
+export async function syncHealthData(): Promise<SyncResult> {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
     const [
       hrvResults,
       restingHRResults,
@@ -188,130 +126,101 @@ export async function syncHealthData(): Promise<SyncResult> {
       mindfulResults,
       glucoseResults,
     ] = await Promise.all([
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getHeartRateVariabilitySamples(o, cb),
-        { startDate: sevenDaysAgo, limit: 1, ascending: false },
-      ),
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getRestingHeartRateSamples(o, cb),
-        { startDate: sevenDaysAgo, limit: 1, ascending: false },
-      ),
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getVo2MaxSamples(o, cb),
-        { startDate: thirtyDaysAgo, limit: 1, ascending: false, unit: 'ml/(kg * min)' },
-      ),
-      wrapSample<HealthValue>(
-        (o, cb) => AppleHealthKit.getSleepSamples(o, cb),
-        { startDate: yesterday },
-      ),
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getRespiratoryRateSamples(o, cb),
-        { startDate: sevenDaysAgo, limit: 1, ascending: false },
-      ),
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getDailyStepCountSamples(o, cb),
-        { startDate: sevenDaysAgo },
-      ),
-      wrapSample<{ startDate: string; endDate: string }>(
-        (o, cb) => AppleHealthKit.getMindfulSession(o, cb),
-        { startDate: sevenDaysAgo },
-      ),
-      wrapSample<{ value: number }>(
-        (o, cb) => AppleHealthKit.getBloodGlucoseSamples(o, cb),
-        { startDate: sevenDaysAgo, limit: 1, ascending: false },
-      ),
+      queryQuantitySamples('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', {
+        limit: 1, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
+      queryQuantitySamples('HKQuantityTypeIdentifierRestingHeartRate', {
+        limit: 1, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
+      queryQuantitySamples('HKQuantityTypeIdentifierVO2Max', {
+        limit: 1, ascending: false, filter: { date: { startDate: thirtyDaysAgo } },
+      }),
+      queryCategorySamples('HKCategoryTypeIdentifierSleepAnalysis', {
+        limit: 0, ascending: false, filter: { date: { startDate: yesterday } },
+      }),
+      queryQuantitySamples('HKQuantityTypeIdentifierRespiratoryRate', {
+        limit: 1, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
+      queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+        limit: 0, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
+      queryCategorySamples('HKCategoryTypeIdentifierMindfulSession', {
+        limit: 0, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
+      queryQuantitySamples('HKQuantityTypeIdentifierBloodGlucose', {
+        limit: 1, ascending: false, filter: { date: { startDate: sevenDaysAgo } },
+      }),
     ]);
 
-    // HRV: react-native-health returns seconds; multiply × 1000 for ms (Pitfall 6)
-    const hrv = hrvResults.length > 0
-      ? Math.round(hrvResults[0].value * 1000)
-      : undefined;
+    // HRV: SDNN already in ms (library default unit)
+    const hrv = hrvResults.length > 0 ? Math.round(hrvResults[0].quantity) : undefined;
 
-    const restingHeartRate = restingHRResults.length > 0
-      ? restingHRResults[0].value
-      : undefined;
+    const restingHeartRate = restingHRResults.length > 0 ? restingHRResults[0].quantity : undefined;
+    const vo2max = vo2maxResults.length > 0 ? vo2maxResults[0].quantity : undefined;
 
-    const vo2max = vo2maxResults.length > 0
-      ? vo2maxResults[0].value
-      : undefined;
-
-    // Sleep: aggregate deep, REM, and total (ASLEEP + CORE) from sample segments
+    // Sleep: aggregate CORE/DEEP/REM/legacy-asleep into total; DEEP and REM tracked separately
     let sleepDeepMs = 0;
     let sleepRemMs = 0;
     let sleepTotalMs = 0;
     for (const s of sleepResults) {
-      const dur = new Date(s.endDate).getTime() - new Date(s.startDate).getTime();
-      const stage = s.value as unknown as string; // runtime value is a string stage; library type is incorrect
-      if (stage === 'DEEP') { sleepDeepMs += dur; sleepTotalMs += dur; }
-      else if (stage === 'REM') { sleepRemMs += dur; sleepTotalMs += dur; }
-      else if (stage === 'ASLEEP' || stage === 'CORE') sleepTotalMs += dur;
+      const dur = s.endDate.getTime() - s.startDate.getTime();
+      if (s.value === CategoryValueSleepAnalysis.asleepDeep) {
+        sleepDeepMs += dur; sleepTotalMs += dur;
+      } else if (s.value === CategoryValueSleepAnalysis.asleepREM) {
+        sleepRemMs += dur; sleepTotalMs += dur;
+      } else if (
+        s.value === CategoryValueSleepAnalysis.asleepCore ||
+        s.value === CategoryValueSleepAnalysis.asleepUnspecified
+      ) {
+        sleepTotalMs += dur;
+      }
     }
     const sleepHours = sleepTotalMs > 0 ? Math.round((sleepTotalMs / 3600000) * 10) / 10 : undefined;
     const sleepDeep = sleepDeepMs > 0 ? Math.round((sleepDeepMs / 3600000) * 10) / 10 : undefined;
     const sleepRem = sleepRemMs > 0 ? Math.round((sleepRemMs / 3600000) * 10) / 10 : undefined;
 
+    // Respiratory rate: library default unit is count/s — convert to breaths/min
     const respiratoryRate = respiratoryResults.length > 0
-      ? respiratoryResults[0].value
+      ? Math.round(respiratoryResults[0].quantity * 60)
       : undefined;
 
     // Steps: 7-day average across daily samples
     const steps = stepsResults.length > 0
-      ? Math.round(stepsResults.reduce((sum, r) => sum + r.value, 0) / stepsResults.length)
+      ? Math.round(stepsResults.reduce((sum, r) => sum + r.quantity, 0) / stepsResults.length)
       : undefined;
 
-    // Mindful minutes: sum session durations in ms then convert to minutes
+    // Mindful minutes: sum session durations
     const mindfulMs = mindfulResults.reduce(
-      (sum, r) => sum + (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()),
+      (sum, r) => sum + (r.endDate.getTime() - r.startDate.getTime()),
       0,
     );
     const mindfulMinutes = mindfulMs > 0 ? Math.round(mindfulMs / 60000) : undefined;
 
-    const glucose = glucoseResults.length > 0
-      ? glucoseResults[0].value
-      : undefined;
+    const glucose = glucoseResults.length > 0 ? glucoseResults[0].quantity : undefined;
 
-    // Recovery composite: same formula as the original mock
     const recovery = Math.min(100, Math.round(55 + ((hrv ?? 50) - 48) * 1.2));
 
     const data: HealthData = {
-      hrv,
-      restingHeartRate,
-      vo2max,
-      sleepHours,
-      sleepDeep,
-      sleepRem,
-      respiratoryRate,
-      steps,
-      mindfulMinutes,
-      glucose,
-      recovery,
-      lastSynced: new Date().toISOString(),
-      // isDemoMode intentionally absent — real data has no demo flag
+      hrv, restingHeartRate, vo2max,
+      sleepHours, sleepDeep, sleepRem,
+      respiratoryRate, steps, mindfulMinutes,
+      glucose, recovery,
+      lastSynced: now.toISOString(),
     };
 
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return { success: true, data };
   } catch (e) {
-    console.error('[HealthKit] syncHealthData error', e);
-    return { success: false, error: 'HealthKit read failed' };
+    console.error('[healthkit syncHealthData]', e);
+    return { success: false, error: String(e) };
   }
 }
 
-/**
- * Connect Apple Health: request permissions then immediately sync.
- * Returns the synced data on success.
- */
 export async function connectAndSync(): Promise<SyncResult> {
-  const perms = await requestHealthKitPermissions();
-  if (!perms.granted) {
-    return { success: false, error: 'Permission denied by user' };
-  }
+  await requestHealthKitPermissions();
   return syncHealthData();
 }
 
-/**
- * Load the most recently synced HealthData from storage.
- */
 export async function loadHealthData(): Promise<HealthData | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
@@ -321,44 +230,26 @@ export async function loadHealthData(): Promise<HealthData | null> {
   }
 }
 
-/**
- * Check if HealthKit data is stale (older than 4 hours).
- */
 export function isHealthDataStale(data: HealthData): boolean {
   if (!data.lastSynced) return true;
-  const age = Date.now() - new Date(data.lastSynced).getTime();
-  return age > 4 * 60 * 60 * 1000;
+  return Date.now() - new Date(data.lastSynced).getTime() > 4 * 60 * 60 * 1000;
 }
-
-/**
- * Derive a health state label from HealthData for NeuralGrid tone.
- * neutral → no data
- * good    → high HRV, good sleep
- * poor    → low HRV or poor sleep
- * stressed → very low HRV
- */
-export type HealthState = 'neutral' | 'good' | 'poor' | 'stressed';
 
 export function deriveHealthState(data: HealthData | null): HealthState {
-  if (!data) return 'neutral';
-  const { hrv, sleepHours, recovery } = data;
-  if (hrv == null && sleepHours == null) return 'neutral';
-  const score = recovery ?? (hrv != null ? (hrv > 60 ? 80 : hrv > 40 ? 55 : 35) : 50);
-  if (score >= 70) return 'good';
-  if (score >= 45) return 'poor';
-  return 'stressed';
+  if (!data?.hrv) return 'neutral';
+  if (data.hrv >= 60) return 'good';
+  if (data.hrv <= 30) return 'stressed';
+  if (data.hrv <= 45) return 'poor';
+  return 'neutral';
 }
 
-/** Format last sync time nicely. */
 export function formatSyncTime(iso: string | undefined): string {
   if (!iso) return 'Never synced';
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 2) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
