@@ -333,7 +333,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
 | 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
-| 11. Supplement & Drug Database | v3.0 | 0/5 | Not started | - |
+| 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
 | 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
 | 14. Auth & Login | v3.0 | 0/TBD | Not started | - |
