@@ -1,14 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { INTERACTIONS } from '../data/biomarkers';
+import { SUPPLEMENT_DATABASE } from '../data/supplementTimings';
+import { MEDICATION_DATABASE } from '../data/medications';
 import MedicationSearch from '../components/MedicationSearch';
 import { checkDrugInteractions, DrugInteractionResult } from '../services/rxnav';
-
-const SUPPLEMENTS = ['NMN', 'Omega-3', 'Berberine', 'Resveratrol', 'CoQ10', 'Vitamin K2', 'Magnesium', 'Vitamin D'];
 
 const SAFE_COMBOS = [
   { pair: 'NMN + Resveratrol', body: 'Synergistic NAD+ pathway. Resveratrol activates SIRT1; NMN provides the NAD+ substrate. No known adverse interactions.' },
@@ -23,6 +25,30 @@ const SAFE_COMBOS = [
   { pair: 'NMN + Resveratrol + TMG', body: 'David Sinclair longevity stack. Resveratrol activates SIRT1; NMN provides NAD+; TMG (trimethylglycine) donates methyl groups to prevent NAD+ pathway methylation drain. Stack together in morning.' },
   { pair: 'Berberine + Alpha Lipoic Acid', body: 'Both independently activate AMPK for insulin sensitization without significant hypoglycemia risk (unlike metformin + ALA). Additive metabolic benefit with complementary mechanisms.' },
 ];
+
+const CATEGORY_TO_DRUG_CLASS: Record<string, string> = {
+  statin: 'Statin',
+  nsaid: 'Ibuprofen',
+  thyroid: 'Levothyroxine',
+  diabetes: 'Metformin',
+  anticoagulant: 'Warfarin',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  nad: 'NAD+ Pathway',
+  mitochondrial: 'Mitochondrial',
+  senolytic: 'Senolytics',
+  adaptogen: 'Adaptogens',
+  nootropic: 'Nootropics',
+  vitamin: 'Vitamins',
+  mineral: 'Minerals',
+  antioxidant: 'Antioxidants',
+  amino_acid: 'Amino Acids',
+  metabolic: 'Metabolic',
+  cardiovascular: 'Cardiovascular',
+  prescription_only: 'Prescription / Drug Classes',
+  sleep: 'Sleep',
+};
 
 const SEVERITY_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
   high: { color: Colors.danger, label: 'High Risk', bg: Colors.dangerBg },
@@ -41,6 +67,67 @@ export default function InteractionCheckerScreen() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [rxnavResults, setRxnavResults] = useState<DrugInteractionResult[]>([]);
   const [rxnavLoading, setRxnavLoading] = useState(false);
+  const [autoPopulated, setAutoPopulated] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['nad', 'mitochondrial']));
+
+  const chipsByCategory = useMemo(() => {
+    const map = new Map<string, typeof SUPPLEMENT_DATABASE>();
+    for (const supp of SUPPLEMENT_DATABASE) {
+      if (!map.has(supp.category)) map.set(supp.category, []);
+      map.get(supp.category)!.push(supp);
+    }
+    return map;
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    if (autoPopulated) return;
+    let active = true;
+
+    async function autoPopulate() {
+      const [protocolRaw, profileRaw] = await Promise.all([
+        AsyncStorage.getItem('@vitalspan_protocol'),
+        AsyncStorage.getItem('@vitalspan_user_profile'),
+      ]);
+      if (!active) return;
+
+      const newItems: { name: string; type: 'drug' | 'supp' }[] = [];
+
+      if (protocolRaw) {
+        const protocol: { addedSupplements?: string[] } = JSON.parse(protocolRaw);
+        for (const suppName of (protocol.addedSupplements ?? [])) {
+          newItems.push({ name: suppName, type: 'supp' });
+        }
+      }
+
+      if (profileRaw) {
+        const profile: { medications?: string[] } = JSON.parse(profileRaw);
+        for (const medName of (profile.medications ?? [])) {
+          const entry = MEDICATION_DATABASE.find(m =>
+            m.genericName.toLowerCase() === medName.toLowerCase() ||
+            m.brandNames.some((b: string) => b.toLowerCase() === medName.toLowerCase())
+          );
+          const resolvedClass = entry
+            ? (CATEGORY_TO_DRUG_CLASS[entry.category] ?? medName)
+            : medName;
+          newItems.push({ name: resolvedClass, type: 'drug' });
+        }
+      }
+
+      if (newItems.length > 0) {
+        setItems(prev => {
+          const existingNames = new Set(prev.map(i => i.name.toLowerCase()));
+          return [
+            ...prev,
+            ...newItems.filter(i => !existingNames.has(i.name.toLowerCase())),
+          ];
+        });
+      }
+      setAutoPopulated(true);
+    }
+
+    void autoPopulate();
+    return () => { active = false; };
+  }, [autoPopulated]));
 
   function addItem(name: string, type: 'drug' | 'supp') {
     if (!items.find(i => i.name.toLowerCase() === name.toLowerCase())) {
@@ -114,13 +201,36 @@ export default function InteractionCheckerScreen() {
           </View>
 
           <Text style={s.sectionLbl}>Supplements</Text>
-          <View style={s.chipRow}>
-            {SUPPLEMENTS.map(d => (
-              <TouchableOpacity key={d} style={[s.chip, s.chipSupp]} onPress={() => addItem(d, 'supp')}>
-                <Text style={s.chipSuppTxt}>+ {d}</Text>
+          {Array.from(chipsByCategory.entries()).map(([cat, supps]) => (
+            <View key={cat}>
+              <TouchableOpacity
+                style={s.catHeader}
+                onPress={() => {
+                  setExpandedCategories(prev => {
+                    const next = new Set(prev);
+                    if (next.has(cat)) next.delete(cat); else next.add(cat);
+                    return next;
+                  });
+                }}
+              >
+                <Text style={s.catLabel}>{CATEGORY_LABELS[cat] ?? cat}</Text>
+                <Text style={s.catChevron}>{expandedCategories.has(cat) ? '▾' : '▸'}</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+              {expandedCategories.has(cat) && (
+                <View style={s.chipRow}>
+                  {supps.map(supp => (
+                    <TouchableOpacity
+                      key={supp.id}
+                      style={[s.chip, s.chipSupp]}
+                      onPress={() => addItem(supp.name, 'supp')}
+                    >
+                      <Text style={s.chipSuppTxt}>+ {supp.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
 
           {items.length > 0 && (
             <>
@@ -133,7 +243,7 @@ export default function InteractionCheckerScreen() {
                     onPress={() => removeItem(item.name)}
                   >
                     <Text style={[s.selectedChipTxt, item.type === 'drug' ? { color: Colors.primaryDark } : { color: Colors.accentDark }]}>
-                      {item.name} ×
+                      {item.name} x
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -148,7 +258,7 @@ export default function InteractionCheckerScreen() {
             </View>
           ) : interactions.length === 0 ? (
             <View style={s.safeCard}>
-              <Text style={s.safeTitle}>✓ No known interactions found</Text>
+              <Text style={s.safeTitle}>No known interactions found</Text>
               <Text style={s.safeBody}>Your current combination appears safe. Always consult your doctor before starting supplements.</Text>
             </View>
           ) : (
@@ -202,7 +312,7 @@ export default function InteractionCheckerScreen() {
               </View>
               {!rxnavLoading && rxnavResults.length === 0 && (
                 <View style={s.safeCard}>
-                  <Text style={s.safeTitle}>✓ No live drug-drug interactions found</Text>
+                  <Text style={s.safeTitle}>No live drug-drug interactions found</Text>
                   <Text style={s.safeBody}>Verified via NIH RxNav API</Text>
                 </View>
               )}
@@ -242,7 +352,7 @@ export default function InteractionCheckerScreen() {
           <Text style={s.sectionLbl}>Evidence-backed safe pairs</Text>
           {SAFE_COMBOS.map((c, i) => (
             <View key={i} style={s.safeCard}>
-              <Text style={s.safeTitle}>✓ {c.pair}</Text>
+              <Text style={s.safeTitle}>{c.pair}</Text>
               <Text style={s.safeBody}>{c.body}</Text>
             </View>
           ))}
@@ -347,4 +457,22 @@ const s = StyleSheet.create({
   pharmBody: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 16 },
   rxnavSection: { marginTop: Spacing.base },
   rxnavHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
+  catHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  catLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  catChevron: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+  },
 });
