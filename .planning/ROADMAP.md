@@ -260,7 +260,23 @@ Plans:
   2. User browsing the drug database sees all 5 drug classes (Ibuprofen, Aspirin, Statins, Levothyroxine, Metformin) with the same field structure
   3. User running the interaction checker on a multi-item stack sees results grouped by severity (red/yellow/green flags) with a plain-language explanation and a specific recommendation for each flagged pair
   4. Every interaction flag shown to the user includes an actionable recommendation — no flag is displayed without a "what to do" instruction
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 11-01-PLAN.md — Extend SupplementInfo interface + add 18 supplements + 4 drug classes (SUPP-01, SUPP-02)
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 11-02-PLAN.md — Expand INTERACTIONS to 50+ pharmacist-reviewed pairs + SAFE_COMBOS to 11 [checkpoint] (SUPP-03, SUPP-04)
+
+**Wave 3** *(blocked on Wave 2, run in parallel)*
+- [ ] 11-03-PLAN.md — ProtocolScreen Supplement Library section + SupplementLibrarySection.tsx (SUPP-01, SUPP-02)
+- [ ] 11-04-PLAN.md — InteractionChecker auto-populate + categorized chip sections (SUPP-03, SUPP-04)
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 11-05-PLAN.md — tsc + source audit + on-device UI checkpoint (SUPP-01, SUPP-02, SUPP-03, SUPP-04)
+
 **UI hint**: no
 
 ### Phase 12: Exercise UI Overhaul
@@ -317,7 +333,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
 | 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
-| 11. Supplement & Drug Database | v3.0 | 0/TBD | Not started | - |
+| 11. Supplement & Drug Database | v3.0 | 0/5 | Not started | - |
 | 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
 | 14. Auth & Login | v3.0 | 0/TBD | Not started | - |
