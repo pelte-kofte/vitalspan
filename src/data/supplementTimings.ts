@@ -19,6 +19,9 @@ export interface SupplementInfo {
   contraindications?: string[];
   prescriptionOnly?: boolean;
   rxNote?: string;
+  mechanismOfAction?: string;
+  longevityRelevance?: string;
+  rxLabel?: string;
 }
 
 export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
@@ -739,6 +742,7 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
     shortDescription: 'Longevity candidate drug — AMPK activation, anti-aging in trials.',
     prescriptionOnly: true,
     rxNote: 'Prescription required. Discuss with your physician.',
+    rxLabel: 'Off-label (longevity)',
   },
   {
     id: 'rapamycin_rx',
@@ -757,6 +761,7 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
     shortDescription: 'mTOR inhibitor — most compelling longevity drug. Strict medical supervision required.',
     prescriptionOnly: true,
     rxNote: 'Prescription required. Only under physician supervision with regular labs.',
+    rxLabel: 'Off-label (longevity)',
     contraindications: ['active_infection', 'pregnancy'],
   },
 ];
