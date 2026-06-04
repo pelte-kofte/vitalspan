@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 11 (executing — Wave 2 next)
-Plan: 5 plans in 4 waves (1/5 complete)
-Status: Wave 1 complete. Plan 11-01 done: SupplementInfo extended + SUPPLEMENT_DATABASE expanded to 69 entries. Wave 2 (interaction pairs checkpoint) next.
-Last activity: 2026-06-04 — Plan 11-01 complete: SupplementInfo extended with mechanismOfAction/longevityRelevance/rxLabel; 18 OTC supplements + 4 drug class entries added; tsc zero errors.
+Phase: 11 (executing — Wave 3 next)
+Plan: 5 plans in 4 waves (2/5 complete)
+Status: Wave 2 complete. Plan 11-02 done: INTERACTIONS expanded to 54 pairs (pharmacist-approved) + SAFE_COMBOS expanded to 11 entries. Wave 3 (UI parallel) next.
+Last activity: 2026-06-04 — Plan 11-02 complete: 23 new interaction pairs (pharmacist reviewed + approved); SAFE_COMBOS 4→11 entries; tsc zero errors.
 
-Progress: [██░░░░░░░░] 20% (v3.0 Phase 11 Wave 1 complete)
+Progress: [████░░░░░░] 40% (v3.0 Phase 11 Wave 2 complete)
 
 ## Performance Metrics
 

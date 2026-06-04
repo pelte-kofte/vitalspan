@@ -268,7 +268,7 @@ Plans:
 - [x] 11-01-PLAN.md — Extend SupplementInfo interface + add 18 supplements + 4 drug classes (SUPP-01, SUPP-02)
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 11-02-PLAN.md — Expand INTERACTIONS to 50+ pharmacist-reviewed pairs + SAFE_COMBOS to 11 [checkpoint] (SUPP-03, SUPP-04)
+- [x] 11-02-PLAN.md — Expand INTERACTIONS to 50+ pharmacist-reviewed pairs + SAFE_COMBOS to 11 [checkpoint] (SUPP-03, SUPP-04)
 
 **Wave 3** *(blocked on Wave 2, run in parallel)*
 - [ ] 11-03-PLAN.md — ProtocolScreen Supplement Library section + SupplementLibrarySection.tsx (SUPP-01, SUPP-02)
