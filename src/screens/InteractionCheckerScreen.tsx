@@ -11,10 +11,17 @@ import { checkDrugInteractions, DrugInteractionResult } from '../services/rxnav'
 const SUPPLEMENTS = ['NMN', 'Omega-3', 'Berberine', 'Resveratrol', 'CoQ10', 'Vitamin K2', 'Magnesium', 'Vitamin D'];
 
 const SAFE_COMBOS = [
-  { pair: 'NMN + Resveratrol', body: 'Synergistic NAD+ pathway. No known adverse interactions.' },
-  { pair: 'Vitamin D3 + K2 + Magnesium', body: 'Classic longevity trio. Mutually beneficial.' },
-  { pair: 'CoQ10 + Statin', body: 'Statins deplete CoQ10 — supplementing is widely recommended.' },
-  { pair: 'Ashwagandha + Magnesium', body: 'Complementary stress & sleep support. No interactions known.' },
+  { pair: 'NMN + Resveratrol', body: 'Synergistic NAD+ pathway. Resveratrol activates SIRT1; NMN provides the NAD+ substrate. No known adverse interactions.' },
+  { pair: 'Vitamin D3 + K2 + Magnesium', body: 'Classic longevity trio. D3 drives calcium absorption; K2 (MK-7) directs it to bone/vessels; Magnesium activates the D3 conversion enzyme. Mutually beneficial — deficiency in one limits the others.' },
+  { pair: 'CoQ10 + Statin', body: 'Statins deplete CoQ10 via HMG-CoA pathway inhibition. Supplementing CoQ10 (100-200mg) alongside statin therapy is widely recommended to reduce myopathy risk.' },
+  { pair: 'Ashwagandha + Magnesium Glycinate', body: 'Complementary stress and sleep support via independent mechanisms (HPA axis modulation + NMDA antagonism). No interactions known. Both best taken in the evening.' },
+  { pair: 'NMN + Apigenin', body: 'Apigenin inhibits CD38, the primary NAD+-degrading enzyme, synergistically preserving NAD+ levels raised by NMN. Stack: NMN 500mg + Apigenin 50–100mg (chamomile extract).' },
+  { pair: 'Urolithin A + NMN', body: 'Complementary mitochondrial support: Urolithin A activates mitophagy (clearing damaged mitochondria) while NMN provides NAD+ to fuel new mitochondrial biogenesis. No adverse interaction.' },
+  { pair: 'Spermidine + Fisetin', body: 'Autophagy induction (spermidine) complements senolysis (fisetin) — spermidine clears damaged proteins, fisetin clears zombie senescent cells. Consider cycling fisetin 2 days/month.' },
+  { pair: 'GlyNAC (Glycine + NAC)', body: '2023 RCT (Nutrients) showed GlyNAC combination more effective than either precursor alone for glutathione restoration in aging adults. Improves mitochondrial function, oxidative stress, and strength.' },
+  { pair: 'Omega-3 + Curcumin', body: 'Anti-inflammatory synergy via independent mechanisms — Omega-3 modulates eicosanoid pathways while curcumin inhibits NF-kB. Both fat-soluble: take together with a fatty meal.' },
+  { pair: 'NMN + Resveratrol + TMG', body: 'David Sinclair longevity stack. Resveratrol activates SIRT1; NMN provides NAD+; TMG (trimethylglycine) donates methyl groups to prevent NAD+ pathway methylation drain. Stack together in morning.' },
+  { pair: 'Berberine + Alpha Lipoic Acid', body: 'Both independently activate AMPK for insulin sensitization without significant hypoglycemia risk (unlike metformin + ALA). Additive metabolic benefit with complementary mechanisms.' },
 ];
 
 const SEVERITY_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
