@@ -15,6 +15,7 @@ import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator
 import { INTERACTIONS } from '../data/biomarkers';
 import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
+import SupplementLibrarySection from '../components/SupplementLibrarySection';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -716,6 +717,14 @@ export default function ProtocolScreen() {
           <Text style={s.addStackTxt}>Add supplement</Text>
         </TouchableOpacity>
 
+        {/* Supplement Library */}
+        <View style={s.libDivider} />
+        <Text style={s.sectionLabel}>Supplement Library</Text>
+        <SupplementLibrarySection
+          addedSupplements={protocol.addedSupplements}
+          onToggle={toggleSupplement}
+        />
+
         <View style={{ height: 32 }} />
       </ScrollView>
 
@@ -870,6 +879,8 @@ const s = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+
+  libDivider: { height: 1, backgroundColor: Colors.Beige.border, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
 
   // Multi-dose supplement rows
   doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 },
