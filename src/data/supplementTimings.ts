@@ -19,6 +19,9 @@ export interface SupplementInfo {
   contraindications?: string[];
   prescriptionOnly?: boolean;
   rxNote?: string;
+  mechanismOfAction?: string;
+  longevityRelevance?: string;
+  rxLabel?: string;
 }
 
 export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
@@ -739,6 +742,7 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
     shortDescription: 'Longevity candidate drug — AMPK activation, anti-aging in trials.',
     prescriptionOnly: true,
     rxNote: 'Prescription required. Discuss with your physician.',
+    rxLabel: 'Off-label (longevity)',
   },
   {
     id: 'rapamycin_rx',
@@ -757,7 +761,435 @@ export const SUPPLEMENT_DATABASE: SupplementInfo[] = [
     shortDescription: 'mTOR inhibitor — most compelling longevity drug. Strict medical supervision required.',
     prescriptionOnly: true,
     rxNote: 'Prescription required. Only under physician supervision with regular labs.',
+    rxLabel: 'Off-label (longevity)',
     contraindications: ['active_infection', 'pregnancy'],
+  },
+
+  // === NEW ENTRIES (Phase 11) ===
+
+  // --- Mitochondrial (new) ---
+  {
+    id: 'urolithin_a',
+    name: 'Urolithin A',
+    category: 'mitochondrial',
+    defaultDose: '500mg–1g daily',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Take with meal for absorption. Gut microbiome metabolite of ellagic acid (pomegranate).',
+    evidenceGrade: 'B',
+    shortDescription: 'Mitophagy activator — clears dysfunctional mitochondria. Mitopure (Timeline) form.',
+    mechanismOfAction: 'Activates mitophagy by clearing dysfunctional mitochondria via PINK1/Parkin pathway.',
+    longevityRelevance: 'Mitochondrial quality control declines with age; urolithin A restores mitophagic flux and muscle endurance.',
+  },
+
+  // --- Antioxidant (new) ---
+  {
+    id: 'luteolin',
+    name: 'Luteolin',
+    category: 'antioxidant',
+    defaultDose: '100–300mg',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'cyp3a4_substrates', hours: 0, reason: 'May modulate CYP3A4 enzyme activity' }
+    ],
+    reason: 'Fat-soluble — take with dietary fat for best absorption.',
+    evidenceGrade: 'C',
+    shortDescription: 'Anti-neuroinflammatory flavonoid. Crosses blood-brain barrier.',
+    mechanismOfAction: 'Inhibits NF-kB signaling and mast cell activation; crosses blood-brain barrier.',
+    longevityRelevance: 'Anti-neuroinflammatory flavonoid with emerging evidence for cognitive protection in aging.',
+  },
+  {
+    id: 'astaxanthin',
+    name: 'Astaxanthin',
+    category: 'antioxidant',
+    defaultDose: '4–12mg',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Fat-soluble — take with a meal containing fat.',
+    evidenceGrade: 'B',
+    shortDescription: 'Carotenoid antioxidant — 6000x stronger than vitamin C in singlet oxygen quenching.',
+    mechanismOfAction: 'Uniquely spans cell membranes as a lipid-soluble antioxidant; superior singlet oxygen quenching vs other carotenoids.',
+    longevityRelevance: 'Reduces oxidative DNA damage and skin photoaging; cardiovascular and exercise recovery benefits in RCTs.',
+  },
+
+  // --- Nootropic (new) ---
+  {
+    id: 'lithium_orotate',
+    name: 'Lithium Orotate (microdose)',
+    category: 'nootropic',
+    defaultDose: '5–10mg elemental lithium',
+    timing: 'with_meal',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'nsaids', hours: 0, reason: 'NSAIDs reduce renal lithium clearance — toxicity risk' },
+      { drug: 'ssri', hours: 0, reason: 'Additive serotonergic effects possible' }
+    ],
+    reason: 'Microdose (5–10mg elemental lithium) — far below pharmaceutical lithium carbonate doses.',
+    evidenceGrade: 'C',
+    shortDescription: 'Microdose neurosteroid — GSK-3β inhibition for neuroprotection.',
+    mechanismOfAction: 'GSK-3β inhibition promotes neuroplasticity and autophagy at microdoses below pharmaceutical range.',
+    longevityRelevance: 'Epidemiological data links lithium in drinking water to lower dementia rates and all-cause mortality.',
+    contraindications: ['renal_impairment', 'cardiac_disease'],
+  },
+
+  // --- Sleep (new) ---
+  {
+    id: 'melatonin',
+    name: 'Melatonin',
+    category: 'sleep',
+    defaultDose: '0.3–1mg (low-dose preferred)',
+    timing: 'bedtime',
+    bestTime: 'bedtime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'Possible additive anticoagulant effect — monitor INR' },
+      { drug: 'ssri', hours: 0, reason: 'CYP1A2 inhibition may raise melatonin levels' },
+      { drug: 'sedatives', hours: 0, reason: 'Additive sedation' }
+    ],
+    reason: 'Take 30–60 min before target sleep time. Start with 0.3mg — lower is often more effective.',
+    evidenceGrade: 'A',
+    shortDescription: 'Circadian rhythm entrainment. Physiologic 0.3–1mg; 5–10mg products are supraphysiologic.',
+    mechanismOfAction: 'Binds MT1/MT2 receptors in suprachiasmatic nucleus to entrain circadian rhythm and initiate sleep onset.',
+    longevityRelevance: 'Melatonin production declines with age from ~25 onwards; restoring physiologic levels supports circadian health and mitochondrial antioxidant defense.',
+  },
+
+  // --- Adaptogen (new) ---
+  {
+    id: 'cbd',
+    name: 'CBD (Cannabidiol)',
+    category: 'adaptogen',
+    defaultDose: '20–50mg',
+    timing: 'with_fat',
+    bestTime: 'evening',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'CYP2C9 inhibition raises warfarin levels — monitor INR' },
+      { drug: 'cyp3a4_substrates', hours: 0, reason: 'Inhibits CYP3A4 — may raise many drug levels' },
+      { drug: 'sedatives', hours: 0, reason: 'Additive sedation' }
+    ],
+    reason: 'Fat-soluble — bioavailability increases with fatty meal. Start low and titrate.',
+    evidenceGrade: 'C',
+    shortDescription: 'Non-psychoactive cannabinoid. Anti-inflammatory and anxiolytic.',
+    mechanismOfAction: 'Allosteric modulator of CB1/CB2 receptors; inhibits FAAH enzyme elevating endocannabinoids.',
+    longevityRelevance: 'Anti-inflammatory and anxiolytic properties without psychoactivity; emerging evidence for neuroprotection.',
+    contraindications: ['liver_disease'],
+  },
+
+  // --- Metabolic (new) ---
+  {
+    id: 'artichoke_extract',
+    name: 'Artichoke Extract',
+    category: 'metabolic',
+    defaultDose: '600–1800mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'statin', hours: 4, reason: 'Additive cholesterol-lowering; monitor for myopathy if combined' }
+    ],
+    reason: 'Take with meals. Standardized to cynarin content.',
+    evidenceGrade: 'B',
+    shortDescription: 'Natural statin-like effect (cynarin). Hepatoprotective via NRF2.',
+    mechanismOfAction: 'Cynarin and luteolin inhibit HMG-CoA reductase (natural statin-like effect) and stimulate bile flow.',
+    longevityRelevance: 'Reduces LDL-C by 5–15% in trials; hepatoprotective via NRF2 activation.',
+  },
+  {
+    id: 'milk_thistle',
+    name: 'Milk Thistle (Silymarin)',
+    category: 'metabolic',
+    defaultDose: '140–420mg silymarin',
+    timing: 'with_meal',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'cyp3a4_substrates', hours: 0, reason: 'Mild CYP3A4 inhibition may alter drug levels' }
+    ],
+    reason: 'Take with meals. Standardized to 70–80% silymarin content.',
+    evidenceGrade: 'B',
+    shortDescription: 'Liver protectant. Silybin complex inhibits hepatotoxin uptake.',
+    mechanismOfAction: 'Silybin inhibits hepatocyte membrane permeability to toxins and upregulates glutathione synthesis.',
+    longevityRelevance: 'Liver health is central to metabolic longevity; silymarin protects against fatty liver disease and NASH.',
+  },
+
+  // --- Mineral (new) ---
+  {
+    id: 'chromium',
+    name: 'Chromium (Picolinate / GTF)',
+    category: 'mineral',
+    defaultDose: '200–400mcg',
+    timing: 'with_meal',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'insulin', hours: 0, reason: 'Additive glucose-lowering — monitor blood sugar' },
+      { drug: 'levothyroxine', hours: 4, reason: 'May reduce thyroid hormone absorption' }
+    ],
+    reason: 'Take with meals. Picolinate and GTF (glucose tolerance factor) forms are best absorbed.',
+    evidenceGrade: 'B',
+    shortDescription: 'Insulin sensitizer. Potentiates insulin-stimulated glucose uptake.',
+    mechanismOfAction: 'Enhances insulin receptor sensitivity via chromodulin; potentiates insulin-stimulated glucose uptake.',
+    longevityRelevance: 'Glucose dysregulation is a primary aging driver; chromium supports insulin sensitivity in metabolic syndrome.',
+  },
+  {
+    id: 'iron_bisglycinate',
+    name: 'Iron Bisglycinate',
+    category: 'mineral',
+    defaultDose: '18–36mg elemental iron',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: ['calcium', 'zinc', 'egcg'],
+    separateFromMeds: [
+      { drug: 'levothyroxine', hours: 4, reason: 'Chelates thyroid hormone — reduces absorption by up to 50%' },
+      { drug: 'quinolone_antibiotics', hours: 2, reason: 'Chelates antibiotic — reduces antibiotic absorption' },
+      { drug: 'tetracyclines', hours: 2, reason: 'Chelates antibiotic — reduces antibiotic absorption' }
+    ],
+    reason: 'Take on empty stomach for best absorption. Separate from calcium, zinc, tea.',
+    evidenceGrade: 'A',
+    shortDescription: 'Chelated iron — superior GI tolerance vs ferrous sulfate.',
+    mechanismOfAction: 'Chelated form with superior GI tolerance; provides iron for hemoglobin synthesis and mitochondrial Complex IV.',
+    longevityRelevance: 'Iron deficiency causes fatigue, cognitive impairment, and impaired mitochondrial function; bisglycinate minimizes GI side effects.',
+    contraindications: ['hemochromatosis', 'iron_overload'],
+  },
+
+  // --- Amino Acid (new) ---
+  {
+    id: 'collagen_peptides',
+    name: 'Collagen Peptides',
+    category: 'amino_acid',
+    defaultDose: '10–15g',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Dissolve in liquid. Can be taken anytime; fasted timing may improve collagen synthesis.',
+    evidenceGrade: 'B',
+    shortDescription: 'Stimulates fibroblast collagen synthesis. Joint, skin, bone, and vascular support.',
+    mechanismOfAction: 'Provides hydroxyproline and glycine; stimulates fibroblast collagen synthesis via feedback signaling.',
+    longevityRelevance: 'Extracellular matrix integrity declines with age; collagen peptides support joint, skin, bone, and vascular health.',
+  },
+  {
+    id: 'hyaluronic_acid',
+    name: 'Hyaluronic Acid (Oral)',
+    category: 'amino_acid',
+    defaultDose: '120–240mg',
+    timing: 'with_meal',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Take with meals. Low-molecular-weight forms (50–300 kDa) show best oral bioavailability.',
+    evidenceGrade: 'B',
+    shortDescription: 'Joint and skin hydration support. Oral HA absorbed and stimulates endogenous HA production.',
+    mechanismOfAction: 'Oral HA fragments are absorbed and stimulate fibroblast HA synthesis via CD44 receptor signaling.',
+    longevityRelevance: 'HA in synovial fluid, skin, and vasculature declines with age; oral supplementation improves joint comfort and skin hydration in RCTs.',
+  },
+
+  // --- Prescription-only (drug classes) ---
+  {
+    id: 'nsaids_class',
+    name: 'NSAIDs (Ibuprofen / Naproxen)',
+    category: 'prescription_only',
+    defaultDose: 'Ibuprofen 200–400mg as needed',
+    timing: 'with_meal',
+    bestTime: 'anytime',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 2, reason: 'Additive GI bleed risk; displaces warfarin from protein binding — monitor INR' },
+      { drug: 'lithium', hours: 0, reason: 'NSAIDs reduce renal lithium clearance — toxicity risk' },
+      { drug: 'methotrexate', hours: 0, reason: 'NSAIDs reduce methotrexate elimination — toxicity risk' }
+    ],
+    reason: 'Take with food to reduce GI irritation. Avoid in renal impairment.',
+    evidenceGrade: 'A',
+    shortDescription: 'Anti-inflammatory analgesics. COX-1/COX-2 inhibitors. GI irritation — always take with food.',
+    mechanismOfAction: 'Reversible inhibition of COX-1 and COX-2 enzymes, reducing prostaglandin synthesis and inflammation.',
+    longevityRelevance: 'Chronic inflammation (inflammaging) accelerates biological aging; judicious NSAID use may have anti-senescent properties, but chronic use damages GI mucosa and kidneys.',
+    prescriptionOnly: false,
+    rxNote: 'OTC available. Take with food. Avoid chronic daily use.',
+    rxLabel: 'NSAID Class',
+  },
+  {
+    id: 'aspirin_class',
+    name: 'Aspirin (Low-dose / Standard)',
+    category: 'prescription_only',
+    defaultDose: '81mg daily (low-dose) / 325mg (standard)',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'Additive anticoagulation — significant bleeding risk; avoid combination without physician supervision' },
+      { drug: 'ibuprofen', hours: 2, reason: 'Ibuprofen blocks aspirin antiplatelet effect — take aspirin first, wait 30 min' }
+    ],
+    reason: 'Take with food. Low-dose 81mg antiplatelet use is distinct from analgesic/anti-inflammatory dosing.',
+    evidenceGrade: 'A',
+    shortDescription: 'Antiplatelet (81mg). COX-1 inhibitor with irreversible platelet effect lasting 7–10 days.',
+    mechanismOfAction: 'Irreversible acetylation of COX-1 in platelets (antiplatelet) and COX-2 (anti-inflammatory) at higher doses.',
+    longevityRelevance: 'Low-dose aspirin (81mg) reduces cardiovascular events and has evidence for colorectal cancer prevention; antiplatelet effect lasts platelet lifetime (7–10 days).',
+    prescriptionOnly: false,
+    rxNote: 'OTC available. Low-dose aspirin use should be discussed with physician for cardiovascular risk assessment.',
+    rxLabel: 'OTC / Supervised',
+  },
+  {
+    id: 'statins_class',
+    name: 'Statins (Atorvastatin / Rosuvastatin / Simvastatin)',
+    category: 'prescription_only',
+    defaultDose: 'Dose per prescription',
+    timing: 'with_meal',
+    bestTime: 'evening',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'coq10', hours: 0, reason: 'Statins deplete CoQ10 — supplementation recommended to reduce myopathy risk' },
+      { drug: 'berberine', hours: 4, reason: 'Berberine inhibits OATP1B1 transporter — may raise statin plasma levels' },
+      { drug: 'grapefruit', hours: 0, reason: 'CYP3A4 inhibition raises simvastatin/atorvastatin levels — avoid grapefruit' }
+    ],
+    reason: 'Most statins taken in evening (liver cholesterol synthesis peaks at night). Supplement CoQ10.',
+    evidenceGrade: 'A',
+    shortDescription: 'HMG-CoA reductase inhibitors. Reduce LDL-C. Deplete CoQ10 — supplement recommended.',
+    mechanismOfAction: 'Competitive inhibition of HMG-CoA reductase, the rate-limiting enzyme in cholesterol biosynthesis; also depletes CoQ10.',
+    longevityRelevance: 'Reduces cardiovascular mortality; growing evidence for pleiotropic anti-inflammatory effects beyond cholesterol lowering.',
+    prescriptionOnly: true,
+    rxNote: 'Prescription required. Supplement CoQ10 100–200mg daily when on statins.',
+    rxLabel: 'Rx Only',
+  },
+  {
+    id: 'levothyroxine_class',
+    name: 'Levothyroxine (T4)',
+    category: 'prescription_only',
+    defaultDose: 'Dose per prescription (typically 25–200mcg daily)',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: ['calcium', 'iron'],
+    separateFromMeds: [
+      { drug: 'calcium', hours: 4, reason: 'Calcium chelates levothyroxine — reduces absorption by up to 20–40%' },
+      { drug: 'iron', hours: 4, reason: 'Iron chelates levothyroxine — reduces absorption significantly' },
+      { drug: 'chromium', hours: 4, reason: 'Chromium may reduce thyroid hormone absorption' }
+    ],
+    reason: 'Strict fasted administration 30–60 min before breakfast. Separate from calcium, iron, and many supplements by 4 hours.',
+    evidenceGrade: 'A',
+    shortDescription: 'Synthetic thyroid hormone T4. Central to metabolic rate, cardiovascular, and cognitive function.',
+    mechanismOfAction: 'Synthetic T4 (thyroxine); converted to active T3 in peripheral tissues; binds thyroid hormone receptors to regulate metabolism.',
+    longevityRelevance: 'Thyroid function is central to metabolic rate, cardiovascular health, and cognitive function; optimal TSH (0.4–2.5 mIU/L) is associated with longevity.',
+    prescriptionOnly: true,
+    rxNote: 'Prescription required. Take on empty stomach 30–60 min before breakfast.',
+    rxLabel: 'Rx Only',
+  },
+
+  // --- Prescription-only (new OTC prohormones) ---
+  {
+    id: 'dhea',
+    name: 'DHEA (Dehydroepiandrosterone)',
+    category: 'prescription_only',
+    defaultDose: '25–50mg',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'insulin', hours: 0, reason: 'DHEA may reduce insulin sensitivity' },
+      { drug: 'anticoagulants', hours: 0, reason: 'May affect clotting factors' }
+    ],
+    reason: 'Take with morning meal. Test DHEA-S levels before and after supplementation.',
+    evidenceGrade: 'B',
+    shortDescription: 'Prohormone precursor to testosterone and estrogen. Declines ~80% from age 20–80.',
+    mechanismOfAction: 'Precursor to testosterone and estrogen; activates DHEA receptors with neurosteroid and immune-modulatory effects.',
+    longevityRelevance: 'DHEA declines ~80% from age 20–80; restoring levels associated with improved body composition, bone density, and immune function.',
+    prescriptionOnly: true,
+    rxNote: 'OTC in USA; prescription required in many countries. Supervised use strongly recommended.',
+    rxLabel: 'Supervised use',
+    contraindications: ['hormone_sensitive_cancer', 'prostate_cancer', 'pregnancy'],
+  },
+  {
+    id: 'pregnenolone',
+    name: 'Pregnenolone',
+    category: 'prescription_only',
+    defaultDose: '10–30mg',
+    timing: 'with_fat',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [],
+    reason: 'Take with fat-containing meal. Monitor hormone levels with physician.',
+    evidenceGrade: 'C',
+    shortDescription: 'Master neurosteroid and prohormone precursor to all steroid hormones.',
+    mechanismOfAction: 'Neurosteroid and precursor to all steroid hormones; modulates GABA and NMDA receptors in brain.',
+    longevityRelevance: 'Declining neurosteroid levels contribute to cognitive aging; pregnenolone memory enhancement suggested in rodent and pilot human studies.',
+    prescriptionOnly: true,
+    rxNote: 'OTC in USA; supervised use recommended. Converts to DHEA, progesterone, estrogen, and testosterone.',
+    rxLabel: 'Supervised use',
+    contraindications: ['hormone_sensitive_cancer', 'pregnancy', 'seizure_disorder'],
+  },
+
+  // --- Vitamin (new) ---
+  {
+    id: 'vitamin_e_tocotrienol',
+    name: 'Vitamin E Tocotrienol Complex',
+    category: 'vitamin',
+    defaultDose: '100–200mg tocotrienols',
+    timing: 'with_fat',
+    bestTime: 'evening',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'warfarin', hours: 0, reason: 'Antiplatelet effect — monitor INR if on warfarin' }
+    ],
+    reason: 'Fat-soluble — take with evening meal. Note: distinct from standard vitamin E (tocopherols) — do not substitute.',
+    evidenceGrade: 'B',
+    shortDescription: 'Delta/gamma-tocotrienol form — distinct from tocopherol. Superior neuroprotection and cardioprotection.',
+    mechanismOfAction: 'Tocotrienols (delta/gamma) penetrate brain lipid bilayers more efficiently than tocopherols and inhibit HMG-CoA reductase independently of mevalonate pathway.',
+    longevityRelevance: 'Superior neuroprotective and cardioprotective effects vs alpha-tocopherol alone; distinct mechanism from standard vitamin E.',
+  },
+  {
+    id: 'methylcobalamin_b12',
+    name: 'Methylcobalamin (B12)',
+    category: 'vitamin',
+    defaultDose: '500–1000mcg',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'metformin', hours: 0, reason: 'Metformin reduces B12 absorption via Ca2+-dependent mechanism — monitor B12 levels annually' }
+    ],
+    reason: 'Sublingual or fasted oral. Active methylcobalamin form bypasses gastric intrinsic factor pathway.',
+    evidenceGrade: 'A',
+    shortDescription: 'Active coenzyme B12. Critical for myelin synthesis and homocysteine metabolism.',
+    mechanismOfAction: 'Active coenzyme form of B12; directly participates in methionine synthase reaction and myelin synthesis.',
+    longevityRelevance: 'B12 deficiency (common in aging and metformin users) causes hyperhomocysteinemia, cognitive decline, and neuropathy.',
+  },
+  {
+    id: 'methylfolate',
+    name: 'Methylfolate (5-MTHF, B9)',
+    category: 'vitamin',
+    defaultDose: '400–1000mcg 5-MTHF',
+    timing: 'fasted',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'methotrexate', hours: 0, reason: 'Folate antagonizes methotrexate mechanism — consult oncologist before combining' }
+    ],
+    reason: 'Take fasted in morning. Avoid folic acid (synthetic) if MTHFR variant is suspected.',
+    evidenceGrade: 'A',
+    shortDescription: 'Active folate form — bypasses MTHFR enzyme. Preferred for MTHFR variant carriers.',
+    mechanismOfAction: 'Active 5-MTHF form bypasses MTHFR enzyme; donates methyl group directly in homocysteine remethylation.',
+    longevityRelevance: 'Up to 40% of population has reduced-function MTHFR variants; methylfolate ensures effective methylation cycle regardless of genotype.',
+  },
+  {
+    id: 'p5p_b6',
+    name: 'P5P (Pyridoxal-5-Phosphate, B6)',
+    category: 'vitamin',
+    defaultDose: '25–50mg P5P',
+    timing: 'with_meal',
+    bestTime: 'morning',
+    avoidWith: [],
+    separateFromMeds: [
+      { drug: 'levodopa', hours: 0, reason: 'B6 accelerates peripheral levodopa conversion — reduces CNS efficacy; consult neurologist' }
+    ],
+    reason: 'Take with meal. P5P form is directly active — superior to pyridoxine for users with impaired kinase function.',
+    evidenceGrade: 'A',
+    shortDescription: 'Active coenzyme B6. Avoids peripheral neuropathy risk of high-dose pyridoxine.',
+    mechanismOfAction: 'Active coenzyme form of B6 (bypasses pyridoxine kinase); cofactor in 100+ enzymatic reactions including aminotransferases and decarboxylases.',
+    longevityRelevance: 'P5P deficiency contributes to elevated homocysteine and systemic inflammation; P5P form avoids peripheral neuropathy risk seen with high-dose pyridoxine.',
   },
 ];
 
