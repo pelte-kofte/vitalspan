@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator,
@@ -67,7 +67,7 @@ export default function InteractionCheckerScreen() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [rxnavResults, setRxnavResults] = useState<DrugInteractionResult[]>([]);
   const [rxnavLoading, setRxnavLoading] = useState(false);
-  const [autoPopulated, setAutoPopulated] = useState(false);
+  const hasPopulatedRef = useRef(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['nad', 'mitochondrial']));
 
   const chipsByCategory = useMemo(() => {
@@ -80,54 +80,61 @@ export default function InteractionCheckerScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => {
-    if (autoPopulated) return;
+    // Reset on every focus so profile changes are picked up
+    hasPopulatedRef.current = false;
     let active = true;
 
     async function autoPopulate() {
-      const [protocolRaw, profileRaw] = await Promise.all([
-        AsyncStorage.getItem('@vitalspan_protocol'),
-        AsyncStorage.getItem('@vitalspan_user_profile'),
-      ]);
-      if (!active) return;
+      if (hasPopulatedRef.current) return;
+      try {
+        const [protocolRaw, profileRaw] = await Promise.all([
+          AsyncStorage.getItem('@vitalspan_protocol'),
+          AsyncStorage.getItem('@vitalspan_user_profile'),
+        ]);
+        if (!active) return;
 
-      const newItems: { name: string; type: 'drug' | 'supp' }[] = [];
+        const newItems: { name: string; type: 'drug' | 'supp' }[] = [];
 
-      if (protocolRaw) {
-        const protocol: { addedSupplements?: string[] } = JSON.parse(protocolRaw);
-        for (const suppName of (protocol.addedSupplements ?? [])) {
-          newItems.push({ name: suppName, type: 'supp' });
+        if (protocolRaw) {
+          const protocol: { addedSupplements?: string[] } = JSON.parse(protocolRaw);
+          for (const suppName of (protocol.addedSupplements ?? [])) {
+            newItems.push({ name: suppName, type: 'supp' });
+          }
         }
-      }
 
-      if (profileRaw) {
-        const profile: { medications?: string[] } = JSON.parse(profileRaw);
-        for (const medName of (profile.medications ?? [])) {
-          const entry = MEDICATION_DATABASE.find(m =>
-            m.genericName.toLowerCase() === medName.toLowerCase() ||
-            m.brandNames.some((b: string) => b.toLowerCase() === medName.toLowerCase())
-          );
-          const resolvedClass = entry
-            ? (CATEGORY_TO_DRUG_CLASS[entry.category] ?? medName)
-            : medName;
-          newItems.push({ name: resolvedClass, type: 'drug' });
+        if (profileRaw) {
+          const profile: { medications?: string[] } = JSON.parse(profileRaw);
+          for (const medName of (profile.medications ?? [])) {
+            const entry = MEDICATION_DATABASE.find(m =>
+              m.genericName.toLowerCase() === medName.toLowerCase() ||
+              m.brandNames.some(b => b.toLowerCase() === medName.toLowerCase())
+            );
+            const resolvedClass = entry
+              ? (CATEGORY_TO_DRUG_CLASS[entry.category] ?? medName)
+              : medName;
+            newItems.push({ name: resolvedClass, type: 'drug' });
+          }
         }
-      }
 
-      if (newItems.length > 0) {
-        setItems(prev => {
-          const existingNames = new Set(prev.map(i => i.name.toLowerCase()));
-          return [
-            ...prev,
-            ...newItems.filter(i => !existingNames.has(i.name.toLowerCase())),
-          ];
-        });
+        if (newItems.length > 0) {
+          setItems(prev => {
+            const existingNames = new Set(prev.map(i => i.name.toLowerCase()));
+            return [
+              ...prev,
+              ...newItems.filter(i => !existingNames.has(i.name.toLowerCase())),
+            ];
+          });
+        }
+      } catch (e) {
+        console.error('InteractionChecker autoPopulate failed:', e);
+      } finally {
+        hasPopulatedRef.current = true;
       }
-      setAutoPopulated(true);
     }
 
     void autoPopulate();
     return () => { active = false; };
-  }, [autoPopulated]));
+  }, []));
 
   function addItem(name: string, type: 'drug' | 'supp') {
     if (!items.find(i => i.name.toLowerCase() === name.toLowerCase())) {
