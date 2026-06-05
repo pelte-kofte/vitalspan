@@ -14,7 +14,22 @@ findings:
   warning: 5
   info: 4
   total: 12
-status: issues_found
+status: partial_fix
+fixed:
+  - CR-01
+  - CR-02
+  - CR-03
+  - WR-01
+  - WR-02
+  - WR-03
+  - WR-04
+  - WR-05
+open:
+  - IN-01
+  - IN-02
+  - IN-03
+  - IN-04
+fixed_at: 2026-06-05T00:00:00Z
 ---
 
 # Phase 11: Code Review Report
