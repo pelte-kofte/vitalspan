@@ -336,23 +336,27 @@ export default function ProtocolScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [profileRaw, protocolRaw] = await Promise.all([
-      AsyncStorage.getItem('@vitalspan_user_profile'),
-      AsyncStorage.getItem('@vitalspan_protocol'),
-    ]);
-    if (profileRaw) setProfile(JSON.parse(profileRaw));
-    if (protocolRaw) {
-      const saved: ProtocolState = JSON.parse(protocolRaw);
-      const today = new Date().toISOString().slice(0, 10);
-      setProtocol({
-        ...EMPTY_PROTOCOL,
-        ...saved,
-        medTimes: saved.medTimes ?? {},
-        addedSupplements: saved.addedSupplements ?? [],
-        customSupplements: saved.customSupplements ?? [],
-        taken: saved.takenDate === today ? (saved.taken ?? []) : [],
-        takenDate: today,
-      });
+    try {
+      const [profileRaw, protocolRaw] = await Promise.all([
+        AsyncStorage.getItem('@vitalspan_user_profile'),
+        AsyncStorage.getItem('@vitalspan_protocol'),
+      ]);
+      if (profileRaw) setProfile(JSON.parse(profileRaw));
+      if (protocolRaw) {
+        const saved: ProtocolState = JSON.parse(protocolRaw);
+        const today = new Date().toISOString().slice(0, 10);
+        setProtocol({
+          ...EMPTY_PROTOCOL,
+          ...saved,
+          medTimes: saved.medTimes ?? {},
+          addedSupplements: saved.addedSupplements ?? [],
+          customSupplements: saved.customSupplements ?? [],
+          taken: saved.takenDate === today ? (saved.taken ?? []) : [],
+          takenDate: today,
+        });
+      }
+    } catch (e) {
+      console.error('ProtocolScreen loadData failed:', e);
     }
   }, []);
 
