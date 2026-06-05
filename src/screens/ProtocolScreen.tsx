@@ -57,7 +57,7 @@ interface Supplement {
 
 const BASE_SUPPLEMENTS: Supplement[] = [
   { name: 'Vitamin D3',          dose: '2000 IU', evidence: 'A', goals: ['all'],                             dbId: 'vitamin_d3' },
-  { name: 'Magnesium glycinate',  dose: '400 mg',  evidence: 'A', goals: ['all'],                             dbId: 'magnesium_glycinate' },
+  { name: 'Magnesium Glycinate',  dose: '400 mg',  evidence: 'A', goals: ['all'],                             dbId: 'magnesium_glycinate' },
   { name: 'Omega-3',             dose: '2 g',      evidence: 'A', goals: ['all'],                             dbId: 'omega3' },
 ];
 
@@ -501,7 +501,14 @@ export default function ProtocolScreen() {
     return map;
   }, [medications]);
 
-  const addedSupps = recommended.filter(s => protocol.addedSupplements.includes(s.name));
+  const addedSupps = protocol.addedSupplements.map(name => {
+    const dbEntry = SUPPLEMENT_DATABASE.find(
+      s => s.name.toLowerCase() === name.toLowerCase(),
+    );
+    return dbEntry
+      ? { name: dbEntry.name, dose: dbEntry.defaultDose, evidence: dbEntry.evidenceGrade as 'A' | 'B' | 'C', goals: [] as string[], dbId: dbEntry.id }
+      : { name, dose: '—', evidence: 'C' as const, goals: [] as string[], dbId: undefined };
+  });
   const customSupps = protocol.customSupplements ?? [];
 
   // Total doses: medications count as 1 each; multi-dose supplements count their full dose count
