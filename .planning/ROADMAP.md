@@ -288,7 +288,25 @@ Plans:
   1. Opening any exercise detail shows an SVG movement illustration, a neural-dot muscle map with primary muscles in accent color and secondary muscles in muted color, a 1–2 sentence form cue, and a longevity-optimized sets/reps recommendation
   2. User can tap a muscle region on the exercise library's visual muscle map selector and see the list filtered to exercises targeting that group; clearing the filter restores the full list
   3. Dashboard displays a weekly movement summary card showing total sessions, total active minutes, and the most-trained muscle group for the current week
-**Plans**: TBD
+**Plans**: 7 plans in 4 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 12-01-PLAN.md — Extend Exercise interface + pharmacist-reviewed content (formCue, setsReps, longevityNote) for all 60 exercises [checkpoint] (EX-01, EX-02, EX-03, EX-04)
+- [ ] 12-02-PLAN.md — Create MuscleMapView component (front/back silhouette, neural-dot grid, interactive/read-only) (EX-02, EX-05)
+- [ ] 12-03-PLAN.md — Create 60 SVG neural-dot exercise illustration components + barrel index (EX-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 12-04-PLAN.md — Create ExerciseDetailScreen (illustration, muscle map, form cue, sets/reps, log CTA) (EX-01, EX-02, EX-03, EX-04)
+
+**Wave 3** *(blocked on Wave 2 completion, run in parallel)*
+- [ ] 12-05-PLAN.md — Wire AppNavigator + update ExerciseScreen (navigate to detail, muscle map filter panel) (EX-05)
+- [ ] 12-06-PLAN.md — Add weekly movement summary card to DashboardScreen (EX-06)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 12-07-PLAN.md — tsc + source audit + human visual checkpoint (EX-01, EX-02, EX-03, EX-04, EX-05, EX-06)
+
 **UI hint**: yes
 
 ### Phase 13: UI / Design System
@@ -334,6 +352,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
 | 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
-| 12. Exercise UI Overhaul | v3.0 | 0/TBD | Not started | - |
+| 12. Exercise UI Overhaul | v3.0 | 0/7 | Not started | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
 | 14. Auth & Login | v3.0 | 0/TBD | Not started | - |
