@@ -8,19 +8,14 @@ const BASE_URL = 'https://rxnav.nlm.nih.gov/REST';
 const CACHE_KEY = '@vitalspan_rxnav_cache';
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-export interface RxNavInteraction {
-  minConceptItem: {
-    rxcui: string;
-    name: string;
-  };
-  interactionConcept: {
-    interactionItem: {
-      rxcui: string;
-      name: string;
-    };
-    description: string;
-    severity: string;
-  }[];
+/** Represents a single drug interaction pair as returned by the NLM RxNav API. */
+export interface RxNavInteractionPair {
+  interactionConcept: Array<{
+    minConceptItem: { rxcui: string; name: string };
+    sourceDisclaimer?: string;
+  }>;
+  description: string;
+  severity: string;
 }
 
 export interface CachedResult<T> {
