@@ -216,7 +216,7 @@ Plans:
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 10: Apple Health + Articles** - Replace demo orbital values with live HealthKit data and add a PubMed-powered longevity article feed
-- [ ] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
+- [x] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
 - [ ] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary
 - [ ] **Phase 13: UI / Design System** - Replace patchwork styling with a clinical-premium design system: intentional color tokens, full SVG icon conversion, verified rendering, documented typography scale, and spacing audit
 - [ ] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration
@@ -275,7 +275,7 @@ Plans:
 - [x] 11-04-PLAN.md — InteractionChecker auto-populate + categorized chip sections (SUPP-03, SUPP-04)
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 11-05-PLAN.md — tsc + source audit + on-device UI checkpoint (SUPP-01, SUPP-02, SUPP-03, SUPP-04)
+- [x] 11-05-PLAN.md — tsc + source audit + on-device UI checkpoint (SUPP-01, SUPP-02, SUPP-03, SUPP-04)
 
 **UI hint**: no
 

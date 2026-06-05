@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 11 (executing — Wave 4 next)
-Plan: 5 plans in 4 waves (4/5 complete)
-Status: Wave 3 complete. Plans 11-03 + 11-04 done: SupplementLibrarySection component, ProtocolScreen wired, InteractionChecker auto-populate + categorized chips. Wave 4 (verification) next.
-Last activity: 2026-06-05 — Plans 11-03 + 11-04 complete: SupplementLibrarySection.tsx (161 lines), ProtocolScreen wired; InteractionChecker auto-populate + CATEGORY_TO_DRUG_CLASS + collapsible chip sections. tsc zero errors.
+Phase: 12 (not started — ready to plan)
+Plan: Phase 11 complete. Phase 12 (Exercise UI Overhaul) is next.
+Status: Phase 11 complete (2026-06-05). All 5 plans executed, 8 code-review fixes applied, pharmacist checkpoint approved, verification passed.
+Last activity: 2026-06-05 — Phase 11 complete: SupplementLibrarySection + ProtocolScreen Library wired; InteractionChecker auto-populate; 54 interaction pairs (pharmacist-reviewed); SUPPLEMENT_DATABASE 69 entries; all SUPP-01–SUPP-04 verified.
 
-Progress: [████████░░] 80% (v3.0 Phase 11 Wave 3 complete)
+Progress: [██████████] 100% Phase 11 done → Phase 12 ready
 
 ## Performance Metrics
 

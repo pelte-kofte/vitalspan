@@ -53,9 +53,14 @@ Users get their first clinically meaningful insight within minutes of opening th
 - [ ] Security — Supabase URL + anon key in `.env` file, not hardcoded in source
 - [ ] Release quality — zero crashes, TypeScript strict, no `any` types
 
+- ✓ Live Apple HealthKit data in LongevityScore orbitals (HRV, sleep, recovery, glucose, fitness) — Phase 10
+- ✓ PubMed-powered longevity articles personalized to user biomarker profile — Phase 10
+- ✓ Expanded supplement/drug database — 69 entries, mechanismOfAction/longevityRelevance fields, SupplementLibrarySection with search + collapsible categories — Phase 11
+- ✓ 54 pharmacist-reviewed drug/supplement interaction pairs with actionable recommendations — Phase 11
+- ✓ InteractionChecker auto-populate from user protocol stack + medication drug-class resolution — Phase 11
+
 ### Out of Scope
 
-- Real Apple HealthKit integration — deferred post-v2 (mock layer ready)
 - RevenueCat paywall — deferred until beta user traction
 - Push notifications — deferred post-v2 TestFlight feedback
 - Full AsyncStorage replacement — user data syncs to Supabase but AsyncStorage keys preserved as fallback/offline
@@ -111,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-30 after v2.0 milestone start*
+*Last updated: 2026-06-05 after Phase 11 complete*
