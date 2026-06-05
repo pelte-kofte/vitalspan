@@ -167,8 +167,15 @@ export default function InteractionCheckerScreen() {
       for (const item2 of items) {
         if (item.name === item2.name) continue;
         const interaction = INTERACTIONS.find(inter => {
-          const key = [inter.drug.toLowerCase(), inter.supplement.toLowerCase()];
-          return key.includes(item.name.toLowerCase()) && key.includes(item2.name.toLowerCase());
+          const drugKey = inter.drug.toLowerCase();
+          const suppKey = inter.supplement.toLowerCase();
+          const nameA = item.name.toLowerCase();
+          const nameB = item2.name.toLowerCase();
+          const matchA = (nameA.includes(drugKey) || drugKey.includes(nameA)) &&
+                         (nameB.includes(suppKey) || suppKey.includes(nameB));
+          const matchB = (nameA.includes(suppKey) || suppKey.includes(nameA)) &&
+                         (nameB.includes(drugKey) || drugKey.includes(nameB));
+          return matchA || matchB;
         });
         if (interaction && !checked.has(interaction.id)) {
           found.push(interaction);
