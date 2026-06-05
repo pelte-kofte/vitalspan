@@ -9,7 +9,7 @@ interface Props { addedSupplements: string[]; onToggle: (name: string) => void; 
 const CAT_ORDER: SupplementInfo['category'][] = [
   'nad', 'mitochondrial', 'senolytic', 'adaptogen', 'nootropic',
   'vitamin', 'mineral', 'antioxidant', 'amino_acid', 'metabolic',
-  'cardiovascular', 'prescription_only',
+  'cardiovascular', 'sleep', 'prescription_only',
 ];
 const CAT_LABELS: Record<SupplementInfo['category'], string> = {
   nad: 'NAD+ Pathway', mitochondrial: 'Mitochondrial', senolytic: 'Senolytics',
