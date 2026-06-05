@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 11 (executing — Wave 3 next)
-Plan: 5 plans in 4 waves (2/5 complete)
-Status: Wave 2 complete. Plan 11-02 done: INTERACTIONS expanded to 54 pairs (pharmacist-approved) + SAFE_COMBOS expanded to 11 entries. Wave 3 (UI parallel) next.
-Last activity: 2026-06-04 — Plan 11-02 complete: 23 new interaction pairs (pharmacist reviewed + approved); SAFE_COMBOS 4→11 entries; tsc zero errors.
+Phase: 11 (executing — Wave 4 next)
+Plan: 5 plans in 4 waves (4/5 complete)
+Status: Wave 3 complete. Plans 11-03 + 11-04 done: SupplementLibrarySection component, ProtocolScreen wired, InteractionChecker auto-populate + categorized chips. Wave 4 (verification) next.
+Last activity: 2026-06-05 — Plans 11-03 + 11-04 complete: SupplementLibrarySection.tsx (161 lines), ProtocolScreen wired; InteractionChecker auto-populate + CATEGORY_TO_DRUG_CLASS + collapsible chip sections. tsc zero errors.
 
-Progress: [████░░░░░░] 40% (v3.0 Phase 11 Wave 2 complete)
+Progress: [████████░░] 80% (v3.0 Phase 11 Wave 3 complete)
 
 ## Performance Metrics
 
