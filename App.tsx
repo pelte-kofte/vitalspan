@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initSupabaseSession } from './src/lib/supabase';
 import { migrateHistory } from './src/lib/biomarkerWriteService';
+import { pruneExpiredCache } from './src/services/rxnav';
 import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
@@ -27,6 +28,9 @@ export default function App() {
       } else {
         setInitialRoute('Landing');
       }
+      // Prune stale RxNav cache entries to prevent unbounded AsyncStorage growth
+      pruneExpiredCache().catch(() => null);
+
       initSupabaseSession()
         .then(() => {
           AsyncStorage.getItem('@vitalspan_migrated_v2').then((migrated) => {
