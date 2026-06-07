@@ -21,6 +21,13 @@ import { ExerciseLogEntry } from '../data/exercises';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+function getMondayStr(date: Date): string {
+  const d = new Date(date); const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
 interface UserProfile {
   name: string;
   age: number;
@@ -153,6 +160,24 @@ export default function DashboardScreen() {
   // Reactive neural background
   const healthState = useMemo(() => deriveHealthState(healthData), [healthData]);
   const neuralTone = healthState === 'stressed' ? 'alert' : healthState === 'good' ? 'vital' : 'calm';
+
+  // Weekly movement summary (Mon–Sun current week)
+  const weeklyMovement = useMemo(() => {
+    const mondayStr = getMondayStr(new Date());
+    const sundayStr = (() => {
+      const d = new Date(mondayStr); d.setDate(d.getDate() + 6);
+      return d.toISOString().slice(0, 10);
+    })();
+    const weekLogs = exerciseLogs.filter(l => l.date >= mondayStr && l.date <= sundayStr);
+    if (weekLogs.length === 0) return null;
+    const sessions = weekLogs.length;
+    const totalMin = weekLogs.reduce((s, l) => s + (l.durationMin ?? 0), 0);
+    const catCounts = weekLogs.reduce<Record<string, number>>((acc, l) => {
+      acc[l.category] = (acc[l.category] ?? 0) + 1; return acc;
+    }, {});
+    const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    return { sessions, totalMin, topCat };
+  }, [exerciseLogs]);
 
   return (
     <SafeAreaView style={s.safe}>
@@ -384,6 +409,33 @@ export default function DashboardScreen() {
             );
           })()}
 
+          {/* Weekly movement summary */}
+          {weeklyMovement && (
+            <View style={s.weeklyCard}>
+              <Text style={s.weeklyLabel}>THIS WEEK'S MOVEMENT</Text>
+              <View style={s.weeklyRow}>
+                <View style={s.weeklyStat}>
+                  <Text style={s.weeklyStatVal}>{weeklyMovement.sessions}</Text>
+                  <Text style={s.weeklyStatLbl}>sessions</Text>
+                </View>
+                <View style={s.weeklyDivider} />
+                <View style={s.weeklyStat}>
+                  <Text style={s.weeklyStatVal}>{weeklyMovement.totalMin}</Text>
+                  <Text style={s.weeklyStatLbl}>minutes</Text>
+                </View>
+                {weeklyMovement.topCat !== '' && (
+                  <>
+                    <View style={s.weeklyDivider} />
+                    <View style={s.weeklyStat}>
+                      <Text style={s.weeklyStatVal} numberOfLines={1}>{weeklyMovement.topCat}</Text>
+                      <Text style={s.weeklyStatLbl}>top group</Text>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          )}
+
           <View style={s.sectionHdr}>
             <Text style={s.sectionTitle}>{"Today's protocol"}</Text>
             <Text style={s.sectionLink}>{takenCount} / {medications.length} taken</Text>
@@ -501,4 +553,33 @@ const s = StyleSheet.create({
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
   uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
+  weeklyCard: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
+    padding: Spacing.md,
+  },
+  weeklyLabel: {
+    fontSize: Typography.sizes.xs, fontWeight: '600',
+    color: Colors.dark.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    marginBottom: Spacing.sm,
+  },
+  weeklyRow: { flexDirection: 'row', alignItems: 'center' },
+  weeklyStat: { flex: 1, alignItems: 'center' },
+  weeklyStatVal: {
+    fontSize: Typography.sizes.xl, fontWeight: '600',
+    color: Colors.dark.text, lineHeight: 26,
+  },
+  weeklyStatLbl: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.dark.textMuted, marginTop: 2,
+  },
+  weeklyDivider: {
+    width: 0.5, height: 32,
+    backgroundColor: Colors.dark.cardBorder,
+  },
 });
