@@ -298,11 +298,11 @@ Plans:
 - [x] 12-03-PLAN.md — Create 60 SVG neural-dot exercise illustration components + barrel index (EX-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 12-04-PLAN.md — Create ExerciseDetailScreen (illustration, muscle map, form cue, sets/reps, log CTA) (EX-01, EX-02, EX-03, EX-04)
+- [x] 12-04-PLAN.md — Create ExerciseDetailScreen (illustration, muscle map, form cue, sets/reps, log CTA) (EX-01, EX-02, EX-03, EX-04)
 
 **Wave 3** *(blocked on Wave 2 completion, run in parallel)*
-- [ ] 12-05-PLAN.md — Wire AppNavigator + update ExerciseScreen (navigate to detail, muscle map filter panel) (EX-05)
-- [ ] 12-06-PLAN.md — Add weekly movement summary card to DashboardScreen (EX-06)
+- [x] 12-05-PLAN.md — Wire AppNavigator + update ExerciseScreen (navigate to detail, muscle map filter panel) (EX-05)
+- [x] 12-06-PLAN.md — Add weekly movement summary card to DashboardScreen (EX-06)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 12-07-PLAN.md — tsc + source audit + human visual checkpoint (EX-01, EX-02, EX-03, EX-04, EX-05, EX-06)
@@ -352,6 +352,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
 | 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
-| 12. Exercise UI Overhaul | v3.0 | 3/7 | In progress | - |
+| 12. Exercise UI Overhaul | v3.0 | 6/7 | In progress | - |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
 | 14. Auth & Login | v3.0 | 0/TBD | Not started | - |

@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 12 (Executing — Wave 1 complete, Wave 2 next)
-Plan: Wave 1 complete (2026-06-07). Plans 12-01, 12-02, 12-03 done. 3/7 plans complete.
-Status: Phase 12 executing. Wave 1 merged and verified. Ready for Wave 2 (12-04: ExerciseDetailScreen).
-Last activity: 2026-06-07 — Wave 1 complete: exercises.ts extended + 60 exercises populated (pharmacist-approved), MuscleMapView built, 60 SVG illustrations created. tsc clean post-merge.
+Phase: 12 (Executing — Waves 1–3 complete, Wave 4 next)
+Plan: Wave 3 complete (2026-06-07). Plans 12-01 through 12-06 done. 6/7 plans complete.
+Status: Phase 12 executing. Waves 1–3 merged and verified. Ready for Wave 4 (12-07: final audit + human visual check).
+Last activity: 2026-06-07 — Wave 3 complete: ExerciseDetail navigation wired, muscle map filter panel added, Dashboard weekly movement summary card added. Merge conflict resolved (both weekly card + Research CTA preserved). tsc clean post-merge.
 
 Progress: [██████████] 100% Phase 12 planned → ready to execute
 
