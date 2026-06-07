@@ -22,6 +22,10 @@ export interface Exercise {
   secondaryMuscles: string[];
   target: string;
   instructions: string;
+  illustrationId?: string;
+  formCue?: string;
+  setsReps?: string;
+  longevityNote?: string;
 }
 
 export type ExerciseIntensity = 'easy' | 'moderate' | 'hard';
