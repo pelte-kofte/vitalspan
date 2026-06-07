@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 12 (Ready to execute — 7 plans, 4 waves)
-Plan: Phase 12 planned (2026-06-06). 7 plans created and verified.
-Status: Phase 12 planned. Ready for execution.
-Last activity: 2026-06-06 — Phase 12 planned: Exercise UI Overhaul — 7 plans in 4 waves. EX-01–EX-06 covered. Pharmacist review checkpoint in Plan 12-01.
+Phase: 12 (Executing — Wave 1 complete, Wave 2 next)
+Plan: Wave 1 complete (2026-06-07). Plans 12-01, 12-02, 12-03 done. 3/7 plans complete.
+Status: Phase 12 executing. Wave 1 merged and verified. Ready for Wave 2 (12-04: ExerciseDetailScreen).
+Last activity: 2026-06-07 — Wave 1 complete: exercises.ts extended + 60 exercises populated (pharmacist-approved), MuscleMapView built, 60 SVG illustrations created. tsc clean post-merge.
 
 Progress: [██████████] 100% Phase 12 planned → ready to execute
 
