@@ -74,6 +74,8 @@ export const Colors = {
     border: 'rgba(255,255,255,0.08)',
     text: '#E8F5EE',
     textMuted: 'rgba(232,245,238,0.5)',
+    cardBg: 'rgba(255,255,255,0.06)',
+    cardBorder: 'rgba(255,255,255,0.12)',
   },
 
   // Data visualisation accents
