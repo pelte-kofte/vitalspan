@@ -13,8 +13,7 @@ import MuscleMapView from '../components/MuscleMapView';
 import QuickLogModal from '../components/QuickLogModal';
 import * as ExerciseIllustrations from '../components/exercise-illustrations';
 
-type LocalParamList = RootStackParamList & { ExerciseDetail: { exerciseId: string } };
-type RouteProps = RouteProp<LocalParamList, 'ExerciseDetail'>;
+type RouteProps = RouteProp<RootStackParamList, 'ExerciseDetail'>;
 
 const EQUIPMENT_SHORT: Record<string, string> = {
   'body weight': 'BW', 'dumbbell': 'DB', 'barbell': 'BB',

@@ -19,6 +19,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 import ArticlesScreen from '../screens/ArticlesScreen';
+import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   Settings: undefined;
   About: undefined;
   Articles: undefined;
+  ExerciseDetail: { exerciseId: string };
 };
 
 export type MainTabParamList = {
@@ -186,6 +188,11 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="Articles"
           component={ArticlesScreen}
+          options={{ presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="ExerciseDetail"
+          component={ExerciseDetailScreen}
           options={{ presentation: 'card' }}
         />
       </Stack.Navigator>

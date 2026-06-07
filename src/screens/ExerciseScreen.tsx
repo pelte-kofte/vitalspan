@@ -3,7 +3,8 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +15,10 @@ import {
 import { getExercises } from '../lib/exerciseService';
 import { SwipeableLogRow } from '../components/SwipeableLogRow';
 import QuickLogModal from '../components/QuickLogModal';
+import MuscleMapView, { muscleMatches, MUSCLE_REGIONS } from '../components/MuscleMapView';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORY_EMOJI: Record<string, string> = {
   'Cardio':     '🏃',
@@ -54,12 +59,15 @@ function getYesterdayStr(date: Date): string {
 }
 
 export default function ExerciseScreen() {
+  const nav = useNavigation<Nav>();
   const [selectedCat, setSelectedCat] = useState<ExerciseCategory | 'All'>('All');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logModal, setLogModal] = useState<Exercise | null>(null);
   const [logs, setLogs] = useState<ExerciseLogEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [muscleMapOpen, setMuscleMapOpen] = useState(false);
+  const [muscleMapView, setMuscleMapView] = useState<'front' | 'back'>('front');
 
   const loadData = useCallback(() => {
     return Promise.all([
@@ -86,10 +94,16 @@ export default function ExerciseScreen() {
     await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify(updated)).catch(console.error);
   }
 
-  const filtered = useMemo(
-    () => selectedCat === 'All' ? exercises : exercises.filter(e => e.category === selectedCat),
-    [selectedCat, exercises],
-  );
+  const filtered = useMemo(() => {
+    let result = selectedCat === 'All' ? exercises : exercises.filter(e => e.category === selectedCat);
+    if (selectedMuscle) {
+      result = result.filter(e =>
+        muscleMatches(e.muscleGroup, selectedMuscle) ||
+        e.secondaryMuscles.some(m => muscleMatches(m, selectedMuscle))
+      );
+    }
+    return result;
+  }, [selectedCat, exercises, selectedMuscle]);
 
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
@@ -106,11 +120,6 @@ export default function ExerciseScreen() {
     totalCal: todayLogs.reduce((sum, l) => sum + (l.caloriesEstimated ?? 0), 0),
     count: todayLogs.length,
   }), [todayLogs]);
-
-  function toggleExpand(id: string) {
-    Haptics.selectionAsync().catch(() => null);
-    setExpandedId(prev => (prev === id ? null : id));
-  }
 
   return (
     <SafeAreaView style={s.safe}>
@@ -176,6 +185,51 @@ export default function ExerciseScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Muscle map filter toggle button */}
+      <TouchableOpacity
+        style={s.muscleFilterToggle}
+        onPress={() => {
+          Haptics.selectionAsync().catch(() => null);
+          setMuscleMapOpen(prev => !prev);
+        }}
+        activeOpacity={0.75}
+      >
+        <Text style={s.muscleFilterToggleTxt}>
+          {selectedMuscle
+            ? `Muscle: ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}`
+            : 'Muscle Group Filter'}
+        </Text>
+        <Text style={s.muscleFilterChevron}>{muscleMapOpen ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {/* Collapsible muscle map filter panel */}
+      {muscleMapOpen && (
+        <View style={s.muscleFilterPanel}>
+          <MuscleMapView
+            interactive={true}
+            view={muscleMapView}
+            onViewToggle={() => setMuscleMapView(v => v === 'front' ? 'back' : 'front')}
+            onMusclePress={(regionId) => {
+              Haptics.selectionAsync().catch(() => null);
+              setSelectedMuscle(prev => prev === regionId ? null : regionId);
+            }}
+            primaryMuscles={selectedMuscle ? [selectedMuscle] : []}
+            secondaryMuscles={[]}
+          />
+          {selectedMuscle && (
+            <TouchableOpacity
+              style={s.clearFilterBtn}
+              onPress={() => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(null); }}
+              activeOpacity={0.75}
+            >
+              <Text style={s.clearFilterTxt}>
+                Clear filter: {MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <ScrollView
         style={s.scroll}
@@ -260,55 +314,46 @@ export default function ExerciseScreen() {
         {exercises.length > 0 && (
           <>
             <Text style={s.sectionLabel}>
-              {selectedCat === 'All' ? 'All exercises' : selectedCat} · {filtered.length}
+              {selectedMuscle
+                ? `${selectedCat === 'All' ? 'All' : selectedCat} · ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle} · ${filtered.length}`
+                : `${selectedCat === 'All' ? 'All exercises' : selectedCat} · ${filtered.length}`}
             </Text>
 
             <View style={s.card}>
-              {filtered.map((ex, i) => {
-                const isExpanded = expandedId === ex.id;
-                return (
-                  <View key={ex.id} style={i < filtered.length - 1 && s.rowBorder}>
-                    <TouchableOpacity
-                      style={s.exerciseRow}
-                      onPress={() => toggleExpand(ex.id)}
-                      activeOpacity={0.75}
-                    >
-                      <View style={s.exLeft}>
-                        <Text style={s.exName}>{ex.name}</Text>
-                        <View style={s.exMeta}>
-                          <View style={s.equipChip}>
-                            <Text style={s.equipChipTxt}>{equipShort(ex.equipment)}</Text>
-                          </View>
-                          <Text style={s.exTarget}>{ex.target}</Text>
+              {filtered.map((ex, i) => (
+                <View key={ex.id} style={i < filtered.length - 1 && s.rowBorder}>
+                  <TouchableOpacity
+                    style={s.exerciseRow}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                      nav.navigate('ExerciseDetail', { exerciseId: ex.id });
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={s.exLeft}>
+                      <Text style={s.exName}>{ex.name}</Text>
+                      <View style={s.exMeta}>
+                        <View style={s.equipChip}>
+                          <Text style={s.equipChipTxt}>{equipShort(ex.equipment)}</Text>
                         </View>
+                        <Text style={s.exTarget}>{ex.target}</Text>
                       </View>
-                      <View style={s.exRight}>
-                        <TouchableOpacity
-                          style={s.logBtn}
-                          onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-                            setLogModal(ex);
-                          }}
-                        >
-                          <Text style={s.logBtnTxt}>+ Log</Text>
-                        </TouchableOpacity>
-                        <Text style={s.chevron}>{isExpanded ? '▲' : '▼'}</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {isExpanded && (
-                      <View style={s.expandedContent}>
-                        {ex.secondaryMuscles.length > 0 && (
-                          <Text style={s.musclesTxt}>
-                            Also works: {ex.secondaryMuscles.join(', ')}
-                          </Text>
-                        )}
-                        <Text style={s.instructionsTxt}>{ex.instructions}</Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
+                    </View>
+                    <View style={s.exRight}>
+                      <TouchableOpacity
+                        style={s.logBtn}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+                          setLogModal(ex);
+                        }}
+                      >
+                        <Text style={s.logBtnTxt}>+ Log</Text>
+                      </TouchableOpacity>
+                      <Text style={s.chevron}>→</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           </>
         )}
@@ -409,16 +454,44 @@ const s = StyleSheet.create({
     paddingVertical: Spacing.xs + 1,
   },
   logBtnTxt: { fontSize: 11, fontWeight: '600', color: Colors.primaryBg },
-  chevron: { fontSize: 10, color: Colors.Beige.textMuted },
+  chevron: { fontSize: 12, color: Colors.Beige.textMuted, fontWeight: '600' },
 
-  // Expanded
-  expandedContent: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: 6,
+  // Muscle map filter
+  muscleFilterToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.md,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
   },
-  musclesTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
-  instructionsTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 20 },
+  muscleFilterToggleTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.Beige.textSecondary },
+  muscleFilterChevron: { fontSize: 10, color: Colors.Beige.textMuted },
+  muscleFilterPanel: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.Beige.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Colors.Beige.border,
+    padding: Spacing.md,
+    overflow: 'hidden',
+  },
+  clearFilterBtn: {
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.accentBg,
+    borderRadius: Radius.full,
+    borderWidth: 0.5,
+    borderColor: Colors.accentBorder,
+  },
+  clearFilterTxt: { fontSize: Typography.sizes.xs, color: Colors.accent, fontWeight: '600' },
 
   // Today's activity card
   activityCard: {
