@@ -32,7 +32,7 @@ must_haves:
     - "InteractionCheckerScreen.tsx and LandingScreen.tsx have zero remaining hardcoded hex values in StyleSheet blocks (shadowColor: '#000' accepted as cross-platform shadow convention)"
     - "LabUploadScreen.tsx renders SearchIcon and SuccessCheckIcon SVGs instead of 🔍 and ✅ emoji; renders ClipboardIcon instead of 📋; renders CameraIcon instead of 📷"
     - "OnboardingScreen.tsx goal selection renders GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon SVGs instead of ⏳ ⚡ 🧬 📊 emoji strings"
-    - "DashboardScreen.tsx renders RunnerIcon instead of 🏃; BellIcon instead of 🔔; DnaHelixIcon instead of 🧬; ClipboardIcon instead of 📋; a document/clipboard icon instead of 📄"
+    - "DashboardScreen.tsx renders RunnerIcon instead of 🏃; BellIcon instead of 🔔; DnaHelixIcon instead of 🧬; ClipboardIcon instead of 📋 and 📄; WarningIcon instead of ⚠️ at line ~311 (interaction alert card)"
     - "ExerciseScreen.tsx category chips render SVG icons instead of CATEGORY_EMOJI emoji strings; empty state renders RunnerIcon instead of 🏃"
     - "SupplementRow.tsx renders WarningIcon instead of ⚠️"
     - "PlaceholderScreens.tsx is deleted and no src/ file imports from it"
@@ -73,7 +73,7 @@ must_haves:
       pattern: "DesignSystemIcons"
     - from: "src/screens/DashboardScreen.tsx"
       to: "src/components/DesignSystemIcons.tsx"
-      via: "import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon }"
+      via: "import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon }"
       pattern: "DesignSystemIcons"
     - from: "src/screens/ExerciseScreen.tsx"
       to: "src/components/DesignSystemIcons.tsx"
@@ -226,8 +226,9 @@ Output: Zero Colors.Beige.* references anywhere in src/; all emoji replaced with
     - Remove the icon property from each GOALS object entry (or leave as dead field — removing is cleaner).
 
     DashboardScreen.tsx:
-    - Add import: import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon } from '../components/DesignSystemIcons';
+    - Add import: import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '../components/DesignSystemIcons';
     - Line ~240: Replace `<Text style={{ fontSize: 18 }}>🔔</Text>` with `<BellIcon color={Colors.onSurface} size={20} />`
+    - Line ~311: Replace `<Text style={{ fontSize: 14 }}>⚠️</Text>` (interaction alert card warning indicator) with `<WarningIcon color={Colors.semantic.warning} size={14} />`
     - Line ~337: Replace `<Text style={s.emptyStateIcon}>🧬</Text>` with `<DnaHelixIcon color={Colors.onSurfaceMuted} size={40} />`; remove or repurpose the s.emptyStateIcon StyleSheet entry (it was fontSize-based)
     - Line ~399: Replace `<Text style={s.uploadCardIcon}>📋</Text>` with `<ClipboardIcon color={Colors.onSurface} size={20} />`; remove or repurpose s.uploadCardIcon StyleSheet entry
     - Line ~422: Replace `<Text style={s.exerciseCardIcon}>🏃</Text>` with `<RunnerIcon color={Colors.onSurface} size={20} />`; remove or repurpose s.exerciseCardIcon StyleSheet entry
@@ -262,7 +263,7 @@ Output: Zero Colors.Beige.* references anywhere in src/; all emoji replaced with
     - OnboardingScreen.tsx imports GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon
     - OnboardingScreen.tsx renders SVG icon components for goal selection, not emoji strings
     - DashboardScreen.tsx imports RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon
-    - DashboardScreen.tsx has no remaining 🔔, 🧬, 📋, 📄, 🏃 emoji in JSX
+    - DashboardScreen.tsx has no remaining 🔔, 🧬, 📋, 📄, 🏃, ⚠️ emoji in JSX
     - ExerciseScreen.tsx imports RunnerIcon; renders it in empty state; category chip emoji removed
     - SupplementRow.tsx imports WarningIcon; grep "⚠" src/components/SupplementRow.tsx returns 0 matches
     - src/screens/PlaceholderScreens.tsx does not exist (ls returns "No such file")
@@ -363,7 +364,7 @@ After all tasks complete:
 1. Run: grep -rn "Colors.Beige" src/
    Expected: zero matches
 2. Run: grep -rn "🔍\|✅\|🏃\|⏳\|⚡\|🧬\|📊\|🔔\|📋\|📷\|📄\|⚠️" src/screens/LabUploadScreen.tsx src/screens/OnboardingScreen.tsx src/screens/DashboardScreen.tsx src/screens/ExerciseScreen.tsx src/components/SupplementRow.tsx
-   Expected: zero emoji matches in those files
+   Expected: zero emoji matches in those files (includes ⚠️ in DashboardScreen line ~311 and SupplementRow)
 3. Run: ls src/screens/PlaceholderScreens.tsx
    Expected: "No such file or directory"
 4. Run: npx tsc --noEmit

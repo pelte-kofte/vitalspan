@@ -179,7 +179,7 @@ Output: 4 screen files fully migrated; zero Colors.Beige.* references; all emoji
       - icon="📏" → icon={<RulerIcon color={Colors.onSurface} size={20} />}
       - icon="📤" → icon={<ShareIcon color={Colors.onSurface} size={20} />}
       - icon="🗑" → icon={<TrashIcon color={Colors.danger} size={20} />} (danger row — use Colors.danger color to match the row title)
-      - icon="ℹ" → use ShieldIcon or leave as text — ℹ is informational; use `<Text style={s.rowIcon}>ℹ</Text>` if no InfoIcon exists (no D-09 listed target for this specific glyph; use ShieldIcon as a reasonable substitute OR keep as string since ℹ is not one of the canonical D-09 targets — read D-09 in CONTEXT.md to confirm)
+      - icon="ℹ" → leave as `<Text style={s.rowIcon}>ℹ</Text>` — ℹ (U+2139 INFORMATION SOURCE) renders in text presentation with no VS-16 emoji variation selector, making it a Unicode text symbol, not an emoji. D-09 targets emoji (graphical) characters only; ℹ does not require conversion.
       - icon="🔏" → icon={<ShieldIcon color={Colors.onSurface} size={20} />}
       - icon="📋" → icon={<ClipboardIcon color={Colors.onSurface} size={20} />}
       - icon="⭐" → icon={<StarIcon color={Colors.onSurface} size={20} />}
