@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 12 (Executing — Waves 1–3 complete, Wave 4 next)
-Plan: Wave 3 complete (2026-06-07). Plans 12-01 through 12-06 done. 6/7 plans complete.
-Status: Phase 12 executing. Waves 1–3 merged and verified. Ready for Wave 4 (12-07: final audit + human visual check).
-Last activity: 2026-06-07 — Wave 3 complete: ExerciseDetail navigation wired, muscle map filter panel added, Dashboard weekly movement summary card added. Merge conflict resolved (both weekly card + Research CTA preserved). tsc clean post-merge.
+Phase: 13 (Not started — Phase 12 complete 2026-06-08)
+Plan: Phase 13 not yet planned.
+Status: Phase 12 complete. Ready for Phase 13 (UI / Design System).
+Last activity: 2026-06-08 — Phase 12 complete: Exercise UI Overhaul — 60 SVG illustrations, MuscleMapView, ExerciseDetailScreen, muscle map filter, weekly movement summary. 3 code review bugs fixed (exerciseService field mapping, illustrationId typo, QuickLogModal error handling). 6/6 requirements verified (EX-01–EX-06). Visual approved.
 
 Progress: [██████████] 100% Phase 12 planned → ready to execute
 

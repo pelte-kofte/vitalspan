@@ -217,7 +217,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 10: Apple Health + Articles** - Replace demo orbital values with live HealthKit data and add a PubMed-powered longevity article feed
 - [x] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
-- [ ] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary
+- [x] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary (completed 2026-06-08)
 - [ ] **Phase 13: UI / Design System** - Replace patchwork styling with a clinical-premium design system: intentional color tokens, full SVG icon conversion, verified rendering, documented typography scale, and spacing audit
 - [ ] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration
 
@@ -352,6 +352,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
 | 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
-| 12. Exercise UI Overhaul | v3.0 | 7/7 | In progress | - |
+| 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 0/TBD | Not started | - |
 | 14. Auth & Login | v3.0 | 0/TBD | Not started | - |

@@ -116,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-05 after Phase 11 complete*
+*Last updated: 2026-06-08 after Phase 12 complete — Exercise UI Overhaul: 60 SVG illustrations, MuscleMapView, ExerciseDetailScreen with pharmacist-approved longevity content, muscle map filter, weekly movement summary on Dashboard.*
