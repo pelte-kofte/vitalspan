@@ -99,7 +99,7 @@ export default function MuscleMapView({
 
       {/* Interactive tap overlays (positioned over SVG) */}
       {interactive && onMusclePress && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <View style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}>
           {visible.map(r => {
             const p = view === 'front' ? r.frontPath : r.backPath;
             if (!p) return null;
