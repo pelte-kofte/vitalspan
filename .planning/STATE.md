@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 13 (Not started — Phase 12 complete 2026-06-08)
+Phase: 13 (Context gathered — ready for planning)
 Plan: Phase 13 not yet planned.
-Status: Phase 12 complete. Ready for Phase 13 (UI / Design System).
-Last activity: 2026-06-08 — Phase 12 complete: Exercise UI Overhaul — 60 SVG illustrations, MuscleMapView, ExerciseDetailScreen, muscle map filter, weekly movement summary. 3 code review bugs fixed (exerciseService field mapping, illustrationId typo, QuickLogModal error handling). 6/6 requirements verified (EX-01–EX-06). Visual approved.
+Status: Phase 13 context captured 2026-06-08. Ready for Phase 13 planning (UI / Design System).
+Last activity: 2026-06-08 — Phase 13 context gathered: UI / Design System — white/green design system direction locked, beige removal confirmed, SVG icon completion scope defined, EAS preview build verification approach decided.
 
 Progress: [██████████] 100% Phase 12 planned → ready to execute
 
