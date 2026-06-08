@@ -54,6 +54,16 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
     }).catch(() => null);
   }, []);
 
+  useEffect(() => {
+    if (exercise) {
+      setSets('3');
+      setReps('12');
+      setDuration('30');
+      setIntensity('moderate');
+      setNotes('');
+    }
+  }, [exercise?.id]);
+
   if (!exercise) return null;
 
   const isCardio = exercise.category === 'Cardio';
