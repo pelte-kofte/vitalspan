@@ -52,11 +52,6 @@ function getMondayStr(date: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function getYesterdayStr(date: Date): string {
-  const d = new Date(date);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
 
 export default function ExerciseScreen() {
   const nav = useNavigation<Nav>();
@@ -105,14 +100,16 @@ export default function ExerciseScreen() {
     return result;
   }, [selectedCat, exercises, selectedMuscle]);
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const mondayStr = getMondayStr(now);
-  const yesterdayStr = getYesterdayStr(now);
-  const historyStartStr = (() => { const d = new Date(mondayStr); d.setDate(d.getDate() - 14); return d.toISOString().slice(0, 10); })();
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const mondayStr = useMemo(() => getMondayStr(new Date()), []);
+  const historyStartStr = useMemo(() => {
+    const d = new Date(getMondayStr(new Date()));
+    d.setDate(d.getDate() - 14);
+    return d.toISOString().slice(0, 10);
+  }, []);
 
   const todayLogs = useMemo(() => logs.filter(l => l.date === todayStr), [logs, todayStr]);
-  const thisWeekLogs = useMemo(() => logs.filter(l => l.date >= mondayStr && l.date <= yesterdayStr), [logs, mondayStr, yesterdayStr]);
+  const thisWeekLogs = useMemo(() => logs.filter(l => l.date >= mondayStr && l.date < todayStr), [logs, mondayStr, todayStr]);
   const historyLogs = useMemo(() => logs.filter(l => l.date >= historyStartStr && l.date < mondayStr), [logs, historyStartStr, mondayStr]);
 
   const todayTotals = useMemo(() => ({
