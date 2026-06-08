@@ -416,7 +416,7 @@ export default function DashboardScreen() {
                 style={s.exerciseCard}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-                  nav.navigate('Main');
+                  nav.getParent()?.navigate('Exercise');
                 }}
               >
                 <Text style={s.exerciseCardIcon}>🏃</Text>
@@ -493,7 +493,7 @@ export default function DashboardScreen() {
                 <Text style={s.protoEmptyTxt}>No medications in your protocol yet</Text>
                 <TouchableOpacity
                   style={s.protoEmptyCta}
-                  onPress={() => nav.navigate('Main')}
+                  onPress={() => nav.getParent()?.navigate('Protocol')}
                 >
                   <Text style={s.protoEmptyCtaTxt}>Go to Protocol →</Text>
                 </TouchableOpacity>
