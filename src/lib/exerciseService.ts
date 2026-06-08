@@ -11,6 +11,10 @@ interface ExerciseRow {
   secondary_muscles: string[] | null;
   target: string | null;
   instructions: string | null;
+  illustration_id: string | null;
+  form_cue: string | null;
+  sets_reps: string | null;
+  longevity_note: string | null;
 }
 
 function mapRowToExercise(row: ExerciseRow): Exercise {
@@ -24,6 +28,10 @@ function mapRowToExercise(row: ExerciseRow): Exercise {
     secondaryMuscles: row.secondary_muscles ?? [],
     target: row.target ?? '',
     instructions: row.instructions ?? '',
+    illustrationId: row.illustration_id ?? undefined,
+    formCue: row.form_cue ?? undefined,
+    setsReps: row.sets_reps ?? undefined,
+    longevityNote: row.longevity_note ?? undefined,
   };
 }
 
