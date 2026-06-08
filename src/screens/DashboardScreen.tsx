@@ -45,17 +45,15 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
-  const [firstRunComplete, setFirstRunComplete] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw, firstRunRaw] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         AsyncStorage.getItem('@vitalspan_protocol_today'),
         loadHealthData(),
         AsyncStorage.getItem('@vitalspan_exercise_log'),
-        AsyncStorage.getItem('@vitalspan_first_run_complete'),
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
@@ -91,7 +89,6 @@ export default function DashboardScreen() {
 
       if (hData) setHealthData(hData);
       if (exerciseRaw) setExerciseLogs(JSON.parse(exerciseRaw));
-      setFirstRunComplete(firstRunRaw === 'true');
 
       if (protocolRaw) {
         const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
