@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, StyleSheet, TextInput,
+  Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -78,11 +78,16 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
       notes: notes.trim() || undefined,
       loggedAt: new Date().toISOString(),
     };
-    const raw = await AsyncStorage.getItem('@vitalspan_exercise_log').catch(() => null);
-    const existing: ExerciseLogEntry[] = raw ? JSON.parse(raw) : [];
-    await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify([entry, ...existing])).catch(() => null);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
-    onClose();
+    try {
+      const raw = await AsyncStorage.getItem('@vitalspan_exercise_log');
+      const existing: ExerciseLogEntry[] = raw ? JSON.parse(raw) : [];
+      await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify([entry, ...existing]));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+      onClose();
+    } catch (err) {
+      console.error('[QuickLogModal] save failed', err);
+      Alert.alert('Save failed', 'Could not save your workout. Please try again.');
+    }
   }
 
   return (
