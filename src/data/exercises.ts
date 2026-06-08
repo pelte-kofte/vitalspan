@@ -309,7 +309,7 @@ export const EXERCISES: Exercise[] = [
     secondaryMuscles: ['quadriceps', 'hamstrings', 'calves'],
     target: 'glutes',
     instructions: 'Stand with your feet shoulder-width apart. Take a step diagonally behind and across your body with your right foot, crossing it behind your left leg. Bend both knees as if you were curtsying, lowering your body towards the ground. Keep your torso upright and your weight on your front foot. Push through your front foot to return to the starting position. Repeat on the other side.',
-    illustrationId: 'curtseySquat',
+    illustrationId: 'curtseySqat',
     formCue: 'The rear foot crosses well behind the standing foot; keep the front knee tracking straight forward throughout the descent.',
     setsReps: '3 × 8–12 reps each side, slow eccentric (3 sec), 90 sec rest',
     longevityNote: 'Targets glute medius, the primary lateral hip stabilizer that declines with age and is directly linked to fall risk and knee health.',
