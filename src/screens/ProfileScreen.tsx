@@ -13,6 +13,7 @@ import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { PersonIcon, GearIcon, InfoIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
+import { signOutUser, supabase } from '../lib/supabase';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -46,6 +47,7 @@ export default function ProfileScreen() {
   const [editConditions, setEditConditions] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [healthConnected, setHealthConnected] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState<boolean | null>(null);
 
   const loadProfile = useCallback(() => {
     return AsyncStorage.getItem('@vitalspan_user_profile')
@@ -60,6 +62,8 @@ export default function ProfileScreen() {
         }
         const perms = await loadPermissionStatus();
         setHealthConnected(perms?.granted ?? false);
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsAnonymous(user?.is_anonymous ?? null);
       })
       .catch(console.error);
   }, []);
@@ -76,6 +80,16 @@ export default function ProfileScreen() {
   async function handleDisconnect() {
     await AsyncStorage.multiRemove(['@vitalspan_health_permissions', '@vitalspan_health_data']);
     setHealthConnected(false);
+  }
+
+  async function handleLogout() {
+    const { error } = await signOutUser();
+    if (error) {
+      Alert.alert('Logout failed', error);
+      return;
+    }
+    // D-08: AsyncStorage NOT wiped — local data preserved for guest mode
+    (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] });
   }
 
   function startEdit() {
@@ -261,6 +275,21 @@ export default function ProfileScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
+        {/* Guest mode card — visible when user is anonymous (D-10) */}
+        {isAnonymous === true && (
+          <View style={s.guestCard}>
+            <Text style={s.guestHeadline}>Your data is stored locally</Text>
+            <View style={s.guestBenefits}>
+              <Text style={s.guestBenefit}>Sync across your devices</Text>
+              <Text style={s.guestBenefit}>Cloud backup for peace of mind</Text>
+              <Text style={s.guestBenefit}>Access your data on a new device</Text>
+            </View>
+            <TouchableOpacity style={s.guestCta} onPress={() => (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] })}>
+              <Text style={s.guestCtaTxt}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Hero */}
         <View style={s.hero}>
           <View style={s.avatar}>
@@ -351,6 +380,13 @@ export default function ProfileScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}><InfoIcon color={Colors.onSurface} size={18} /><Text style={s.settingsCardTxt}>About Vitalspan</Text></View>
           <Text style={s.settingsCardArrow}>→</Text>
         </TouchableOpacity>
+
+        {/* Logout button — visible for authenticated (non-anonymous) users (D-08, D-09) */}
+        {isAnonymous === false && (
+          <TouchableOpacity style={s.logoutRow} onPress={handleLogout}>
+            <Text style={s.logoutTxt}>Log Out</Text>
+          </TouchableOpacity>
+        )}
 
         {healthConnected && (
           <TouchableOpacity
@@ -534,6 +570,53 @@ const s = StyleSheet.create({
     borderColor: Colors.borderLight,
   },
   editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 18 },
+
+  // Guest mode card (D-10)
+  guestCard: {
+    backgroundColor: Colors.warningBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.warningBorder,
+  },
+  guestHeadline: {
+    fontSize: Typography.sizes.body,
+    fontWeight: '600',
+    color: Colors.warningTextDark,
+    marginBottom: Spacing.sm,
+  },
+  guestBenefits: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  guestBenefit: {
+    fontSize: Typography.sizes.bodySmall,
+    color: Colors.warning,
+  },
+  guestCta: {
+    backgroundColor: Colors.brand,
+    borderRadius: Radius.full,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center' as const,
+  },
+  guestCtaTxt: {
+    color: Colors.surface,
+    fontSize: Typography.sizes.body,
+    fontWeight: '600',
+  },
+  // Logout row (D-08, D-09)
+  logoutRow: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center' as const,
+    marginTop: Spacing.md,
+  },
+  logoutTxt: {
+    fontSize: Typography.sizes.body,
+    color: Colors.semantic.danger,
+    fontWeight: '500',
+  },
 
   // Motivating empty state
   emptyStateCard: {
