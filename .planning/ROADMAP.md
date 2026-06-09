@@ -331,7 +331,21 @@ Plans:
   2. A returning user logging in with correct credentials is taken directly to the main app with their biomarker history visible; a user logging in with wrong credentials sees a specific error message ("Incorrect password" not "Something went wrong")
   3. User who forgets password can trigger a reset email from the Login screen and sees a confirmation screen; after clicking the reset link, they can set a new password and log in successfully
   4. After backgrounding the app for any duration and reopening it, the user remains logged in without re-entering credentials; logging out clears the session, returns to the Welcome screen, and local AsyncStorage data is still accessible in guest mode
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 14-01-PLAN.md — Navigation & Routing Foundation: Replace Landing with Welcome in AppNavigator + session-type routing in App.tsx (AUTH-01, AUTH-06, AUTH-08)
+
+**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+- [ ] 14-02-PLAN.md — Supabase Auth Methods: signUpWithEmail, signInWithEmail, convertAnonymousToEmail, sendPasswordResetEmail, signOutUser, resendVerificationEmail, mapAuthError (AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-08, AUTH-09)
+- [ ] 14-03-PLAN.md — WelcomeScreen + Bottom Sheet Auth Forms: dark NeuralGrid hero, animated metric preview, Sign Up / Log In bottom sheets (AUTH-01, AUTH-02, AUTH-03, AUTH-09)
+
+**Wave 3** *(blocked on Wave 2 completion, run in parallel)*
+- [ ] 14-04-PLAN.md — ForgotPassword + SignUpConfirmation screens (AUTH-04, AUTH-05)
+- [ ] 14-05-PLAN.md — ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast + App.tsx cleanup (AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09)
+
 **UI hint**: yes
 
 ## Progress
@@ -354,4 +368,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
-| 14. Auth & Login | v3.0 | 0/TBD | Not started | - |
+| 14. Auth & Login | v3.0 | 0/5 | Not started | - |
