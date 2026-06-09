@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import { WarningIcon } from './DesignSystemIcons';
 import { getSupplementInfo, SupplementTiming, BestTime } from '../data/supplementTimings';
 
 interface SuppData { name: string; dose: string; evidence: 'A' | 'B' | 'C'; dbId?: string }
@@ -106,7 +107,7 @@ export default function SupplementRow({
           {/* Medication separation warnings */}
           {conflicts.map((c, i) => (
             <View key={i} style={s.warnChip}>
-              <Text style={s.warnTxt}>⚠️ {c}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><WarningIcon color={Colors.semantic.warning} size={12} /><Text style={s.warnTxt}>{c}</Text></View>
             </View>
           ))}
 

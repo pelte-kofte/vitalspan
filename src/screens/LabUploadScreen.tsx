@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import { SearchIcon, SuccessCheckIcon, ClipboardIcon, CameraIcon } from '../components/DesignSystemIcons';
 import { parseLabPDF, ParsedBiomarker } from '../lib/labParser';
 import { StoredEntry } from './BiomarkerEntryScreen';
 
@@ -102,7 +103,7 @@ export default function LabUploadScreen() {
         <Text style={s.subtitle}>Your pharmacist-verified analysis</Text>
 
         <TouchableOpacity style={s.uploadZone} onPress={pickPDF} activeOpacity={0.75}>
-          <Text style={s.uploadIcon}>📋</Text>
+          <ClipboardIcon color={Colors.onSurfaceMuted} size={48} />
           <Text style={s.uploadTitle}>Upload your lab PDF</Text>
           <Text style={s.uploadHint}>Tap to browse files on your device</Text>
           <View style={s.uploadBtn}>
@@ -117,7 +118,7 @@ export default function LabUploadScreen() {
         </View>
 
         <TouchableOpacity style={s.photoBtn} onPress={pickPhoto}>
-          <Text style={s.photoBtnIcon}>📷</Text>
+          <CameraIcon color={Colors.onSurfaceMuted} size={24} />
           <Text style={s.photoBtnTxt}>Take a photo of your lab report</Text>
         </TouchableOpacity>
 
@@ -146,7 +147,7 @@ export default function LabUploadScreen() {
         <View style={{ width: 28 }} />
       </View>
       <View style={s.centeredContent}>
-        <Text style={{ fontSize: 48 }}>🔍</Text>
+        <SearchIcon color={Colors.brand} size={48} />
         <Text style={s.noResultTitle}>Couldn't read this PDF</Text>
         <Text style={s.noResultSub}>
           This PDF may be a scanned image. Try logging your values manually or re-export your results as a text-based PDF.
@@ -165,7 +166,7 @@ export default function LabUploadScreen() {
   if (phase === 'success') return (
     <SafeAreaView style={s.safe}>
       <View style={s.centeredContent}>
-        <Text style={{ fontSize: 56 }}>✅</Text>
+        <SuccessCheckIcon color={Colors.semantic.success} size={48} />
         <Text style={s.successTitle}>Saved {savedCount} {savedCount === 1 ? 'biomarker' : 'biomarkers'}</Text>
         <Text style={s.successSub}>from your lab report</Text>
         <View style={s.savedNamesList}>
@@ -236,7 +237,6 @@ const s = StyleSheet.create({
   subtitle: { fontSize: Typography.sizes.sm, color: Colors.textMuted, textAlign: 'center', marginBottom: Spacing.xl },
   // Upload zone
   uploadZone: { borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed', borderRadius: Radius.xl, padding: Spacing.xxl, alignItems: 'center', backgroundColor: Colors.bgCard, gap: Spacing.sm },
-  uploadIcon: { fontSize: 48 },
   uploadTitle: { fontSize: Typography.sizes.lg, fontWeight: '600', color: Colors.textPrimary },
   uploadHint: { fontSize: Typography.sizes.sm, color: Colors.textMuted, textAlign: 'center' },
   uploadBtn: { marginTop: Spacing.sm, backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm + 2 },
@@ -247,7 +247,6 @@ const s = StyleSheet.create({
   dividerTxt: { fontSize: Typography.sizes.sm, color: Colors.textMuted },
   // Photo
   photoBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: Spacing.md, justifyContent: 'center' },
-  photoBtnIcon: { fontSize: 20 },
   photoBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, fontWeight: '500' },
   privacyNote: { fontSize: Typography.sizes.xs, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.xl },
   // Analyzing / centered states

@@ -9,6 +9,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { RunnerIcon } from '../components/DesignSystemIcons';
 import {
   EXERCISE_CATEGORIES, Exercise, ExerciseCategory, ExerciseLogEntry,
 } from '../data/exercises';
@@ -19,17 +20,6 @@ import MuscleMapView, { muscleMatches, MUSCLE_REGIONS } from '../components/Musc
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  'Cardio':     '🏃',
-  'Legs':       '🦵',
-  'Push':       '💪',
-  'Pull / Row': '🔙',
-  'Core':       '🔥',
-  'Shoulders':  '🏋️',
-  'Arms':       '💪',
-  'Calves':     '🦶',
-};
 
 const EQUIPMENT_SHORT: Record<string, string> = {
   'body weight':    'BW',
@@ -177,7 +167,7 @@ export default function ExerciseScreen() {
             onPress={() => { setSelectedCat(cat); Haptics.selectionAsync().catch(() => null); }}
           >
             <Text style={[s.tabTxt, selectedCat === cat && s.tabTxtActive]}>
-              {CATEGORY_EMOJI[cat]} {cat}
+              {cat}
             </Text>
           </TouchableOpacity>
         ))}
@@ -238,7 +228,7 @@ export default function ExerciseScreen() {
         {/* Motivating empty state — shown when no logs at all */}
         {logs.length === 0 && (
           <View style={s.emptyStateCard}>
-            <Text style={s.emptyStateIcon}>🏃</Text>
+            <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
             <Text style={s.emptyStateBody}>
               Log your first workout to start tracking your movement. Consistency compounds — even a 20-minute walk counts.
@@ -521,10 +511,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.base,
     overflow: 'hidden',
-  },
-  emptyStateIcon: {
-    fontSize: 40, /* intentional — hero display size, no Typography.sizes match */
-    marginBottom: Spacing.md,
   },
   emptyStateHeadline: {
     fontSize: Typography.sizes.h3,

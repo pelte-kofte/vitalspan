@@ -9,16 +9,19 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import { GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon, CheckmarkIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import MedicationSearch from '../components/MedicationSearch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const GOAL_ICONS = [GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon];
+
 const GOALS = [
-  { icon: '⏳', title: 'Extend lifespan', desc: 'Live as long as possible' },
-  { icon: '⚡', title: 'Optimize healthspan', desc: 'Stay sharp & energetic longer' },
-  { icon: '🧬', title: 'Slow biological aging', desc: 'Reduce my biological age score' },
-  { icon: '📊', title: 'Track & understand', desc: 'Know my biomarkers deeply' },
+  { title: 'Extend lifespan', desc: 'Live as long as possible' },
+  { title: 'Optimize healthspan', desc: 'Stay sharp & energetic longer' },
+  { title: 'Slow biological aging', desc: 'Reduce my biological age score' },
+  { title: 'Track & understand', desc: 'Know my biomarkers deeply' },
 ];
 
 const CONDITIONS = [
@@ -143,13 +146,13 @@ export default function OnboardingScreen() {
                 style={[s.optionCard, goal === i && s.optionCardSel]}
                 onPress={() => { setGoal(i); Haptics.selectionAsync().catch(() => null); }}>
                 <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
-                  <Text style={{ fontSize: 18 }}>{g.icon}</Text>
+                  {React.createElement(GOAL_ICONS[i], { color: goal === i ? Colors.brand : Colors.onSurfaceMuted, size: 18 })}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.optionTitle}>{g.title}</Text>
                   <Text style={s.optionDesc}>{g.desc}</Text>
                 </View>
-                {goal === i && <Text style={{ color: Colors.primary, fontSize: 18 }}>✓</Text>}
+                {goal === i && <CheckmarkIcon color={Colors.brand} size={18} />}
               </TouchableOpacity>
             ))}
           </View>

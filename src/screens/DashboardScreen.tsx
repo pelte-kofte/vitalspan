@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
+import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '../components/DesignSystemIcons';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry } from './BiomarkerEntryScreen';
@@ -237,7 +238,7 @@ export default function DashboardScreen() {
               style={s.notifBtn}
               onPress={() => nav.navigate('Settings')}
             >
-              <Text style={{ fontSize: 18 }}>🔔</Text>
+              <BellIcon color={Colors.onSurface} size={20} />
             </TouchableOpacity>
           </View>
 
@@ -308,7 +309,7 @@ export default function DashboardScreen() {
               }}
             >
               <View style={s.alertIcon}>
-                <Text style={{ fontSize: 14 }}>⚠️</Text>
+                <WarningIcon color={Colors.semantic.warning} size={14} />
               </View>
               <View style={s.alertBody}>
                 <Text style={s.alertTitle}>Interaction check recommended</Text>
@@ -334,7 +335,7 @@ export default function DashboardScreen() {
 
           {entries.length === 0 ? (
             <View style={s.emptyStateCard}>
-              <Text style={s.emptyStateIcon}>🧬</Text>
+              <DnaHelixIcon color={Colors.onSurfaceMuted} size={40} />
               <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
               <Text style={s.emptyStateBody}>
                 Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to unlock your Longevity Score and biological age projection.
@@ -396,7 +397,7 @@ export default function DashboardScreen() {
               nav.navigate('LabUpload');
             }}
           >
-            <Text style={s.uploadCardIcon}>📋</Text>
+            <ClipboardIcon color={Colors.onSurface} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Upload lab results</Text>
               <Text style={s.uploadCardSub}>Import biomarkers from your PDF</Text>
@@ -419,7 +420,7 @@ export default function DashboardScreen() {
                   nav.getParent()?.navigate('Exercise');
                 }}
               >
-                <Text style={s.exerciseCardIcon}>🏃</Text>
+                <RunnerIcon color={Colors.onSurface} size={20} />
                 <View style={s.uploadCardBody}>
                   <Text style={s.uploadCardTitle}>Movement today</Text>
                   {hasData ? (
@@ -474,7 +475,7 @@ export default function DashboardScreen() {
               nav.navigate('Articles');
             }}
           >
-            <Text style={s.researchIcon}>📄</Text>
+            <ClipboardIcon color={Colors.onSurface} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Longevity Research</Text>
               <Text style={s.uploadCardSub}>Personalised PubMed articles for your biomarker profile</Text>
@@ -586,21 +587,18 @@ const s = StyleSheet.create({
   protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
   protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   emptyStateCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base },
-  emptyStateIcon: { fontSize: 32, marginBottom: Spacing.md },
+  emptyStateIconWrap: { marginBottom: Spacing.md },
   emptyStateHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
   emptyStateBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
   emptyStateCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
   emptyStateCtaTxt: { color: Colors.bgCard, fontSize: Typography.sizes.base, fontWeight: '600' },
   uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
   exerciseCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.status.optimalBg, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
-  exerciseCardIcon: { fontSize: 28 },
-  uploadCardIcon: { fontSize: 28 },
   uploadCardBody: { flex: 1 },
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
   uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
   researchCard: { backgroundColor: Colors.primaryBg },
-  researchIcon: { fontSize: 28 },
   weeklyCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
