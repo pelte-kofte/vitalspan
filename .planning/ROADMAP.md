@@ -219,7 +219,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
 - [x] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary (completed 2026-06-08)
 - [x] **Phase 13: UI / Design System** - Replace patchwork styling with a clinical-premium design system: intentional color tokens, full SVG icon conversion, verified rendering, documented typography scale, and spacing audit (completed 2026-06-09)
-- [ ] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration
+- [x] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration (completed 2026-06-09)
 
 ## Phase Details
 
@@ -346,7 +346,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion, run in parallel)*
 - [x] 14-04-PLAN.md — ForgotPassword + SignUpConfirmation screens (AUTH-04, AUTH-05)
-- [ ] 14-05-PLAN.md — ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast + App.tsx cleanup (AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09)
+- [x] 14-05-PLAN.md — ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast + App.tsx cleanup (AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09)
 
 **Cross-cutting constraints:**
 - `supabase.ts` polyfill constraint: `react-native-url-polyfill/auto` must remain line 1 in all plans touching that file (D-16, 14-02)
@@ -376,4 +376,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
-| 14. Auth & Login | v3.0 | 4/5 | In progress | - |
+| 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |

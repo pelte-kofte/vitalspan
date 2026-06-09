@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 14 (executing)
-Plan: 14-04 complete. Wave 4 partially complete (14-04 done, 14-05 remaining).
-Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen + 14-04 ForgotPasswordScreen + SignUpConfirmationScreen complete. ProfileScreen guest card + Dashboard verification banner remain (14-05).
-Last activity: 2026-06-09 — 14-04 complete: ForgotPasswordScreen (two-state form/success, 207 lines) + SignUpConfirmationScreen (Open Mail App CTA, 134 lines) + AppNavigator stubs fully replaced.
+Phase: 14 (complete)
+Plan: 14-05 complete. All 5 plans in Phase 14 done. Phase 14 Auth & Login complete.
+Status: Phase 14 complete. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen + 14-04 ForgotPasswordScreen + SignUpConfirmationScreen + 14-05 ProfileScreen guest card + DashboardScreen verification banner all done.
+Last activity: 2026-06-09 — 14-05 complete: ProfileScreen guest card (isAnonymous===true) + logout button (isAnonymous===false) + DashboardScreen amber verification banner + one-time verified toast + App.tsx confirmed clean of Landing refs.
 
-Progress: [██████████] 100% Phase 13 complete
+Progress: [██████████] 100% Phase 14 complete
 
 ## Performance Metrics
 
@@ -76,6 +76,9 @@ Recent decisions affecting current work:
 - 14-04: RouteProp imported from @react-navigation/native (not @react-navigation/native-stack) — native-stack only exports NativeStackNavigationProp
 - 14-04: ForgotPasswordScreen always shows success state on sendPasswordResetEmail success — T-14-11 anti-enumeration (don't reveal whether email exists)
 - 14-04: SignUpConfirmationScreen handleContinue reads @vitalspan_user_profile.onboardingComplete to route to Main or Onboarding
+- 14-05: CompositeNavigationProp nav.reset requires double cast (as unknown as NativeStackNavigationProp) for RootStack routes — TypeScript strict rejects direct cast due to setParams incompatibility
+- 14-05: Verification banner placed outside ScrollView (between NeuralGrid and ScrollView) for fixed positioning at top
+- 14-05: Guest CTA uses nav.reset (not nav.navigate) to cleanly replace stack history when going to Welcome
 
 ### Pending Todos
 
@@ -100,5 +103,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-09
-Stopped at: Phase 14 Plan 04 complete. ForgotPasswordScreen + SignUpConfirmationScreen + AppNavigator stubs replaced. Wave 4 partial — 14-05 next (ProfileScreen guest card + Dashboard verification banner).
+Stopped at: Phase 14 Plan 05 complete. ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast. Phase 14 Auth & Login fully complete.
 Resume file: .planning/STATE.md
