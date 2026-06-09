@@ -19,17 +19,19 @@ import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 import ArticlesScreen from '../screens/ArticlesScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
+import WelcomeScreen from '../screens/WelcomeScreen';
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
 
-// Stub components — replaced by real screens in Plans 14-03 and 14-04
-const WelcomeScreen = () => null;
+// Stub component — replaced by real screen in Plan 14-04
 const SignUpConfirmationScreen = () => null;
 
 export type RootStackParamList = {
   Welcome: undefined;
   SignUpConfirmation: { email: string };
+  // Stub route — real ForgotPasswordScreen created in Plan 14-04
+  ForgotPassword: { email?: string };
   Onboarding: undefined;
   Main: undefined;
   BiomarkerDetail: { biomarkerId?: string };
