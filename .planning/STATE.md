@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 14 (executing)
-Plan: 14-02 complete. Wave 2 complete.
-Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods complete. WelcomeScreen + auth bottom sheets + guest card + verification banner remain (waves 3-4).
-Last activity: 2026-06-09 — 14-02 complete: supabase.ts auth methods (signUpWithEmail, signInWithEmail, convertAnonymousToEmail, sendPasswordResetEmail, signOutUser, resendVerificationEmail, mapAuthError).
+Plan: 14-03 complete. Wave 3 complete.
+Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen complete. ForgotPasswordScreen + SignUpConfirmationScreen remain (wave 4).
+Last activity: 2026-06-09 — 14-03 complete: SheetForm component (47 lines) + WelcomeScreen (199 lines) with NeuralGrid hero, animated metric preview, bottom sheet auth forms via SheetForm, anonymous-to-email conversion with idempotency guard.
 
 Progress: [██████████] 100% Phase 13 complete
 
@@ -70,6 +70,9 @@ Recent decisions affecting current work:
 - 14-02: convertAnonymousToEmail uses supabase.auth.updateUser({ email, password }) — linkIdentity explicitly excluded (D-16, OAuth-only)
 - 14-02: signOutUser has zero AsyncStorage operations — local data preserved on logout (D-08)
 - 14-02: All auth functions return typed result objects (never throw) — try/catch at function level, not screen level
+- 14-03: nav.navigate('ForgotPassword', {}) requires empty object arg — TypeScript overload for optional-param routes rejects zero-arg call
+- 14-03: WelcomeScreen bottom sheet uses Animated.Value(SCREEN_H) → animate to 0 on open, animate back to SCREEN_H on close
+- 14-03: SheetForm stateless field-array pattern — parent (WelcomeScreen) owns all state, passes field configs to SheetForm
 
 ### Pending Todos
 
@@ -94,5 +97,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-09
-Stopped at: Phase 14 Plan 02 complete. supabase.ts auth methods (7 exports). Wave 3 next (14-03: WelcomeScreen + bottom sheet auth forms).
+Stopped at: Phase 14 Plan 03 complete. WelcomeScreen + SheetForm + AppNavigator wired. Wave 4 next (14-04: ForgotPasswordScreen + SignUpConfirmationScreen).
 Resume file: .planning/STATE.md

@@ -342,7 +342,7 @@ Plans:
 - [x] 14-02-PLAN.md — Supabase Auth Methods: signUpWithEmail, signInWithEmail, convertAnonymousToEmail, sendPasswordResetEmail, signOutUser, resendVerificationEmail, mapAuthError (AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-08, AUTH-09)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 14-03-PLAN.md — WelcomeScreen + SheetForm component + bottom sheet auth forms: dark NeuralGrid hero, animated metric preview, Sign Up / Log In sheets (AUTH-01, AUTH-02, AUTH-03, AUTH-09)
+- [x] 14-03-PLAN.md — WelcomeScreen + SheetForm component + bottom sheet auth forms: dark NeuralGrid hero, animated metric preview, Sign Up / Log In sheets (AUTH-01, AUTH-02, AUTH-03, AUTH-09)
 
 **Wave 4** *(blocked on Wave 3 completion, run in parallel)*
 - [ ] 14-04-PLAN.md — ForgotPassword + SignUpConfirmation screens (AUTH-04, AUTH-05)
@@ -376,4 +376,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
-| 14. Auth & Login | v3.0 | 2/5 | In progress | - |
+| 14. Auth & Login | v3.0 | 3/5 | In progress | - |
