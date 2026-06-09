@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 14 (executing)
-Plan: 14-03 complete. Wave 3 complete.
-Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen complete. ForgotPasswordScreen + SignUpConfirmationScreen remain (wave 4).
-Last activity: 2026-06-09 — 14-03 complete: SheetForm component (47 lines) + WelcomeScreen (199 lines) with NeuralGrid hero, animated metric preview, bottom sheet auth forms via SheetForm, anonymous-to-email conversion with idempotency guard.
+Plan: 14-04 complete. Wave 4 partially complete (14-04 done, 14-05 remaining).
+Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen + 14-04 ForgotPasswordScreen + SignUpConfirmationScreen complete. ProfileScreen guest card + Dashboard verification banner remain (14-05).
+Last activity: 2026-06-09 — 14-04 complete: ForgotPasswordScreen (two-state form/success, 207 lines) + SignUpConfirmationScreen (Open Mail App CTA, 134 lines) + AppNavigator stubs fully replaced.
 
 Progress: [██████████] 100% Phase 13 complete
 
@@ -73,6 +73,9 @@ Recent decisions affecting current work:
 - 14-03: nav.navigate('ForgotPassword', {}) requires empty object arg — TypeScript overload for optional-param routes rejects zero-arg call
 - 14-03: WelcomeScreen bottom sheet uses Animated.Value(SCREEN_H) → animate to 0 on open, animate back to SCREEN_H on close
 - 14-03: SheetForm stateless field-array pattern — parent (WelcomeScreen) owns all state, passes field configs to SheetForm
+- 14-04: RouteProp imported from @react-navigation/native (not @react-navigation/native-stack) — native-stack only exports NativeStackNavigationProp
+- 14-04: ForgotPasswordScreen always shows success state on sendPasswordResetEmail success — T-14-11 anti-enumeration (don't reveal whether email exists)
+- 14-04: SignUpConfirmationScreen handleContinue reads @vitalspan_user_profile.onboardingComplete to route to Main or Onboarding
 
 ### Pending Todos
 
@@ -97,5 +100,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-09
-Stopped at: Phase 14 Plan 03 complete. WelcomeScreen + SheetForm + AppNavigator wired. Wave 4 next (14-04: ForgotPasswordScreen + SignUpConfirmationScreen).
+Stopped at: Phase 14 Plan 04 complete. ForgotPasswordScreen + SignUpConfirmationScreen + AppNavigator stubs replaced. Wave 4 partial — 14-05 next (ProfileScreen guest card + Dashboard verification banner).
 Resume file: .planning/STATE.md
