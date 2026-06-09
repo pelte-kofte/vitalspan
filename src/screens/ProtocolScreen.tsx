@@ -16,6 +16,7 @@ import { INTERACTIONS } from '../data/biomarkers';
 import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 import SupplementLibrarySection from '../components/SupplementLibrarySection';
+import { PillIcon } from '../components/DesignSystemIcons';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -175,7 +176,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
           <TextInput
             style={ms.input}
             placeholder="Search Berberine, Quercetin, NMN…"
-            placeholderTextColor={Colors.Beige.textMuted}
+            placeholderTextColor={Colors.onSurfaceMuted}
             value={query}
             onChangeText={t => { setQuery(t); setSelectedDb(null); }}
             autoCorrect={false}
@@ -211,7 +212,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
           <TextInput
             style={ms.input}
             placeholder="Supplement name"
-            placeholderTextColor={Colors.Beige.textMuted}
+            placeholderTextColor={Colors.onSurfaceMuted}
             value={name}
             onChangeText={setName}
             editable={!selectedDb}
@@ -221,7 +222,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
           <TextInput
             style={ms.input}
             placeholder="e.g. 500mg, 2 capsules"
-            placeholderTextColor={Colors.Beige.textMuted}
+            placeholderTextColor={Colors.onSurfaceMuted}
             value={dose}
             onChangeText={setDose}
           />
@@ -245,7 +246,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
           <TextInput
             style={[ms.input, ms.notesInput]}
             placeholder="Any notes, interactions, reminders…"
-            placeholderTextColor={Colors.Beige.textMuted}
+            placeholderTextColor={Colors.onSurfaceMuted}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -302,8 +303,8 @@ function AddSupplementSheet({ visible, onClose, goal, addedSupplements, onToggle
                     <Text style={[ms.dbName, isAdded && { color: Colors.primary }]}>{supp.name}</Text>
                     <Text style={ms.dbDesc}>{supp.dose}</Text>
                   </View>
-                  <View style={[ms.gradeBadge, { backgroundColor: isAdded ? Colors.primaryBg : Colors.Beige.bgShade, minWidth: 28, alignItems: 'center' }]}>
-                    <Text style={[ms.gradeTxt, { color: isAdded ? Colors.primary : Colors.Beige.textMuted }]}>
+                  <View style={[ms.gradeBadge, { backgroundColor: isAdded ? Colors.primaryBg : Colors.surfaceElevated, minWidth: 28, alignItems: 'center' }]}>
+                    <Text style={[ms.gradeTxt, { color: isAdded ? Colors.primary : Colors.onSurfaceMuted }]}>
                       {isAdded ? '✓' : '+'}
                     </Text>
                   </View>
@@ -561,7 +562,7 @@ export default function ProtocolScreen() {
         {/* Screen-level empty state — shown only when there are no items at all */}
         {totalItems === 0 && (
           <View style={s.emptyScreenCard}>
-            <Text style={{ fontSize: 40, textAlign: 'center', marginBottom: Spacing.md }}>💊</Text>
+            <PillIcon color={Colors.onSurfaceMuted} size={40} />
             <Text style={s.emptyScreenHeadline}>Build your longevity stack.</Text>
             <Text style={s.emptyScreenSubtext}>
               Add your medications and pharmacist-curated supplements to track your daily protocol and check for interactions.
@@ -757,14 +758,14 @@ export default function ProtocolScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   scroll: { flex: 1 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     padding: Spacing.base, paddingTop: Spacing.md,
   },
-  heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.Beige.text },
-  date: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted, marginTop: 2 },
+  heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.onSurface },
+  date: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
   progressPill: {
     backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
@@ -772,29 +773,29 @@ const s = StyleSheet.create({
   },
   progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primary },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   suppSectionHdr: { paddingHorizontal: Spacing.base, marginTop: Spacing.base, marginBottom: Spacing.sm },
   suppSectionTitle: {
-    fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
   },
   goalLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 3 },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     overflow: 'hidden',
     padding: Spacing.md,
   },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
   emptyState: { paddingVertical: Spacing.sm, gap: Spacing.sm },
-  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted, paddingVertical: Spacing.xs },
+  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, paddingVertical: Spacing.xs },
   emptyCtaBtn: {
     backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
@@ -803,9 +804,9 @@ const s = StyleSheet.create({
   emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
   medRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: Spacing.sm, gap: Spacing.sm },
   medLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
-  medName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
-  nameTaken: { color: Colors.Beige.textMuted, textDecorationLine: 'line-through' },
-  medClass: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  medName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
+  nameTaken: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
+  medClass: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
   medTimeLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 2 },
   conflictRow: {
     marginTop: 4, backgroundColor: Colors.warningBg,
@@ -813,27 +814,27 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.warningBorder, alignSelf: 'flex-start',
   },
   conflictTxt: { fontSize: 10, color: Colors.warningText, fontWeight: '500' },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.Beige.border, marginTop: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.borderLight, marginTop: 4 },
   dotTaken: { backgroundColor: Colors.primaryLight },
-  timeRow: { flexDirection: 'row', gap: 4, flexShrink: 0, marginTop: 4 },
+  timeRow: { flexDirection: 'row', gap: 4, flexShrink: 0, marginTop: 4 }, /* intentional — no Spacing.* equivalent for gap: 4 */
   timeChip: {
-    paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.sm,
-    backgroundColor: Colors.Beige.bgShade, borderWidth: 0.5, borderColor: Colors.Beige.border,
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.sm, /* intentional — no Spacing.* equivalent */
+    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight,
   },
   timeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  timeChipTxt: { fontSize: 9, color: Colors.Beige.textMuted, fontWeight: '500' },
+  timeChipTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
   timeChipTxtActive: { color: Colors.primary },
   removeBtn: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: Colors.Beige.bgShade,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 0.5, borderColor: Colors.Beige.border, marginTop: 2,
+    borderWidth: 0.5, borderColor: Colors.borderLight, marginTop: 2,
   },
-  removeTxt: { fontSize: 11, color: Colors.Beige.textMuted },
+  removeTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
   addCustomBtn: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     paddingVertical: Spacing.md, paddingTop: Spacing.base,
-    borderTopWidth: 0.5, borderTopColor: Colors.Beige.border, marginTop: Spacing.sm,
+    borderTopWidth: 0.5, borderTopColor: Colors.borderLight, marginTop: Spacing.sm,
   },
   addCustomIcon: { fontSize: 20, color: Colors.primaryLight, width: 22, textAlign: 'center' },
   addCustomTxt: { fontSize: Typography.sizes.base, color: Colors.primaryLight, fontWeight: '500' },
@@ -850,10 +851,10 @@ const s = StyleSheet.create({
   // Screen-level empty state (totalItems === 0)
   emptyScreenCard: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     padding: Spacing.xl,
     alignItems: 'center',
@@ -863,13 +864,13 @@ const s = StyleSheet.create({
   emptyScreenHeadline: {
     fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.Beige.text,
+    color: Colors.onSurface,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   emptyScreenSubtext: {
     fontSize: Typography.sizes.base,
-    color: Colors.Beige.textSecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
@@ -885,20 +886,20 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   emptyScreenCtaTxt: {
-    color: Colors.Beige.card,
+    color: Colors.surface,
     fontSize: Typography.sizes.base,
     fontWeight: '600',
     textAlign: 'center',
   },
 
-  libDivider: { height: 1, backgroundColor: Colors.Beige.border, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
+  libDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
 
   // Multi-dose supplement rows
-  doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 },
-  doseRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 5 },
-  doseLbl: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.Beige.textSecondary },
-  doseLblTaken: { color: Colors.Beige.textMuted, textDecorationLine: 'line-through' },
-  doseTick: { fontSize: Typography.sizes.xs, color: Colors.Beige.border, width: 16, textAlign: 'center' },
+  doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 }, /* intentional — no Spacing.* equivalent for gap: 2 */
+  doseRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 5 }, /* intentional — no Spacing.* equivalent for paddingVertical: 5 */
+  doseLbl: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.textSecondary },
+  doseLblTaken: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
+  doseTick: { fontSize: Typography.sizes.xs, color: Colors.borderLight, width: 16, textAlign: 'center' },
   doseTickDone: { color: Colors.primaryLight },
 });
 
@@ -906,36 +907,36 @@ const s = StyleSheet.create({
 const ms = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: Colors.Beige.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: Spacing.base, paddingBottom: 40, maxHeight: '90%',
   },
   handle: {
-    width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.Beige.border,
+    width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.borderLight,
     alignSelf: 'center', marginBottom: Spacing.base,
   },
-  sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.Beige.text, marginBottom: Spacing.base },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm },
+  sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.base },
+  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm }, /* intentional — no Spacing.* equivalent for marginBottom: 6 */
   required: { color: Colors.danger },
   input: {
-    backgroundColor: Colors.Beige.bgShade, borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.md,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
-    fontSize: Typography.sizes.base, color: Colors.Beige.text,
-    borderWidth: 1, borderColor: Colors.Beige.border,
+    fontSize: Typography.sizes.base, color: Colors.onSurface,
+    borderWidth: 1, borderColor: Colors.borderLight,
   },
   notesInput: { height: 72, textAlignVertical: 'top' },
   dbResults: {
-    marginTop: Spacing.xs, backgroundColor: Colors.Beige.card,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.Beige.border,
+    marginTop: Spacing.xs, backgroundColor: Colors.surface,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.borderLight,
   },
   dbRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    padding: Spacing.sm, borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.border,
+    padding: Spacing.sm, borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight,
   },
-  dbName: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.Beige.text },
-  dbDesc: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
-  gradeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm },
-  gradeTxt: { fontSize: 10, fontWeight: '700' },
-  notFound: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
+  dbName: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurface },
+  dbDesc: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  gradeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm }, /* intentional — no Spacing.* equivalent */
+  gradeTxt: { fontSize: Typography.sizes.xs, fontWeight: '700' },
+  notFound: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
   selectedBadge: {
     backgroundColor: Colors.primaryBg, borderRadius: Radius.md,
     padding: Spacing.sm, marginTop: Spacing.sm,
@@ -945,19 +946,19 @@ const ms = StyleSheet.create({
   timingRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
   timingChip: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, backgroundColor: Colors.Beige.bgShade,
-    borderWidth: 1, borderColor: Colors.Beige.border,
+    borderRadius: Radius.full, backgroundColor: Colors.surfaceElevated,
+    borderWidth: 1, borderColor: Colors.borderLight,
   },
   timingChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  timingTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted, fontWeight: '500' },
+  timingTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontWeight: '500' },
   timingTxtActive: { color: Colors.primary },
   btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.base },
   cancelBtn: {
     flex: 1, padding: Spacing.md, borderRadius: Radius.lg,
-    backgroundColor: Colors.Beige.bgShade, alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.Beige.border,
+    backgroundColor: Colors.surfaceElevated, alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.borderLight,
   },
-  cancelTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted, fontWeight: '500' },
+  cancelTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, fontWeight: '500' },
   addBtn: { flex: 1, padding: Spacing.md, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignItems: 'center' },
   addBtnTxt: { fontSize: Typography.sizes.base, color: Colors.primaryBg, fontWeight: '600' },
 });

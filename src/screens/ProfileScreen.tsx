@@ -10,6 +10,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { PersonIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
 
@@ -127,7 +128,7 @@ export default function ProfileScreen() {
           <Text style={s.screenTitle}>Profile</Text>
         </View>
         <View style={s.emptyStateCard}>
-          <Text style={s.emptyStateIcon}>👤</Text>
+          <PersonIcon color={Colors.onSurfaceMuted} size={40} />
           <Text style={s.emptyStateHeadline}>Your health story starts here.</Text>
           <Text style={s.emptyStateBody}>
             Complete your profile so Vitalspan can personalise your biomarker targets and flag relevant drug interactions.
@@ -170,7 +171,7 @@ export default function ProfileScreen() {
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Your name"
-                placeholderTextColor={Colors.Beige.textMuted}
+                placeholderTextColor={Colors.onSurfaceMuted}
               />
             </View>
             <View style={[s.inputRow, s.rowBorder]}>
@@ -378,7 +379,7 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   scroll: { flex: 1 },
   topBar: {
     flexDirection: 'row',
@@ -386,19 +387,19 @@ const s = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.base,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.Beige.bg,
+    backgroundColor: Colors.surface,
   },
-  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
+  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   editBtn: {
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 1,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
   },
-  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.Beige.textSecondary },
+  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary },
   settingsBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   hero: { alignItems: 'center', padding: Spacing.xl, paddingBottom: Spacing.base },
   avatar: {
@@ -413,7 +414,7 @@ const s = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   avatarTxt: { fontSize: 28, color: Colors.primary, fontWeight: '500' },
-  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text, marginBottom: Spacing.sm },
+  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface, marginBottom: Spacing.sm },
   agePill: {
     backgroundColor: Colors.primaryBg,
     borderRadius: Radius.full,
@@ -424,9 +425,9 @@ const s = StyleSheet.create({
   },
   agePillTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.Beige.textMuted,
+    color: Colors.onSurfaceMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
@@ -435,63 +436,63 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.divider },
-  rowLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary },
-  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
+  rowLabel: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
+  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
   tagRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md },
   medDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primaryLight },
-  tagTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
+  tagTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
   emptyRow: { padding: Spacing.md },
-  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
+  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
   settingsCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
   aboutCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
   disconnectCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
-  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
-  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.Beige.textMuted },
+  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
+  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.onSurfaceMuted },
 
   // Edit mode
   editHeader: {
@@ -501,68 +502,64 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.Beige.border,
-    backgroundColor: Colors.Beige.bg,
+    borderBottomColor: Colors.borderLight,
+    backgroundColor: Colors.surface,
   },
-  editCancel: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
-  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
+  editCancel: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
   editSave: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
-  inputLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted, width: 64 },
-  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.Beige.text },
+  inputLabel: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, width: 64 },
+  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.onSurface },
   ageRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: Spacing.md },
-  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.Beige.bgShade, borderWidth: 0.5, borderColor: Colors.Beige.border, alignItems: 'center', justifyContent: 'center' },
-  ageBtnTxt: { fontSize: 18, color: Colors.Beige.text },
-  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.Beige.text, minWidth: 32, textAlign: 'center' },
+  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center' },
+  ageBtnTxt: { fontSize: Typography.sizes.h3, color: Colors.onSurface },
+  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.onSurface, minWidth: 32, textAlign: 'center' },
   sexRow: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
-  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.bgShade },
+  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surfaceElevated },
   sexBtnActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary },
+  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
   sexBtnTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
-  condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  condBtn: { backgroundColor: Colors.Beige.card, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.Beige.border },
+  condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
+  condBtn: { backgroundColor: Colors.surface, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.borderLight }, /* intentional — no Spacing.* equivalent for 14 and 10 */
   condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.text },
+  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
   editNote: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
   },
-  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, lineHeight: 18 },
+  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 18 },
 
   // Motivating empty state
   emptyStateCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.xl,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     padding: Spacing.xl,
     alignItems: 'center',
     overflow: 'hidden',
   },
-  emptyStateIcon: {
-    fontSize: 40,
-    marginBottom: Spacing.md,
-  },
   emptyStateHeadline: {
-    fontSize: 18,
+    fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.Beige.text,
+    color: Colors.onSurface,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: Spacing.sm,
   },
   emptyStateBody: {
-    fontSize: 14,
+    fontSize: Typography.sizes.base,
     fontWeight: '400',
-    color: Colors.Beige.textSecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
@@ -577,8 +574,8 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   emptyStateCtaTxt: {
-    color: Colors.Beige.card,
-    fontSize: 14,
+    color: Colors.surface,
+    fontSize: Typography.sizes.base,
     fontWeight: '600',
   },
 });
