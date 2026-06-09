@@ -117,14 +117,14 @@
 | DS-04 | Phase 13 | Pending |
 | DS-05 | Phase 13 | Pending |
 | AUTH-01 | Phase 14 | In progress (route registered, screen in 14-03) |
-| AUTH-02 | Phase 14 | Pending |
-| AUTH-03 | Phase 14 | Pending |
-| AUTH-04 | Phase 14 | Pending |
-| AUTH-05 | Phase 14 | Pending |
-| AUTH-06 | Phase 14 | In progress (session routing in App.tsx, full persistence in 14-02) |
+| AUTH-02 | Phase 14 | In progress (signUpWithEmail + convertAnonymousToEmail in supabase.ts; screen in 14-03) |
+| AUTH-03 | Phase 14 | In progress (signInWithEmail in supabase.ts; screen in 14-03) |
+| AUTH-04 | Phase 14 | In progress (sendPasswordResetEmail in supabase.ts; screen in 14-04) |
+| AUTH-05 | Phase 14 | In progress (resendVerificationEmail in supabase.ts; verification UI in 14-04, 14-05) |
+| AUTH-06 | Phase 14 | In progress (session routing in App.tsx; signOutUser in supabase.ts) |
 | AUTH-07 | Phase 14 | Pending |
-| AUTH-08 | Phase 14 | In progress (SettingsScreen logout -> Welcome, full signOut in 14-02) |
-| AUTH-09 | Phase 14 | Pending |
+| AUTH-08 | Phase 14 | In progress (signOutUser in supabase.ts — no AsyncStorage wipe; UI in 14-05) |
+| AUTH-09 | Phase 14 | In progress (mapAuthError in supabase.ts implements all D-15 mappings; consumed by screens in 14-03+) |
 
 **Coverage:**
 - v3 requirements: 29 total

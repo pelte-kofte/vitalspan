@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 ## Current Position
 
 Phase: 14 (executing)
-Plan: 14-01 complete. Executing wave 1.
-Status: Phase 14 in progress. 14-01 nav/routing complete. WelcomeScreen + auth bottom sheets + session routing + guest card + verification banner remain.
-Last activity: 2026-06-09 — 14-01 complete: AppNavigator Welcome route, App.tsx session-type routing with awaited initSupabaseSession.
+Plan: 14-02 complete. Wave 2 complete.
+Status: Phase 14 in progress. 14-01 nav/routing + 14-02 auth methods complete. WelcomeScreen + auth bottom sheets + guest card + verification banner remain (waves 3-4).
+Last activity: 2026-06-09 — 14-02 complete: supabase.ts auth methods (signUpWithEmail, signInWithEmail, convertAnonymousToEmail, sendPasswordResetEmail, signOutUser, resendVerificationEmail, mapAuthError).
 
 Progress: [██████████] 100% Phase 13 complete
 
@@ -66,6 +66,10 @@ Recent decisions affecting current work:
 - 14-01: initSupabaseSession() is now AWAITED in App.tsx init() (not fire-and-forget) — session must be established before routing determination (D-06)
 - 14-01: App.tsx routing uses supabase.auth.getUser() is_anonymous check: non-anonymous -> Main, anonymous/no-session -> Welcome; onboardingComplete check removed from App.tsx (D-06, D-11)
 - 14-01: SettingsScreen nav.reset calls updated from Landing to Welcome (Landing route retired)
+- 14-02: mapAuthError is synchronous and pure — called from both auth functions and screens directly (D-15)
+- 14-02: convertAnonymousToEmail uses supabase.auth.updateUser({ email, password }) — linkIdentity explicitly excluded (D-16, OAuth-only)
+- 14-02: signOutUser has zero AsyncStorage operations — local data preserved on logout (D-08)
+- 14-02: All auth functions return typed result objects (never throw) — try/catch at function level, not screen level
 
 ### Pending Todos
 
@@ -90,5 +94,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-09
-Stopped at: Phase 14 Plan 01 complete. AppNavigator Welcome/SignUpConfirmation routes, App.tsx session-type routing. Wave 2 next (14-02: Supabase auth methods).
+Stopped at: Phase 14 Plan 02 complete. supabase.ts auth methods (7 exports). Wave 3 next (14-03: WelcomeScreen + bottom sheet auth forms).
 Resume file: .planning/STATE.md
