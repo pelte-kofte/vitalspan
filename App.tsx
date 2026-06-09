@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { initSupabaseSession } from './src/lib/supabase';
+import { supabase, initSupabaseSession } from './src/lib/supabase';
 import { migrateHistory } from './src/lib/biomarkerWriteService';
 import { pruneExpiredCache } from './src/services/rxnav';
 import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
@@ -13,40 +13,34 @@ import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
 
 export default function App() {
-  const [initialRoute, setInitialRoute] = useState<'Landing' | 'Main' | null>(null);
+  const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Main' | null>(null);
 
   useEffect(() => {
     const init = async () => {
-      const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
-      if (raw) {
-        try {
-          const profile = JSON.parse(raw);
-          setInitialRoute(profile.onboardingComplete ? 'Main' : 'Landing');
-        } catch {
-          setInitialRoute('Landing');
+      try {
+        await initSupabaseSession();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && !user.is_anonymous) {
+          setInitialRoute('Main');
+        } else {
+          setInitialRoute('Welcome');
         }
-      } else {
-        setInitialRoute('Landing');
+      } catch {
+        setInitialRoute('Welcome');
       }
-      // Prune stale RxNav cache entries to prevent unbounded AsyncStorage growth
+      // Fire-and-forget: cache pruning + data migration (non-blocking)
       pruneExpiredCache().catch(() => null);
-
-      initSupabaseSession()
-        .then(() => {
-          AsyncStorage.getItem('@vitalspan_migrated_v2').then((migrated) => {
-            if (!migrated) {
-              AsyncStorage.getItem('@vitalspan_biomarkers').then((biomarkersRaw) => {
-                const entries: StoredEntry[] = biomarkersRaw ? JSON.parse(biomarkersRaw) : [];
-                migrateHistory(entries)
-                  .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
-                  .catch(() => null);
-              }).catch(() => null);
-            }
-          }).catch(() => null);
-        })
-        .catch((err) => {
-          console.warn('[App] initSupabaseSession unexpected error:', err);
-        });
+      // Migration chain: only runs after session is established
+      void (async () => {
+        const migrated = await AsyncStorage.getItem('@vitalspan_migrated_v2').catch(() => null);
+        if (!migrated) {
+          const biomarkersRaw = await AsyncStorage.getItem('@vitalspan_biomarkers').catch(() => null);
+          const entries: StoredEntry[] = biomarkersRaw ? JSON.parse(biomarkersRaw) : [];
+          migrateHistory(entries)
+            .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
+            .catch(() => null);
+        }
+      })();
     };
     init();
   }, []);
