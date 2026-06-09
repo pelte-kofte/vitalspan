@@ -48,7 +48,7 @@ export default function SupplementLibrarySection({ addedSupplements, onToggle }:
   return (
     <View style={s.container}>
       <TextInput
-        style={s.search} placeholder="Search supplements..." placeholderTextColor={Colors.Beige.textMuted}
+        style={s.search} placeholder="Search supplements..." placeholderTextColor={Colors.onSurfaceMuted}
         value={libSearch} onChangeText={setLibSearch} autoCorrect={false} clearButtonMode="while-editing"
       />
       {Array.from(grouped.entries()).map(([cat, items]) => {
@@ -111,26 +111,26 @@ export default function SupplementLibrarySection({ addedSupplements, onToggle }:
 const s = StyleSheet.create({
   container: { marginHorizontal: Spacing.base, marginBottom: Spacing.base },
   search: {
-    backgroundColor: Colors.Beige.card, borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
-    fontSize: Typography.sizes.base, color: Colors.Beige.text,
-    borderWidth: 1, borderColor: Colors.Beige.border, marginBottom: Spacing.sm,
+    backgroundColor: Colors.surface, borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, /* intentional — no Spacing.* equivalent */
+    fontSize: Typography.sizes.base, color: Colors.onSurface,
+    borderWidth: 1, borderColor: Colors.borderLight, marginBottom: Spacing.sm,
   },
   catHdr: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm,
-    backgroundColor: Colors.Beige.bgShade, borderRadius: Radius.sm, marginBottom: 2,
+    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.sm, marginBottom: 2, /* intentional — no Spacing.* equivalent */
   },
-  catLbl: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.Beige.textSecondary },
+  catLbl: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textSecondary },
   catRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   catCount: {
-    fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, backgroundColor: Colors.Beige.border,
-    borderRadius: Radius.full, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden',
+    fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, backgroundColor: Colors.borderLight,
+    borderRadius: Radius.full, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', /* intentional — no Spacing.* equivalent */
   },
-  chev: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, width: 12, textAlign: 'center' },
+  chev: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, width: 12, textAlign: 'center' },
   row: {
-    backgroundColor: Colors.Beige.card, borderRadius: Radius.md,
-    borderWidth: 0.5, borderColor: Colors.Beige.border, marginBottom: 4, overflow: 'hidden',
+    backgroundColor: Colors.surface, borderRadius: Radius.md,
+    borderWidth: 0.5, borderColor: Colors.borderLight, marginBottom: 4, overflow: 'hidden', /* intentional — no Spacing.* equivalent */
   },
   rowHdr: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
   grade: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -140,19 +140,19 @@ const s = StyleSheet.create({
   gradeATxt: { color: Colors.primary },
   gradeBCTxt: { color: Colors.warning },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexWrap: 'wrap' },
-  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
+  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
   rxBadge: {
     backgroundColor: Colors.warningBg, borderRadius: Radius.sm,
     paddingHorizontal: 5, paddingVertical: 1, borderWidth: 0.5, borderColor: Colors.warningBorder,
   },
   rxTxt: { fontSize: 9, fontWeight: '700', color: Colors.warning, textTransform: 'uppercase', letterSpacing: 0.5 },
-  desc: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  desc: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 /* intentional — no Spacing.* equivalent */ },
   detail: {
     paddingHorizontal: Spacing.md, paddingBottom: Spacing.md,
-    borderTopWidth: 0.5, borderTopColor: Colors.Beige.borderLight, gap: Spacing.xs,
+    borderTopWidth: 0.5, borderTopColor: Colors.borderLight, gap: Spacing.xs,
   },
-  dLine: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 18 },
-  dKey: { fontWeight: '600', color: Colors.Beige.text },
+  dLine: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, lineHeight: 18 },
+  dKey: { fontWeight: '600', color: Colors.onSurface },
   addBtn: { marginTop: Spacing.sm, borderRadius: Radius.lg, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, alignItems: 'center', borderWidth: 1 },
   addBtnOff: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   addBtnOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
