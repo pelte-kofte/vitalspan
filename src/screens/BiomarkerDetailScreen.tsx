@@ -10,6 +10,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { ClipboardIcon } from '../components/DesignSystemIcons';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -143,7 +144,7 @@ export default function BiomarkerDetailScreen() {
               style={s.uploadBtn}
               onPress={() => nav.navigate('LabUpload')}
             >
-              <Text style={s.uploadBtnTxt}>📋 Upload</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.onSurface} size={16} /><Text style={s.uploadBtnTxt}>Upload</Text></View>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.addBtnSmall}
@@ -307,7 +308,7 @@ export default function BiomarkerDetailScreen() {
             style={s.uploadBtn}
             onPress={() => nav.navigate('LabUpload')}
           >
-            <Text style={s.uploadBtnTxt}>📋 Upload labs</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.onSurface} size={16} /><Text style={s.uploadBtnTxt}>Upload labs</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.addBtn}
@@ -396,36 +397,36 @@ export default function BiomarkerDetailScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   scroll: { flex: 1 },
-  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.Beige.bg },
-  heading: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
-  headingSub: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted, marginTop: 2 },
+  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.surface },
+  heading: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
+  headingSub: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  uploadBtn: { backgroundColor: Colors.Beige.card, borderRadius: Radius.full, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1, borderWidth: 1, borderColor: Colors.Beige.border },
-  uploadBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, fontWeight: '500' },
+  uploadBtn: { backgroundColor: Colors.surface, borderRadius: Radius.full, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1, borderWidth: 1, borderColor: Colors.borderLight },
+  uploadBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
   addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
   addBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
-  catLabel: { fontSize: 11, fontWeight: '500', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  catLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     overflow: 'hidden',
     padding: Spacing.md,
   },
   listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.sm },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
   nameGroup: { flex: 1 },
-  bmName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
-  bmTarget: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  bmName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
+  bmTarget: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
   valGroup: { alignItems: 'flex-end', marginRight: Spacing.sm },
-  bmVal: { fontSize: 18, fontWeight: '600', color: Colors.Beige.text },
-  bmUnit: { fontSize: 10, color: Colors.Beige.textMuted },
-  noBmData: { fontSize: Typography.sizes.lg, color: Colors.Beige.textMuted, marginRight: Spacing.sm },
+  bmVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface },
+  bmUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  noBmData: { fontSize: Typography.sizes.lg, color: Colors.onSurfaceMuted, marginRight: Spacing.sm },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
   badgeGood: { backgroundColor: Colors.status.optimalBg },
   badgeWarn: { backgroundColor: Colors.status.reviewBg },
@@ -433,22 +434,22 @@ const s = StyleSheet.create({
   badgeTxtGood: { color: Colors.status.optimalText },
   badgeTxtWarn: { color: Colors.status.reviewText },
   badgeLog: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full,
-    backgroundColor: Colors.Beige.bgShade, borderWidth: 0.5, borderColor: Colors.Beige.border,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full, /* intentional — no Spacing.* equivalent */
+    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight,
   },
   badgeLogTxt: { fontSize: 10, fontWeight: '500', color: Colors.primaryLight },
-  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.Beige.bg },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.surface },
   back: { fontSize: Typography.sizes.base, color: Colors.primaryLight },
   addBtnSmall: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
   addBtnSmallTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
   detailHero: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: Spacing.base, paddingBottom: Spacing.md },
   detailHeroLeft: { flex: 1 },
-  detailName: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
-  detailCat: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted, marginTop: 2 },
+  detailName: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
+  detailCat: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
   detailValGroup: { alignItems: 'flex-end' },
-  detailVal: { fontSize: 44, fontWeight: '300', color: Colors.Beige.text },
-  detailUnit: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted },
-  noData: { fontSize: Typography.sizes.md, color: Colors.Beige.textMuted, marginTop: 8 },
+  detailVal: { fontSize: 44, fontWeight: '300', color: Colors.onSurface }, /* intentional — hero display size, no Typography.sizes match */
+  detailUnit: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
+  noData: { fontSize: Typography.sizes.md, color: Colors.onSurfaceMuted, marginTop: Spacing.sm },
   metaRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.base, flexWrap: 'wrap' },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5 },
   statusOpt: { backgroundColor: Colors.status.optimalBg, borderColor: Colors.status.optimalBorder },
@@ -458,43 +459,43 @@ const s = StyleSheet.create({
   statusTxtOpt: { color: Colors.status.optimalText },
   statusTxtSub: { color: Colors.status.reviewText },
   statusTxtOut: { color: Colors.status.criticalText },
-  targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.Beige.border, backgroundColor: Colors.Beige.card },
-  targetTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textSecondary },
+  targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surface },
+  targetTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
   insightCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   insightTxt: { fontSize: Typography.sizes.sm, lineHeight: 20 },
-  sectionLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  sectionLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm },
   histLeft: { flex: 1 },
-  histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
-  histSource: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
+  histSource: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
   histRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  histVal: { fontSize: 18, fontWeight: '600', color: Colors.Beige.text },
-  histUnit: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, fontWeight: '400' },
-  editPencilBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.Beige.bgShade, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.Beige.border },
-  editPencilTxt: { fontSize: 14, color: Colors.Beige.textMuted },
-  editRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' },
-  editInput: { backgroundColor: Colors.Beige.bgShade, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 4, fontSize: 16, fontWeight: '600', color: Colors.Beige.text, borderWidth: 1, borderColor: Colors.primaryBorder, minWidth: 72, textAlign: 'right' },
-  editUnit: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted },
-  editSaveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 5 },
+  histVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface },
+  histUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '400' },
+  editPencilBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.borderLight },
+  editPencilTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }, /* intentional — no Spacing.* equivalent for gap: 6 */
+  editInput: { backgroundColor: Colors.surfaceElevated, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, fontSize: 16, fontWeight: '600', color: Colors.onSurface, borderWidth: 1, borderColor: Colors.primaryBorder, minWidth: 72, textAlign: 'right' },
+  editUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  editSaveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 5 }, /* intentional — no Spacing.* equivalent for paddingVertical: 5 */
   editSaveTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
-  editCancelBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.Beige.bgShade, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.Beige.border },
-  editCancelTxt: { fontSize: 11, color: Colors.Beige.textMuted },
+  editCancelBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.borderLight },
+  editCancelTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
   emptyHistRow: { paddingVertical: Spacing.sm, gap: Spacing.sm },
-  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
+  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
   logCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
   logCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary, lineHeight: 22 },
+  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
   citationRow: {
     marginTop: Spacing.md, paddingTop: Spacing.sm,
-    borderTopWidth: 0.5, borderTopColor: Colors.Beige.border,
+    borderTopWidth: 0.5, borderTopColor: Colors.borderLight,
   },
   citationTxt: {
-    fontSize: 10, color: Colors.Beige.textMuted, fontStyle: 'italic', lineHeight: 15,
+    fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic', lineHeight: 15,
   },
-  emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.Beige.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.Beige.borderLight, ...Elevation.sm, padding: Spacing.xl, alignItems: 'center' },
-  emptyTabIcon: { fontSize: 32, marginBottom: Spacing.md },
-  emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.Beige.text, textAlign: 'center', marginBottom: Spacing.sm },
-  emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.Beige.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
+  emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, ...Elevation.sm, padding: Spacing.xl, alignItems: 'center' },
+  emptyTabIcon: { fontSize: 32, marginBottom: Spacing.md }, /* intentional — no Typography.sizes match for 32 */
+  emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, textAlign: 'center', marginBottom: Spacing.sm },
+  emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
   emptyTabCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
-  emptyTabCtaTxt: { color: Colors.Beige.card, fontSize: Typography.sizes.base, fontWeight: '600' },
+  emptyTabCtaTxt: { color: Colors.surface, fontSize: Typography.sizes.base, fontWeight: '600' },
 });
