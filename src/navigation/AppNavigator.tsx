@@ -20,17 +20,17 @@ import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 import ArticlesScreen from '../screens/ArticlesScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
 
-// Stub component — replaced by real screen in Plan 14-04
+// Stub component — replaced by real screen in Task 2 of Plan 14-04
 const SignUpConfirmationScreen = () => null;
 
 export type RootStackParamList = {
   Welcome: undefined;
   SignUpConfirmation: { email: string };
-  // Stub route — real ForgotPasswordScreen created in Plan 14-04
   ForgotPassword: { email?: string };
   Onboarding: undefined;
   Main: undefined;
@@ -150,6 +150,11 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="SignUpConfirmation"
           component={SignUpConfirmationScreen}
           options={{ presentation: 'modal', gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+          options={{ presentation: 'modal' }}
         />
         <Stack.Screen
           name="Main"
