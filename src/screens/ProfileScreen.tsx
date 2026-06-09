@@ -10,7 +10,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { PersonIcon } from '../components/DesignSystemIcons';
+import { PersonIcon, GearIcon, InfoIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
 
@@ -249,7 +249,7 @@ export default function ProfileScreen() {
             style={s.settingsBtn}
             onPress={() => nav.navigate('Settings')}
           >
-            <Text style={{ fontSize: 18 }}>⚙️</Text>
+            <GearIcon color={Colors.onSurface} size={20} />
           </TouchableOpacity>
         </View>
       </View>
@@ -343,12 +343,12 @@ export default function ProfileScreen() {
 
         {/* Settings shortcut */}
         <TouchableOpacity style={s.settingsCard} onPress={() => nav.navigate('Settings')}>
-          <Text style={s.settingsCardTxt}>⚙️  Settings</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}><GearIcon color={Colors.onSurface} size={18} /><Text style={s.settingsCardTxt}>Settings</Text></View>
           <Text style={s.settingsCardArrow}>→</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={s.aboutCard} onPress={() => nav.navigate('About')}>
-          <Text style={s.settingsCardTxt}>ℹ️  About Vitalspan</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}><InfoIcon color={Colors.onSurface} size={18} /><Text style={s.settingsCardTxt}>About Vitalspan</Text></View>
           <Text style={s.settingsCardArrow}>→</Text>
         </TouchableOpacity>
 

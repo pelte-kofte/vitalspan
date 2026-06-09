@@ -22,6 +22,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Colors, Spacing, Typography, Radius } from '../theme';
+import { LockIcon } from './DesignSystemIcons';
 import NeuralGrid from './NeuralGrid';
 import { PHENO_BIOMARKER_LIST } from '../lib/phenoAge';
 
@@ -130,7 +131,7 @@ export default function FutureSelf({
 
           {isLocked ? (
             <View style={s.lockedState}>
-              <Text style={s.lockedIcon}>🔒</Text>
+              <LockIcon color={Colors.dark.textMuted} size={32} />
               <Text style={s.lockedMsg}>Log these {PHENO_BIOMARKER_LIST.length} biomarkers to unlock projection</Text>
               <View style={s.checklistBox}>
                 {PHENO_BIOMARKER_LIST.map(b => {
@@ -305,7 +306,6 @@ const s = StyleSheet.create({
   headerSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
 
   lockedState: { paddingVertical: Spacing.md, gap: Spacing.sm },
-  lockedIcon: { fontSize: 22, textAlign: 'center' },
   lockedMsg: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center' },
   checklistBox: { marginTop: Spacing.xs, gap: 2 },
   checklistRow: {

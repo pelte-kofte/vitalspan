@@ -489,3 +489,61 @@ export function StarIcon({ color, size = 24 }: IconProps) {
     </Svg>
   );
 }
+
+// --- GROUP 4: Gap-closure additions (Phase 13 human UAT) ---
+
+export function GearIcon({ color, size = 24 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {/* Inner gear hub */}
+      <Circle cx={12} cy={12} r={3} fill="none" stroke={color} strokeWidth={1.5} />
+      {/* Outer gear ring */}
+      <Circle cx={12} cy={12} r={7} fill="none" stroke={color} strokeWidth={1.5} strokeDasharray="3.5 2.5" />
+      {/* Neural dots at cardinal teeth */}
+      <Circle cx={12} cy={4.5} r={1} fill={color} />
+      <Circle cx={19.5} cy={12} r={1} fill={color} />
+      <Circle cx={12} cy={19.5} r={1} fill={color} />
+      <Circle cx={4.5} cy={12} r={1} fill={color} />
+    </Svg>
+  );
+}
+
+export function InfoIcon({ color, size = 24 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {/* Outer circle */}
+      <Circle cx={12} cy={12} r={9} fill="none" stroke={color} strokeWidth={1.5} />
+      {/* Info stem */}
+      <Line x1={12} y1={11} x2={12} y2={17} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Neural dot for the i-dot */}
+      <Circle cx={12} cy={8} r={1.25} fill={color} />
+    </Svg>
+  );
+}
+
+export function LockIcon({ color, size = 24 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {/* Lock body */}
+      <Path
+        d="M5 11 L5 20 L19 20 L19 11 Z"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      {/* Shackle arc */}
+      <Path
+        d="M8 11 L8 7 A4 4 0 0 1 16 7 L16 11"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      {/* Neural dot at shackle top */}
+      <Circle cx={12} cy={6} r={1} fill={color} />
+      {/* Keyhole dot */}
+      <Circle cx={12} cy={15.5} r={1.5} fill={color} />
+    </Svg>
+  );
+}
