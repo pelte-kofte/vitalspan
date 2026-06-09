@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 14 (context gathered)
-Plan: Phase 14 context captured — ready for planning.
-Status: Phase 14 context gathered 2026-06-09. WelcomeScreen, nav architecture, guest mode, email verification UX all decided.
-Last activity: 2026-06-09 — Phase 14 context: dark neural WelcomeScreen with animated preview, bottom sheet auth forms, Supabase session type routing, ProfileScreen guest mode card, Dashboard verification banner.
+Phase: 14 (planned)
+Plan: Phase 14 planned — 5 plans in 4 waves, ready to execute.
+Status: Phase 14 planned 2026-06-09. WelcomeScreen + auth bottom sheets + session routing + guest card + verification banner.
+Last activity: 2026-06-09 — Phase 14 planning complete: 14-01 nav/routing, 14-02 supabase auth methods, 14-03 WelcomeScreen + SheetForm, 14-04 ForgotPassword + SignUpConfirmation, 14-05 ProfileScreen guest card + Dashboard banner.
 
 Progress: [██████████] 100% Phase 13 complete
 
@@ -56,7 +56,7 @@ Recent decisions affecting current work:
 - 08-P1: biomarker_entries is append-only — SELECT + INSERT RLS policies only, no UPDATE or DELETE from client
 - v3.0: HealthKit mock layer already in src/lib/healthkit.ts — Phase 10 upgrades the mock to real expo-health entitlement
 - v3.0: Articles cached in Supabase articles table — avoid repeat PubMed API calls; 24-hour background refresh ceiling
-- v3.0: Auth uses linkIdentity() for anonymous-to-authenticated migration — existing local data preserved on account creation
+- v3.0: Auth uses supabase.auth.updateUser({ email, password }) for anonymous→email promotion (NOT linkIdentity, which is OAuth-only) — existing local data preserved on account creation via migrateHistory() guarded by @vitalspan_identity_linked flag
 - 10-03: permissionState derived from hasRequestedHealthKit flag on every focus — ensures ProfileScreen disconnect reflects on next LongevityScore open
 - 10-03: handleDismissPrompt sets permissionState to 'granted' (not a separate dismissed state) — empty orbitals with no prompt is user's chosen state
 - 10-03: iOS empty HRV probe heuristic used to detect denial — iOS privacy design prevents direct denial status reporting
@@ -72,7 +72,7 @@ None yet.
 
 - Phase 10: expo-health package requires HealthKit entitlement in app.json — verify Expo SDK 54 compatibility before install
 - Phase 10: PubMed NCBI API is free / no key required — confirm rate limits before caching strategy is finalized
-- Phase 14: linkIdentity() behavior with existing anonymous session must be tested — confirm Supabase JS client version supports it
+- Phase 14: updateUser() replaces linkIdentity() (which is OAuth-only); test that updateUser promotes anonymous session to email/password correctly in Supabase JS v2
 
 ## Deferred Items
 

@@ -10,7 +10,7 @@ Three connected workstreams:
 
 1. **WelcomeScreen** — A new dark neural full-screen entry point (replacing LandingScreen) shown to unauthenticated users. Displays animated longevity metric preview, logo, tagline, and three CTAs: Sign Up, Log In, Continue as guest. Auth forms (Sign Up / Login) slide up as bottom sheets over the dark background.
 
-2. **Auth flows** — Sign Up (email + password + `linkIdentity()` migration), Login (email + password), Forgot Password (reset email flow), and an email verification confirmation screen. All errors surface as specific messages per AUTH-09.
+2. **Auth flows** — Sign Up (email + password + `supabase.auth.updateUser()` anonymous-to-email promotion), Login (email + password), Forgot Password (reset email flow), and an email verification confirmation screen. All errors surface as specific messages per AUTH-09.
 
 3. **Auth state management** — `App.tsx` routing updated to check Supabase session type (anonymous vs. authenticated). Guest mode surfaced explicitly in ProfileScreen with a 'Sign up to sync' card. Email verification reminder banner on Dashboard until verified.
 
@@ -76,6 +76,10 @@ The existing `LandingScreen` is retired. `OnboardingScreen` is preserved for fir
   - Generic Supabase error → "Something went wrong — try again"
   No generic "Something went wrong" without a more specific category check first.
 
+### Anonymous-to-Email Migration
+
+- **D-16:** **`supabase.auth.updateUser({ email, password })` is used for anonymous→email promotion** (not `linkIdentity()`, which is OAuth-only). After `updateUser()` succeeds, call `migrateHistory()` guarded by the `@vitalspan_identity_linked` AsyncStorage flag to prevent duplicate migration runs. The flag is set to `'true'` after migration completes successfully.
+
 </decisions>
 
 <canonical_refs>
@@ -84,8 +88,8 @@ The existing `LandingScreen` is retired. `OnboardingScreen` is preserved for fir
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Existing Auth Foundation
-- `src/lib/supabase.ts` — Supabase client singleton + `initSupabaseSession()`. Phase 14 adds email/password methods (`signUp`, `signInWithPassword`, `resetPasswordForEmail`, `linkIdentity`). The polyfill constraint (line 1 import order) is documented here — do not move it.
-- `App.tsx` — Current `init()` routing logic checks `@vitalspan_user_profile.onboardingComplete`. Phase 14 extends this with Supabase session type check. Session persistence already configured; do not change `supabase.ts` auth storage config.
+- `src/lib/supabase.ts` — Supabase client singleton + `initSupabaseSession()`. Phase 14 adds email/password methods (`signUpWithEmail`, `signInWithPassword`, `resetPasswordForEmail`, `updateUser({ email, password })` for anonymous→email promotion). The polyfill constraint (line 1 import order) is documented here — do not move it.
+- `App.tsx` — Current `init()` routing logic checks `@vitalspan_user_profile.onboardingComplete`. Phase 14 replaces this with Supabase session type routing: `await initSupabaseSession()` then `supabase.auth.getUser()`. If `user && !user.is_anonymous` → `'Main'`; otherwise → `'Welcome'`. The `@vitalspan_user_profile` onboarding check is removed from `App.tsx` routing — `WelcomeScreen` handles it internally for the guest path (D-06, D-11). Session persistence already configured; do not change `supabase.ts` auth storage config.
 
 ### Navigation
 - `src/navigation/AppNavigator.tsx` — Existing stack navigator + `RootStackParamList`. Phase 14 adds `Welcome` route, removes `Landing`, and adds auth-related screens/sheets. `initialRoute` prop already typed as `'Landing' | 'Main'` — update to `'Welcome' | 'Main'`.
@@ -99,11 +103,11 @@ The existing `LandingScreen` is retired. `OnboardingScreen` is preserved for fir
 - `.planning/REQUIREMENTS.md §AUTH-01 through AUTH-09` — The 9 auth requirements; authoritative acceptance criteria for this phase.
 
 ### Session & Data Architecture
-- `src/lib/biomarkerWriteService.ts` — Contains `migrateHistory()` (anonymous → authenticated data migration). Phase 14 triggers this after `linkIdentity()` on sign-up.
-- `App.tsx` — `@vitalspan_migrated_v2` flag logic for migration idempotency; Phase 14 may need a new `@vitalspan_identity_linked` flag for `linkIdentity()` idempotency.
+- `src/lib/biomarkerWriteService.ts` — Contains `migrateHistory()` (anonymous → authenticated data migration). Phase 14 triggers this after `convertAnonymousToEmail()` (which uses `updateUser`) on sign-up, guarded by `@vitalspan_identity_linked` flag.
+- `App.tsx` — `@vitalspan_migrated_v2` flag logic for migration idempotency; `@vitalspan_identity_linked` flag for `convertAnonymousToEmail` idempotency.
 
 ### State Decisions
-- `.planning/STATE.md §Decisions` — Key prior decisions: `linkIdentity()` is the migration strategy; AsyncStorage keys preserved as offline fallback; `initSupabaseSession()` is fire-and-forget and must never block routing.
+- `.planning/STATE.md §Decisions` — Key prior decisions: `updateUser({ email, password })` is the migration strategy (not `linkIdentity`, which is OAuth-only); AsyncStorage keys preserved as offline fallback; `initSupabaseSession()` must be awaited before routing (not fire-and-forget — see D-06).
 
 </canonical_refs>
 
@@ -114,16 +118,16 @@ The existing `LandingScreen` is retired. `OnboardingScreen` is preserved for fir
 - `supabase` singleton (`src/lib/supabase.ts`): already configured with AsyncStorage session persistence + AppState JWT refresh. Extend with email/password auth methods — do not re-initialize the client.
 - `NeuralGrid` component: use directly for WelcomeScreen hero background. Accepts `intensity` and `tone` props for the animated SVG effect.
 - `BreathingCard`: scale+glow wrapper — usable for the bottom sheet card surfaces on Sign Up / Login forms.
-- `initSupabaseSession()`: already handles anonymous sign-in + session restoration. Phase 14 must ensure email/password login replaces (not duplicates) the anonymous session.
+- `initSupabaseSession()`: already handles anonymous sign-in + session restoration. Phase 14 must ensure email/password login replaces (not duplicates) the anonymous session. `updateUser({ email, password })` is the approved method for in-place anonymous→email promotion.
 
 ### Established Patterns
 - `presentation: 'modal'` stack screens in `AppNavigator` — however, auth bottom sheets should NOT be separate navigation routes (they slide over WelcomeScreen). Use `Animated.Value` slide-up animation or an existing bottom sheet pattern within WelcomeScreen state.
 - `StyleSheet` named `s` at bottom of each file; no inline styles except dynamic ones.
-- AsyncStorage idempotency flags (`@vitalspan_migrated_v2`) — use same pattern for `@vitalspan_email_verified_notified` and any `linkIdentity()` idempotency flag.
+- AsyncStorage idempotency flags (`@vitalspan_migrated_v2`) — use same pattern for `@vitalspan_email_verified_notified` and `@vitalspan_identity_linked` (the `updateUser` promotion idempotency flag).
 - `.catch(() => null)` pattern for resilient AsyncStorage reads throughout the codebase.
 
 ### Integration Points
-- `App.tsx` `init()`: current routing checks `@vitalspan_user_profile.onboardingComplete`. Phase 14 adds `supabase.auth.getUser()` check. The routing sequence: (1) check session type → (2) if authenticated → Main; (3) if anonymous/none → check onboardingComplete → Welcome or Onboarding. `initSupabaseSession()` must complete before session type check.
+- `App.tsx` `init()`: current routing checks `@vitalspan_user_profile.onboardingComplete`. Phase 14 rewrites this to: (1) `await initSupabaseSession()`; (2) `supabase.auth.getUser()`; (3) if `user && !user.is_anonymous` → `'Main'`; else → `'Welcome'`. The `onboardingComplete` check moves into `WelcomeScreen`'s "Continue as guest" handler (D-11). Migration chain remains non-blocking after routing is set.
 - `src/screens/ProfileScreen.tsx`: add guest mode detection + 'Sign up to sync' card at the top of the account section. Check `user.is_anonymous` from `supabase.auth.getUser()`.
 - `src/screens/DashboardScreen.tsx`: add email verification banner (amber, dismissable) that checks `user.email_confirmed_at` on every focus event.
 - `RootStackParamList` in `AppNavigator.tsx`: add `Welcome`, remove `Landing`; add `SignUpConfirmation` if implemented as a separate screen.
@@ -146,6 +150,7 @@ The existing `LandingScreen` is retired. `OnboardingScreen` is preserved for fir
 - **Social login (Google / Apple Sign In)** — not in scope for v3. Would require additional Supabase OAuth configuration and Apple Developer entitlements.
 - **Biometric authentication (FaceID for app unlock)** — future phase; adds `expo-local-authentication` dependency.
 - **Multi-device sync UI** — showing a "synced devices" list or last-sync timestamp on ProfileScreen is a v4 enhancement.
+- **Protocol and exercise log Supabase sync** — deferred beyond Phase 14. Phase 14 covers biomarker entries only via `migrateHistory()`.
 
 </deferred>
 

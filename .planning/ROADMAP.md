@@ -327,24 +327,32 @@ Plans:
 **Depends on**: Phase 13
 **Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09
 **Success Criteria** (what must be TRUE):
-  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, links the existing anonymous session via `linkIdentity()`, and all previously entered data remains intact after account creation
+  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, promotes the existing anonymous session via `supabase.auth.updateUser()` (D-16), and all previously entered data remains intact after account creation
   2. A returning user logging in with correct credentials is taken directly to the main app with their biomarker history visible; a user logging in with wrong credentials sees a specific error message ("Incorrect password" not "Something went wrong")
   3. User who forgets password can trigger a reset email from the Login screen and sees a confirmation screen; after clicking the reset link, they can set a new password and log in successfully
   4. After backgrounding the app for any duration and reopening it, the user remains logged in without re-entering credentials; logging out clears the session, returns to the Welcome screen, and local AsyncStorage data is still accessible in guest mode
-**Plans**: 5 plans in 3 waves
+**Plans**: 5 plans in 4 waves
 
 Plans:
 
 **Wave 1**
 - [ ] 14-01-PLAN.md — Navigation & Routing Foundation: Replace Landing with Welcome in AppNavigator + session-type routing in App.tsx (AUTH-01, AUTH-06, AUTH-08)
 
-**Wave 2** *(blocked on Wave 1 completion, run in parallel)*
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 14-02-PLAN.md — Supabase Auth Methods: signUpWithEmail, signInWithEmail, convertAnonymousToEmail, sendPasswordResetEmail, signOutUser, resendVerificationEmail, mapAuthError (AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-08, AUTH-09)
-- [ ] 14-03-PLAN.md — WelcomeScreen + Bottom Sheet Auth Forms: dark NeuralGrid hero, animated metric preview, Sign Up / Log In bottom sheets (AUTH-01, AUTH-02, AUTH-03, AUTH-09)
 
-**Wave 3** *(blocked on Wave 2 completion, run in parallel)*
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 14-03-PLAN.md — WelcomeScreen + SheetForm component + bottom sheet auth forms: dark NeuralGrid hero, animated metric preview, Sign Up / Log In sheets (AUTH-01, AUTH-02, AUTH-03, AUTH-09)
+
+**Wave 4** *(blocked on Wave 3 completion, run in parallel)*
 - [ ] 14-04-PLAN.md — ForgotPassword + SignUpConfirmation screens (AUTH-04, AUTH-05)
 - [ ] 14-05-PLAN.md — ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast + App.tsx cleanup (AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09)
+
+**Cross-cutting constraints:**
+- `supabase.ts` polyfill constraint: `react-native-url-polyfill/auto` must remain line 1 in all plans touching that file (D-16, 14-02)
+- `initSupabaseSession()` must be awaited before `supabase.auth.getUser()` in App.tsx routing (D-06, 14-01)
+- Anonymous→email promotion uses `updateUser({ email, password })` not `linkIdentity()` (D-16, 14-02, 14-03)
+- AsyncStorage keys preserved; no wipe on logout (D-08, 14-02, 14-05)
 
 **UI hint**: yes
 
