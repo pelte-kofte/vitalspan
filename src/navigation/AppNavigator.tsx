@@ -14,7 +14,6 @@ import LabUploadScreen from '../screens/LabUploadScreen';
 import ProtocolScreen from '../screens/ProtocolScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
-import LandingScreen from '../screens/LandingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
@@ -24,8 +23,13 @@ import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
 
+// Stub components — replaced by real screens in Plans 14-03 and 14-04
+const WelcomeScreen = () => null;
+const SignUpConfirmationScreen = () => null;
+
 export type RootStackParamList = {
-  Landing: undefined;
+  Welcome: undefined;
+  SignUpConfirmation: { email: string };
   Onboarding: undefined;
   Main: undefined;
   BiomarkerDetail: { biomarkerId?: string };
@@ -120,7 +124,7 @@ function MainTabs() {
 }
 
 interface Props {
-  initialRoute: 'Landing' | 'Main';
+  initialRoute: 'Welcome' | 'Main';
 }
 
 export default function AppNavigator({ initialRoute }: Props) {
@@ -131,14 +135,19 @@ export default function AppNavigator({ initialRoute }: Props) {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen
-          name="Landing"
-          component={LandingScreen}
+          name="Welcome"
+          component={WelcomeScreen}
           options={{ gestureEnabled: false }}
         />
         <Stack.Screen
           name="Onboarding"
           component={OnboardingScreen}
           options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="SignUpConfirmation"
+          component={SignUpConfirmationScreen}
+          options={{ presentation: 'modal', gestureEnabled: false }}
         />
         <Stack.Screen
           name="Main"

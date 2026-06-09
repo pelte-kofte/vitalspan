@@ -90,7 +90,7 @@ export default function SettingsScreen() {
           text: 'Sign out',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => null);
-            nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
           },
         },
       ],
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
             try {
               await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
-              nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+              nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
             } catch {
               Alert.alert('Clear failed', 'Could not delete all data. Please try again.');
             }
@@ -151,7 +151,7 @@ export default function SettingsScreen() {
               delete profile.onboardingComplete;
               await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
             }
-            nav.reset({ index: 0, routes: [{ name: 'Landing' }] });
+            nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
           },
         },
       ],
