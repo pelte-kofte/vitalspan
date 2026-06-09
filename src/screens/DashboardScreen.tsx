@@ -8,7 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../lib/supabase';
+import { supabase, resendVerificationEmail } from '../lib/supabase';
 import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
 import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '../components/DesignSystemIcons';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
@@ -46,6 +46,10 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [showVerificationBanner, setShowVerificationBanner] = useState(false);
+  const [showVerifiedToast, setShowVerifiedToast] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -96,6 +100,28 @@ export default function DashboardScreen() {
         const today = new Date().toISOString().slice(0, 10);
         setTakenItems(date === today ? new Set(taken) : new Set());
       }
+
+      // Email verification banner check (D-12, D-14)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && !user.is_anonymous && user.email) {
+          setUserEmail(user.email);
+          if (!user.email_confirmed_at) {
+            // Not yet verified — show banner (if not dismissed this session)
+            setShowVerificationBanner(true);
+          } else {
+            // Verified — check if we should show the one-time toast (D-14)
+            setShowVerificationBanner(false);
+            const notified = await AsyncStorage.getItem('@vitalspan_email_verified_notified').catch(() => null);
+            if (!notified) {
+              await AsyncStorage.setItem('@vitalspan_email_verified_notified', 'true').catch(() => null);
+              setShowVerifiedToast(true);
+              // Auto-dismiss toast after 3 seconds
+              setTimeout(() => setShowVerifiedToast(false), 3000);
+            }
+          }
+        }
+      } catch { /* non-blocking — verification UI is best-effort */ }
     } catch (e) {
       console.error('[loadData] parse error', e);
       Alert.alert('Data error', 'Some saved data could not be read. If this persists, use Settings → Clear all data to reset.');
@@ -110,6 +136,13 @@ export default function DashboardScreen() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  }
+
+  async function handleResend() {
+    if (!userEmail) return;
+    Haptics.selectionAsync().catch(() => null);
+    await resendVerificationEmail(userEmail);
+    // No UI feedback needed beyond haptic — Supabase sends the email silently
   }
 
   async function toggleTaken(name: string) {
@@ -217,6 +250,30 @@ export default function DashboardScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.screenContainer}>
         <NeuralGrid intensity="low" tone={neuralTone} />
+
+        {/* Email verification banner (D-12) — amber, dismissable per-session */}
+        {showVerificationBanner && !bannerDismissed && (
+          <View style={s.verificationBanner}>
+            <Text style={s.verificationBannerTxt}>
+              Please verify your email — check your inbox.
+            </Text>
+            <View style={s.verificationBannerActions}>
+              <TouchableOpacity onPress={handleResend}>
+                <Text style={s.verificationBannerResend}>Resend</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setBannerDismissed(true)}>
+                <Text style={s.verificationBannerDismiss}>X</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Verified toast (D-14) — one-time, auto-dismiss after 3s */}
+        {showVerifiedToast && (
+          <View style={s.verifiedToast} pointerEvents="none">
+            <Text style={s.verifiedToastTxt}>Account verified!</Text>
+          </View>
+        )}
 
         <ScrollView
           style={s.scroll}
@@ -627,5 +684,51 @@ const s = StyleSheet.create({
   weeklyDivider: {
     width: 0.5, height: 32,
     backgroundColor: Colors.dark.cardBorder,
+  },
+  // Email verification banner (D-12)
+  verificationBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.warningBg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.warningBorder,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  verificationBannerTxt: {
+    flex: 1,
+    fontSize: Typography.sizes.bodySmall,
+    color: Colors.warningText,
+  },
+  verificationBannerActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    alignItems: 'center',
+  },
+  verificationBannerResend: {
+    fontSize: Typography.sizes.bodySmall,
+    color: Colors.warning,
+    fontWeight: '600',
+  },
+  verificationBannerDismiss: {
+    fontSize: Typography.sizes.body,
+    color: Colors.textMuted,
+  },
+  // Verified toast (D-14)
+  verifiedToast: {
+    position: 'absolute',
+    bottom: Spacing.xxl,
+    alignSelf: 'center',
+    backgroundColor: Colors.semantic.success,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    zIndex: 100,
+  },
+  verifiedToastTxt: {
+    color: Colors.surface,
+    fontSize: Typography.sizes.bodySmall,
+    fontWeight: '600',
   },
 });
