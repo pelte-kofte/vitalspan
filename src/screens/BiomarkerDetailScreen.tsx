@@ -10,7 +10,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { ClipboardIcon } from '../components/DesignSystemIcons';
+import { ClipboardIcon, ChartBarIcon } from '../components/DesignSystemIcons';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -328,7 +328,7 @@ export default function BiomarkerDetailScreen() {
       >
         {entries.length === 0 && (
           <View style={s.emptyTabCard}>
-            <Text style={s.emptyTabIcon}>📊</Text>
+            <ChartBarIcon color={Colors.onSurfaceMuted} size={32} />
             <Text style={s.emptyTabHeading}>No biomarkers tracked yet</Text>
             <Text style={s.emptyTabBody}>
               Start with your most recent lab results. Three values unlock your biological age score.
@@ -493,7 +493,6 @@ const s = StyleSheet.create({
     fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic', lineHeight: 15,
   },
   emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, ...Elevation.sm, padding: Spacing.xl, alignItems: 'center' },
-  emptyTabIcon: { fontSize: 32, marginBottom: Spacing.md }, /* intentional — no Typography.sizes match for 32 */
   emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, textAlign: 'center', marginBottom: Spacing.sm },
   emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
   emptyTabCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
