@@ -109,20 +109,6 @@ export const Colors = {
     info: '#007AFF',     // iOS blue, informational state
   },
 
-  // Warm Beige palette — used by Phase 6 warm-screen redesign (removal in Wave 4 after migration)
-  Beige: {
-    bg: '#EDE8DC',
-    bgSecondary: '#EDE8DC',
-    bgShade: '#E4E0D4',
-    card: '#FFFFFF',
-    border: '#D4CFC4',
-    borderLight: '#E2DED6',
-    text: '#1A1A18',
-    textSecondary: '#4A4A45',
-    textMuted: '#6B6B64',
-    divider: '#C8C0B0',
-    headerBg: '#F5F0E8',
-  },
 };
 
 export const Typography = {
