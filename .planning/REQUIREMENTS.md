@@ -116,14 +116,14 @@
 | DS-03 | Phase 13 | Pending |
 | DS-04 | Phase 13 | Pending |
 | DS-05 | Phase 13 | Pending |
-| AUTH-01 | Phase 14 | Pending |
+| AUTH-01 | Phase 14 | In progress (route registered, screen in 14-03) |
 | AUTH-02 | Phase 14 | Pending |
 | AUTH-03 | Phase 14 | Pending |
 | AUTH-04 | Phase 14 | Pending |
 | AUTH-05 | Phase 14 | Pending |
-| AUTH-06 | Phase 14 | Pending |
+| AUTH-06 | Phase 14 | In progress (session routing in App.tsx, full persistence in 14-02) |
 | AUTH-07 | Phase 14 | Pending |
-| AUTH-08 | Phase 14 | Pending |
+| AUTH-08 | Phase 14 | In progress (SettingsScreen logout -> Welcome, full signOut in 14-02) |
 | AUTH-09 | Phase 14 | Pending |
 
 **Coverage:**

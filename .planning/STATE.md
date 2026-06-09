@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-05-30)
 
 ## Current Position
 
-Phase: 14 (planned)
-Plan: Phase 14 planned — 5 plans in 4 waves, ready to execute.
-Status: Phase 14 planned 2026-06-09. WelcomeScreen + auth bottom sheets + session routing + guest card + verification banner.
-Last activity: 2026-06-09 — Phase 14 planning complete: 14-01 nav/routing, 14-02 supabase auth methods, 14-03 WelcomeScreen + SheetForm, 14-04 ForgotPassword + SignUpConfirmation, 14-05 ProfileScreen guest card + Dashboard banner.
+Phase: 14 (executing)
+Plan: 14-01 complete. Executing wave 1.
+Status: Phase 14 in progress. 14-01 nav/routing complete. WelcomeScreen + auth bottom sheets + session routing + guest card + verification banner remain.
+Last activity: 2026-06-09 — 14-01 complete: AppNavigator Welcome route, App.tsx session-type routing with awaited initSupabaseSession.
 
 Progress: [██████████] 100% Phase 13 complete
 
@@ -63,6 +63,9 @@ Recent decisions affecting current work:
 - 10-04: onPress callback passed to ArticleCard from ArticlesScreen — WebBrowser import stays in ArticlesScreen, not in ArticleCard
 - 10-04: cancelled flag in ArticlesScreen useEffect prevents state updates after unmount
 - 10-04: Research CTA uses style composition [s.uploadCard, s.researchCard] — researchCard only overrides backgroundColor
+- 14-01: initSupabaseSession() is now AWAITED in App.tsx init() (not fire-and-forget) — session must be established before routing determination (D-06)
+- 14-01: App.tsx routing uses supabase.auth.getUser() is_anonymous check: non-anonymous -> Main, anonymous/no-session -> Welcome; onboardingComplete check removed from App.tsx (D-06, D-11)
+- 14-01: SettingsScreen nav.reset calls updated from Landing to Welcome (Landing route retired)
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-06-03
-Stopped at: Phase 10 Plan 04 complete. ArticleCard + ArticlesScreen + AppNavigator Articles route + DashboardScreen Research CTA. Wave 3 next (10-05: source audits + Supabase checkpoint + EAS preview build).
+Last session: 2026-06-09
+Stopped at: Phase 14 Plan 01 complete. AppNavigator Welcome/SignUpConfirmation routes, App.tsx session-type routing. Wave 2 next (14-02: Supabase auth methods).
 Resume file: .planning/STATE.md
