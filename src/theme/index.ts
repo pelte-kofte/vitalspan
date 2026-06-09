@@ -15,10 +15,6 @@ export const Colors = {
   // Text
   textPrimary: '#1A1A18',
   textSecondary: '#4A4A45',
-  // NOTE: intentionally lighter than Colors.Beige.textMuted (#6B6B64).
-  // This value (#8A8A82) is used by dark-background screens and the tab bar.
-  // Phase 6 warm screens use Colors.Beige.textMuted instead.
-  // Do NOT unify these values without auditing all dark-screen usages.
   textMuted: '#8A8A82',
 
   // Border
@@ -78,8 +74,6 @@ export const Colors = {
     border: 'rgba(255,255,255,0.08)',
     text: '#E8F5EE',
     textMuted: 'rgba(232,245,238,0.5)',
-    cardBg: 'rgba(255,255,255,0.06)',
-    cardBorder: 'rgba(255,255,255,0.12)',
   },
 
   // Data visualisation accents
@@ -95,7 +89,25 @@ export const Colors = {
     coral: '#F87171',
   },
 
-  // Warm Beige palette — used by Phase 6 warm-screen redesign
+  // Clinical-premium token set — white/green light-mode system (Phase 13)
+  // Tokens: Colors.surface, Colors.surfaceElevated, Colors.brand,
+  //         Colors.onSurface, Colors.onSurfaceMuted, Colors.accentMuted, Colors.semantic
+  surface: '#FFFFFF',               // Colors.surface — primary card/screen background for light screens
+  surfaceElevated: '#F9F9F9',       // Colors.surfaceElevated — elevated card surfaces and headers
+  brand: '#1B4332',                 // Colors.brand — deep forest green: CTAs, active states, key data labels
+  onSurface: '#1C1C1E',             // Colors.onSurface — Apple-native dark text on white/light screens
+  onSurfaceMuted: '#6B6B64',        // Colors.onSurfaceMuted — muted text on light screens
+  accentMuted: 'rgba(91, 157, 191, 0.25)', // Colors.accentMuted — muted/alpha neural blue (#5B9DBF) for subtle tint backgrounds
+
+  // iOS semantic state colors — DS-01: Colors.semantic.{success, warning, danger, info}
+  semantic: {
+    success: '#34C759',  // iOS green, success state
+    warning: '#FF9500',  // iOS orange, warning state
+    danger: '#FF3B30',   // iOS red, danger/error state
+    info: '#007AFF',     // iOS blue, informational state
+  },
+
+  // Warm Beige palette — used by Phase 6 warm-screen redesign (removal in Wave 4 after migration)
   Beige: {
     bg: '#EDE8DC',
     bgSecondary: '#EDE8DC',
@@ -124,6 +136,7 @@ export const Typography = {
     xl: 20,
     xxl: 28,
     hero: 44,
+    // Semantic scale — use these for all screen typography
     // Display scale
     display1: 56,
     display2: 44,
