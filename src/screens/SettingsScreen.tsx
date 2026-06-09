@@ -10,6 +10,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, TrashIcon, ClipboardIcon, RefreshIcon, StarIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -27,7 +28,7 @@ const ALL_STORAGE_KEYS = [
 
 // ── Row building blocks ──────────────────────────────────────────────────────
 interface RowProps {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   subtitle?: string;
   onPress?: () => void;
@@ -44,7 +45,7 @@ function SettingsRow({ icon, title, subtitle, onPress, right, danger, topBorder 
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={s.rowIconWrap}>
-        <Text style={s.rowIcon}>{icon}</Text>
+        {typeof icon === 'string' ? <Text style={s.rowIcon}>{icon}</Text> : icon}
       </View>
       <View style={s.rowBody}>
         <Text style={[s.rowTitle, danger && s.rowDanger]}>{title}</Text>
@@ -172,28 +173,28 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <SettingsRow icon="👤" title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
-          <SettingsRow icon="🔒" title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
+          <SettingsRow icon={<PersonIcon color={Colors.onSurface} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon={<ShieldIcon color={Colors.onSurface} size={20} />} title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
         {/* Preferences */}
         <Text style={s.sectionLabel}>Preferences</Text>
         <View style={s.card}>
           <SettingsRow
-            icon="🔔"
+            icon={<BellIcon color={Colors.onSurface} size={20} />}
             title="Daily reminders"
             subtitle="Protocol check-ins & biomarker logging"
             right={
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleToggleNotif}
-                trackColor={{ false: Colors.Beige.border, true: Colors.primaryBorder }}
-                thumbColor={notificationsEnabled ? Colors.primary : Colors.Beige.textMuted}
+                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                thumbColor={notificationsEnabled ? Colors.primary : Colors.onSurfaceMuted}
               />
             }
           />
           <SettingsRow
-            icon="📊"
+            icon={<ChartBarIcon color={Colors.onSurface} size={20} />}
             title="Weekly report"
             subtitle="Biomarker trends & progress summary"
             topBorder
@@ -201,13 +202,13 @@ export default function SettingsScreen() {
               <Switch
                 value={weeklyReport}
                 onValueChange={handleToggleReport}
-                trackColor={{ false: Colors.Beige.border, true: Colors.primaryBorder }}
-                thumbColor={weeklyReport ? Colors.primary : Colors.Beige.textMuted}
+                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                thumbColor={weeklyReport ? Colors.primary : Colors.onSurfaceMuted}
               />
             }
           />
           <SettingsRow
-            icon="📏"
+            icon={<RulerIcon color={Colors.onSurface} size={20} />}
             title="Measurement system"
             subtitle={unitSystem === 'metric' ? 'Metric (kg, cm)' : 'Imperial (lbs, ft)'}
             topBorder
@@ -228,17 +229,17 @@ export default function SettingsScreen() {
         {/* Data */}
         <Text style={s.sectionLabel}>Data</Text>
         <View style={s.card}>
-          <SettingsRow icon="📤" title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
-          <SettingsRow icon="🗑" title="Clear all data" danger onPress={handleClearData} topBorder />
+          <SettingsRow icon={<ShareIcon color={Colors.onSurface} size={20} />} title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
+          <SettingsRow icon={<TrashIcon color={Colors.danger} size={20} />} title="Clear all data" danger onPress={handleClearData} topBorder />
         </View>
 
         {/* About */}
         <Text style={s.sectionLabel}>About</Text>
         <View style={s.card}>
           <SettingsRow icon="ℹ" title="About Vitalspan" subtitle="Mission, citations, evidence grading" onPress={() => nav.navigate('About')} />
-          <SettingsRow icon="🔏" title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
-          <SettingsRow icon="📋" title="Terms of Use" topBorder onPress={() => {}} />
-          <SettingsRow icon="⭐" title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
+          <SettingsRow icon={<ShieldIcon color={Colors.onSurface} size={20} />} title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
+          <SettingsRow icon={<ClipboardIcon color={Colors.onSurface} size={20} />} title="Terms of Use" topBorder onPress={() => {}} />
+          <SettingsRow icon={<StarIcon color={Colors.onSurface} size={20} />} title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
         </View>
 
         {/* Debug (dev only) */}
@@ -246,7 +247,7 @@ export default function SettingsScreen() {
           <>
             <Text style={s.sectionLabel}>Developer</Text>
             <View style={s.card}>
-              <SettingsRow icon="🔄" title="Reset onboarding" subtitle="Debug: clears onboarding flag" onPress={handleResetOnboarding} />
+              <SettingsRow icon={<RefreshIcon color={Colors.onSurface} size={20} />} title="Reset onboarding" subtitle="Debug: clears onboarding flag" onPress={handleResetOnboarding} />
             </View>
           </>
         )}
@@ -265,56 +266,56 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.headerBg,
+    backgroundColor: Colors.surfaceElevated,
   },
   closeBtn: { paddingVertical: Spacing.xs },
   closeTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
-  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
+  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
   scroll: { flex: 1 },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   card: {
-    marginHorizontal: Spacing.base, backgroundColor: Colors.Beige.card,
+    marginHorizontal: Spacing.base, backgroundColor: Colors.surface,
     borderRadius: Radius.xl, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.Beige.border,
+    borderWidth: 0.5, borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.divider },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
   rowIconWrap: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: Colors.Beige.bgShade, alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 8, /* intentional — no Radius.* equivalent for 8 */
+    backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center',
   },
-  rowIcon: { fontSize: 16 },
+  rowIcon: { fontSize: Typography.sizes.lg },
   rowBody: { flex: 1 },
-  rowTitle: { fontSize: Typography.sizes.base, color: Colors.Beige.text, fontWeight: '400' },
+  rowTitle: { fontSize: Typography.sizes.base, color: Colors.onSurface, fontWeight: '400' },
   rowDanger: { color: Colors.danger },
-  rowSub: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
-  rowArrow: { fontSize: 18, color: Colors.Beige.textMuted, fontWeight: '300' },
+  rowSub: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 }, /* intentional — no Spacing.* equivalent for marginTop: 2 */
+  rowArrow: { fontSize: Typography.sizes.h3, color: Colors.onSurfaceMuted, fontWeight: '300' },
   unitToggle: {
-    flexDirection: 'row', backgroundColor: Colors.Beige.bgShade,
+    flexDirection: 'row', backgroundColor: Colors.surfaceElevated,
     borderRadius: Radius.md, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.Beige.border,
+    borderWidth: 0.5, borderColor: Colors.borderLight,
   },
   unitOpt: { paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1 },
   unitOptActive: { backgroundColor: Colors.primary, borderRadius: Radius.md },
-  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, fontWeight: '500' },
+  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
   unitOptTxtActive: { color: Colors.primaryBg },
   disclaimer: {
     marginHorizontal: Spacing.base, marginTop: Spacing.base,
-    backgroundColor: Colors.Beige.card, borderRadius: Radius.md,
+    backgroundColor: Colors.surface, borderRadius: Radius.md,
     padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
-  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, lineHeight: 18 },
-  versionTxt: { fontSize: 10, color: Colors.Beige.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
+  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 18 },
+  versionTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.sm, textAlign: 'center' },
 });

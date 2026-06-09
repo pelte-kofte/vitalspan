@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { PillIcon, TargetIcon, MicroscopeIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -17,7 +18,7 @@ const VERSION = Constants.expoConfig?.version ?? '—';
 const EVIDENCE_GRADES = [
   { grade: 'A', desc: 'Strong evidence — multiple RCTs or large cohort studies', color: Colors.primary, bg: Colors.primaryBg, border: Colors.primaryBorder },
   { grade: 'B', desc: 'Moderate evidence — smaller trials or mechanistic data',   color: Colors.warning,  bg: Colors.warningBg,  border: Colors.warningBorder },
-  { grade: 'C', desc: 'Early evidence — animal studies or observational data',    color: Colors.Beige.textMuted, bg: Colors.Beige.bgShade, border: Colors.Beige.border },
+  { grade: 'C', desc: 'Early evidence — animal studies or observational data',    color: Colors.onSurfaceMuted, bg: Colors.surfaceElevated, border: Colors.borderLight },
 ];
 
 const BIOMARKER_RANGES = [
@@ -115,15 +116,15 @@ export default function AboutScreen() {
             Most health apps are built by engineers, not clinicians. This leads to dangerous oversimplifications — recommending supplements without checking your medications, using population-average ranges rather than longevity targets, and missing critical interactions.
           </Text>
           <View style={s.whyPoint}>
-            <Text style={s.whyIcon}>💊</Text>
+            <View style={s.whyIconWrap}><PillIcon color={Colors.onSurface} size={16} /></View>
             <Text style={s.whyTxt}>Every supplement recommendation checks your medication list for interactions using our pharmacist-curated database of 200+ drugs.</Text>
           </View>
           <View style={s.whyPoint}>
-            <Text style={s.whyIcon}>🎯</Text>
+            <View style={s.whyIconWrap}><TargetIcon color={Colors.onSurface} size={16} /></View>
             <Text style={s.whyTxt}>Biomarker targets are based on longevity medicine literature, not standard lab normals designed to detect disease.</Text>
           </View>
           <View style={s.whyPoint}>
-            <Text style={s.whyIcon}>🔬</Text>
+            <View style={s.whyIconWrap}><MicroscopeIcon color={Colors.onSurface} size={16} /></View>
             <Text style={s.whyTxt}>Biological age is calculated using the validated Levine PhenoAge algorithm, not a proprietary black-box score.</Text>
           </View>
         </View>
@@ -150,9 +151,9 @@ export default function AboutScreen() {
             </View>
             {BIOMARKER_RANGES.map(r => (
               <View key={r.marker} style={[s.rangeHeaderRow, s.rangeRow]}>
-                <Text style={[s.rangeCell, { flex: 1.2, color: Colors.Beige.text }]}>{r.marker}</Text>
+                <Text style={[s.rangeCell, { flex: 1.2, color: Colors.onSurface }]}>{r.marker}</Text>
                 <Text style={[s.rangeCell, { color: Colors.primary, fontWeight: '600' }]}>{r.longevity}</Text>
-                <Text style={[s.rangeCell, { color: Colors.Beige.textMuted }]}>{r.standard}</Text>
+                <Text style={[s.rangeCell, { color: Colors.onSurfaceMuted }]}>{r.standard}</Text>
               </View>
             ))}
           </View>
@@ -247,20 +248,20 @@ export default function AboutScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.headerBg,
+    backgroundColor: Colors.surfaceElevated,
   },
   closeBtn: { paddingVertical: Spacing.xs },
   closeTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
-  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
+  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
   scroll: { flex: 1 },
 
   hero: { alignItems: 'center', paddingVertical: Spacing.xl, paddingHorizontal: Spacing.base },
-  heroTitle: { fontSize: 36, fontWeight: '300', color: Colors.Beige.text, letterSpacing: -0.5 },
-  heroVersion: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: Spacing.xs },
+  heroTitle: { fontSize: Typography.sizes.display3, fontWeight: '300', color: Colors.onSurface, letterSpacing: -0.5 },
+  heroVersion: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.xs },
   pharmacistBadge: {
     marginTop: Spacing.md, backgroundColor: Colors.primaryBg,
     borderRadius: Radius.full, paddingHorizontal: Spacing.base, paddingVertical: Spacing.xs,
@@ -270,14 +271,14 @@ const s = StyleSheet.create({
 
   section: {
     marginHorizontal: Spacing.base, marginBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.card, borderRadius: Radius.xl,
-    padding: Spacing.base, borderWidth: 0.5, borderColor: Colors.Beige.border,
+    backgroundColor: Colors.surface, borderRadius: Radius.xl,
+    padding: Spacing.base, borderWidth: 0.5, borderColor: Colors.borderLight,
     ...Elevation.sm,
   },
   expandHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  expandArrow: { fontSize: 10, color: Colors.Beige.textMuted, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text, marginBottom: Spacing.sm },
-  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary, lineHeight: 22 },
+  expandArrow: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginBottom: Spacing.sm },
+  sectionTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.sm },
+  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
   italic: { fontStyle: 'italic' },
 
   founderRow: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center', marginBottom: Spacing.md },
@@ -287,38 +288,38 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   founderAvatarTxt: { fontSize: 16, fontWeight: '700', color: Colors.primary },
-  founderName: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text },
-  founderCred: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 3 },
-  founderPracticeFocus: { fontSize: Typography.sizes.xs, fontWeight: '400', color: Colors.Beige.textSecondary, marginTop: Spacing.sm },
+  founderName: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
+  founderCred: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 3 }, /* intentional — no Spacing.* equivalent for marginTop: 3 */
+  founderPracticeFocus: { fontSize: Typography.sizes.xs, fontWeight: '400', color: Colors.textSecondary, marginTop: Spacing.sm },
 
   whyPoint: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
-  whyIcon: { fontSize: 16, width: 22 },
-  whyTxt: { flex: 1, fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 20 },
+  whyIconWrap: { width: 22, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 2 }, /* intentional — no Spacing.* equivalent */
+  whyTxt: { flex: 1, fontSize: Typography.sizes.sm, color: Colors.textSecondary, lineHeight: 20 },
 
   rangeTable: {
     marginTop: Spacing.md, borderRadius: Radius.md,
-    overflow: 'hidden', borderWidth: 0.5, borderColor: Colors.Beige.border,
+    overflow: 'hidden', borderWidth: 0.5, borderColor: Colors.borderLight,
   },
   rangeHeaderRow: { flexDirection: 'row', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
-  rangeRow: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.border, backgroundColor: Colors.Beige.card },
+  rangeRow: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight, backgroundColor: Colors.surface },
   rangeCell: { flex: 1, fontSize: Typography.sizes.xs },
-  rangeLabel: { fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  rangeLabel: { fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   gradeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, marginBottom: Spacing.sm },
   gradeChip: { width: 28, height: 28, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderWidth: 0.5 },
   gradeChipTxt: { fontSize: Typography.sizes.xs, fontWeight: '700' },
-  gradeTxt: { flex: 1, fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, lineHeight: 20 },
+  gradeTxt: { flex: 1, fontSize: Typography.sizes.sm, color: Colors.textSecondary, lineHeight: 20 },
 
   citationBlock: {
-    marginTop: Spacing.sm, backgroundColor: Colors.Beige.bgShade,
+    marginTop: Spacing.sm, backgroundColor: Colors.surfaceElevated,
     borderRadius: Radius.sm, padding: Spacing.sm,
     borderLeftWidth: 2, borderLeftColor: Colors.primaryBorder,
   },
-  citationText: { fontSize: 10, color: Colors.Beige.textMuted, fontStyle: 'italic', lineHeight: 16 },
+  citationText: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic', lineHeight: 16 },
 
   citationItem: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
-  citationNum: { fontSize: 10, fontWeight: '700', color: Colors.primary, width: 20 },
-  citationItemText: { flex: 1, fontSize: 10, color: Colors.Beige.textMuted, lineHeight: 16 },
+  citationNum: { fontSize: Typography.sizes.xs, fontWeight: '700', color: Colors.primary, width: 20 },
+  citationItemText: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 16 },
 
   disclaimer: {
     marginHorizontal: Spacing.base, marginBottom: Spacing.base,
@@ -331,16 +332,16 @@ const s = StyleSheet.create({
   privacyLinkTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
 
   legalCard: {
-    backgroundColor: Colors.Beige.bgShade, borderRadius: Radius.lg, borderWidth: 0.5,
-    borderColor: Colors.Beige.border, padding: Spacing.base, marginHorizontal: Spacing.base,
+    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.lg, borderWidth: 0.5,
+    borderColor: Colors.borderLight, padding: Spacing.base, marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm, borderLeftWidth: 2, borderLeftColor: Colors.primaryBorder,
   },
-  legalTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.Beige.text, marginBottom: Spacing.sm },
-  legalDisclaimerLine: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.Beige.textSecondary },
-  legalDateLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.Beige.textMuted, marginTop: Spacing.xs },
-  legalVersionLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.Beige.textMuted, marginTop: Spacing.sm },
+  legalTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.sm },
+  legalDisclaimerLine: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.textSecondary },
+  legalDateLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.onSurfaceMuted, marginTop: Spacing.xs },
+  legalVersionLine: { fontSize: Typography.sizes.xs, fontWeight: '400' as const, color: Colors.onSurfaceMuted, marginTop: Spacing.sm },
 
   credits: { alignItems: 'center', paddingVertical: Spacing.lg },
-  creditsTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted },
-  creditsVersion: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: Spacing.xs },
+  creditsTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
+  creditsVersion: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.xs },
 });
