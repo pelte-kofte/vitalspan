@@ -88,6 +88,39 @@ export const Colors = {
     purple: '#A78BFA',
     coral: '#F87171',
   },
+
+  // Clinical-premium token set — white/green light-mode system (Phase 13)
+  // Tokens: Colors.surface, Colors.surfaceElevated, Colors.brand,
+  //         Colors.onSurface, Colors.onSurfaceMuted, Colors.accentMuted, Colors.semantic
+  surface: '#FFFFFF',               // Colors.surface — primary card/screen background for light screens
+  surfaceElevated: '#F9F9F9',       // Colors.surfaceElevated — elevated card surfaces and headers
+  brand: '#1B4332',                 // Colors.brand — deep forest green: CTAs, active states, key data labels
+  onSurface: '#1C1C1E',             // Colors.onSurface — Apple-native dark text on white/light screens
+  onSurfaceMuted: '#6B6B64',        // Colors.onSurfaceMuted — muted text on light screens
+  accentMuted: 'rgba(91, 157, 191, 0.25)', // Colors.accentMuted — muted/alpha neural blue (#5B9DBF) for subtle tint backgrounds
+
+  // iOS semantic state colors — DS-01: Colors.semantic.{success, warning, danger, info}
+  semantic: {
+    success: '#34C759',  // iOS green, success state
+    warning: '#FF9500',  // iOS orange, warning state
+    danger: '#FF3B30',   // iOS red, danger/error state
+    info: '#007AFF',     // iOS blue, informational state
+  },
+
+  // Warm Beige palette — used by Phase 6 warm-screen redesign (removal in Wave 4 after migration)
+  Beige: {
+    bg: '#EDE8DC',
+    bgSecondary: '#EDE8DC',
+    bgShade: '#E4E0D4',
+    card: '#FFFFFF',
+    border: '#D4CFC4',
+    borderLight: '#E2DED6',
+    text: '#1A1A18',
+    textSecondary: '#4A4A45',
+    textMuted: '#6B6B64',
+    divider: '#C8C0B0',
+    headerBg: '#F5F0E8',
+  },
 };
 
 export const Typography = {
@@ -103,6 +136,7 @@ export const Typography = {
     xl: 20,
     xxl: 28,
     hero: 44,
+    // Semantic scale — use these for all screen typography
     // Display scale
     display1: 56,
     display2: 44,
