@@ -84,3 +84,180 @@ export async function initSupabaseSession(): Promise<void> {
     console.warn('[Supabase] initSupabaseSession error:', message)
   }
 }
+
+// ─── Auth error mapper (D-15) ────────────────────────────────────────────────
+
+/**
+ * Maps a raw Supabase AuthError message to a user-facing string (D-15).
+ * Returns generic, actionable messages — never exposes raw Supabase error
+ * bodies to the user (mitigates T-14-03 information disclosure).
+ */
+export function mapAuthError(message: string): string {
+  const lower = message.toLowerCase()
+  if (lower.includes('invalid login credentials') || lower.includes('wrong password')) {
+    return 'Incorrect password'
+  }
+  if (lower.includes('user not found') || lower.includes('no user found')) {
+    return 'No account found with that email'
+  }
+  if (
+    lower.includes('network request failed') ||
+    lower.includes('networkrequest') ||
+    lower.includes('fetch')
+  ) {
+    return 'No internet connection — please try again'
+  }
+  if (lower.includes('rate limit') || lower.includes('too many')) {
+    return 'Too many attempts — please wait a few minutes'
+  }
+  if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
+    return 'Please verify your email first'
+  }
+  return 'Something went wrong — try again'
+}
+
+// ─── Email / password auth methods ──────────────────────────────────────────
+
+import type { User } from '@supabase/supabase-js'
+
+/**
+ * Creates a new email/password account in Supabase.
+ *
+ * For users with an active anonymous session, call convertAnonymousToEmail
+ * instead — this function is for fresh sign-ups with no prior session.
+ *
+ * Returns { user, error: null } on success.
+ * Returns { user: null, error } with a user-facing message on failure.
+ */
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+): Promise<{ user: User | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error) {
+      return { user: null, error: mapAuthError(error.message) }
+    }
+    return { user: data.user, error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { user: null, error: mapAuthError(message) }
+  }
+}
+
+/**
+ * Authenticates an existing email/password account.
+ *
+ * Returns { user, error: null } on success.
+ * Returns { user: null, error } with a user-facing message on failure.
+ */
+export async function signInWithEmail(
+  email: string,
+  password: string,
+): Promise<{ user: User | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      return { user: null, error: mapAuthError(error.message) }
+    }
+    return { user: data.user, error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { user: null, error: mapAuthError(message) }
+  }
+}
+
+/**
+ * Converts an anonymous Supabase session to an email/password account in-place.
+ *
+ * Uses updateUser (not linkIdentity — linkIdentity is OAuth-only).
+ * Call after verifying user.is_anonymous before sign-up.
+ * This is the Supabase-approved method for anonymous→email promotion (D-16).
+ * After success, call migrateHistory() guarded by @vitalspan_identity_linked
+ * to prevent duplicate migration runs.
+ *
+ * Returns { user, error: null } on success.
+ * Returns { user: null, error } with a user-facing message on failure.
+ */
+export async function convertAnonymousToEmail(
+  email: string,
+  password: string,
+): Promise<{ user: User | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.updateUser({ email, password })
+    if (error) {
+      return { user: null, error: mapAuthError(error.message) }
+    }
+    return { user: data.user, error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { user: null, error: mapAuthError(message) }
+  }
+}
+
+/**
+ * Sends a Supabase password reset email to the given address.
+ *
+ * Returns { error: null } on success.
+ * Returns { error } with a user-facing message on failure.
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    if (error) {
+      return { error: mapAuthError(error.message) }
+    }
+    return { error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { error: mapAuthError(message) }
+  }
+}
+
+/**
+ * Signs out the current user by clearing the Supabase session token.
+ *
+ * Per D-08: does NOT touch AsyncStorage keys — local data is preserved
+ * so the user retains their history when continuing as guest post-logout.
+ *
+ * Returns { error: null } on success.
+ * Returns { error } with a user-facing message on failure.
+ */
+export async function signOutUser(): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      return { error: mapAuthError(error.message) }
+    }
+    return { error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { error: mapAuthError(message) }
+  }
+}
+
+/**
+ * Resends the email verification/confirmation email to the given address.
+ *
+ * Uses supabase.auth.resend({ type: 'signup', email }) to trigger
+ * another confirmation email from Supabase (D-12, D-13).
+ *
+ * Returns { error: null } on success.
+ * Returns { error } with a user-facing message on failure.
+ */
+export async function resendVerificationEmail(
+  email: string,
+): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) {
+      return { error: mapAuthError(error.message) }
+    }
+    return { error: null }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { error: mapAuthError(message) }
+  }
+}
