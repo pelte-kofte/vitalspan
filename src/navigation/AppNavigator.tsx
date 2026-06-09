@@ -21,12 +21,10 @@ import ArticlesScreen from '../screens/ArticlesScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import SignUpConfirmationScreen from '../screens/SignUpConfirmationScreen';
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
-
-// Stub component — replaced by real screen in Task 2 of Plan 14-04
-const SignUpConfirmationScreen = () => null;
 
 export type RootStackParamList = {
   Welcome: undefined;
