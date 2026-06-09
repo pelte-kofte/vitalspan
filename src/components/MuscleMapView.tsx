@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import Svg, { Circle, Ellipse, Rect } from 'react-native-svg';
-import { Colors, Spacing, Radius } from '../theme';
+import { Colors, Spacing, Radius, Typography } from '../theme';
 
 export interface MuscleRegion {
   id: string;
@@ -49,7 +49,7 @@ const NEURAL_DOTS = Array.from({ length: 60 }, (_, i) => ({
   cy: 10 + Math.floor(i / 6) * 20,
 }));
 
-const SIL = { fill: Colors.Beige.bgShade, stroke: Colors.Beige.border };
+const SIL = { fill: Colors.surfaceElevated, stroke: Colors.borderLight };
 
 export interface MuscleMapViewProps {
   primaryMuscles: string[];
@@ -71,7 +71,7 @@ export default function MuscleMapView({
   function regionColor(r: MuscleRegion): { fill: string; opacity: number } {
     if (primaryMuscles.some(m => muscleMatches(m, r.id))) return { fill: Colors.accent, opacity: 0.75 };
     if (secondaryMuscles.some(m => muscleMatches(m, r.id))) return { fill: Colors.accent, opacity: 0.35 };
-    return { fill: Colors.Beige.bgShade, opacity: 0.6 };
+    return { fill: Colors.surfaceElevated, opacity: 0.6 };
   }
 
   return (
@@ -93,7 +93,7 @@ export default function MuscleMapView({
           const p = view === 'front' ? r.frontPath : r.backPath;
           if (!p) return null;
           const { fill, opacity } = regionColor(r);
-          return <Ellipse key={r.id} cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} fill={fill} fillOpacity={opacity} stroke={Colors.Beige.border} strokeWidth={0.5} />;
+          return <Ellipse key={r.id} cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} fill={fill} fillOpacity={opacity} stroke={Colors.borderLight} strokeWidth={0.5} />;
         })}
       </Svg>
 
@@ -131,7 +131,7 @@ const s = StyleSheet.create({
   container: { alignItems: 'center', paddingVertical: Spacing.sm },
   tap: { position: 'absolute' },
   toggle: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
-  toggleTxt: { fontSize: 13, fontWeight: '600', color: Colors.Beige.textMuted },
+  toggleTxt: { fontSize: Typography.sizes.bodySmall, fontWeight: '600', color: Colors.onSurfaceMuted },
   active: { color: Colors.accent },
-  sep: { color: Colors.Beige.textMuted, fontSize: 13 },
+  sep: { color: Colors.onSurfaceMuted, fontSize: Typography.sizes.bodySmall },
 });

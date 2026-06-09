@@ -74,14 +74,14 @@ const s = StyleSheet.create({
   journal: {
     fontSize: Typography.sizes.xs,
     fontWeight: '400',
-    color: Colors.Beige.textMuted,
+    color: Colors.onSurfaceMuted,
     flex: 1,
     marginRight: Spacing.sm,
   },
   date: {
     fontSize: Typography.sizes.xs,
     fontWeight: '400',
-    color: Colors.Beige.textMuted,
+    color: Colors.onSurfaceMuted,
   },
   title: {
     fontSize: Typography.sizes.base,

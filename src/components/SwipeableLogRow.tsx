@@ -81,8 +81,8 @@ export function SwipeableLogRow({ log, onDelete, showBorder }: SwipeableLogRowPr
 }
 
 const s = StyleSheet.create({
-  container: { overflow: 'hidden', backgroundColor: Colors.Beige.card },
-  border: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
+  container: { overflow: 'hidden', backgroundColor: Colors.surface },
+  border: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
   deleteZone: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.status.critical,
@@ -90,16 +90,16 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: Spacing.base,
   },
-  deleteText: { color: Colors.Beige.card, fontWeight: '600', fontSize: 14 },
+  deleteText: { color: Colors.surface, fontWeight: '600', fontSize: Typography.sizes.base },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     gap: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
   },
   left: { flex: 1 },
-  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text },
-  meta: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
+  meta: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 /* intentional — no Spacing.* equivalent */ },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.status.optimal },
 });

@@ -132,7 +132,7 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
               value={notes}
               onChangeText={setNotes}
               placeholder="Optional notes"
-              placeholderTextColor={Colors.Beige.textMuted}
+              placeholderTextColor={Colors.onSurfaceMuted}
             />
           </View>
         </View>
@@ -184,7 +184,7 @@ const s = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderTopLeftRadius: Radius.xxl,
     borderTopRightRadius: Radius.xxl,
     padding: Spacing.base,
@@ -194,14 +194,14 @@ const s = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.Beige.border,
+    backgroundColor: Colors.borderLight,
     alignSelf: 'center',
     marginBottom: Spacing.md,
   },
-  sheetTitle: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.Beige.text, marginBottom: 4 },
-  sheetCat: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginBottom: Spacing.base },
+  sheetTitle: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.onSurface, marginBottom: 4 /* intentional — no Spacing.* equivalent */ },
+  sheetCat: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginBottom: Spacing.base },
   logFields: {
-    backgroundColor: Colors.Beige.bg,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     marginBottom: Spacing.base,
     overflow: 'hidden',
@@ -212,19 +212,19 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     padding: Spacing.md,
   },
-  fieldRowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.Beige.border },
-  fieldLabel: { fontSize: Typography.sizes.base, color: Colors.Beige.textSecondary },
+  fieldRowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
+  fieldLabel: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
   fieldInput: {
     fontSize: Typography.sizes.base,
     fontWeight: '600',
-    color: Colors.Beige.text,
+    color: Colors.onSurface,
     textAlign: 'right',
     minWidth: 64,
   },
   intensityLabel: {
-    fontSize: 11,
+    fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.Beige.textMuted,
+    color: Colors.onSurfaceMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: Spacing.sm,
@@ -235,12 +235,12 @@ const s = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.sm,
     borderRadius: Radius.full,
-    backgroundColor: Colors.Beige.bgShade,
+    backgroundColor: Colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     alignItems: 'center',
   },
-  intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.Beige.textMuted },
+  intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.onSurfaceMuted },
   calEstimate: {
     fontSize: Typography.sizes.sm,
     color: Colors.primaryLight,
@@ -262,5 +262,5 @@ const s = StyleSheet.create({
   },
   saveBtnTxt: { fontSize: Typography.sizes.base, fontWeight: '700', color: Colors.primaryBg },
   cancelBtn: { padding: Spacing.sm, alignItems: 'center' },
-  cancelBtnTxt: { fontSize: Typography.sizes.base, color: Colors.Beige.textMuted },
+  cancelBtnTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
 });
