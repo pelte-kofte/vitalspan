@@ -368,7 +368,7 @@ export default function ExerciseScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.Beige.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -376,8 +376,8 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
   },
-  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.Beige.text },
-  subtitle: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
+  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
+  subtitle: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
   todayPill: {
     backgroundColor: Colors.status.optimalBg,
     borderRadius: Radius.full,
@@ -389,25 +389,25 @@ const s = StyleSheet.create({
   tabsBar: { maxHeight: 44 },
   tabsScroll: { paddingHorizontal: Spacing.base, gap: 8, paddingBottom: 8 },
   tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 14, /* intentional — no Spacing.* equivalent */
+    paddingVertical: 7, /* intentional — no Spacing.* equivalent */
     borderRadius: Radius.full,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
   },
   tabActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.Beige.textSecondary, fontWeight: '500' },
+  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
   tabTxtActive: { color: Colors.primaryBg, fontWeight: '600' },
 
   scroll: { flex: 1 },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.Beige.textMuted,
+    color: Colors.onSurfaceMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
@@ -416,14 +416,14 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     overflow: 'hidden',
   },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.Beige.divider },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
 
   // Exercise row
   exerciseRow: {
@@ -433,16 +433,16 @@ const s = StyleSheet.create({
     gap: Spacing.sm,
   },
   exLeft: { flex: 1 },
-  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.Beige.text, marginBottom: 4 },
-  exMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface, marginBottom: 4 },
+  exMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   equipChip: {
-    backgroundColor: Colors.Beige.bgShade,
+    backgroundColor: Colors.surfaceElevated,
     borderRadius: Radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 6, /* intentional — no Spacing.* equivalent */
+    paddingVertical: 2, /* intentional — no Spacing.* equivalent */
   },
-  equipChipTxt: { fontSize: 10, fontWeight: '600', color: Colors.Beige.textMuted },
-  exTarget: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted },
+  equipChipTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted },
+  exTarget: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
   exRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   logBtn: {
     backgroundColor: Colors.primary,
@@ -450,8 +450,8 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: Spacing.xs + 1,
   },
-  logBtnTxt: { fontSize: 11, fontWeight: '600', color: Colors.primaryBg },
-  chevron: { fontSize: 12, color: Colors.Beige.textMuted, fontWeight: '600' },
+  logBtnTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primaryBg },
+  chevron: { fontSize: 12, color: Colors.onSurfaceMuted, fontWeight: '600' },
 
   // Muscle map filter
   muscleFilterToggle: {
@@ -461,20 +461,20 @@ const s = StyleSheet.create({
     padding: Spacing.md,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
   },
-  muscleFilterToggleTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.Beige.textSecondary },
-  muscleFilterChevron: { fontSize: 10, color: Colors.Beige.textMuted },
+  muscleFilterToggleTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textSecondary },
+  muscleFilterChevron: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
   muscleFilterPanel: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     padding: Spacing.md,
     overflow: 'hidden',
   },
@@ -494,28 +494,28 @@ const s = StyleSheet.create({
   activityCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     padding: Spacing.md,
   },
-  activityLabel: { fontSize: 11, fontWeight: '600', color: Colors.Beige.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
+  activityLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
   activityRow: { flexDirection: 'row', alignItems: 'center' },
   activityStat: { flex: 1, alignItems: 'center' },
-  activityStatVal: { fontSize: 24, fontWeight: '600', color: Colors.Beige.text, lineHeight: 28 },
-  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.Beige.textMuted, marginTop: 2 },
-  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.Beige.divider },
-  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.Beige.textMuted },
+  activityStatVal: { fontSize: Typography.sizes.xl, fontWeight: '600', color: Colors.onSurface, lineHeight: 28 },
+  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.borderLight },
+  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
 
   // Empty state
   emptyStateCard: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.Beige.card,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.Beige.border,
+    borderColor: Colors.borderLight,
     ...Elevation.sm,
     padding: Spacing.xl,
     alignItems: 'center',
@@ -523,21 +523,21 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   emptyStateIcon: {
-    fontSize: 40,
+    fontSize: 40, /* intentional — hero display size, no Typography.sizes match */
     marginBottom: Spacing.md,
   },
   emptyStateHeadline: {
-    fontSize: 18,
+    fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.Beige.text,
+    color: Colors.onSurface,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: Spacing.sm,
   },
   emptyStateBody: {
-    fontSize: 14,
+    fontSize: Typography.sizes.base,
     fontWeight: '400',
-    color: Colors.Beige.textSecondary,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
@@ -552,8 +552,8 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   emptyStateCtaTxt: {
-    color: Colors.Beige.card,
-    fontSize: 14,
+    color: Colors.surface,
+    fontSize: Typography.sizes.base,
     fontWeight: '600',
   },
 
