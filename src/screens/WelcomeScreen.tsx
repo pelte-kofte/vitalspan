@@ -75,6 +75,7 @@ export default function WelcomeScreen() {
         result = await signUpWithEmail(email, password);
       }
       if (result.error) { setError(result.error); setLoading(false); return; }
+      setLoading(false);
       closeSheet();
       nav.navigate('SignUpConfirmation', { email });
     } catch (e: unknown) {
