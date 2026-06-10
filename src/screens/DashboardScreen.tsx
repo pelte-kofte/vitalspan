@@ -63,14 +63,20 @@ export default function DashboardScreen() {
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
 
-      // Supabase-first biomarker entries pull (D-04: every mount, D-06: silent fallback)
+      // Single getUser() call — result reused for biomarker fetch and verification banner (M3)
+      let currentUser: import('@supabase/supabase-js').User | null = null;
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        currentUser = user;
+      } catch { /* non-blocking — falls back to local data below */ }
+
+      // Supabase-first biomarker entries pull (D-04: every mount, D-06: silent fallback)
+      try {
+        if (currentUser) {
           const { data: sbEntries, error: sbError } = await supabase
             .from('biomarker_entries')
             .select('id, biomarker_id, value, date, source, notes')
-            .eq('user_id', user.id);
+            .eq('user_id', currentUser.id);
           if (!sbError && sbEntries && sbEntries.length > 0) {
             setEntries(
               sbEntries.map((row) => ({
@@ -101,12 +107,11 @@ export default function DashboardScreen() {
         setTakenItems(date === today ? new Set(taken) : new Set());
       }
 
-      // Email verification banner check (D-12, D-14)
+      // Email verification banner check (D-12, D-14) — reuses currentUser from above
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && !user.is_anonymous && user.email) {
-          setUserEmail(user.email);
-          if (!user.email_confirmed_at) {
+        if (currentUser && !currentUser.is_anonymous && currentUser.email) {
+          setUserEmail(currentUser.email);
+          if (!currentUser.email_confirmed_at) {
             // Not yet verified — show banner (if not dismissed this session)
             setShowVerificationBanner(true);
           } else {
