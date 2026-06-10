@@ -554,19 +554,11 @@ export interface Exercise {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **MEDIUM-confidence mappings: include or skip?**
-   - What we know: 8 MEDIUM mappings exist; they show exercises with similar movement patterns but different equipment positions or minor name divergences
-   - What's unclear: Whether the Vitalspan clinical standard allows a photo that shows a "close enough" exercise or requires exact match
-   - Recommendation: Ship with only HIGH-confidence mappings (38) for v1. MEDIUM entries can be audited post-launch. This still hits 63% which is close to the 70% target — planner should decide whether to include MEDIUMs or accept 63%.
-   - **If all HIGH + MEDIUM are included: 46 mappings = 77% — above threshold**
-   - **If only HIGH: 38 mappings = 63% — below threshold**
+1. **MEDIUM-confidence mappings: include or skip?** — RESOLVED: Include all 8 MEDIUM mappings. 15-01-PLAN.md hardcodes all 46 photoKey entries (38 HIGH + 8 MEDIUM) = 77%, exceeding the EXP-03 threshold of 70%. Each MEDIUM entry is annotated with `// MEDIUM` in exercises.ts for future reviewer inspection.
 
-2. **Tate Press for Dumbbell Lying Elbow Press: visual accuracy**
-   - What we know: "Tate Press" is the widely-used name for this exercise; the movements are identical
-   - What's unclear: Whether the yuhonas photo shows the exact hand position described in the Vitalspan instructions
-   - Recommendation: Include as MEDIUM; inspect photo before shipping
+2. **Tate Press for Dumbbell Lying Elbow Press: visual accuracy** — RESOLVED: Include as MEDIUM with `// MEDIUM` comment. "Tate Press" is the canonical name for this exercise; mapping accepted in 15-01-PLAN.md.
 
 ---
 

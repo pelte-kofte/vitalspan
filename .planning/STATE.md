@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 15 (Exercise Photos) — Not started
-Plan: —
-Status: Roadmap defined — ready for /gsd:plan-phase 15
-Last activity: 2026-06-10 — v4.0 roadmap created (Phases 15-18)
+Phase: 15 (Exercise Photos) — Ready to execute
+Plan: 2 plans in 2 waves
+Status: Planned — ready for /gsd:execute-phase 15
+Last activity: 2026-06-10 — Phase 15 planned (2 plans, research complete, checker passed)
 
 Progress: [░░░░░░░░░░] 0% v4.0
 
