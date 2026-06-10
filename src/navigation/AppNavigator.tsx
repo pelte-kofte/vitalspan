@@ -124,7 +124,7 @@ function MainTabs() {
 }
 
 interface Props {
-  initialRoute: 'Welcome' | 'Main';
+  initialRoute: 'Welcome' | 'Onboarding' | 'Main';
 }
 
 export default function AppNavigator({ initialRoute }: Props) {

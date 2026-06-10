@@ -13,7 +13,7 @@ import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
 
 export default function App() {
-  const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Main' | null>(null);
+  const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Onboarding' | 'Main' | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -21,7 +21,9 @@ export default function App() {
         await initSupabaseSession();
         const { data: { user } } = await supabase.auth.getUser();
         if (user && !user.is_anonymous) {
-          setInitialRoute('Main');
+          const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
+          const profile = profileRaw ? JSON.parse(profileRaw) : null;
+          setInitialRoute(profile?.onboardingComplete ? 'Main' : 'Onboarding');
         } else {
           setInitialRoute('Welcome');
         }
