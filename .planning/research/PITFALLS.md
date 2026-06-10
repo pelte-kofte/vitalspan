@@ -1,256 +1,71 @@
-# Pitfalls Research: Vitalspan v2
+# Pitfalls Research: Vitalspan v4.0
 
-**Domain:** Brownfield Expo ~54 iOS app — adding Supabase auth/sync, SVG icons, exercise screen, theme changes
-**Researched:** 2026-05-30
-**Confidence:** MEDIUM-HIGH (training data + direct codebase inspection; no external fetch available)
-
----
-
-## 1. Supabase session not persisting between app restarts
-
-- **Risk:** User logs in, closes the app, reopens it — session is gone. They are silently unauthenticated. Any Supabase RLS-gated query returns an empty result set (not an error), so data appears missing rather than the error being obvious.
-- **Trigger:** `createClient()` called without the `storage` option pointing to an AsyncStorage adapter. The default storage in `@supabase/supabase-js` v2 is `localStorage` (a browser API). In React Native there is no `localStorage`; the client silently falls back to in-memory storage, which is lost on every restart.
-- **Prevention:** Pass the AsyncStorage adapter explicitly when constructing the client:
-  ```typescript
-  import AsyncStorage from '@react-native-async-storage/async-storage';
-  import { createClient } from '@supabase/supabase-js';
-
-  export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,  // REQUIRED in React Native — no URL scheme interception
-    },
-  });
-  ```
-  `detectSessionInUrl: false` is mandatory. Without it the client tries to parse `window.location` on every mount, which throws in React Native.
-- **Phase at risk:** Supabase auth integration phase (any phase that adds the `createClient` call).
+**Domain:** Adding Adapty paywall, Claude API AI advisor, and exercise photos to an existing Expo ~54 iOS app
+**Researched:** 2026-06-10
+**Confidence:** HIGH (Context7 official docs for Adapty RN SDK + Anthropic TS SDK; expo-image official docs; codebase inspection)
 
 ---
 
-## 2. JWT expiry silently breaks synced data fetches
+## Adapty / In-App Purchases
 
-- **Risk:** Supabase access tokens expire after 1 hour by default. If the user leaves the app open in background for >1 hour and then returns, the next Supabase call fails with a 401. With `autoRefreshToken: true` this is usually handled automatically — but only if `AppState` change events are wired up. Without wiring, the token is not refreshed when the app returns from background.
-- **Trigger:** React Native apps do not run continuous JS execution in the background the way a browser tab does. The token refresh loop pauses. If the app returns from background after the token has expired but before the refresh has fired, the next query gets a 401 that the auto-refresh cannot recover from without a manual `supabase.auth.startAutoRefresh()` call on `AppState` change.
-- **Prevention:**
-  ```typescript
-  import { AppState } from 'react-native';
-
-  AppState.addEventListener('change', (state) => {
-    if (state === 'active') {
-      supabase.auth.startAutoRefresh();
-    } else {
-      supabase.auth.stopAutoRefresh();
-    }
-  });
-  ```
-  Add this in the Supabase client module (singleton, not inside a component) so it runs once on module load. This is documented in the official Supabase React Native guide and is a common omission.
-- **Phase at risk:** Supabase auth integration phase; also any later phase that adds background data fetching.
+| Pitfall | Why it happens | Prevention |
+|---------|----------------|------------|
+| **Calling any Adapty method before `adapty.activate()` resolves** | `adapty.activate()` is async. If `getProfile()` or `getPaywall()` is called before activation completes — e.g., in a `useEffect` that fires at the same time as the root `activate()` call — the SDK throws or returns stale data. This is Expo-specific because JS module evaluation order and React render cycles run concurrently with the async activate call. | Call `adapty.activate()` in `index.js` or the root component's synchronous module body (not inside a `useEffect`). Await it before rendering the app tree, or gate all Adapty calls behind an `isAdaptyReady` state flag set in the `.then()` of the activate promise. Use `__ignoreActivationOnFastRefresh: true` to prevent double-activation during Metro Fast Refresh. |
+| **Supabase auth resolves after Adapty activate — user ID never passed to Adapty** | Adapty can accept a `customerUserId` at activate time (ideal) or via a later `adapty.identify()` call. Supabase session restoration from AsyncStorage is also async and may resolve after the Adapty activate call has already completed. If the Supabase user ID arrives late, Adapty creates an anonymous profile and links purchases to it — not to the Supabase UID — creating a split identity. | Do NOT pass `customerUserId` to `adapty.activate()` if the Supabase session is not yet confirmed. Instead: activate Adapty with no `customerUserId`, then call `adapty.identify(supabaseUser.id)` immediately after `supabase.auth.getSession()` resolves. The Adapty docs confirm `identify()` merges the anonymous profile into the identified one when called after activate. Listen for Supabase `onAuthStateChange` to call `adapty.identify()` on login and `adapty.logout()` on sign-out. |
+| **`pending` purchase result ("Ask to Buy") not surfaced to user** | `adapty.makePurchase()` returns three result types: `success`, `user_cancelled`, and `pending`. The `pending` type occurs when Family Sharing / Ask to Buy is involved (a child account, parental controls). If the app only handles `success` and `user_cancelled`, the `pending` case falls through silently — the user receives no feedback and may attempt to purchase again. | Explicitly handle the `pending` branch: show a message like "Your purchase is pending parental approval." Register an `onLatestProfileLoad` event listener via `adapty.addEventListener` to detect when the pending purchase is later approved and the profile becomes premium. |
+| **Restore Purchases not available = App Store rejection** | Apple guideline 3.1.1 requires that all apps with in-app subscriptions provide a visible "Restore Purchases" mechanism. If no `Restore Purchases` button or link is present on the paywall or in Settings, the reviewer will reject the binary. Adapty's Paywall Builder includes this automatically, but a custom paywall UI built in React Native must add it manually. | Add a `Restore Purchases` tappable element to any paywall screen. Wire it to `adapty.restorePurchases()`. After a successful restore, check `profile.accessLevels['premium']?.isActive` and navigate the user to premium content. Show explicit feedback when no active subscription is found ("No subscription found to restore"). |
+| **Free trial displayed on paywall does not match App Store eligibility** | A free trial offer (introductory pricing) from the App Store is only available to users who have never subscribed before. Adapty exposes this via `product.subscription?.offer?.phases` with `paymentMode: 'free_trial'`. If the paywall UI always shows "Start Free Trial" regardless of eligibility, a returning subscriber sees a misleading claim — App Store reviewers check this, and users will submit chargebacks or complaints. | Check `product.subscription?.offer` before showing trial copy. If `offer` is `null` or `undefined`, the user is ineligible — show the standard price copy instead. Only show trial badge and trial-specific messaging when `offer.phases[0].paymentMode === 'free_trial'`. This must be done at runtime using the product fetched via `adapty.getPaywallProducts(paywall)`. |
+| **Hard paywall blocks access to app features = App Store rejection (health app specific)** | Apple guideline 3.1.1 prohibits paywalling features that were previously free without notice. More critically for a health app: Apple's App Review Guidelines note that apps targeting medical or health uses cannot gate access to safety-critical information (e.g., drug interaction warnings) behind a paywall. A "hard paywall" (`hard_paywall: true` in Adapty remote config) that blocks the entire app before the user can see any value will be rejected. | Gate only the AI Advisor and Longevity Score premium features. All biomarker tracking, supplement protocol, interaction checking, and exercise logging must remain accessible on the free tier. The paywall is a soft gate that appears when a user taps a premium feature. Never block navigation back from the paywall screen. Show a clear free-tier value proposition before showing price. |
+| **Adapty requires `expo prebuild` — breaks managed workflow assumptions** | `react-native-adapty` is a native module. It requires native code changes and cannot run in Expo Go. Installing it silently breaks Expo Go development (the module is not found) and requires running `npx expo prebuild` to generate native project directories, then `npx expo run:ios` for all subsequent development. First-time developers on the project who try `expo start` + Expo Go will get a red screen. | Run `npx expo install react-native-adapty && npx expo prebuild` once. Add a comment to the README (or CLAUDE.md) that this project uses a dev build, not Expo Go. CI must use `eas build` — never `expo export` without the native modules present. The existing project already uses `expo run:ios` per the CLAUDE.md scripts, so this is a documentation pitfall more than a code one. |
+| **Paywall UI shows price in wrong currency / locale** | `product.price.localizedString` is locale-aware and comes from StoreKit. If the paywall hardcodes "$9.99/month" as a string literal in the React Native UI, users in other regions see incorrect prices and currencies. Apple's reviewers in the US may not catch this, but users in EU, UK, or Canada will report incorrect pricing. | Always render `product.price.localizedString` from the Adapty product object. Never hardcode price strings. Use `product.localizedTitle` for product name too. These values are fetched live from the App Store for the device's locale. |
 
 ---
 
-## 3. RLS policies block anonymous/unauthenticated reads — reference data silently empty
+## Claude API in React Native
 
-- **Risk:** Supabase tables for biomarker reference ranges and the exercise library need to be readable by unauthenticated users (or at minimum, by the anon key). If RLS is enabled on those tables without a `SELECT` policy for `anon` role, every query returns `[]` with no error thrown. The app shows empty screens that look like a data problem, not a permissions problem.
-- **Trigger:** Supabase enables RLS by default on new tables. The common mistake is to set up the table, write the query, get an empty array, and spend time debugging the client — when the actual fix is a one-line SQL policy.
-- **Prevention:** For reference tables (biomarker ranges, exercise library) that are read-only public data, explicitly add the policy in the Supabase dashboard before writing any client query code:
-  ```sql
-  CREATE POLICY "public read" ON biomarker_reference FOR SELECT TO anon USING (true);
-  CREATE POLICY "public read" ON exercise_library FOR SELECT TO anon USING (true);
-  ```
-  For user biomarker history: `USING (auth.uid() = user_id)` — ensure the row's `user_id` column is set to `auth.uid()` on insert, otherwise rows are inserted but immediately invisible on SELECT.
-- **Phase at risk:** The phase that provisions Supabase tables and writes the first data-fetching hooks.
-
----
-
-## 4. Metro bundler cannot resolve `@supabase/supabase-js` without a URL polyfill
-
-- **Risk:** Metro bundler throws a cryptic error like `Unable to resolve module 'url'` or `crypto.getRandomValues is not a function` when first importing `@supabase/supabase-js`. The app crashes on startup.
-- **Trigger:** `@supabase/supabase-js` v2 depends on `cross-fetch` and the WHATWG `URL` API, neither of which exists natively in the Hermes JS engine used by React Native / Expo. Additionally, Supabase uses `crypto.getRandomValues` for generating session tokens.
-- **Prevention:**
-  1. Install `react-native-url-polyfill` (check Expo SDK 54 compat — it is compatible).
-  2. Import it at the very top of your Supabase client file, before any Supabase import:
-     ```typescript
-     import 'react-native-url-polyfill/auto';
-     import { createClient } from '@supabase/supabase-js';
-     ```
-  3. For `crypto.getRandomValues`: Expo SDK 54 with Hermes provides this via `expo-crypto`. If the polyfill import alone does not resolve it, add `import 'expo-crypto'` before Supabase imports.
-  Note: `react-native-svg` 15.12.1 is already in `package.json`. Verify `react-native-url-polyfill` is not already present before adding it.
-- **Phase at risk:** First phase that adds `@supabase/supabase-js` to the project.
+| Pitfall | Why it happens | Prevention |
+|---------|----------------|------------|
+| **API key exposed in the JS bundle — extractable from the IPA** | The `@anthropic-ai/sdk` TypeScript client accepts `apiKey` as a constructor argument. If the key is passed from `process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY`, it is inlined into the Metro bundle at build time. The compiled JS bundle is included in the IPA, which can be extracted from TestFlight or App Store builds with freely available tools. The `EXPO_PUBLIC_` prefix is the mechanism that makes env vars available client-side — it also makes them visible in the binary. Anthropic's keys have no IP restriction by default. A leaked key means unbounded API costs charged to the developer's account. | **Do not call the Anthropic API directly from the React Native client.** Route all Claude API calls through a thin server-side proxy: a Supabase Edge Function (already in the stack) that holds the `ANTHROPIC_API_KEY` as a server-side secret, validates the Supabase auth JWT from the request header, enforces per-user rate limits, and calls Claude. The mobile app calls the Edge Function, not Anthropic directly. The `ANTHROPIC_API_KEY` never leaves the server. This is the only architecture that is secure for a production mobile app. |
+| **`@anthropic-ai/sdk` requires `dangerouslyAllowBrowser: true` in non-Node environments** | The Anthropic SDK detects non-Node environments (including React Native's Hermes runtime) and refuses to initialize without the `dangerouslyAllowBrowser: true` flag, because using the SDK client-side exposes the API key. This is intentional security friction. Seeing the flag in a PR is a red flag — it means the key is already client-side. | Do not set `dangerouslyAllowBrowser: true` in the RN app. This flag's existence in the codebase is a code-smell that the architecture is wrong. Use the Supabase Edge Function proxy instead. The Edge Function runs Node.js, so the SDK works without the flag. |
+| **Streaming responses: `for await` loop requires `ReadableStream` support** | The Anthropic SDK's `anthropic.messages.stream()` uses Web `ReadableStream` and `for await` iteration. React Native's Hermes engine (as of SDK 54) has incomplete `ReadableStream` support. The `TextDecoder` API needed to decode stream chunks may not be available without polyfills. Using streaming in the RN client would require polyfilling `ReadableStream`, `TextDecoder`, and `TransformStream`. | Use non-streaming responses from the Edge Function for the initial report generation (`messages.create()` without `stream: true`). For the follow-up chat UI, implement "fake streaming" by chunking the completed response client-side after it returns from the Edge Function. If true streaming is required, implement it in the Edge Function using Supabase's streaming response support, and consume a chunked `fetch()` stream in RN — but test carefully on Hermes. |
+| **No per-user rate limiting = cost explosion** | With the proxy architecture, a single compromised or abusive user account can trigger hundreds of Claude API calls if no rate limiting is implemented. A health app user might also accidentally trigger repeated calls (e.g., navigating back and forth to the AI Advisor screen). At Claude's pricing, even 100 requests with a 2000-token context + 1000-token output each can cost $1–2+ per user event. | In the Edge Function: enforce a per-user call limit (e.g., 5 AI reports per day, 20 chat messages per day) using Supabase DB or Redis. Check the limit before calling Claude. Return a 429 with a clear message ("You've used your daily AI advisor quota") that the mobile app displays. Log token usage from `response.usage.input_tokens` and `response.usage.output_tokens` to monitor costs. Set a hard spend alert in the Anthropic Console. |
+| **Sending raw biomarker values to Claude violates the app's own privacy policy** | The PROJECT.md explicitly states: "AI uses anonymized summary (not raw values) — Raw health values are NOT sent — privacy is preserved." Sending a JSON payload of all `@vitalspan_biomarkers` AsyncStorage entries (which include exact lab values, dates, and potentially inferred conditions) to an external API creates HIPAA-adjacent risk and contradicts the stated architecture. If the privacy policy says data stays local but the app sends lab values to Anthropic's API, this is a legal exposure. | Build a `buildAIContext()` function that transforms raw data into an anonymized summary: age range (not exact age), general biomarker status ("ApoB elevated" not "ApoB = 112 mg/dL"), supplement list by category. No user name, no exact lab values, no dates. The Edge Function receives only this summary string, not raw data. Test the summary output before sending to confirm it contains no identifying values. |
+| **API call fails mid-conversation — no recovery path** | Network errors, Anthropic 529 (overloaded), or timeout during a streaming or non-streaming call leave the chat UI in a spinner state. The Anthropic SDK's built-in retry policy retries on 429 and 5xx (including 529) with exponential backoff, but a mobile user may navigate away during the retry window, leaving a dangling promise. | In the Edge Function, set `maxRetries: 2` and `timeout: 30000` on the Anthropic client. Return a structured error JSON from the Edge Function on failure. In the RN chat component, use `AbortController` tied to the screen's unmount cycle to cancel in-flight fetch requests. Show a dismissible error state ("Could not reach AI Advisor — tap to retry") rather than a spinner that never resolves. Store unsent messages locally and re-surface them on retry. |
+| **Context window overflow for users with extensive biomarker history** | A user who has tracked 30+ biomarkers over 12 months generates a large data payload. If the `buildAIContext()` function does not cap the input, the Edge Function may construct a prompt that exceeds Claude's context window, or generates excessive input token costs. `claude-3-5-sonnet` has a 200k token context limit, but a 10,000-token prompt (plausible for extensive history) costs significantly more than a 500-token summary. | The summary function must cap its output: latest value only for each biomarker (not history), max 15 biomarkers, supplement list max 20 items, medication list max 10 items. Budget: aim for 500–1000 tokens of context for the health summary. Include a hard character limit (`summary.slice(0, 3000)`) as a safety valve. |
 
 ---
 
-## 5. .env variables accessible to client mean anon key is bundled into the binary
+## Exercise Photos (free-exercise-db)
 
-- **Risk:** Developer treats the `EXPO_PUBLIC_SUPABASE_ANON_KEY` as secret, believes it is hidden. In reality, any variable prefixed `EXPO_PUBLIC_` is inlined at build time into the JS bundle. The anon key is extractable from the IPA with `strings` or any bundle inspector. This creates a false sense of security — but it is the correct and only approach for Expo managed workflow with Supabase, as long as you understand what the anon key actually is.
-- **Trigger:** Misunderstanding what "secret" means in this context. The `SUPABASE_SERVICE_ROLE_KEY` (the admin key that bypasses RLS) must NEVER be `EXPO_PUBLIC_`. Only the `anon` key (which has limited RLS-gated permissions) goes in the bundle.
-- **Prevention:**
-  - `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` — safe to bundle, intentionally public, RLS is the security layer.
-  - `SUPABASE_SERVICE_ROLE_KEY` — never in the client at all. Server-side only (Edge Functions, CI, backend scripts).
-  - Add `.env` and `.env.local` to `.gitignore` immediately.
-  - In `app.json`/`app.config.js`, do not use `extra: { serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY }` — that path also ends up in the bundle via `expo-constants`.
-  - Variable names without the `EXPO_PUBLIC_` prefix are stripped out of the bundle entirely and read as `undefined` on the client — they are not "hidden", they simply don't exist in the client bundle.
-- **Phase at risk:** The phase that moves API keys from hardcoded values to `.env`.
-
----
-
-## 6. Metro does not hot-reload .env changes — stale values confuse debugging
-
-- **Risk:** Developer adds a new `EXPO_PUBLIC_` variable to `.env`, the running Metro instance does not pick it up, `process.env.EXPO_PUBLIC_SUPABASE_URL` is `undefined`, Supabase client is constructed with `undefined` URL, and all queries silently fail or throw.
-- **Trigger:** Metro reads `.env` at startup, not on file change. Hot reload / Fast Refresh do not re-read `.env`.
-- **Prevention:** Always restart the Metro bundler (`expo start --clear`) after any `.env` change. Never diagnose "Supabase isn't working" before confirming a full restart was done after the last `.env` edit.
-- **Phase at risk:** Same as pitfall 5 — the env setup phase.
+| Pitfall | Why it happens | Prevention |
+|---------|----------------|------------|
+| **Bundling GIFs locally inflates the IPA beyond App Store limits** | The `yunohas/free-exercise-db` repository contains ~800 exercises, each with a GIF animation that is typically 200KB–2MB. Bundling even a curated subset of 60 exercises at 500KB average = 30MB of GIF assets in the IPA. The App Store has a 200MB binary size limit for cellular downloads (previously 100MB, now 200MB), but more practically, the existing app binary plus the GIF assets could easily exceed 50–100MB, degrading download rates and increasing user hesitation. Additionally, Metro bundles all assets in the `assets/` directory at build time — they all end up in the binary. | Do not bundle GIFs locally. Fetch GIFs at runtime from a CDN or the GitHub raw URL. Store them in a disk cache using `expo-image`'s built-in `cachePolicy: 'disk'` (or `'memory-disk'` for the most-used ones). This keeps the binary small and allows GIFs to be loaded on demand. The already-present SVG `illustrationId` system remains as the offline fallback. |
+| **GitHub raw URLs (`raw.githubusercontent.com`) are rate-limited** | `yunohas/free-exercise-db` is a public GitHub repo. Fetching GIF assets directly via `https://raw.githubusercontent.com/yunohas/free-exercise-db/...` works in development but GitHub imposes rate limits on raw content requests. A user scrolling an exercise list with 60 items visible could trigger 60 concurrent raw GitHub requests — easily hitting the anonymous rate limit of ~60 requests/hour per IP. In production with real users, this means broken images, 429 errors, and a poor experience that looks like a bug in the app. | Mirror the curated GIF subset to a stable CDN. Options in order of preference: (1) Supabase Storage bucket (already in the stack) — upload the ~60 curated GIFs once as part of the phase setup; (2) Cloudflare R2 / any static CDN. Update the `exercises.ts` data to store a CDN URL per exercise instead of the GitHub raw URL. The GIF asset paths become stable, rate-limit-free URLs. This is a one-time migration step, not ongoing maintenance. |
+| **Rendering multiple animated GIFs simultaneously in a FlatList causes memory spikes and dropped frames** | GIFs in React Native are decoded and rendered frame-by-frame. Each visible GIF allocates memory proportional to `width × height × frames × color depth`. A FlatList of 60 exercise cards, each with a 400×300, 30-frame GIF, can allocate 200–500MB of memory when many are simultaneously rendered and animating. This causes jank, dropped frames, and on older devices (iPhone XR, SE), OOM crashes. The core RN `Image` component cannot stop GIF playback on off-screen items. | Use `expo-image` (not `react-native`'s `Image`) for all GIF rendering. `expo-image` uses SDWebImage on iOS, which handles animated image memory more efficiently, and supports `autoplay` prop to pause animation when off-screen. Additionally: render GIFs only for the currently visible/focused exercise card. Use `FlatList`'s `onViewableItemsChanged` to pause non-visible GIFs by setting `autoplay={false}` on off-screen items. Use the SVG illustration as the list thumbnail and show the GIF only on the detail/full-screen view. |
+| **`react-native`'s `<Image>` component does not animate GIFs on iOS** | The built-in React Native `<Image>` component does not natively render animated GIFs on iOS. It shows only the first frame. This is a known long-standing limitation. A developer testing on Android (where RN `Image` does animate GIFs via Glide) may not notice until iOS testing. The project is iOS-only, so this silent failure would be caught — but only if the developer tests GIF display before the phase is marked complete. | Use `expo-image`'s `<Image>` (from `expo-image` package) instead of `react-native`'s `Image`. `expo-image` uses SDWebImage on iOS which natively supports animated GIF playback. The package is compatible with Expo SDK 54 (confirmed: expo-image is a first-party Expo package). Import: `import { Image } from 'expo-image'` — not from `react-native`. Note: the project may not currently have `expo-image` in `package.json` (it is not listed); it requires installation via `npx expo install expo-image`. |
+| **GIF cache fills device storage for heavy users** | `expo-image`'s default `cachePolicy: 'disk'` caches every loaded image to the device filesystem. A user who views all 60 exercises repeatedly may accumulate 30–60MB of cached GIFs. While this is generally fine, there is no automatic eviction policy for disk-cached content in `expo-image` beyond OS-level storage pressure. On a device with limited free space, the app may appear to contribute to storage fill. | Set `cachePolicy: 'memory-disk'` for exercise GIFs — this allows the OS to evict the disk cache under storage pressure. Use `expo-image`'s `Image.clearDiskCache()` method if an explicit "Clear Cache" option is added to Settings. Keep GIF sizes reasonable: prefer GIFs under 500KB; use the CDN delivery phase to re-encode large GIFs to WebP animated format (much smaller than GIF at equivalent quality). |
+| **Exercise name in free-exercise-db does not match Vitalspan's `exercise.id` or `exercise.name` exactly** | The `yunohas/free-exercise-db` exercises are named with their own conventions (e.g., "3/4 Sit-Up", "Air Bike"). Vitalspan's `exercises.ts` uses its own names and IDs (e.g., `illustrationId: 'sideToSideChin'`). Mapping between the two datasets requires a manual or fuzzy-match lookup table. If the mapping is done by string comparison of names, exercises with slightly different naming fail to match and fall back to SVG silently — with no indication of the mismatch during development. | Build an explicit mapping table: `{ vitalspanExerciseId: string, freeExerciseDbPath: string | null }`. Entries with `null` path render the SVG fallback. This is a deliberate, auditable list — not an automatic fuzzy match. Review the mapping table during phase sign-off to confirm coverage. Store the CDN URLs in this table, not in `exercises.ts` directly, to keep the data file clean. |
 
 ---
 
-## 7. react-native-svg icon sizing in tab bar: icons appear clipped or oversized
+## Phase-Specific Warnings
 
-- **Risk:** Custom SVG icons look correct in isolation but appear clipped, misaligned, or oversized inside the React Navigation `BottomTabNavigator` tab bar.
-- **Trigger:** Two compounding issues:
-  1. The SVG file's `viewBox` is not `"0 0 24 24"` (or whatever the logical design unit is). If `viewBox` is missing or set to the artboard pixel dimensions (e.g., `"0 0 512 512"`), then setting `width={24} height={24}` on the component renders the SVG at 24px but drawing a 512-unit viewport — everything is microscopic.
-  2. React Navigation tab bar uses `tabBarIcon` with a `size` prop (usually 24). If the SVG component ignores the `size` prop and hardcodes its own dimensions, it will be the wrong size on different devices or when the user has large text enabled.
-- **Prevention:**
-  - Export SVGs from Figma/design tool with `viewBox="0 0 24 24"` (or normalize in SVGR/manual edit).
-  - Wire the `size` prop through to both `width` and `height` on the root `<Svg>` element:
-    ```typescript
-    const DashboardIcon = ({ size = 24, color }: { size?: number; color: string }) => (
-      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        ...
-      </Svg>
-    );
-    ```
-  - In the navigator: `tabBarIcon: ({ color, size }) => <DashboardIcon size={size} color={color} />`
-  - Do not set `width` and `height` as attributes in the raw SVG source file — let the component control sizing.
-- **Phase at risk:** The SVG tab bar icon phase.
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|----------------|------------|
+| Adapty integration (paywall phase) | Async activation race with Supabase identify | Activate Adapty first with no `customerUserId`; call `identify()` after Supabase session confirmed |
+| Adapty integration (paywall phase) | Missing Restore Purchases = App Store rejection | Add restore button on paywall screen before first TestFlight submission |
+| Adapty integration (paywall phase) | `expo prebuild` required — Expo Go breaks | Document dev build requirement, run `expo prebuild` once at phase start |
+| AI Advisor (Claude API phase) | API key in JS bundle | Architecture decision: Supabase Edge Function proxy, no client-side API key |
+| AI Advisor (Claude API phase) | No per-user rate limiting | Implement quota check in Edge Function before every Claude call |
+| AI Advisor (Claude API phase) | Raw health data sent to Claude | Implement `buildAIContext()` anonymization layer; audit output before shipping |
+| Exercise photos phase | GIF bundled in binary | Never add GIFs to `assets/` — CDN-serve from Supabase Storage |
+| Exercise photos phase | RN `Image` won't animate GIFs on iOS | Use `expo-image` exclusively; install it at phase start |
+| Exercise photos phase | GitHub raw URLs rate-limited | Mirror to Supabase Storage CDN before writing any GIF-loading code |
 
 ---
 
-## 8. react-native-svg and expo-linear-gradient conflict in Expo managed workflow
+## Confidence Notes
 
-- **Risk:** Adding `react-native-svg` (for custom tab icons) alongside the existing `expo-linear-gradient` causes a native module mismatch during build, or SVG renders as a blank white box in production builds but works in Expo Go.
-- **Trigger:** `react-native-svg` 15.12.1 is already listed in `package.json` (confirmed), so it is already installed. The native module is already linked. This pitfall is mostly pre-empted. However: if the project currently uses Expo Go for development and has never run `expo run:ios`, `react-native-svg` may not have been linked in a dev build. SVG components work in a development build (via `expo-dev-client`) but not in Expo Go in SDK 54 because `react-native-svg` requires native linking that Expo Go does not include by default.
-- **Prevention:** Ensure all development is done via `expo run:ios` (development build), not Expo Go. Since the project already has EAS configured (per PROJECT.md), this should already be the case. Double-check: if the team is using Expo Go for iteration, switch to `expo run:ios` before adding SVG tab bar icons.
-- **Phase at risk:** SVG tab bar icon phase, particularly if Expo Go is being used for development.
-
----
-
-## 9. Offline-first gap: Supabase user has no account, local AsyncStorage data cannot be migrated automatically
-
-- **Risk:** Existing TestFlight users completed onboarding and have months of biomarker history stored under `@vitalspan_*` AsyncStorage keys. When auth is added, those users sign up for a Supabase account — but there is no automatic link between their local data and their new Supabase `user_id`. Their history effectively disappears from any synced view.
-- **Trigger:** The app assumes Supabase `user_id` = data owner. But pre-auth data was stored with no user ID. On first sign-in, queries like `SELECT * FROM biomarker_history WHERE user_id = auth.uid()` return empty — because nothing was ever written with that UID.
-- **Prevention:**
-  1. On first successful Supabase sign-in, run a one-time migration: read all `@vitalspan_biomarkers` entries from AsyncStorage and `INSERT` them into `biomarker_history` with the new `auth.uid()`. Mark migration as complete with a flag: `@vitalspan_migrated_v2`.
-  2. Check for `@vitalspan_migrated_v2` at app launch. If absent and user is authenticated, trigger migration.
-  3. Keep AsyncStorage as the read/write source for offline mode. Supabase is additive sync, not replacement.
-  4. Migration must be idempotent — guard against running twice (deduplicate by timestamp or a stable hash).
-- **Phase at risk:** The phase that adds Supabase auth and the first user data sync.
-
----
-
-## 10. Offline state: network errors from Supabase crash screens that expect data
-
-- **Risk:** On airplane mode or poor connectivity, any screen that calls `supabase.from(...).select()` throws or returns an error. If the error is not handled, the screen renders blank or crashes.
-- **Trigger:** Async fetch in `useEffect` without a try/catch, or component that renders `data.map(...)` where `data` is `null` after a failed fetch.
-- **Prevention:**
-  - Always fall back to AsyncStorage when Supabase fetch fails:
-    ```typescript
-    try {
-      const { data, error } = await supabase.from('biomarker_history').select();
-      if (error) throw error;
-      setEntries(data);
-    } catch {
-      const local = await AsyncStorage.getItem('@vitalspan_biomarkers');
-      setEntries(local ? JSON.parse(local) : []);
-    }
-    ```
-  - This is consistent with the PROJECT.md architecture decision: "AsyncStorage keys preserved as fallback/offline layer."
-  - Null-guard all rendered arrays: `(entries ?? []).map(...)` — existing practice confirmed by prior phase fixes (see git history: `fix(03-WR-02): null-guard addedSupplements and medTimes`).
-- **Phase at risk:** All phases that add Supabase data-fetching hooks.
-
----
-
-## 11. Adding a new tab breaks existing navigation state on device upgrade
-
-- **Risk:** A user who had the previous version installed (4 tabs) upgrades to the new version (5 tabs). React Navigation's persisted navigation state (if `@react-navigation/native` persistence is enabled) references tab index positions. Adding a tab shifts indices. The app may open on the wrong tab or throw a navigation state hydration error.
-- **Trigger:** `@react-navigation/native` state persistence is opt-in via `initialState` prop. Vitalspan does not appear to use navigation state persistence (not visible in the codebase reading), but this should be confirmed. If persistence is NOT used (likely), this pitfall does not apply at runtime. However, adding a fifth tab still has a secondary risk: the `tabBarIcon` and `name` of the new tab must not conflict with any existing `name` prop used in `navigation.navigate('...')` calls throughout the codebase.
-- **Prevention:**
-  1. Confirm navigation persistence is not enabled (search for `initialState` or `linking` with `state` in `AppNavigator.tsx`).
-  2. When adding the Exercise tab, audit all `navigation.navigate()` calls to ensure no existing call accidentally navigates to the new tab's name.
-  3. Name the new tab consistently with the existing naming convention (check `AppNavigator.tsx` for current tab names before picking the new one).
-- **Phase at risk:** The exercise screen / new tab addition phase.
-
----
-
-## 12. Theme regression: adding new Colors keys or renaming existing ones breaks dark-mode screens
-
-- **Risk:** The `Colors` object in `src/theme/index.ts` has two tiers: light (`bg`, `bgCard`, etc.) and dark (`Colors.dark.*`). The dark screens (LongevityScore orbital, dashboard dark cards) reference `Colors.dark.bg`, `Colors.dark.bgCard`, etc. Any refactor that renames or restructures the `dark` sub-object silently produces `undefined` color values — elements render transparent or default to black, which is hard to notice on a dark background.
-- **Trigger:** Developer adds new keys to `Colors`, reorganizes the object for consistency with the new warm-beige scheme, or renames an existing key. TypeScript strict mode will catch direct property access on a renamed key — but only if the consuming code uses `Colors.dark.bgCard` (caught) vs. a spread or dynamic access (not caught).
-- **Prevention:**
-  1. Never remove or rename existing keys — only add new ones. The existing key names are effectively a public API for all existing screens.
-  2. Additive-only rule: new warm-beige tokens go under new names (`bgWarm`, `bgCream`, etc.), not replacing `bg` or `bgCard`.
-  3. After any theme change, run a TypeScript strict compile (`tsc --noEmit`) before committing. TypeScript will catch property access errors on renamed keys.
-  4. Visually verify the LongevityScore and Dashboard screens (dark surfaces) after every theme change — they are the highest-risk consumers of `Colors.dark.*` and `Gradients.*`.
-- **Phase at risk:** The UI/UX overhaul phase that introduces warm beige/cream colors.
-
----
-
-## 13. Hardcoded hex values introduced during UI overhaul escape the theme system
-
-- **Risk:** During rapid UI iteration, developers inline hex colors directly in StyleSheets (e.g., `backgroundColor: '#F5F0E8'`) rather than adding a token to `theme/index.ts`. The screen compiles and looks correct. Six weeks later, the token is needed in three other places — but the hardcoded value in the first screen is inconsistent with the token value that eventually gets added (even a 1-digit hex difference). Dark mode or brand color changes require hunting down all hardcoded values.
-- **Trigger:** Speed of iteration during the UI overhaul. CLAUDE.md explicitly prohibits this (`All colors from src/theme/index.ts — never hardcode hex values in screens`), but the temptation is highest during design exploration.
-- **Prevention:**
-  1. Add all new warm-beige tokens to `theme/index.ts` first, before touching any screen. Agree on the names (`Colors.bgWarm`, `Colors.bgCream`, `Colors.cardSurface`) before writing screen code.
-  2. Use the TypeScript compiler as a lint: every color should be `Colors.something`, never a string literal. A simple grep at PR review: `grep -r "'#" src/screens/ src/components/` catches violations.
-- **Phase at risk:** UI/UX overhaul phase.
-
----
-
-## 14. Supabase anon key in Expo Constants (extra field) vs. process.env — inconsistent access pattern
-
-- **Risk:** Developer uses `Constants.expoConfig.extra.supabaseUrl` (the `app.config.js` `extra` pattern) in one file and `process.env.EXPO_PUBLIC_SUPABASE_URL` in another. Both work, but they read from different sources. If the `.env` file is missing (e.g., on a new dev machine or in CI), the `process.env` path returns `undefined` while the `extra` path might still have a hardcoded fallback. The inconsistency means debugging a misconfigured environment is confusing.
-- **Trigger:** Two valid patterns exist and both look reasonable. Without a team convention, they get mixed.
-- **Prevention:** Pick one pattern and use it everywhere. For Expo SDK 54 with `@supabase/supabase-js`, prefer `process.env.EXPO_PUBLIC_*` directly — it is simpler, requires no `app.config.js` changes, and has first-class Metro support in SDK 49+. Document the choice in the Supabase client file with a comment. Throw an error at module initialization if the values are missing:
-  ```typescript
-  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Missing Supabase env vars — check .env file and restart Metro');
-  }
-  ```
-  This surfaces the misconfiguration immediately instead of after a confusing runtime failure.
-- **Phase at risk:** The env setup / Supabase client initialization phase.
-
----
-
-## 15. Exercise screen navigation: replacing vs. adding — deep link and back-stack confusion
-
-- **Risk:** If the existing workout/exercise tab is being replaced (not just redesigned), the old screen's name in `AppNavigator.tsx` may be referenced in other screens via `navigation.navigate('Exercise')` or similar. Renaming the screen breaks those calls silently (no TypeScript error unless typed navigation is used).
-- **Trigger:** The existing screen name is used as a string literal in multiple places. React Navigation does not provide compile-time checking of screen names unless the `RootStackParamList` (or `BottomTabParamList`) type is declared and used via typed navigation hooks.
-- **Prevention:**
-  1. Before renaming any screen, grep for its current name: `grep -r "navigate('Exercise" src/` (adjust for actual name).
-  2. Use typed navigation (`useNavigation<BottomTabNavigationProp<TabParamList>>()`) on new screens added in v2. Existing screens do not need to be migrated immediately, but new ones should use typed navigation from the start.
-  3. The `TabParamList` type should be the single source of truth for screen names.
-- **Phase at risk:** The exercise screen redesign / new exercise tab phase.
-
----
-
-## Phase Risk Summary
-
-| Phase Topic | Highest-Risk Pitfall | Mitigation Priority |
-|-------------|---------------------|---------------------|
-| Supabase client setup | AsyncStorage adapter missing (#1), URL polyfill missing (#4), env vars pattern (#14) | Must fix before any auth code |
-| Auth integration | JWT expiry without AppState (#2), RLS silent empty (#3), anonymous user migration (#9) | Address in auth phase spec |
-| .env / secrets | Anon key bundled — by design (#5), Metro stale env (#6) | Document in phase notes, not bugs |
-| SVG tab bar icons | viewBox / size not wired through (#7), Expo Go vs dev build (#8) | Verify dev build is in use first |
-| Offline data | Network error crashes (#10) | Null-guard + AsyncStorage fallback on every fetch |
-| Exercise screen | Navigation name conflicts (#15), new tab index (#11) | Grep before renaming |
-| Theme overhaul | Dark screen regression (#12), hardcoded hex escape (#13) | Add tokens first, screen code second |
-
----
-
-**Confidence notes:**
-- Pitfalls 1, 2, 5, 7, 12, 13 are HIGH confidence — well-established, documented patterns in the Supabase React Native guide and React Navigation docs, consistent with the codebase structure observed.
-- Pitfalls 3, 4, 9, 10, 14 are MEDIUM-HIGH confidence — consistent with common brownfield integration issues; specific Supabase SDK version behavior may vary.
-- Pitfall 11 is MEDIUM confidence — depends on whether navigation state persistence is used (not confirmed from codebase reading).
-- Pitfall 8 is MEDIUM confidence — `react-native-svg` is already in `package.json` (15.12.1), suggesting it may already be linked. The Expo Go vs dev build distinction is the real risk, not the install.
+- Adapty pitfalls: HIGH confidence — sourced directly from `react-native-adapty` Context7 docs (193 code snippets, source reputation High) and Adapty official docs (6235 snippets). The `activate()` async ordering, `identify()` post-auth pattern, `pending` purchase type, and free-trial eligibility check are all directly documented. The App Store rejection risk (hard paywall for health apps, missing restore button) is directly cited in Adapty's own "Prepare for Store Review" documentation.
+- Claude API pitfalls: HIGH confidence for the security architecture (API key exposure, `dangerouslyAllowBrowser` flag, proxy requirement) — this is directly documented behavior of the `@anthropic-ai/sdk`. Rate limiting and context overflow pitfalls are HIGH confidence based on the SDK's `Usage` interface and documented retry behavior. Streaming compatibility on Hermes is MEDIUM confidence — Hermes has improved `ReadableStream` support over time and the exact behavior in Expo SDK 54 / React Native 0.81.5 (this project's version) is not explicitly documented in the SDK.
+- Exercise photo pitfalls: HIGH confidence for the iOS `Image` component GIF limitation (long-documented RN behavior) and `expo-image` as the solution (documented in expo-image official docs, v56 docs confirm `autoplay` prop and SDWebImage backing). GitHub raw URL rate limiting is MEDIUM confidence — GitHub's published limit is for the REST API; raw content has less formally published limits but is widely reported to throttle in community discussions. The memory/FlatList concern is HIGH confidence — this is a well-established RN performance pattern.

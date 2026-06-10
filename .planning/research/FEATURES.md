@@ -1,653 +1,423 @@
-# Feature Research: Vitalspan v2
+# Features Research — Vitalspan v4.0
 
-**Domain:** Longevity tracking iOS app (React Native + Expo 54, Supabase, pharmacist-authored)
-**Researched:** 2026-05-30
-**Confidence note:** External web access was restricted during this research session. All findings are
-from training knowledge (cutoff Aug 2025) + direct codebase inspection. Confidence levels reflect
-source quality honestly.
+**Domain:** Longevity tracking iOS app — Monetization & Intelligence milestone
+**Researched:** 2026-06-10
+**Confidence note:** Web search API was unavailable during this session. Findings are from
+Context7 (Adapty React Native SDK docs — HIGH confidence), direct GitHub API inspection of
+free-exercise-db, codebase inspection, and training knowledge of iOS paywall and AI advisor
+patterns (MEDIUM confidence, cross-checked against Adapty official docs where accessible).
 
 ---
 
-## Supabase Auth & Sync
+## Paywall (Adapty)
 
 ### Table Stakes
 
-These behaviors are expected by any user who has used a modern mobile app with accounts. Missing
-any of these makes the auth feel broken.
+These are required by Apple App Store guidelines and expected by users of any subscription app.
+Missing any of these causes App Store rejection or immediate uninstall.
 
-| Behavior | Why Expected | Notes for Vitalspan |
+| Behavior | Why Required | Notes for Vitalspan |
 |---|---|---|
-| Email + password sign-up | Universal account baseline | Simplest flow, no OAuth dependency |
-| Email verification | Prevents junk accounts | Supabase sends by default; handle unverified state |
-| Persistent session across app restarts | Apps must not log users out on reopen | Requires AsyncStorage session adapter |
-| Sign-in with existing account | Obviously required | Same form, different action |
-| "Forgot password" email reset | Users forget passwords | Supabase magic link / reset flow |
-| Graceful first-launch (no account) | Most users on first open have no account | Must not crash or block; offer "Continue without account" |
-| Loading / auth-checking state | App needs to know auth state before routing | Short splash or skeleton while session loads |
-| Error messages in plain English | Auth errors are cryptic by default | Map Supabase error codes to user-facing strings |
+| Price clearly visible before tap | Apple guideline — price must be shown on paywall | Show monthly + annual with savings badge |
+| Billing period stated explicitly | Apple guideline — must state "billed monthly/annually" | Cannot rely on users reading fine print |
+| Free trial terms on screen | Apple guideline — when/how much they'll be charged | "Try free for 7 days, then $X/month" |
+| Trial timeline visual | Apple-endorsed pattern post-2024 toggle ban | Day 1–7: Free. Day 8: $X billed. Shows cancel window |
+| Restore Purchases button | Required by Apple — top rejection reason if missing | Small but present; bottom of screen is fine |
+| Privacy Policy + Terms links | Required by Apple | Footer links; Supabase-hosted or inline modal |
+| Close / skip button | Soft gate: user can dismiss and use free tier | Hard gate (no skip) is a design decision — see below |
+| Single clear CTA | Users don't read; one action reduces friction | "Start Free Trial" as primary |
+
+**Hard gate vs soft gate decision for Vitalspan:**
+Use a soft gate. The AI Advisor is the primary premium feature. Gate it with an in-context
+trigger ("This is a Premium feature — unlock with Vitalspan Pro") rather than forcing a paywall
+on first launch. Hard gates (no skip) are only appropriate for apps where the entire value
+proposition is premium-only. Vitalspan has a complete free tier.
+
+**Adapty access level pattern (from SDK docs, HIGH confidence):**
+
+```typescript
+const profile = await adapty.getProfile();
+const isPremium = profile.accessLevels['premium']?.isActive === true;
+if (!isPremium) {
+  // present paywall via createPaywallView or AdaptyPaywallView
+}
+```
+
+Use `'premium'` as the access level ID in Adapty dashboard. One access level controls all
+gated features. Do not create separate access levels per feature — that creates combinatorial
+complexity.
+
+**Placement IDs to configure in Adapty dashboard:**
+- `'main_paywall'` — triggered from AI Advisor entry point, from Settings → Subscription
+- `'onboarding_upsell'` — shown after onboarding completes (optional, A/B testable via Adapty)
+
+**logShowPaywall is mandatory for analytics accuracy:**
+
+```typescript
+await adapty.logShowPaywall(paywall); // call every time paywall is shown
+```
+
+### What to Gate (Free vs Premium)
+
+**Free tier — must feel complete enough to retain users:**
+- All biomarker tracking (unlimited entries)
+- PhenoAge score and biological age calculation
+- Supplement/medication protocol + interaction checker
+- Exercise library (browse + log)
+- Apple HealthKit sync
+- PubMed article feed
+
+**Premium tier — AI Advisor is the anchor; everything else is additive:**
+- AI Longevity Advisor: generated health report (the flagship premium feature)
+- AI follow-up chat: ask follow-up questions about your report
+- Unlimited historical AI reports (e.g. one report per month retained vs last-report-only for free)
+- Priority report generation (queue management if you ever add server-side queueing)
+
+**Do not gate:** Core biomarker tracking, PhenoAge, protocol, exercise log. These are
+data-entry features — gating them punishes users for engaging with the app and produces
+nothing worth subscribing for. The AI Advisor is the correct gate because it delivers value
+only a paying user would seek out repeatedly.
+
+**Complexity estimate:** LOW. Adapty access level check is one async call. The gate is a
+conditional render around the AI Advisor entry point, not a complex feature-flag system.
 
 ### Differentiators
 
-| Behavior | Value | Notes for Vitalspan |
+| Pattern | Value | Notes |
 |---|---|---|
-| "Continue without account" (guest mode) | Removes sign-up friction for curious users | Vitalspan v1 is AsyncStorage-only; guest mode IS the current behavior |
-| Deferred sign-up prompt | Let user see value first, prompt later | Show auth prompt after first biomarker entry or protocol interaction |
-| Auto-merge local data on sign-up | User filled onboarding, then made account | After sign-up, upload local AsyncStorage data to Supabase immediately |
-| Biometric auth for re-entry | FaceID to unlock instead of password | expo-local-authentication; add post-v2 |
-| "Your data is yours" messaging | Trust signal for health data | Small copy tweak, high trust impact for medical app |
+| Annual plan with visible savings | Most health apps convert better on annual | Show "Save 40%" badge next to annual; highlight it as recommended |
+| 7-day free trial | Standard in health/fitness; users expect it | 38% of trial starters convert to paid; longer trials convert better |
+| Paywall triggered by natural desire, not forced | "You tried to access AI Advisor" is high-intent | This user wants it — conversion rate here is higher than cold upsell |
+| Personalized paywall copy | Name or goal mentioned in paywall copy | "Bekir, your biological age report is ready" — Adapty supports `customTags` for this |
+| Annual plan pre-selected | Anchors user on higher LTV option | Pre-select annual, offer monthly as secondary |
+| Social proof or authority copy | "Built by a licensed pharmacist" is differentiating | Add credential line in paywall benefits section |
 
-### UX Patterns — Auth Flow
+**Adapty customTags for personalization (HIGH confidence from SDK docs):**
 
-**Confidence: HIGH** — these patterns are stable Supabase JS v2 + Expo conventions.
-
-**Session persistence in Expo requires a custom storage adapter.** Supabase JS v2's `createClient`
-accepts a `storage` option. Pass `AsyncStorage` from `@react-native-async-storage/async-storage`
-directly. Without this, sessions live only in memory and are lost on app restart.
-
-```
-createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    storage: AsyncStorage,           // persists session token
-    autoRefreshToken: true,          // refreshes before expiry
-    persistSession: true,
-    detectSessionInUrl: false,       // must be false for RN (no URL bar)
-  },
-})
+```typescript
+const view = await createPaywallView(paywall, {
+  customTags: { username: userName, goal: userGoal },
+});
 ```
 
-**First-launch routing (no account) — recommended pattern:**
+Configure paywall template in Adapty dashboard to reference `{username}` — renders as
+"Bekir's longevity report" on the paywall.
 
-```
-App starts
-  → supabase.auth.getSession()
-      └─ session exists → route to Main (restore user)
-      └─ no session → route to Landing (sign in / sign up / continue as guest)
-```
+**A/B testing via Adapty placements:** Adapty handles audience segmentation and variant
+assignment server-side. The app hardcodes placement IDs only. To A/B test annual-vs-monthly
+prominence, create two paywall variants in the dashboard and assign to the same placement.
+No app release needed.
 
-The existing `initialRoute: 'Landing' | 'Main'` prop on `AppNavigator` maps exactly to this
-pattern. The check should happen in `App.tsx` (or wherever `AppNavigator` is mounted), resolving
-before the navigator renders to avoid a flash.
+### Anti-patterns / Avoid
 
-**Handling email verification:**
-- Supabase sends a confirmation email by default.
-- Until confirmed, `session.user.email_confirmed_at` is null.
-- For Vitalspan's scope, the simplest approach is to skip enforcement — unverified users can still
-  use the app. Enforce verification only if paywall or data sharing features are added post-v2.
+| Anti-pattern | Why It Hurts | What to Do Instead |
+|---|---|---|
+| Toggle paywall (free trial on/off toggle) | Apple bans it as of 2024; App Store rejection | Use visual timeline showing trial → charge date |
+| Hard gate at onboarding | 60–80% of new users abandon before seeing value | Soft gate: let users reach the AI Advisor naturally |
+| Immediate paywall on first launch | Creates "this is a paid app" perception before value delivered | Trigger paywall only when user taps AI Advisor first time |
+| Hiding price behind "see plans" | Apple violation; also destroys trust | Price visible on first paywall screen, no extra tap |
+| Dark pattern CTA text | Apple rejects "Get Premium Access" when user thinks it's free | CTA must match action: "Start 7-Day Free Trial" or "Subscribe for $X/mo" |
+| Vague feature list | "Unlock premium features" converts poorly | Name the features: "AI Health Reports", "Expert Chat", "Monthly Analysis" |
+| Missing Restore Purchases | Top App Store rejection reason | Always present; bottom of paywall screen |
+| Annual price shown per-year only | Users anchored on large number | Show per-month equivalent: "$49.99/yr = $4.17/mo" |
+| Paywall with no close button (hard gate) on a free-tier app | Punishes free users who don't want to subscribe | Always show close/skip on soft-gate paywall |
+| Paywall animation that covers CTA on small screens | Conversion killer | Test on iPhone SE (375pt wide) — smallest supported iOS viewport |
 
-**onAuthStateChange listener:**
-
-```
-supabase.auth.onAuthStateChange((event, session) => {
-  // events: SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, PASSWORD_RECOVERY
-  // Keep a global auth context so any screen can react
-})
-```
-
-Mount this listener once at the root level (App.tsx), store session in a React context or Zustand
-atom, and derive routing from it. Do not put auth logic inside individual screens.
-
-**Error code mapping (Supabase → human-readable):**
-
-| Supabase error | User-facing string |
-|---|---|
-| `invalid_credentials` | "Email or password is incorrect" |
-| `email_not_confirmed` | "Please check your email to verify your account" |
-| `user_already_exists` | "An account with this email already exists" |
-| `weak_password` | "Password must be at least 8 characters" |
-| Network error | "No internet connection. Your data is saved locally." |
-
-**Guest mode (no account) — critical for Vitalspan:**
-Because v1 is entirely AsyncStorage-based, existing users have data on-device with no account.
-The auth layer must not break them. Recommended: when `initialRoute` resolves to Landing, show
-three options: "Sign In", "Create Account", and "Continue without account (data stays on device)".
-The third option routes directly to Main. AsyncStorage keys continue working identically.
-
-**Data migration on sign-up:**
-When a guest creates an account, trigger a one-time upload: read all `@vitalspan_*` keys, write
-them to Supabase as the initial dataset for that user. This is the moment local-first becomes
-cloud-backed. After success, mark `@vitalspan_auth_migrated: 'true'` so it only runs once.
-
-**Dependencies on existing Vitalspan features:**
-- The existing `initialRoute` prop in AppNavigator is the right hook — expand the logic that
-  sets this prop to also check `supabase.auth.getSession()`.
-- All existing AsyncStorage keys (`@vitalspan_*`) must remain as-is — they are the offline
-  fallback layer.
-- The existing onboarding profile (`@vitalspan_user_profile`) should be upserted to Supabase
-  `user_profiles` table on first sign-in.
+**Dependencies on existing architecture:**
+- Requires `react-native-adapty` package (install and configure with App Store shared secret)
+- Adapty SDK must be initialized before `adapty.getProfile()` calls — initialize in App.tsx
+  alongside Supabase client initialization
+- The AI Advisor screen is the primary gate; add `isPremium` check at that screen's mount
+- Store `isPremium` in a React context so all screens can gate UI without repeated async calls
 
 ---
 
-## Reference Data (Supabase Tables)
+## AI Longevity Advisor
 
-### Biomarker Ranges Table Design
+### Table Stakes
 
-**Confidence: HIGH** — Supabase PostgREST + RLS patterns are stable.
+These are expected by any user who pays for an "AI advisor" in a health app. Missing any of
+these makes the feature feel like a toy or a liability.
 
-**Purpose:** Replace hardcoded ranges in `src/data/biomarkers.ts` with DB-served values.
-This lets the pharmacist update longevity ranges without an app release.
+| Behavior | Why Expected | Notes for Vitalspan |
+|---|---|---|
+| Personalized to the user's actual data | Generic health advice = zero value over Google | Include biomarker values, trend direction, supplement stack, medications |
+| Clear structure — not a wall of text | Mobile users cannot read 1000-word essays | Section headers: Score, Findings, Recommendations, Risks |
+| Actionable output | "Your ApoB is elevated" is useless alone | "Consider: reduce saturated fat + retest in 90 days" |
+| Evidence-based language | Pharmacist brand requires clinical credibility | Grade recommendations (A/B/C evidence), cite mechanisms |
+| Appropriate medical disclaimer | Legal protection + user trust | Inline in report: "This is not medical advice. Consult your physician." |
+| Loading state with context | AI calls take 3–10 seconds | Show "Analyzing your data…" with progress indication, not a spinner |
+| Error handling | API failures will happen | Graceful: "Report unavailable right now — your data is saved" |
+| Report persistence | User pays for report; it must not disappear | Store in AsyncStorage (and optionally Supabase) after generation |
 
-**Recommended schema:**
+**What "personalized" means technically for Vitalspan:**
+The system prompt must include:
+- User's age, sex, goal from `@vitalspan_user_profile`
+- Latest value per biomarker from `@vitalspan_biomarkers` (not the full history — latest per ID)
+- Supplement + medication names from `@vitalspan_protocol` (names only, not times/doses)
+- Computed PhenoAge result (biological age vs chronological age delta)
+- HealthKit summary (HRV, sleep score, weekly activity) from `@vitalspan_health_data`
 
-```sql
-CREATE TABLE biomarker_definitions (
-  id              TEXT PRIMARY KEY,          -- matches existing Biomarker.id ('apob', 'hscrp', etc.)
-  name            TEXT NOT NULL,
-  category        TEXT NOT NULL,
-  category_label  TEXT NOT NULL,
-  unit            TEXT NOT NULL,
-  opt_min         FLOAT NOT NULL,
-  opt_max         FLOAT NOT NULL,
-  target_label    TEXT NOT NULL,
-  description     TEXT NOT NULL,
-  how_to_improve  TEXT NOT NULL,
-  default_val     FLOAT,
-  evidence_grade  TEXT CHECK (evidence_grade IN ('A','B','C')),
-  updated_at      TIMESTAMPTZ DEFAULT now()
-);
+**Privacy-preserving anonymization (per PROJECT.md):**
+Do NOT send raw values directly labeled with user PII. The prompt should read:
+"User profile: 45-year-old male, goal: longevity. Biomarkers: ApoB 85 mg/dL (above longevity
+target of 70), HbA1c 5.4% (optimal)..." — no name, no email, no Supabase user ID.
 
--- Row-level security: anyone can read, only service role can write
-ALTER TABLE biomarker_definitions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read" ON biomarker_definitions FOR SELECT USING (true);
+### Differentiators
+
+| Feature | Value | Complexity |
+|---|---|---|
+| Priority findings card | Most urgent issue surfaced first, not buried | LOW — prompt engineering only |
+| Trend direction per biomarker | "ApoB improved 12% since last reading" | LOW — compare latest vs previous entry in stored history |
+| Supplement-medication interaction flag | "Berberine + Metformin: monitor blood glucose" | LOW — cross-reference existing INTERACTIONS data in prompt context |
+| Follow-up chat | Ask specific questions about the report | MEDIUM — maintains conversation history in component state |
+| Pharmacist voice | Recommendations in clinical register, not wellness-speak | LOW — system prompt instructs tone and vocabulary |
+| Evidence grade per recommendation | "Grade A: Zone 2 cardio for longevity (strong RCT evidence)" | LOW — prompt instructs Claude to grade its own output |
+| Printable / shareable summary | User can share with their doctor | MEDIUM — generate plain text summary; `Share` API |
+
+### UX Patterns
+
+**Report structure recommendation (mobile-first reading pattern):**
+
+```
+[Screen: AI Longevity Advisor]
+
+HEADER: "Your Longevity Report" — generated date
+
+CARD 1 — SCORE SUMMARY (always first, high visual weight)
+  Biological age vs chronological age delta
+  PhenoAge trend arrow (↑ aging faster / ↓ aging slower / → stable)
+  1-sentence overall assessment
+
+CARD 2 — PRIORITY FINDINGS (what needs attention most)
+  2–4 bullet points, ranked by urgency
+  Each: [Biomarker/metric] → [Status] → [One-line action]
+  Color-coded: red = critical, amber = borderline, green = optimal
+
+CARD 3 — BIOMARKER ANALYSIS
+  Section per biomarker category (Metabolic, Inflammation, Cardiovascular, etc.)
+  Each biomarker: current value, longevity target, gap, trend
+  2–3 sentence interpretation per section
+
+CARD 4 — SUPPLEMENT & MEDICATION REVIEW
+  Current protocol evaluated against biomarker findings
+  Interaction warnings flagged
+  Gaps: "Given your ApoB, consider CoQ10"
+
+CARD 5 — RECOMMENDATIONS (actionable, prioritized)
+  Top 3–5 actions, each with evidence grade
+  Timeframe: "90-day priority" vs "ongoing"
+
+CARD 6 — FOLLOW-UP CHAT ENTRY POINT
+  "Ask me about your report" text input
+  Maintains context of the just-generated report
 ```
 
-**Seeding strategy:**
-- Convert `src/data/biomarkers.ts` `BIOMARKERS` array directly into INSERT statements.
-- Use a seed SQL file (`supabase/seed.sql`) committed to the repo — Supabase CLI runs it on
-  `supabase db reset`.
-- The pharmacist edits ranges in the Supabase dashboard; the app fetches on launch.
+**Chat interface after report (follow-up):**
+The chat is NOT a standalone health chatbot — it is scoped to the generated report.
+- System prompt includes the full generated report as context
+- User questions: "Why is my ApoB a concern?", "Which supplement helps most with this?"
+- Keep conversation in component state (not persisted by default — report is persisted)
+- Limit to one active conversation per report (not a general-purpose chat log)
 
-**Querying from app:**
-- Fetch once on app init, store in React context (not AsyncStorage — this is read-only reference).
-- Fall back to the static `BIOMARKERS` array from `biomarkers.ts` if the fetch fails.
-- Do not add offline caching of reference data in v2 — the static fallback IS the cache.
+**Loading state pattern for 3–10 second generation:**
+Show a step-progress animation:
+1. "Reading your biomarkers..." (0.5s)
+2. "Analyzing your protocol..." (0.5s)
+3. "Generating recommendations..." (ongoing until stream starts)
 
-**User biomarker history table:**
+Use streaming (`anthropic.messages.stream`) to start rendering the report before it completes.
+Stream into the first visible section (Score Summary) so users see content within ~1 second.
 
-```sql
-CREATE TABLE biomarker_entries (
-  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  biomarker_id TEXT NOT NULL,
-  value        FLOAT NOT NULL,
-  recorded_at  TIMESTAMPTZ NOT NULL,
-  synced_at    TIMESTAMPTZ DEFAULT now()
-);
+**Claude API integration (HIGH confidence — verified via Context7):**
 
-ALTER TABLE biomarker_entries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "user owns entries"
-  ON biomarker_entries FOR ALL
-  USING (auth.uid() = user_id);
-```
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic({ apiKey: process.env.EXPO_PUBLIC_CLAUDE_API_KEY });
 
-**Sync strategy (AsyncStorage-first, Supabase as secondary):**
-- Write to AsyncStorage first (existing behavior preserved).
-- Then async-upsert to Supabase if session exists.
-- On app open with session, compare local `@vitalspan_biomarkers` with Supabase entries by
-  `recorded_at` — take whichever has more recent data. No merge conflict needed in v2 (single
-  device).
+const stream = client.messages.stream({
+  model: 'claude-opus-4-6', // or claude-sonnet-4-6 for speed/cost tradeoff
+  max_tokens: 2000,
+  system: systemPromptWithAnonymizedData,
+  messages: [{ role: 'user', content: 'Generate my longevity report.' }],
+});
 
-### Exercise Library Table Design
-
-**Confidence: HIGH** — straightforward read-only reference table.
-
-**Purpose:** Serve the exercise database from Supabase so exercises can be added/updated
-without an app release.
-
-**Recommended schema:**
-
-```sql
-CREATE TABLE exercises (
-  id                TEXT PRIMARY KEY,    -- matches existing Exercise.id ('0720', '0095', etc.)
-  name              TEXT NOT NULL,
-  category          TEXT NOT NULL,
-  body_part         TEXT NOT NULL,
-  equipment         TEXT NOT NULL,
-  muscle_group      TEXT NOT NULL,
-  secondary_muscles TEXT[] NOT NULL DEFAULT '{}',
-  target            TEXT NOT NULL,
-  instructions      TEXT NOT NULL,
-  -- longevity metadata (pharmacist-curated additions)
-  longevity_benefit TEXT,               -- e.g. "Zone 2 cardio — VO2max"
-  evidence_grade    TEXT CHECK (evidence_grade IN ('A','B','C')),
-  is_featured       BOOLEAN DEFAULT false,
-  updated_at        TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read" ON exercises FOR SELECT USING (true);
-```
-
-**Seeding strategy:**
-- Convert `EXERCISES` array in `src/data/exercises.ts` directly into INSERT statements.
-- 59 exercises currently in the array — straightforward one-time migration.
-- The static array in `exercises.ts` becomes the fallback. In v2, do not delete it.
-
-**Querying from app:**
-- Fetch all exercises on ExerciseScreen mount (59 rows is trivial payload).
-- Fall back to static `EXERCISES` array if fetch fails.
-- Filter/search client-side (59 items, no need for server-side search).
-- Future: if exercise library grows to 500+, add `ilike` server-side filter.
-
-**Exercise log table (user data):**
-
-```sql
-CREATE TABLE exercise_logs (
-  id                  UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id             UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  exercise_id         TEXT NOT NULL,
-  exercise_name       TEXT NOT NULL,
-  category            TEXT NOT NULL,
-  logged_date         DATE NOT NULL,
-  sets                INT,
-  reps                INT,
-  duration_min        FLOAT,
-  intensity           TEXT CHECK (intensity IN ('easy','moderate','hard')),
-  calories_estimated  FLOAT,
-  notes               TEXT,
-  logged_at           TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE exercise_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "user owns logs"
-  ON exercise_logs FOR ALL
-  USING (auth.uid() = user_id);
-```
-
-**Existing `ExerciseLogEntry` type maps directly to this schema.** The `id` field is a
-`string` (timestamp-based) in the current code — convert to UUID on insertion.
-
-**Environment variable pattern:**
-Per the PROJECT.md security constraint, never hardcode Supabase credentials:
-
-```ts
-// src/lib/supabase.ts
-import Constants from 'expo-constants';
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-```
-
-Use `EXPO_PUBLIC_` prefix so Expo's build system injects them into the bundle. Store in `.env`
-at project root (already gitignored by Expo's default `.gitignore`).
-
----
-
-## SVG Icon System
-
-### Tab Bar Icon Patterns
-
-**Confidence: HIGH** — `react-native-svg` v15.12.1 is already installed in the project.
-
-**Current state:** The tab bar uses emoji via the `TabIcon` component in `AppNavigator.tsx`.
-Five tabs: Home (🏠), Biomarkers (📊), Protocol (💊), Exercise (🏃), Profile (👤).
-
-**The standard React Navigation pattern for SVG tab icons:**
-
-```tsx
-// src/components/icons/TabIcons.tsx
-import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
-
-interface IconProps {
-  color: string;
-  size?: number;
-}
-
-export function HomeIcon({ color, size = 24 }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-        stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M9 22V12h6v10"
-        stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+for await (const event of stream) {
+  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+    appendToReport(event.delta.text);
+  }
 }
 ```
 
-**Tab bar integration:**
+**Model selection tradeoff:**
+- `claude-sonnet-4-6` (or equivalent current Sonnet): ~2–4 seconds, lower cost, good quality
+- `claude-opus-4-6` (or equivalent Opus): ~6–12 seconds, higher cost, higher quality nuance
+- For v4.0, use Sonnet. The quality difference for structured health summaries is marginal.
+  Opus is harder to justify on a $5–10/mo subscription. Can A/B test later.
 
-```tsx
-// In AppNavigator.tsx, replace TabIcon
-<Tab.Screen
-  name="Home"
-  component={DashboardScreen}
-  options={{
-    tabBarLabel: 'Home',
-    tabBarIcon: ({ color, size }) => <HomeIcon color={color} size={size} />,
-  }}
-/>
-```
+**API key security:**
+Never embed the Claude API key in the client. The `EXPO_PUBLIC_` prefix makes env vars visible
+in the compiled bundle. Use a server-side proxy or Supabase Edge Function to call the Claude
+API — the edge function receives the anonymized context, calls Anthropic, returns the response.
+This is a security requirement, not a suggestion.
 
-React Navigation passes `color` (active/inactive tint from `tabBarActiveTintColor` /
-`tabBarInactiveTintColor`) and `size` automatically. The SVG component just receives and uses
-these props — no custom focused state needed.
-
-**Table stakes for tab icons:**
-- Stroke-based (not filled) icons at 24px look more refined on iOS at all display densities.
-- Active state = primary color (`Colors.primary = '#2D6A4F'`), inactive = muted.
-- Consistent stroke width across all icons (1.5px or 1.75px, pick one and hold it).
-- All icons same visual weight — a bold "Protocol" icon next to a thin "Home" icon looks broken.
-- Size consistency: viewBox="0 0 24 24" for all, actual render size controlled by React Navigation.
-
-**Differentiator: subtle active fill for longevity theme:**
-Instead of only changing stroke color on active, add a very faint fill (`opacity: 0.12`) of the
-primary color in the active state. This reads as premium without being flashy.
-
-### Custom Icon Component Patterns
-
-**Confidence: HIGH** — standard React Native SVG patterns.
-
-**Recommended folder structure:**
+**Recommended architecture: Supabase Edge Function as proxy**
 
 ```
-src/
-  components/
-    icons/
-      index.ts           ← exports all icon components
-      TabIcons.tsx        ← HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon
-      UIIcons.tsx         ← ChevronRight, Plus, Check, Warning, Trending, etc.
-      BiomarkerIcons.tsx  ← category-specific icons (heart, flask, etc.)
+[iOS App] → [Supabase Edge Function: /ai-report] → [Anthropic API]
+                                                  ↖ adds API key server-side
 ```
 
-**Icon naming convention:**
-- All named `[Name]Icon` — e.g. `ChevronRightIcon`, `PlusIcon`, `HeartIcon`.
-- One file per icon family, not one file per icon.
-- Export from `index.ts` so imports are `import { HomeIcon, PlusIcon } from '../components/icons'`.
+The edge function:
+1. Validates the caller has an active Adapty premium subscription (or trusts the app's JWT)
+2. Receives anonymized health context as JSON body
+3. Constructs system prompt server-side
+4. Calls Anthropic streaming API
+5. Streams response back to the iOS app
 
-**Anti-patterns to avoid:**
-- One giant `icons.tsx` file with 40+ icons — becomes unmaintainable.
-- Inline SVG paths in screen files — impossible to maintain and update.
-- Using `@expo/vector-icons` for custom icons — it ships with icon fonts (Ionicons, Feather, etc.)
-  which are fine for generic icons but can't express the custom longevity-aesthetic icons Vitalspan
-  needs. For tab bar replacements, purpose-built SVG is the right call.
+This keeps the Anthropic API key out of the app bundle entirely.
 
-**When to use `@expo/vector-icons` vs custom SVG:**
-- Generic utility icons (back arrow, settings gear, share) → `@expo/vector-icons` Ionicons is fine.
-- App-specific brand icons (the tab bar set, biomarker category icons) → custom SVG.
+**Complexity estimate:** MEDIUM-HIGH. The individual pieces (Anthropic SDK, streaming, report
+UI) are each Medium complexity. The Supabase Edge Function proxy adds an integration touchpoint.
+Report persistence (AsyncStorage + optional Supabase) adds state management. Allow 3–4 phase
+steps total for AI Advisor end to end.
+
+**Dependencies on existing architecture:**
+- Requires Supabase session (to authenticate edge function calls) — auth must be complete
+- Reads `@vitalspan_user_profile`, `@vitalspan_biomarkers`, `@vitalspan_protocol`,
+  `@vitalspan_health_data` — all existing AsyncStorage keys, no schema changes
+- Uses existing `computePhenoAge()` from `src/lib/phenoAge.ts` to include biological age delta
+- Uses existing `INTERACTIONS` data from `src/data/biomarkers.ts` for interaction warnings
+- Requires Adapty premium gate before screen is accessible
 
 ---
 
-## Exercise Screen UX
+## Exercise Photos
 
-### Daily Log Patterns
+### Table Stakes
 
-**Confidence: HIGH** — synthesized from iOS fitness app conventions (Apple Fitness, Strong,
-Hevy, Whoop, MyFitnessPal workout logging) which are well-documented patterns.
-
-**Table stakes behaviors:**
-
-| Pattern | Why Expected | Notes |
+| Behavior | Why Required | Notes for Vitalspan |
 |---|---|---|
-| Today's workouts displayed first, prominently | The most important thing is "what did I do today" | Show date, exercise name, sets/reps/duration, intensity chip |
-| Inline swipe-to-delete on log entries | Universal iOS list pattern | `react-native-gesture-handler` Swipeable — already installed |
-| Real-time calorie total for the day | Instant feedback, motivating | Sum `caloriesEstimated` for today's logs |
-| Workout count this week | 7-day streak gives context | Simple filter on `date` within last 7 days |
-| "Log a workout" CTA when empty | Log is empty on first use | Empty state CTA, not just blank space |
-| Confirmation haptic on save | Physical feedback that it worked | Already used in existing ExerciseScreen via expo-haptics |
+| Photos load on ExerciseDetailScreen | Users expect visual reference for unfamiliar exercises | Free-exercise-db provides 0.jpg and 1.jpg per exercise |
+| SVG illustration fallback when photo unavailable | Not all exercises have photos in the dataset | Keep Phase 12 SVG illustrations; show photo only when available |
+| Photo shows starting position + end position | Two-image format is standard in exercise apps | free-exercise-db provides exactly two images per exercise (0.jpg, 1.jpg) |
+| Images cached after first load | Network-dependent images must not reload every scroll | Use `expo-image` or `Image` with cache headers; photos are static |
+| Images do not block exercise data rendering | Photo is supplemental, not primary | Render exercise name/instructions immediately; photo loads async |
 
-**Differentiators for Vitalspan specifically:**
-- Show a "longevity note" per session: "3 sessions this week — meeting the 150 min/week target."
-  This connects exercise logging to the PhenoAge/longevity mission, which competitors don't do.
-- Weekly adherence ring or bar (SVG, matches dark aesthetic on dashboard) — not just a number.
-- Color-code log entries by intensity: Easy = `Colors.status.optimal` green, Moderate = amber,
-  Hard = coral/red. Gives the log a quick visual scan quality.
+**free-exercise-db asset delivery (HIGH confidence — verified via GitHub API):**
 
-**Layout recommendation:**
-
-```
-[Section: Today — Tuesday, May 30]
-  [Log entry card × N]            ← date, exercise name, intensity chip, kcal, swipe-delete
-  [+ Log Exercise]                ← sticky FAB or inline CTA if no entries today
-
-[Section: This Week]
-  [Log entry cards × N]           ← same card, grouped by date header
-  [Weekly summary: 3 sessions, ~850 kcal]
-
-[Section: History]
-  [Load more / see all link]      ← truncate to last 14 days, paginate
+The dataset has 800+ exercises, each stored as a JSON file with an `images` array:
+```json
+{ "images": ["3_4_Sit-Up/0.jpg", "3_4_Sit-Up/1.jpg"] }
 ```
 
-**Not recommended:** A flat undifferentiated list of all entries. Grouping by day is table stakes
-for fitness apps. Users scan by "did I work out yesterday?" not "what is entry #14?".
-
-### Exercise Library Browser Patterns
-
-**Confidence: HIGH** — standard fitness app library UX.
-
-**Table stakes:**
-
-| Pattern | Why Expected | Notes |
-|---|---|---|
-| Category filter chips | Primary navigation mechanism | Already exists in ExerciseScreen (`EXERCISE_CATEGORIES`) |
-| Search bar | "I know what I want" user path | TextInput filter on exercise name, client-side |
-| Equipment badge on each row | Gym vs home distinction | Already in ExerciseScreen (`equipShort()`) |
-| Expand to see instructions | Progressive disclosure | Already in ExerciseScreen (`expandedId`) |
-| "Log this exercise" action inline | One tap from browse to log | Already wired via `logModal` |
-
-**What the current ExerciseScreen already does well:**
-The existing screen covers category filtering, expand-for-instructions, and the QuickLogModal.
-The v2 rebuild should preserve this logic but improve the visual treatment:
-
-- Replace category emoji chips with labeled pill chips that use `Colors.primary` active state.
-- The expand/collapse of instructions should animate (height animation via Reanimated, already
-  installed at ~4.1.1).
-- Replace flat list with section headers per category when "All" is selected.
-
-**Differentiator — longevity tagging:**
-The exercise library should surface longevity context that generic fitness apps don't have:
-- Tag exercises with longevity benefits: "Zone 2 cardio", "Muscle hypertrophy", "Mobility",
-  "VO2max". These come from the Supabase `longevity_benefit` column.
-- Show evidence grade (A/B/C) for exercise categories — e.g. Zone 2 cardio for longevity = Grade A.
-
-**What to defer:**
-- Exercise demonstration GIFs/videos — high complexity, not in scope for v2.
-- Custom exercise creation — the existing `CustomSupplement`-style pattern could be adapted,
-  but defer to v3. The 59-exercise library is sufficient for v2.
-
-### Intensity Visual Patterns
-
-**Confidence: HIGH** — synthesized from Whoop, Apple Fitness, Oura conventions.
-
-**Current state:** Three chips (Easy / Moderate / Hard) with a color toggle. Functional but flat.
-
-**Table stakes:** The intensity selector must be tactile — users are logging mid-workout or
-immediately after; they don't read labels carefully. Color + size + haptic = correct.
-
-**Recommended visual:**
-
+Images are served from GitHub raw content at:
 ```
-Three pills side by side:
-  Easy     → filled with Colors.status.optimal (green), light weight text
-  Moderate → filled with Colors.warning (amber), medium weight text
-  Hard     → filled with Colors.status.critical (coral/red), bold text
+https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{exercise_id}/{n}.jpg
 ```
 
-Active state: filled pill with white text. Inactive: outline pill with muted text.
-Selection: `Haptics.selectionAsync()` — already used in existing screen.
+Example: `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Air_Bike/0.jpg`
+returns HTTP 200 — confirmed live.
 
-**Differentiator — strain score:**
-After selecting intensity + duration, show a "strain contribution" number (1–21 scale, similar
-to Whoop's concept) rather than just calories. Frame it as "this session added 8 recovery units
-to today's load." This is a pure UX/copy change — compute from MET × duration × intensity
-multiplier, scale to 1–21. High differentiation, zero implementation complexity.
+License is "The Unlicense" (public domain) — no attribution required, commercial use permitted.
 
-**What not to build:**
-- A real-time heart rate zone display — HealthKit not in scope for v2.
-- RPE (Rate of Perceived Exertion) slider — adds friction; the Easy/Moderate/Hard picker is
-  already the right cognitive level for this user.
+**ID mapping challenge:** Vitalspan's exercise IDs (e.g. `'0720'`) do not match free-exercise-db
+IDs (e.g. `'3_4_Sit-Up'`). A mapping table or fuzzy name match is required. This is the primary
+implementation complexity. Options:
+1. Manual mapping table: `{ '0720': 'Barbell_Squat', ... }` — exact and fast; one-time work
+2. Name-based match at build time: normalize both names, generate mapping JSON asset
+3. Supabase `exercises` table: add `free_exercise_db_id` column, populate during seed
+
+Option 3 (Supabase column) is recommended — it makes the mapping remotelyupdatable without
+an app release, and the `exercises` Supabase table already exists from v3.
+
+**Photo display pattern:**
+
+```typescript
+const photoUrl = exercise.freeExerciseDbId
+  ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${exercise.freeExerciseDbId}/0.jpg`
+  : null;
+
+// In ExerciseDetailScreen:
+{photoUrl ? (
+  <Image source={{ uri: photoUrl }} style={s.exercisePhoto} />
+) : (
+  <ExerciseSvgIllustration exerciseId={exercise.id} />
+)}
+```
+
+### Notes
+
+**Coverage estimate:** free-exercise-db has 800+ exercises; Vitalspan has ~60. A substantial
+fraction of Vitalspan's exercises will match by name (Barbell Squat, Deadlift, Push-Up, etc.).
+Estimate 70–80% photo coverage for standard compound lifts. Rare or specialty exercises in
+Vitalspan's curated set may not match.
+
+**Photo quality:** The free-exercise-db images are sourced from Bodybuilding.com's exercise
+database (public domain release). Quality is adequate — clear background, professional
+photography, demonstrating correct form. They will look substantially more polished than SVG
+line illustrations for most exercises, especially compound movements.
+
+**UX value of photos over SVGs:**
+- SVG illustrations communicate body position but lose detail (grip width, foot angle)
+- Photos show a real human, which reduces the cognitive gap between illustration and execution
+- For a pharmacist-credibility app, real photos read more authoritative than illustrations
+- Photos provide implicit "this is what correct form looks like" reassurance
+- Limitation: photos are static; they show start and end positions, not the movement arc.
+  For complex exercises (Olympic lifts, cable movements), SVGs may actually communicate
+  mechanism more clearly. Hybrid approach (photos where available, SVGs where clearer) is correct.
+
+**Two-image swipe pattern (differentiator):**
+Show both images (start position, end position) as a horizontally swipeable pair or as a
+side-by-side strip. This communicates range of motion better than a single image. The exercise
+detail screen already exists (ExerciseDetailScreen.tsx) — add a photo section above the
+instructions.
+
+**Complexity estimate:** LOW-MEDIUM. The fetch URL pattern is trivial. The mapping work is
+Medium (manual or automated). The component change in ExerciseDetailScreen is Low. The main
+risk is brittle URL patterns if GitHub changes their raw content CDN (low probability but worth
+noting). A more resilient alternative is downloading the images to Supabase Storage and serving
+from there — adds one-time setup cost, eliminates CDN dependency. For v4.0, GitHub raw is
+acceptable; migrate to Supabase Storage if CDN reliability becomes an issue.
+
+**Dependencies on existing architecture:**
+- ExerciseDetailScreen.tsx already exists — add photo section to it
+- The Supabase `exercises` table (from v3) is the right place to store `free_exercise_db_id` mapping
+- SVG muscle map illustrations from Phase 12 are preserved as fallback — no deletion
+- `exerciseService.ts` is the right service to fetch the mapping; add `freeExerciseDbId` to
+  the `Exercise` type
 
 ---
 
-## Empty State Design
+## Feature Complexity Summary
 
-### What Makes Empty States Motivating
+| Feature | Complexity | Phases Needed | Dependencies |
+|---|---|---|---|
+| Adapty paywall — SDK setup + access level check | LOW | 1 | `react-native-adapty` package; Expo SDK 54 compat verified |
+| Adapty paywall — paywall screen design + Adapty builder | LOW-MEDIUM | 1 | Adapty dashboard setup; logShowPaywall calls |
+| Adapty paywall — premium gate on AI Advisor entry | LOW | 0.5 | Access level check pattern |
+| AI Advisor — Supabase Edge Function proxy | MEDIUM | 1 | Supabase project; Anthropic API key; auth session |
+| AI Advisor — anonymized context builder | LOW | 0.5 | Reads existing AsyncStorage keys; no new data |
+| AI Advisor — report screen (streaming + sections) | MEDIUM | 1 | Edge function; Anthropic streaming; AsyncStorage persistence |
+| AI Advisor — follow-up chat | MEDIUM | 1 | Report screen; conversation state management |
+| Exercise photos — ID mapping table | MEDIUM | 0.5 | Supabase exercises table; free-exercise-db ID list |
+| Exercise photos — photo display component | LOW | 0.5 | ExerciseDetailScreen; Image component; SVG fallback |
 
-**Confidence: HIGH** — well-studied UX pattern.
+**Recommended phase order:**
+1. Adapty SDK + access level check + paywall screen (no AI yet — establishes monetization foundation)
+2. Exercise photos (low complexity win; improves visual quality before AI launch)
+3. AI Advisor — Edge Function + context builder (backend foundation)
+4. AI Advisor — report screen + streaming
+5. AI Advisor — follow-up chat
+6. Polish + A/B test setup in Adapty dashboard
 
-**The core principle:** An empty state is a first-impression moment. Users who see "No data yet"
-feel the app is broken or pointless. Users who see an action-oriented state with context feel
-pulled toward their goal.
-
-**The anatomy of a motivating health-app empty state:**
-
-1. **Icon or illustration** — not a generic file-with-X icon. Something specific to the context.
-   For exercise: a figure in motion. For biomarkers: a flask or waveform. Use SVG (no extra
-   assets needed). Keep it simple — 2–3 paths max.
-
-2. **Headline that names the outcome, not the absence.** Bad: "No workouts logged yet."
-   Good: "Your longevity training starts here." The user doesn't feel the absence — they feel
-   the possibility.
-
-3. **One-line sub-copy that gives context.** "Exercise is the single highest-ROI intervention
-   for biological age. Log your first session to start tracking." This is where the pharmacist
-   voice adds differentiating authority.
-
-4. **Single primary CTA button.** One action only — "Log a Workout" or "Add First Biomarker."
-   No secondary options. No links to settings. Friction-free path forward.
-
-5. **No guilt, no urgency.** "Start your streak!" creates anxiety. "Your first session" is
-   neutral and welcoming.
-
-### Patterns That Work in Health Apps
-
-**Confidence: HIGH** — observed across Apple Health, Whoop, Oura, MyFitnessPal.
-
-| Screen | Icon idea | Headline | Sub-copy | CTA |
-|---|---|---|---|---|
-| Exercise log (no entries) | Activity waveform SVG | "Your longevity training starts here" | "Studies show 150 min/week of moderate exercise can add 7+ years to healthspan." | "Log First Workout" |
-| Exercise log (today empty, history exists) | Calendar with checkmark outline | "Ready for today's session?" | "You worked out 3 times this week. Keep it going." | "Log Today's Workout" |
-| Biomarkers (no entries) | Flask / molecule SVG | "Know your numbers" | "Your pharmacist-verified targets are ready. Add your first lab result to see where you stand." | "Add Biomarker" |
-| Protocol (no supplements added) | Pill outline SVG | "Build your protocol" | "Add supplements and medications to get pharmacist-verified timing and interaction checks." | "Add First Item" |
-
-**Anti-patterns that feel patronizing in health apps:**
-
-| Anti-pattern | Why it fails |
-|---|---|
-| Confetti / celebration for first entry | Feels juvenile for a clinical-credibility app |
-| "You're doing great!" with no data | Empty praise before action is hollow |
-| Multiple CTAs in one empty state | Paradox of choice, users do nothing |
-| Generic illustration unrelated to the feature | Breaks context, makes the state feel templated |
-| Empty state that disappears instantly on first data | Should transition, not snap |
-
-**Empty state transition animation:**
-When the first item is added, animate the empty state out (fade + slide up) and the content list
-in (fade + slide up). Use `Animated.timing` or `Reanimated` `FadeIn` preset. Duration 250ms.
-This makes the state transition feel intentional, not abrupt.
-
-**Dependency on existing Vitalspan work:**
-PROJECT.md notes that "Motivating empty states on Dashboard and Biomarkers tab" were completed
-in Phase 1. The v2 task is the remaining screens: Exercise daily log, Protocol (when no
-supplements added), and any Supabase-backed screens that can be empty on first sync.
+**Critical path constraint:** Adapty must ship before AI Advisor because the AI Advisor is
+premium-only. The access level check must work before the AI screen is reachable.
 
 ---
 
-## Selective Theme System
-
-### Light/Warm Screens vs Dark/Immersive Screens — Pattern for Coexistence
-
-**Confidence: HIGH** — based on existing theme structure (fully inspected) + standard RN theming.
-
-**The existing theme already supports this.** Looking at `src/theme/index.ts`:
-- Light/warm palette: `Colors.bg = '#EDE8DC'` (warm beige), `Colors.bgCard = '#FFFFFF'`,
-  `Colors.textPrimary = '#1A1A18'` — these are the day-mode list screen colors.
-- Dark/immersive palette: `Colors.dark.*` object (`bg: '#0C0F0D'`, `bgCard: '#141916'`,
-  `bgElevated: '#1C2119'`, `text: '#E8F5EE'`) — these are the LongevityScore / neural screens.
-- Gradients: `Gradients.neural`, `Gradients.longevity`, `Gradients.darkSurface` for dark screens.
-
-**The pattern: screen-level theme declaration, not app-level dark mode.**
-
-Do not use React Native's system dark/light mode (i.e. `useColorScheme`). This is not a system
-dark mode app — it's a selective dual-aesthetic app. The LongevityScore is always dark. The
-exercise list is always warm. These are design decisions, not system preferences.
-
-**Implementation pattern:**
-
-```ts
-// In each screen, use the correct color set directly:
-
-// List/data screen (Exercise, Protocol, Biomarkers, Profile)
-backgroundColor: Colors.bg               // '#EDE8DC' warm beige
-cardBackground: Colors.bgCard            // '#FFFFFF'
-text: Colors.textPrimary                 // '#1A1A18'
-border: Colors.border                    // '#D4CFC4'
-
-// Immersive/orbital screen (LongevityScore, Dashboard dark cards)
-backgroundColor: Colors.dark.bg          // '#0C0F0D'
-cardBackground: Colors.dark.bgCard       // '#141916'
-text: Colors.dark.text                   // '#E8F5EE'
-border: Colors.dark.border               // 'rgba(255,255,255,0.08)'
-```
-
-**The tab bar is the boundary between aesthetics.**
-
-The tab bar itself uses `Colors.bg` (warm beige) as its background — this is already set in
-AppNavigator. This is correct: the tab bar should match the warm list screens, because most
-tabs are light. The LongevityScore is a fullScreenModal (no tab bar visible), so the transition
-is clean.
-
-**Table stakes for selective theming:**
-
-| Screen | Background | Card | Text style | Status bar |
-|---|---|---|---|---|
-| Dashboard | `Colors.dark.bg` or `Colors.bg` depending on card | Dark for FutureSelf/neural cards, warm for quick-action cards | Dark on dark, dark on warm | Light content (white) |
-| Biomarkers | `Colors.bg` warm beige | `Colors.bgCard` white | `Colors.textPrimary` | Dark content |
-| Protocol | `Colors.bg` warm beige | `Colors.bgCard` white | `Colors.textPrimary` | Dark content |
-| Exercise | `Colors.bg` warm beige | `Colors.bgCard` white | `Colors.textPrimary` | Dark content |
-| Profile | `Colors.bg` warm beige | `Colors.bgCard` white | `Colors.textPrimary` | Dark content |
-| LongevityScore | `Colors.dark.bg` deep dark | `Colors.dark.bgCard` | `Colors.dark.text` | Light content |
-
-**Status bar handling:**
-Expo's `expo-status-bar` can set per-screen status bar style. Warm screens need `style="dark"`
-(dark icons on light bg). Dark screens need `style="light"` (white icons on dark bg). In a
-React Navigation setup, use `useFocusEffect` to change status bar on screen focus, or set it in
-`screenOptions` per navigator.
-
-**Differentiator — the transition moment:**
-When navigating from a warm tab (Exercise) to LongevityScore (dark, fullScreenModal with
-`fade_from_bottom` animation), the aesthetic shift should feel intentional. The fade animation
-already helps. Consider briefly fading the tab bar out as the modal rises — this is achieved
-via React Navigation's modal presentation and requires no custom code.
-
-**What NOT to do:**
-- Do not add a `ThemeContext` with `isDark` toggle — that's app-level dark mode, which this is
-  not. Each screen knows its own aesthetic from the design spec.
-- Do not mix warm and dark colors on the same screen (e.g. a white card on a dark neural bg in
-  the Exercise screen). The aesthetics are screen-level, not component-level, except on Dashboard
-  which deliberately mixes (FutureSelf dark card on potentially warm scroll area).
-
----
-
-## Complexity Notes & Dependencies
-
-| Feature | Complexity | Primary Dependency |
-|---|---|---|
-| Supabase auth (sign-up/sign-in/guest) | Medium | `@supabase/supabase-js`, AsyncStorage adapter, .env setup |
-| Supabase session persistence | Low | Storage adapter config at client init |
-| Guest → account data migration | Medium | One-time upload function, migration flag in AsyncStorage |
-| Biomarker reference data from Supabase | Low | Seed SQL, client-side fetch + static fallback |
-| User biomarker history sync | Medium | Auth session gate, upsert logic, conflict resolution |
-| Exercise library from Supabase | Low | Seed SQL, client-side fetch + static fallback |
-| Exercise log sync | Medium | Same as biomarker history sync |
-| SVG tab bar icons | Low | react-native-svg already installed; 5 icons to draw |
-| Custom SVG icon system | Low | Folder structure + props pattern |
-| Exercise screen daily log section | Medium | New section layout in ExerciseScreen; reuse existing log logic |
-| Exercise library visual polish | Low | CSS/style changes to existing ExerciseScreen |
-| Intensity visual upgrade | Low | Style changes to QuickLogModal intensity picker |
-| Empty states (remaining screens) | Low | SVG icon + copy + CTA; no logic change |
-| Selective theme (list screens) | Low | Screen-level color token usage, already in theme |
-| Status bar per-screen | Low | `expo-status-bar` useFocusEffect pattern |
-
-**Critical path:** Supabase auth must be in place before biomarker history sync and exercise log
-sync. Reference data tables (biomarker_definitions, exercises) have no auth dependency — they
-use public read RLS policy and can be implemented in parallel with auth.
-
-**Existing code preservation:**
-- `@vitalspan_exercise_log` AsyncStorage key must be preserved — it is the offline fallback.
-- `EXERCISES` array in `exercises.ts` must be preserved — it is the fallback if Supabase is
-  unavailable.
-- `BIOMARKERS` array in `biomarkers.ts` must be preserved — same reason.
-- The `ExerciseLogEntry` type is already designed correctly and maps to the Supabase schema.
-
----
-
-*Research complete. Sources: direct codebase inspection + training knowledge (Supabase JS v2,
-Expo 54, react-native-svg, React Navigation v6, iOS fitness app UX conventions).*
+*Sources: Context7 Adapty React Native SDK docs (HIGH confidence), GitHub API inspection of
+yuhonas/free-exercise-db (HIGH confidence), Adapty official docs via Context7
+(HIGH confidence), Anthropic SDK TypeScript docs via Context7 (HIGH confidence),
+training knowledge for paywall conversion patterns and AI advisor UX
+(MEDIUM confidence — verified against Adapty blog references found in limited WebSearch).*

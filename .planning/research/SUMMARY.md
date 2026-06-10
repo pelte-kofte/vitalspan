@@ -1,124 +1,123 @@
-# Research Summary: Vitalspan v2
+# Research Summary — v4.0 Monetization & Intelligence
 
 **Project:** Vitalspan
-**Domain:** Longevity tracking iOS app — brownfield Expo 54 + Supabase integration
-**Researched:** 2026-05-30
-**Confidence:** HIGH (architecture from direct codebase inspection; stack and pitfalls from documented Supabase/Expo patterns)
+**Milestone:** v4.0 — Monetization & Intelligence (Adapty paywall, Claude AI Advisor, Exercise Photos)
+**Researched:** 2026-06-10
+**Confidence:** HIGH
 
 ---
 
 ## Stack Additions
 
-One install command covers the entire v2 dependency surface:
+### react-native-adapty
+- **Version:** 3.17.1
+- **Install:** `npx expo install react-native-adapty && npx expo prebuild --clean && cd ios && pod install`
+- **Constraints:** Native module — Expo Go incompatible. Add `["react-native-adapty", {}]` to `plugins` in `app.json`. RN >= 0.73.0 required (project is on 0.81.5 — compatible). Add `EXPO_PUBLIC_ADAPTY_PUBLIC_KEY` to `.env`.
 
-```
-npm install @supabase/supabase-js react-native-url-polyfill
-```
+### Claude API
+- **Approach:** Supabase Edge Function proxy — do **NOT** install `@anthropic-ai/sdk` in the Expo project
+- **Why:** Official SDK README explicitly states React Native is an unsupported runtime (missing `ReadableStream`/WHATWG APIs in Hermes). Beyond the runtime issue, any `EXPO_PUBLIC_ANTHROPIC_API_KEY` is embedded in the compiled JS bundle and extractable from any IPA. The Edge Function runs on Deno (officially supported runtime), holds `ANTHROPIC_API_KEY` as a Supabase secret, and is gated behind Supabase JWT auth.
 
-Everything else — `react-native-svg` (icons), `expo-constants`, `react-native-reanimated`, `@react-native-async-storage/async-storage` — is already installed. The `.env` file already exists with `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in the correct Expo SDK 49+ format. No `metro.config.js`, `babel.config.js`, or `app.json` changes needed.
+### Exercise Photos
+- **Correct repo:** `yuhonas/free-exercise-db` (owner is `yuhonas` — PROJECT.md had a typo: `yunohas`)
+- **Asset format:** JPG only — no GIFs, no WebP. 873 exercises, exactly 2 static JPGs per exercise (start + end position).
+- **CDN URL:** `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{photoKey}/0.jpg`
+- **Consumption:** Remote CDN, no local bundling (97 MB repo). ~60 Vitalspan exercises ≈ 120 JPGs ≈ 5 MB, lazy-loaded and disk-cached. Manual `photoKey` mapping required (Vitalspan numeric IDs ≠ free-exercise-db name-based IDs).
 
-The `react-native-url-polyfill` import must appear as the very first line of `src/lib/supabase.ts`, before any Supabase import. The client singleton requires `storage: AsyncStorage`, `autoRefreshToken: true`, `persistSession: true`, and `detectSessionInUrl: false`.
-
-Design tokens and the PhenoAge fix are pure TypeScript changes — zero new packages.
+### expo-image
+- **Needed:** Yes
+- **Why:** Persistent disk caching (`cachePolicy="disk"`), progressive loading. Better than core `<Image>` for remote images.
 
 ---
 
 ## Feature Table Stakes
 
-### Supabase Auth
-- Silent anonymous sign-in on first launch — user sees nothing but every biomarker row gets a stable `user_id` UUID
-- Persistent session via AsyncStorage adapter — without this, sessions vanish on every app restart
-- "Continue without account" path from Landing — existing v1 users must not be blocked
-- One-time migration on first authenticated sign-in: bulk-read all `@vitalspan_*` keys → insert to Supabase → set `@vitalspan_migrated_v2: 'true'` flag (idempotent)
-- AppState listener for JWT refresh: `startAutoRefresh()` on `active`, `stopAutoRefresh()` otherwise
+### Paywall
 
-### Reference Data Tables
-- `biomarker_definitions`: public read RLS (`TO anon`), seeded from `src/data/biomarkers.ts`; static array remains as offline fallback
-- `exercises`: public read RLS, seeded from exercise data; static array remains as offline fallback
-- `biomarker_entries`: RLS `USING (auth.uid() = user_id)`, AsyncStorage-first write + fire-and-forget Supabase upsert
-- All tables need RLS policies set in Supabase dashboard before first client query is written — empty arrays are the silent failure mode
+**Apple-mandated requirements:**
+- Price clearly displayed before tapping
+- Billing period explicit ("billed monthly" / "billed annually")
+- Free trial shown as a visual timeline (Day 1–7 free, Day 8 billed) — toggle UI is banned by Apple as of 2024
+- **Restore Purchases button** — top App Store rejection cause if missing
+- Privacy Policy and Terms links visible
+- `adapty.logShowPaywall(paywall)` called every time paywall is shown (required for Adapty analytics)
 
-### SVG Icons
-- 5 tab bar icons: `HomeIcon`, `BiomarkersIcon`, `ProtocolIcon`, `ExerciseIcon`, `ProfileIcon`
-- All: `viewBox="0 0 24 24"`, stroke-based, `strokeWidth={1.5}`, `size` prop wired to `width` + `height` on `<Svg>`
-- React Navigation passes `color` and `size` automatically — no manual focused-state logic
+**Soft gate strategy:** Free tier is fully functional (biomarkers, PhenoAge, protocol, exercise log). Paywall appears only when user taps the AI Advisor entry — high-intent moment. Hard-gating core features drives 60–80% abandonment and risks App Store rejection.
 
-### Exercise Screen
-- Today's session section first, then This Week, then History (last 14 days)
-- Intensity pills: Easy (green), Moderate (amber), Hard (coral) — haptic on selection
-- Motivating empty state: outcome-focused headline + longevity stat + single CTA
-- Exercise library keeps existing category filter + expand-for-instructions pattern
+### AI Advisor
 
-### Selective Theme
-- Warm screens (Exercise, Biomarkers, Protocol, Profile, Settings, About): `Colors.bg`, `Colors.bgCard`
-- Dark screens (LongevityScore, Dashboard neural, Landing): `Colors.dark.*` — untouched
-- `Beige` export block appended to `src/theme/index.ts` — no existing constant renamed or removed
-- Per-screen `expo-status-bar` style: `"dark"` for warm, `"light"` for dark, via `useFocusEffect`
+**Report structure (card hierarchy):**
+1. Score Summary — biological age delta, PhenoAge trend, 1-sentence assessment
+2. Priority Findings — 2–4 ranked bullets, color-coded red/amber/green
+3. Biomarker Analysis — per-category breakdown with longevity target and gap
+4. Supplement & Medication Review — protocol evaluated against findings
+5. Recommendations — top 3–5 actions with evidence grade (A/B/C) and timeframe
+6. Follow-up Chat entry point
+
+**Chat scope:** Scoped to the current generated report — not a standalone health chatbot. System prompt includes the full report as context. Conversation history is ephemeral (not persisted).
+
+**Edge Function requirement:** Mandatory. All Claude calls route through `supabase/functions/ai-advisor/index.ts`. Validates Supabase JWT, enforces per-user rate limits (5 reports/day, 20 chat messages/day), calls Anthropic server-side.
+
+### Exercise Photos
+
+**ID mapping:** Add `photoKey?: string` to the `Exercise` interface — holds free-exercise-db name string (e.g. `"Barbell_Deadlift"`), not Vitalspan's numeric ID. Manual one-time mapping.
+
+**Fallback chain:** photo → SVG illustration (Phase 12) → placeholder. Both fallback layers already exist.
+
+**Coverage estimate:** 70–80% for standard compound lifts.
 
 ---
 
-## Architecture Integration Points
+## Architecture Decision Record
 
-### New Files
-| File | Role |
-|------|------|
-| `src/lib/supabase.ts` | Client singleton |
-| `src/services/biomarkerSync.ts` | Push/pull functions for biomarker entries |
-| `src/services/exerciseSync.ts` | `fetchExerciseLibrary()` replacing static array |
-| `src/services/biomarkerRefData.ts` | `fetchBiomarkerRanges()` enriching static data |
-| `src/hooks/useSupabaseAuth.ts` | Session management, consumed by `App.tsx` |
-| `src/hooks/useBiomarkerSync.ts` | Loading/error wrapper around biomarkerSync |
-| `src/components/icons/` | 5 tab icon components + `index.ts` |
+### Build Order: Exercise Photos → Adapty → AI Advisor
 
-### Key Modified Files
-| File | Change |
-|------|--------|
-| `App.tsx` | `useSupabaseAuth` init + AppState JWT refresh listener |
-| `src/navigation/AppNavigator.tsx` | Swap emoji `TabIcon` for SVG icon components |
-| `src/theme/index.ts` | Append `Beige` export block |
-| `src/screens/ExerciseScreen.tsx` | Remote library + Today/Week/History sections + Beige tokens |
-| `src/screens/BiomarkerEntryScreen.tsx` | Fire-and-forget sync after AsyncStorage save |
-| `src/screens/DashboardScreen.tsx` | `pullIfStale()` on mount |
+| Phase | Why |
+|-------|-----|
+| Exercise Photos first | Zero dependencies. No native modules, no backend. Fast visual win, validates EAS pipeline before `expo prebuild` changes. |
+| Adapty second | Must precede AI Advisor — `SubscriptionContext.isPremium` gates AI Advisor access. Flushes `expo prebuild` requirement in a simpler context. |
+| AI Advisor last | Depends on `SubscriptionContext` (Adapty) + Supabase auth session (Edge Function). Edge Function and UI can parallelize once Adapty is done. |
 
-### Suggested Build Order
-1. Supabase client + anonymous auth — dependency gate for everything
-2. SVG icons + Beige token block — pure UI, no Supabase dependency
-3. Reference data from Supabase — validates table schemas + RLS before write path
-4. Biomarker sync write path — requires phases 1 + 3
-5. Exercise screen redesign — requires phases 2 + 3
-6. Warm UI overhaul on remaining screens — Beige tokens only prerequisite
-7. PhenoAge formula fix + TypeScript strict cleanup — isolated, last
+### SubscriptionContext Pattern
+
+`src/contexts/SubscriptionContext.tsx` — exposes `isPremium`, `isLoadingSubscription`, `showPaywall()`. Reads from `adapty.getProfile()` on mount; listens to `adapty.addEventListener('onLatestProfileLoad', ...)`. No screen makes direct `getProfile()` calls. Do NOT persist `isPremium` in AsyncStorage — Adapty owns subscription state.
+
+### Edge Function Data Flow
+
+```
+iOS app → supabase.functions.invoke('ai-advisor', { body: anonymizedContext })
+  [Supabase JWT auto-attached]
+→ Deno Edge Function
+  → validates JWT + per-user rate limit
+  → @anthropic-ai/sdk with ANTHROPIC_API_KEY (Supabase secret)
+  → returns { report } or { message }
+→ AIAdvisorScreen renders response
+```
+
+`src/lib/advisorContext.ts` builds anonymized context from `@vitalspan_*` AsyncStorage keys. Never includes: user name, exact birthdate, raw lab timestamps, Supabase user ID. Age is bucketed (e.g. `'46-60'`). PhenoAge is derived score only.
+
+### CDN Discrepancy Resolution
+
+PITFALLS flagged `raw.githubusercontent.com` rate-limit risk. **Resolution:** Use it for v4.0 — URL is isolated behind `exercisePhotoUrl(photoKey)` in a single utility file. Swap to Supabase Storage in one line if throttling occurs in production.
 
 ---
 
 ## Watch Out For
 
-**1. Supabase session not persisting — CRITICAL, Phase 1**
-Default storage is `localStorage` (doesn't exist in RN). Silently falls back to in-memory — sessions vanish on restart. RLS queries return `[]`, looks like a data bug.
-*Fix:* `storage: AsyncStorage` + `detectSessionInUrl: false` in `createClient`. Verify before writing any sync code.
-
-**2. JWT expiry breaks sync after backgrounding — HIGH, Phase 1**
-`autoRefreshToken: true` alone is insufficient — JS pauses in background. 401s returned silently after 1 hour.
-*Fix:* AppState listener in the Supabase module calling `startAutoRefresh()`/`stopAutoRefresh()`.
-
-**3. Pre-auth AsyncStorage data orphaned on first sign-in — HIGH, Phase 4**
-Existing users have biomarker history with no `user_id`. After auth added, `WHERE user_id = auth.uid()` returns empty.
-*Fix:* One-time migration function on first authenticated session, guarded by `@vitalspan_migrated_v2` flag. Must be idempotent.
-
-**4. RLS silent empty arrays on reference tables — HIGH, Phase 3**
-RLS enabled by default. Without `anon` read policy, every query returns `[]` with no error.
-*Fix:* Create anon read policy in Supabase dashboard before writing any client fetch code.
-
-**5. Theme regression on dark screens — MEDIUM, Phase 6**
-Renaming existing `Colors.*` keys breaks LongevityScore and Dashboard silently (undefined → transparent).
-*Fix:* `Beige` block is additive only — existing constants never renamed. Run `tsc --noEmit` + visual check after every theme commit.
+1. **Adapty activation race** — Activate with no `customerUserId`; call `adapty.identify(user.id)` only after Supabase `getUser()` resolves. Wire to `onAuthStateChange` login and sign-out events.
+2. **Anthropic API key in bundle** — Never `EXPO_PUBLIC_ANTHROPIC_API_KEY`. Never install `@anthropic-ai/sdk` in Expo project. Supabase Edge Function only.
+3. **Missing Restore Purchases = App Store rejection** — Wire `adapty.restorePurchases()` in PaywallScreen; show explicit feedback when no subscription is found.
+4. **No per-user rate limiting on Edge Function** — Enforce daily quota before every Anthropic call; return 429 with user-readable message; set spend alert in Anthropic Console.
+5. **expo prebuild overwrites native config** — Audit `ios/` before `npx expo prebuild --clean`. HealthKit entitlements must be in `app.json` config plugins or they will be lost.
 
 ---
 
-## Open Questions
+## Corrections for PROJECT.md
 
-1. **Auth scope**: Anonymous session (invisible, v2) + email upgrade via `linkIdentity()` deferred to v3 — needs explicit confirmation
-2. **Table schemas**: Confirm `biomarker_definitions.id` matches actual IDs in `src/data/biomarkers.ts` (e.g., `'apob'`, `'hscrp'`); confirm exercise ID format; confirm `exercise_logs` UUID vs timestamp-string strategy
-3. **Staleness threshold**: 15 min recommended for `pullIfStale()` — 24hr or pull-to-refresh may be more appropriate for single-device v2
-4. **Email verification**: Disable enforcement in Supabase Auth settings for v2 (not just in code) to avoid verification gate on anonymous→email upgrade
-5. **Exercise library size**: 59 exercises = client-side filtering fine; if growing to 250+, switch to server-side `ilike` before finalizing exercise service architecture
+- `yuhonas` (not `yunohas`) — correct GitHub username for free-exercise-db
+- Assets are JPGs, not GIFs — 2 static JPGs per exercise, no animations
+- Do not install `@anthropic-ai/sdk` in the Expo project — use Supabase Edge Function proxy
+
+---
+
+*Research completed: 2026-06-10 | Ready for roadmap: yes*

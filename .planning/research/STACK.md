@@ -176,3 +176,273 @@ npm install @supabase/supabase-js react-native-url-polyfill
 ```
 
 Everything else (`react-native-svg`, `expo-constants`, `.env`, design tokens, PhenoAge fix) already exists or requires no new packages.
+
+---
+
+---
+
+# Stack Research — v4.0 Additions
+
+**Researched:** 2026-06-10
+**Confidence:** HIGH (Adapty, free-exercise-db), HIGH with critical caveat (Claude API)
+
+---
+
+## Adapty SDK
+
+**Package:** `react-native-adapty`
+**Current version:** 3.17.1
+**Peer dependency:** `react-native >= 0.73.0` — Expo SDK 54 ships RN 0.81.5, fully compatible.
+**Confidence:** HIGH — verified via npm registry and Context7 docs (193 code snippets, high reputation source).
+
+### Expo SDK 54 Compatibility
+
+Compatible. Adapty ships an Expo config plugin (`app.plugin.js`) using `expo/config-plugins`. Add it to `app.json` alongside the existing HealthKit plugin.
+
+**Critical constraint:** Requires a custom development build. Expo Go will not work — the SDK contains native StoreKit/IAP code. The project already runs `expo run:ios` and has EAS configured (`projectId: 4d42a8cb-bf83-4229-82a5-1b2273356a54`), so this is not a new constraint.
+
+### Installation
+
+```bash
+npx expo install react-native-adapty
+npx expo prebuild --clean          # regenerates native project with plugin
+cd ios && pod install
+```
+
+### app.json plugin entry
+
+```json
+"plugins": [
+  "expo-font",
+  ["@kingstinct/react-native-healthkit", { ... }],
+  ["react-native-adapty", { }]
+]
+```
+
+### Initialization — app entry point (App.tsx or index.js)
+
+Activate before any navigation renders. Link to the Supabase user UUID so subscription state is tied to the authenticated user:
+
+```typescript
+import { adapty, LogLevel } from 'react-native-adapty';
+
+await adapty.activate('YOUR_PUBLIC_SDK_KEY', {
+  customerUserId: supabaseUserId,          // link to existing Supabase auth user
+  logLevel: LogLevel.Verbose,              // switch to LogLevel.Error in prod
+  __ignoreActivationOnFastRefresh: true,   // prevents double-activation in dev
+});
+```
+
+The Adapty public SDK key is safe to expose as `EXPO_PUBLIC_ADAPTY_PUBLIC_KEY` in `.env` — it is a public key by design.
+
+### Core API for v4.0
+
+| Method | Purpose |
+|--------|---------|
+| `adapty.getPaywall(placementId)` | Fetch paywall config from Adapty Dashboard |
+| `adapty.getPaywallProducts(paywall)` | Get product list (price, period, trial) |
+| `adapty.makePurchase(product)` | Trigger native App Store IAP sheet |
+| `adapty.getProfile()` | Check `accessLevels['premium'].isActive` |
+| `adapty.restorePurchases()` | Required by App Store Review Guidelines |
+
+### Entitlement check
+
+```typescript
+const profile = await adapty.getProfile();
+const isPremium = profile.accessLevels['premium']?.isActive ?? false;
+```
+
+### What to avoid
+
+- Do not initialize Adapty inside a screen component — must activate once at app startup.
+- Do not set `observerMode: true` unless you are handling StoreKit transactions yourself; default (false) gives Adapty full purchase handling.
+- No Android setup needed (iOS-only project).
+
+---
+
+## Claude API (@anthropic-ai/sdk)
+
+**Package:** `@anthropic-ai/sdk`
+**Current version:** 0.104.1
+**Confidence:** HIGH — verified via npm registry and official SDK README/MIGRATION.md via Context7.
+
+### Critical Constraint: React Native is NOT a supported runtime
+
+The official SDK documentation (README, Bedrock sub-package README, Vertex sub-package README) all contain this explicit statement:
+
+> "Note that React Native is not supported at this time. If you are interested in other runtime environments, please open or upvote an issue on GitHub."
+
+The SDK migrated to the built-in Web Fetch API with `ReadableStream`-based streaming. React Native 0.81 ships a global `fetch`, but the Hermes JS engine does not provide the full WHATWG `ReadableStream` API the SDK requires for streaming. The old `@anthropic-ai/sdk/shims/web` shim was removed (confirmed in MIGRATION.md).
+
+This is not a version issue. It is a runtime environment issue. There is no version of `@anthropic-ai/sdk` that works correctly in React Native at time of research.
+
+### Recommended Approach: Supabase Edge Function proxy
+
+The project already uses Supabase. Use a Supabase Edge Function as a thin proxy. The mobile app calls the Edge Function; the function holds the Anthropic API key server-side and calls Claude. Supabase Edge Functions run on Deno, which is an officially supported `@anthropic-ai/sdk` runtime ("Deno v1.28.0 or higher").
+
+**Architecture:**
+
+```
+Expo app
+  └── supabase.functions.invoke('ai-advisor', { body: anonymizedContext })
+            └── Supabase Edge Function (Deno runtime)
+                      └── @anthropic-ai/sdk  (fully supported)
+                                └── Claude API
+```
+
+**Edge Function (Deno, `supabase/functions/ai-advisor/index.ts`):**
+
+```typescript
+import Anthropic from 'npm:@anthropic-ai/sdk';
+
+const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+
+Deno.serve(async (req) => {
+  const { context, messages } = await req.json();
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 2048,
+    messages,
+  });
+  return Response.json({ content: response.content[0].text });
+});
+```
+
+**Mobile call (existing supabase client):**
+
+```typescript
+const { data, error } = await supabase.functions.invoke('ai-advisor', {
+  body: { context: anonymizedSummary, messages: conversationHistory },
+});
+```
+
+**API key placement — Supabase Secrets only:**
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+This key never touches the Expo project, never appears in `.env`, and is never bundled into the app binary.
+
+### Streaming
+
+Streaming from a Supabase Edge Function to React Native is technically possible via SSE, but adds substantial complexity. For the v4.0 AI report feature (structured report generation), non-streaming is the correct starting point — the round-trip is under 5 seconds for a 2k-token report. Add streaming only if follow-up chat UX demands it. The Edge Function can use `@anthropic-ai/sdk` stream API server-side and forward SSE if needed in a future phase.
+
+### What NOT to do
+
+- Do NOT install `@anthropic-ai/sdk` in the Expo project and call Claude directly from the app. It will fail at the streaming layer and may cause import-time crashes on Hermes.
+- Do NOT put the Anthropic API key in `EXPO_PUBLIC_*` environment variables — `EXPO_PUBLIC_` variables are bundled into the JS bundle and visible in the app binary.
+- Do NOT use any third-party "React Native Anthropic" wrapper library — none have significant adoption or maintenance.
+
+---
+
+## free-exercise-db Assets
+
+**Repository:** `yuhonas/free-exercise-db` (note: PROJECT.md spells the owner as `yunohas` — this is a typo; the correct GitHub username is `yuhonas`)
+**License:** Unlicense (public domain)
+**Stars:** 1,455
+**Confidence:** HIGH — verified directly from GitHub API and raw file contents.
+
+### Asset inventory (verified)
+
+| Metric | Value |
+|--------|-------|
+| Total exercises in combined JSON | 873 |
+| Exercises with images | 873 (100%) |
+| Image format | JPG only — no GIFs, no WebP |
+| Images per exercise | Always exactly 2 (start + end position) |
+| Total images | ~1,746 JPGs |
+| Repo size | ~97 MB (full repo including all images) |
+| Combined JSON | `dist/exercises.json` — ~1 MB, one file, 873 exercises |
+
+PROJECT.md references "GIF/photo assets" — there are no GIFs in this repository. All assets are static JPGs.
+
+### Schema (verified against live data)
+
+```json
+{
+  "id": "Barbell_Deadlift",
+  "name": "Barbell Deadlift",
+  "category": "strength",
+  "equipment": "barbell",
+  "primaryMuscles": ["hamstrings"],
+  "images": ["Barbell_Deadlift/0.jpg", "Barbell_Deadlift/1.jpg"]
+}
+```
+
+### Exercise categories in the database
+
+| Category | Count |
+|----------|-------|
+| strength | 581 |
+| stretching | 123 |
+| plyometrics | 61 |
+| powerlifting | 38 |
+| olympic weightlifting | 35 |
+| strongman | 21 |
+| cardio | 14 |
+
+### Overlap with Vitalspan's exercise database
+
+Vitalspan has ~60 exercises with longevity notes, form cues, and muscle maps. Spot-check of 17 Vitalspan exercise names against free-exercise-db found 5 exact name matches: Barbell Shrug, Dumbbell Incline Row, Barbell Deadlift, Plyo Push-Up, Janda Sit-Up. The databases use different naming conventions (Vitalspan uses descriptive names, free-exercise-db uses more standardized names). A fuzzy/manual name-to-ID mapping layer is required — direct string equality will miss most matches.
+
+### Recommended consumption: Remote CDN via raw.githubusercontent.com
+
+The README explicitly documents this pattern:
+
+```
+https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{ImagePath}
+```
+
+Example: `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/0.jpg`
+
+**Why remote, not bundled:**
+- 97 MB of JPGs bundled into the binary exceeds App Store OTA download limits and inflates install size unacceptably
+- Only ~60 exercises in Vitalspan need photos — approximately 120 JPGs at ~38 KB average = ~5 MB, loaded lazily and cached on first view
+- Remote is the pattern the free-exercise-db README documents and the pattern used by its own reference frontend
+
+**Recommended image component:** `expo-image` (not React Native's built-in `<Image>`) — persistent disk cache, `cachePolicy="disk"`, progressive loading, WebP transcoding if needed. Install with `npx expo install expo-image`.
+
+### Integration pattern
+
+1. Fix the typo in PROJECT.md: `yunohas` → `yuhonas`
+2. Add `photoBaseUrl?: string` (or derive it from a mapped free-exercise-db ID) to the `Exercise` type in `src/data/exercises.ts`
+3. Build a one-time mapping script or static JSON: normalize Vitalspan exercise names to free-exercise-db IDs (handle casing and naming variation), output a map of `vitalspan_id → free_exercise_db_id`
+4. On exercise detail/card, render `<Image source={{ uri: freeExerciseDbUrl }} />` with SVG illustration fallback where no match exists
+5. Do NOT download `dist/exercises.json` at runtime — use the pre-built static mapping; the 1 MB JSON is unnecessary overhead if only ~60 exercises are needed
+
+### CDN reliability note
+
+`raw.githubusercontent.com` is rate-limited (no SLA) and has occasional availability issues. For MVP this is acceptable. If exercise photos become a critical UX path, mirror the ~120 JPGs to Supabase Storage or a CDN in a follow-up phase. The architecture (URL in data layer, component rendering from URL) makes this swap trivial.
+
+---
+
+## v4.0 Install Summary
+
+### Install these
+
+```bash
+npx expo install react-native-adapty      # Adapty SDK — IAP/subscriptions
+npx expo install expo-image               # Better image caching for remote exercise photos
+npx expo prebuild --clean                 # Regenerate native project with Adapty plugin
+cd ios && pod install
+```
+
+### Do NOT install
+
+| Package | Reason |
+|---------|--------|
+| `@anthropic-ai/sdk` (in Expo project) | React Native explicitly unsupported — use Supabase Edge Function proxy instead |
+| Any RN Anthropic wrapper | No production-grade options exist |
+| RevenueCat | Replaced by Adapty per PROJECT.md decision |
+
+### New environment variables
+
+| Variable | Where | Value |
+|----------|-------|-------|
+| `EXPO_PUBLIC_ADAPTY_PUBLIC_KEY` | `.env` + EAS Secrets | Adapty public SDK key (safe to expose) |
+| `ANTHROPIC_API_KEY` | Supabase Secrets only | Never in Expo `.env` |
+
+### Phase ordering constraint
+
+The Supabase Edge Function for Claude must be deployed and tested before the AI Advisor screen can be built. Adapty and exercise photos are independent and can be built in any order relative to each other and to the Edge Function.
