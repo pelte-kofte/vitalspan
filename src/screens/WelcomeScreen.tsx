@@ -163,7 +163,7 @@ export default function WelcomeScreen() {
             submitLabel={sheet === 'signup' ? 'Create Account' : 'Log In'}
             error={error} loading={loading}
             footerSlot={sheet === 'login' ? (
-              <TouchableOpacity onPress={() => { closeSheet(); nav.navigate('ForgotPassword', {}); }} style={s.forgotRow}>
+              <TouchableOpacity onPress={() => { closeSheet(); nav.navigate('ForgotPassword', { email }); }} style={s.forgotRow}>
                 <Text style={s.forgotTxt}>Forgot password?</Text>
               </TouchableOpacity>
             ) : undefined}
