@@ -58,6 +58,7 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ Expanded supplement/drug database — 69 entries, mechanismOfAction/longevityRelevance fields, SupplementLibrarySection with search + collapsible categories — Phase 11
 - ✓ 54 pharmacist-reviewed drug/supplement interaction pairs with actionable recommendations — Phase 11
 - ✓ InteractionChecker auto-populate from user protocol stack + medication drug-class resolution — Phase 11
+- ✓ Full Supabase Auth — WelcomeScreen (dark neural hero + bottom-sheet forms), sign up (anonymous→email promotion via updateUser), log in, forgot password, email verification banner + one-time toast, guest mode card, session-type cold-start routing, logout (AsyncStorage preserved) — Phase 14
 
 ### Out of Scope
 

@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-05-30)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v3.0 — Intelligence & Growth (roadmap created, ready for Phase 10 planning)
+**Current focus:** v3.0 — Intelligence & Growth (Phase 14 Auth & Login complete — Phase 10 plan 10-05 and Phase 11 remain)
 
 ## Current Position
 
