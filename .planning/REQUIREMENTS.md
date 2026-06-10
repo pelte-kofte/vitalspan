@@ -1,136 +1,96 @@
-# Requirements: Vitalspan v3.0 — Intelligence & Growth
+# Requirements: Vitalspan v4.0 — Monetization & Intelligence
 
-**Defined:** 2026-06-02
+**Defined:** 2026-06-10
 **Core Value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
 
-## v3 Requirements
+---
 
-### Apple HealthKit
+## v4.0 Requirements
 
-- [ ] **HK-01**: On first launch after install, app requests HealthKit read permissions for HRV, sleep (asleep duration), step count, resting heart rate, and active energy burned; permission request is non-blocking — user can deny and still use the app
-- [ ] **HK-02**: When permissions are granted, LongevityScore orbital values (Sleep, HRV, Recovery, Glucose, Fitness, Inflammation) are sourced from live HealthKit data instead of demo/mock values
-- [ ] **HK-03**: When HealthKit permissions are denied or unavailable, LongevityScore orbitals show a "Connect Health" prompt with clear CTA rather than stale demo values
-- [ ] **HK-04**: User can connect or disconnect Apple Health from Profile/Settings; disconnecting reverts orbitals to manual-entry or placeholder state
+### Exercise Photos (Phase 15)
 
-### Longevity Articles
+- [ ] **EXP-01**: ExerciseDetailScreen shows a real exercise photo (start position) for exercises with a mapped `photoKey` — displayed in the illustration area, replacing or augmenting the Phase 12 SVG illustration
+- [ ] **EXP-02**: Exercises without a photo mapping fall back to the existing Phase 12 SVG illustration; exercises with neither show a neutral placeholder
+- [ ] **EXP-03**: All 60 exercises in the Vitalspan library have a `photoKey` mapping attempt — at least 70% resolved with a verified `yuhonas/free-exercise-db` match
 
-- [ ] **ART-01**: App fetches longevity articles from PubMed NCBI API (free, no key required) using query terms: longevity, biological aging, PhenoAge, healthspan; results cached in Supabase `articles` table to avoid repeat API calls
-- [ ] **ART-02**: Articles screen is accessible as a new tab or prominent section in the app, showing article title, journal, publication date, and abstract summary
-- [ ] **ART-03**: Article recommendations are personalized based on the user's current biomarker values — elevated CRP surfaces inflammation articles, elevated glucose surfaces metabolic health articles, low HRV surfaces recovery/stress articles
-- [ ] **ART-04**: Articles cache refreshes in background on app open (max once per 24 hours); stale cached articles are shown while refresh is in progress
+### Paywall & Subscriptions (Phase 16)
 
-### Supplement & Drug Database
+- [ ] **PAY-01**: User can subscribe to Vitalspan Premium (monthly or annual plan) via Apple in-app purchase from the paywall screen
+- [ ] **PAY-02**: Paywall screen displays price, billing period, 7-day free trial with a visual timeline (Day 1–7 free → Day 8 billed), and a visible Restore Purchases button — no toggle trial UI
+- [ ] **PAY-03**: User who previously subscribed can tap "Restore Purchases" and regain premium access without a new purchase
+- [ ] **PAY-04**: Free tier remains fully accessible (biomarker tracking, PhenoAge, supplement/medication protocol, exercise log); premium features (AI Advisor, Articles feed) are soft-gated behind an active subscription
+- [ ] **PAY-05**: Articles feed is gated as a premium feature — free users tapping the Articles entry point see the paywall
 
-- [ ] **SUPP-01**: Protocol supplement database expanded with evidence-based longevity supplements: Urolithin A, NMN, NR, Spermidine, Fisetin, Quercetin, Rapamycin, Metformin; each entry includes name, typical dose, timing, evidence grade (A/B/C), mechanism of action, and longevity relevance summary
-- [ ] **SUPP-02**: Protocol drug database expanded with common OTC and prescription drugs: Ibuprofen, Aspirin, Statins (as a class), Levothyroxine, Metformin; same field structure as supplements
-- [ ] **SUPP-03**: Interaction checker evaluates the user's current supplement + medication stack and surfaces: dangerous combinations (red flag), beneficial synergies (green flag), and monitoring-required pairs (yellow flag)
-- [ ] **SUPP-04**: Every interaction flag includes a plain-language explanation and a recommendation (e.g., "Take at least 2 hours apart", "Consider dose reduction", "Monitor blood glucose")
+### AI Advisor — Backend (Phase 17)
 
-### Exercise UI Overhaul
+- [ ] **AI-01**: App assembles an anonymized health context object (bucketed age, biomarker status categories, supplement stack, medications list) from local AsyncStorage — no raw lab values, no exact birthdate, no Supabase user ID, no name
+- [ ] **AI-02**: App invokes a Supabase Edge Function (`ai-advisor`) via `supabase.functions.invoke()`, which calls Claude API server-side with the anonymized context and returns a structured longevity report (no `@anthropic-ai/sdk` in the Expo project)
+- [ ] **AI-03**: Edge Function enforces per-user rate limits (5 report generations/day, 20 follow-up chat messages/day) and returns a 429 with a user-readable message when limits are reached
 
-- [ ] **EX-01**: Each of the 60 exercises in the exercise library displays an SVG illustration showing the movement (bodyweight or equipment)
-- [ ] **EX-02**: Each exercise displays a muscle map highlighting primary and secondary muscle groups using the neural-dot visual language; primary muscles use accent color, secondary muscles use muted color
-- [ ] **EX-03**: Each exercise displays a verbal form cue (1–2 sentences) describing correct technique for longevity-safe execution
-- [ ] **EX-04**: Each exercise displays a longevity-optimized sets/reps recommendation (e.g., "3 × 10–15 reps, focus on controlled eccentric") rather than hypertrophy-oriented guidance
-- [ ] **EX-05**: Exercise library supports filtering by muscle group via a visual muscle map selector; tapping a muscle region filters the list to exercises targeting that group
-- [ ] **EX-06**: Dashboard shows a weekly movement summary — total sessions, total active minutes, most-trained muscle group this week
+### AI Advisor — UI (Phase 18)
 
-### UI / Design System
+- [ ] **AI-04**: Premium user can tap "AI Advisor" from the Dashboard and generate a longevity report; report renders as a 6-section card layout: Score Summary, Priority Findings, Biomarker Analysis, Supplement & Medication Review, Recommendations (with evidence grades A/B/C), and a Follow-up Chat entry
+- [ ] **AI-05**: User can send follow-up questions about their report in a conversational chat interface; each response from Claude references the generated report context; conversation history is ephemeral (not persisted across sessions)
+- [ ] **AI-06**: AI Advisor entry point is soft-gated — free user tapping "AI Advisor" sees the paywall; premium user with an active subscription proceeds directly to report generation
 
-- [ ] **DS-01**: Color token system in `src/theme/index.ts` extended with intentional clinical-premium palette: `primary`, `surface`, `surfaceElevated`, `accent`, `accentMuted`, `semantic.success`, `semantic.warning`, `semantic.danger`, `semantic.info`; beige-default usage replaced with appropriate semantic or surface tokens
-- [ ] **DS-02**: All icons across the entire app converted to consistent SVG neural-dot style matching the existing tab bar icon system; no placeholder icons, question marks, or emoji remain anywhere in the app
-- [ ] **DS-03**: Icon rendering verified working in both iOS simulator and production EAS builds; any known rendering issues (SVG import, native module) resolved
-- [ ] **DS-04**: Typography scale reviewed and documented in `src/theme/index.ts` — heading, subheading, body, caption, label sizes defined; no hardcoded font sizes outside the scale remain
-- [ ] **DS-05**: Spacing and layout consistency audit — all screens use `Spacing.*` tokens; no hardcoded margin/padding numbers outside of dynamic styles
+---
 
-### Authentication
+## Deferred to v5.0+
 
-- [ ] **AUTH-01**: App includes a Welcome/splash screen shown to unauthenticated users on first launch with "Sign up" and "Log in" CTAs and a "Continue as guest" option
-- [ ] **AUTH-02**: Sign up screen accepts email and password; on success creates a Supabase Auth account and links it to the existing anonymous session via `linkIdentity()` so existing data is preserved
-- [ ] **AUTH-03**: Login screen accepts email and password; on success restores the user's account and syncs their biomarker history from Supabase
-- [ ] **AUTH-04**: Forgot password flow sends a Supabase password reset email; user sees confirmation screen after submission
-- [ ] **AUTH-05**: Email verification — after sign up, user is prompted to verify their email; app handles the verified/unverified state gracefully (verified users get full sync; unverified users see a reminder banner)
-- [ ] **AUTH-06**: Session persists across app restarts; token refresh is handled automatically; user is not logged out unexpectedly after backgrounding
-- [ ] **AUTH-07**: User profile (biomarkers, protocol, exercise logs) is linked to their authenticated Supabase `user_id`; data is accessible after logging in on a new device
-- [ ] **AUTH-08**: Logout flow clears the session, resets to anonymous mode, and returns user to the Welcome screen; local AsyncStorage data is preserved so guest mode is still functional after logout
-- [ ] **AUTH-09**: Auth errors surface actionable messages to the user — wrong password, network error, unverified email, rate limit — never generic "something went wrong"
+### Notifications
 
-## v4 Requirements (Deferred)
+- **NOTIF-01**: User receives protocol reminders (medications, supplements) via push notification
+- **NOTIF-02**: User receives lab-result reminder at 30/90-day intervals
 
-### Monetization
+### Data Limits
 
-- **PAY-01**: Premium features gated behind RevenueCat subscription paywall
-- **PAY-02**: Free tier: biomarker tracking (up to 5), no protocol or score
-- **PAY-03**: Premium tier: full access, interaction checker, longevity score
+- **LIMIT-01**: Free tier is limited to 30 days of biomarker history; premium unlocks full history (deferred — paywall ships first, limits enforced in a follow-up phase)
 
-### Push Notifications
+### Advanced Analytics
 
-- **NOTIF-01**: Daily protocol reminder at user-configured time
-- **NOTIF-02**: Weekly "update your labs" nudge if no biomarkers entered in 30 days
+- **CHART-01**: BiomarkerDetail screen shows a sparkline trend chart for the last 30/90/365 days
+- **CHART-02**: Protocol adherence shown as a 30-day SVG timeline
 
-### Trend Charts
-
-- **CHART-01**: BiomarkerDetail screen shows 30-day sparkline trend chart
-- **CHART-02**: Protocol adherence 30-day SVG timeline
-
-### Wearables & Third-Party
-
-- **WEAR-01**: Garmin / Whoop integration via Apple Health as intermediary
-- **WEAR-02**: Third-party CGM integration for continuous glucose data
+---
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Android support | iOS-only by architecture decision; React Native navigation and HealthKit entitlements are iOS-specific |
-| Real-time Supabase subscriptions | Batch pull sufficient for v3; real-time adds complexity without clear v3 user value |
-| Social / sharing features | Not core to longevity tracking; adds moderation complexity |
-| RevenueCat paywall | Deferred until post-v3 user traction metrics are available |
-| Video exercise demos | Storage/bandwidth cost; SVG illustrations deliver sufficient instruction value |
-| Android HealthKit equivalent (Google Fit / Health Connect) | Out of scope until Android support is added |
+| `@anthropic-ai/sdk` in Expo project | React Native is explicitly unsupported runtime; Edge Function proxy is the correct pattern |
+| RevenueCat | Switched to Adapty — better A/B paywall testing and analytics |
+| Toggle trial UI (on/off switch) | Banned by Apple App Store as of 2024; use visual timeline instead |
+| Bundling exercise photos locally | 97 MB repo; remote CDN with `expo-image` disk cache is the correct approach |
+| GIF exercise animations | `yuhonas/free-exercise-db` contains only static JPGs — no GIF animations exist in the source data |
+| Android support | iOS-only by architecture decision |
+
+---
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HK-01 | Phase 10 | Pending |
-| HK-02 | Phase 10 | Pending |
-| HK-03 | Phase 10 | Pending |
-| HK-04 | Phase 10 | Pending |
-| ART-01 | Phase 10 | Pending |
-| ART-02 | Phase 10 | Pending |
-| ART-03 | Phase 10 | Pending |
-| ART-04 | Phase 10 | Pending |
-| SUPP-01 | Phase 11 | Pending |
-| SUPP-02 | Phase 11 | Pending |
-| SUPP-03 | Phase 11 | Pending |
-| SUPP-04 | Phase 11 | Pending |
-| EX-01 | Phase 12 | Pending |
-| EX-02 | Phase 12 | Pending |
-| EX-03 | Phase 12 | Pending |
-| EX-04 | Phase 12 | Pending |
-| EX-05 | Phase 12 | Pending |
-| EX-06 | Phase 12 | Pending |
-| DS-01 | Phase 13 | Pending |
-| DS-02 | Phase 13 | Pending |
-| DS-03 | Phase 13 | Pending |
-| DS-04 | Phase 13 | Pending |
-| DS-05 | Phase 13 | Pending |
-| AUTH-01 | Phase 14 | In progress (route registered, screen in 14-03) |
-| AUTH-02 | Phase 14 | In progress (signUpWithEmail + convertAnonymousToEmail in supabase.ts; screen in 14-03) |
-| AUTH-03 | Phase 14 | In progress (signInWithEmail in supabase.ts; screen in 14-03) |
-| AUTH-04 | Phase 14 | In progress (sendPasswordResetEmail in supabase.ts; screen in 14-04) |
-| AUTH-05 | Phase 14 | In progress (resendVerificationEmail in supabase.ts; verification UI in 14-04, 14-05) |
-| AUTH-06 | Phase 14 | In progress (session routing in App.tsx; signOutUser in supabase.ts) |
-| AUTH-07 | Phase 14 | Pending |
-| AUTH-08 | Phase 14 | In progress (signOutUser in supabase.ts — no AsyncStorage wipe; UI in 14-05) |
-| AUTH-09 | Phase 14 | In progress (mapAuthError in supabase.ts implements all D-15 mappings; consumed by screens in 14-03+) |
+| EXP-01 | Phase 15 | Pending |
+| EXP-02 | Phase 15 | Pending |
+| EXP-03 | Phase 15 | Pending |
+| PAY-01 | Phase 16 | Pending |
+| PAY-02 | Phase 16 | Pending |
+| PAY-03 | Phase 16 | Pending |
+| PAY-04 | Phase 16 | Pending |
+| PAY-05 | Phase 16 | Pending |
+| AI-01 | Phase 17 | Pending |
+| AI-02 | Phase 17 | Pending |
+| AI-03 | Phase 17 | Pending |
+| AI-04 | Phase 18 | Pending |
+| AI-05 | Phase 18 | Pending |
+| AI-06 | Phase 18 | Pending |
 
 **Coverage:**
-- v3 requirements: 29 total
-- Mapped to phases: 29
+- v4.0 requirements: 14 total
+- Mapped to phases: 14
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-06-02*
-*Last updated: 2026-06-02 after v3.0 milestone start*
+
+*Requirements defined: 2026-06-10*
+*Last updated: 2026-06-10 after v4.0 milestone start*
