@@ -4,11 +4,12 @@
 
 - ✅ **v1.0 TestFlight** - Phases 1-3 (shipped 2026-05-25)
 - ✅ **v2.0 Premium, Backend & Exercise** - Phases 4-9 (complete 2026-06-02)
-- 🚧 **v3.0 Intelligence & Growth** - Phases 10-14 (in progress)
+- ✅ **v3.0 Intelligence & Growth** - Phases 10-14 (complete 2026-06-09)
+- 🚧 **v4.0 Monetization & Intelligence** - Phases 15-18 (in progress)
 
 ## Overview
 
-v2 shipped a backend-connected, visually coherent product to TestFlight. v3 elevates Vitalspan from a manual-entry tracker to an intelligent longevity platform: live Apple Health data replaces demo orbitals, a PubMed article feed surfaces research personalized to the user's biomarker profile, the supplement and drug database is expanded with evidence-graded longevity compounds, every exercise in the library gets fitness-app-quality illustrations and muscle maps, the visual layer is unified under a clinical-premium design system, and full Supabase Auth ships with guest mode and seamless anonymous-to-authenticated data migration. Each phase builds on the last — live health data before articles that reference it, complete supplement data before the design system that renders it, design system before auth screens that must match it.
+v3.0 shipped a complete intelligent longevity platform — live HealthKit data, PubMed articles, 60-exercise SVG library, expanded supplement/drug database, clinical design system, and full Supabase Auth. v4.0 turns Vitalspan into a sustainable business: exercise photos elevate the visual quality of the library with real CDN-hosted JPGs from a public-domain source, Adapty-powered subscriptions add a premium tier with in-app purchase and a trial timeline paywall, and the AI Longevity Advisor (Claude API via Supabase Edge Function) becomes the flagship premium feature — generating a structured 6-section longevity report and follow-up chat from anonymized health context.
 
 ---
 
@@ -207,21 +208,8 @@ Plans:
 
 ---
 
-## Phases — v3.0 Intelligence & Growth
-
-**Phase Numbering:**
-- Integer phases (10, 11, 12...): Planned milestone work
-- Decimal phases (10.1, 10.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 10: Apple Health + Articles** - Replace demo orbital values with live HealthKit data and add a PubMed-powered longevity article feed
-- [x] **Phase 11: Supplement & Drug Database** - Expand the protocol database with 8 longevity supplements and 5 drug classes, with evidence grades and a full-stack interaction checker
-- [x] **Phase 12: Exercise UI Overhaul** - Elevate all 60 exercises with SVG illustrations, neural-dot muscle maps, form cues, and longevity-optimized sets/reps; add muscle-group filtering and a weekly movement summary (completed 2026-06-08)
-- [x] **Phase 13: UI / Design System** - Replace patchwork styling with a clinical-premium design system: intentional color tokens, full SVG icon conversion, verified rendering, documented typography scale, and spacing audit (completed 2026-06-09)
-- [x] **Phase 14: Auth & Login** - Ship full Supabase Auth with Welcome screen, sign up, login, forgot password, email verification, session persistence, guest mode, and anonymous-to-authenticated data migration (completed 2026-06-09)
-
-## Phase Details
+<details>
+<summary>✅ v3.0 Intelligence & Growth (Phases 10-14) — COMPLETE 2026-06-09</summary>
 
 ### Phase 10: Apple Health + Articles
 **Goal**: LongevityScore orbitals show live Apple Health data (HRV, sleep, recovery, glucose, fitness) instead of demo values, and users can read PubMed longevity articles personalized to their current biomarker profile
@@ -318,7 +306,7 @@ Plans:
   1. A developer opening `src/theme/index.ts` sees the full clinical-premium token set (`primary`, `surface`, `surfaceElevated`, `accent`, `accentMuted`, `semantic.*`) and the documented typography scale; no screen file outside dynamic styles contains hardcoded hex values, font sizes, or margin/padding numbers
   2. Every icon in the app — across all screens, modals, and empty states — renders as a consistent SVG neural-dot style with no placeholder icons, question marks, or emoji remaining
   3. An EAS production build installs and runs with all SVG icons rendering correctly on device — no blank spaces, missing glyphs, or native module errors
-**Plans**: TBD
+**Plans**: 6 plans
 **UI hint**: yes
 
 ### Phase 14: Auth & Login
@@ -327,7 +315,7 @@ Plans:
 **Depends on**: Phase 13
 **Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09
 **Success Criteria** (what must be TRUE):
-  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, promotes the existing anonymous session via `supabase.auth.updateUser()` (D-16), and all previously entered data remains intact after account creation
+  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, promotes the existing anonymous session via `supabase.auth.updateUser()`, and all previously entered data remains intact after account creation
   2. A returning user logging in with correct credentials is taken directly to the main app with their biomarker history visible; a user logging in with wrong credentials sees a specific error message ("Incorrect password" not "Something went wrong")
   3. User who forgets password can trigger a reset email from the Login screen and sees a confirmation screen; after clicking the reset link, they can set a new password and log in successfully
   4. After backgrounding the app for any duration and reopening it, the user remains logged in without re-entering credentials; logging out clears the session, returns to the Welcome screen, and local AsyncStorage data is still accessible in guest mode
@@ -348,18 +336,82 @@ Plans:
 - [x] 14-04-PLAN.md — ForgotPassword + SignUpConfirmation screens (AUTH-04, AUTH-05)
 - [x] 14-05-PLAN.md — ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast + App.tsx cleanup (AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09)
 
-**Cross-cutting constraints:**
-- `supabase.ts` polyfill constraint: `react-native-url-polyfill/auto` must remain line 1 in all plans touching that file (D-16, 14-02)
-- `initSupabaseSession()` must be awaited before `supabase.auth.getUser()` in App.tsx routing (D-06, 14-01)
-- Anonymous→email promotion uses `updateUser({ email, password })` not `linkIdentity()` (D-16, 14-02, 14-03)
-- AsyncStorage keys preserved; no wipe on logout (D-08, 14-02, 14-05)
+**UI hint**: yes
 
+</details>
+
+---
+
+## Phases — v4.0 Monetization & Intelligence
+
+**Milestone Goal:** Turn Vitalspan into a sustainable business — real exercise photography elevates the visual library, Adapty-powered subscriptions add a premium tier with Apple in-app purchase, and the AI Longevity Advisor (Claude API via Supabase Edge Function) becomes the flagship premium feature generating a structured health report and follow-up chat from anonymized context.
+
+**Phase Numbering:**
+- Integer phases (15, 16, 17, 18): Planned milestone work
+- Decimal phases (15.1, 15.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
+- [ ] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
+- [ ] **Phase 17: AI Advisor — Backend** - Build the Supabase Edge Function, anonymized context assembler, and per-user rate limiting that powers the AI Longevity Advisor
+- [ ] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate
+
+## Phase Details
+
+### Phase 15: Exercise Photos
+**Goal**: ExerciseDetailScreen displays real JPG photos for exercises with a mapped photoKey, loaded from the yuhonas/free-exercise-db CDN — SVG illustrations remain as fallback for unmapped exercises and a neutral placeholder covers any remaining gaps
+**Mode:** standard
+**Depends on**: Phase 14
+**Requirements**: EXP-01, EXP-02, EXP-03
+**Success Criteria** (what must be TRUE):
+  1. Opening an exercise with a mapped photoKey shows a real JPG photo (start position) in the illustration area — the photo loads progressively and is disk-cached by expo-image for offline revisits
+  2. Opening an exercise without a photoKey mapping shows the existing Phase 12 SVG illustration unchanged — no visible regression for unmapped exercises
+  3. At least 42 of the 60 exercises (70%) have a verified photoKey that resolves to a valid yuhonas/free-exercise-db JPG URL
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 16: Adapty Paywall & Subscriptions
+**Goal**: Users can subscribe to Vitalspan Premium via Apple in-app purchase from a compliant paywall screen; the paywall shows price, billing period, a visual 7-day trial timeline, and a Restore Purchases button; premium status gates the AI Advisor and Articles features
+**Mode:** standard
+**Depends on**: Phase 15
+**Requirements**: PAY-01, PAY-02, PAY-03, PAY-04, PAY-05
+**Success Criteria** (what must be TRUE):
+  1. User tapping "Get Premium" sees a paywall screen that displays the subscription price, billing period, and a Day 1–7 free / Day 8 billed visual timeline — no toggle UI; tapping Subscribe initiates Apple in-app purchase and grants premium access on success
+  2. User who previously subscribed taps "Restore Purchases" and regains premium access without initiating a new purchase; if no subscription is found, a plain-language message is shown
+  3. Free user tapping the Articles entry point or AI Advisor entry point is redirected to the paywall; a premium user tapping the same entry points proceeds directly without seeing the paywall
+  4. Closing and reopening the app preserves subscription status — premium access does not require re-purchase or re-restore after an app restart
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 17: AI Advisor — Backend
+**Goal**: The app assembles an anonymized health context from AsyncStorage and invokes a Supabase Edge Function that calls Claude API server-side, returning a structured longevity report — no raw lab values leave the device, no Anthropic API key exists in the Expo bundle, and per-user rate limits are enforced
+**Mode:** standard
+**Depends on**: Phase 16
+**Requirements**: AI-01, AI-02, AI-03
+**Success Criteria** (what must be TRUE):
+  1. Calling the Edge Function with a valid Supabase JWT returns a structured longevity report JSON — no `@anthropic-ai/sdk` import exists anywhere in the Expo project source
+  2. The anonymized context payload assembled by `advisorContext.ts` contains no user name, no exact birthdate, no raw lab values with timestamps, and no Supabase user ID — only bucketed age, biomarker status categories, supplement names, and medication names
+  3. A user who triggers report generation 6 times in one day receives a 429 response with a plain-language message on the sixth attempt; the first 5 succeed normally
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 18: AI Advisor — UI
+**Goal**: Premium users can generate a longevity report from the Dashboard, read it as a 6-section card layout, and ask follow-up questions in a conversational chat interface scoped to that report — free users see the paywall when tapping the AI Advisor entry point
+**Mode:** standard
+**Depends on**: Phase 17
+**Requirements**: AI-04, AI-05, AI-06
+**Success Criteria** (what must be TRUE):
+  1. A premium user tapping "AI Advisor" on the Dashboard triggers report generation; the completed report renders as 6 labeled cards: Score Summary, Priority Findings, Biomarker Analysis, Supplement & Medication Review, Recommendations (with evidence grades A/B/C), and a Follow-up Chat entry
+  2. User can type a follow-up question in the chat interface and receive a response from Claude that references the generated report; sending a second question in the same session shows the conversation thread; closing and reopening the screen starts a fresh session with no prior messages
+  3. A free user tapping "AI Advisor" sees the paywall — not an error, not a locked icon, not an empty screen
+**Plans**: TBD
 **UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
+Phases execute in numeric order: 15 → 16 → 17 → 18
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -372,8 +424,12 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 7. Reference Data & Exercise Screen | v2.0 | 4/4 | Complete | 2026-06-01 |
 | 8. Biomarker Sync Write Path | v2.0 | 3/3 | Complete | 2026-06-01 |
 | 9. PhenoAge Fix & Release Quality | v2.0 | 3/3 | Complete | 2026-06-02 |
-| 10. Apple Health + Articles | v3.0 | 4/5 | In progress | - |
-| 11. Supplement & Drug Database | v3.0 | 0/5 | Planned | - |
+| 10. Apple Health + Articles | v3.0 | 5/5 | Complete | 2026-06-09 |
+| 11. Supplement & Drug Database | v3.0 | 5/5 | Complete | 2026-06-09 |
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
 | 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |
+| 15. Exercise Photos | v4.0 | 0/TBD | Not started | - |
+| 16. Adapty Paywall & Subscriptions | v4.0 | 0/TBD | Not started | - |
+| 17. AI Advisor — Backend | v4.0 | 0/TBD | Not started | - |
+| 18. AI Advisor — UI | v4.0 | 0/TBD | Not started | - |

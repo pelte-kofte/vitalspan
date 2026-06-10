@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (defining requirements)
+**Current focus:** v4.0 — Monetization & Intelligence (roadmap defined, ready to plan Phase 15)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 15 (Exercise Photos) — Not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-10 — Milestone v4.0 started (Adapty paywall + AI Longevity Advisor + exercise photos)
+Status: Roadmap defined — ready for /gsd:plan-phase 15
+Last activity: 2026-06-10 — v4.0 roadmap created (Phases 15-18)
 
 Progress: [░░░░░░░░░░] 0% v4.0
 
@@ -79,6 +79,13 @@ Recent decisions affecting current work:
 - 14-05: CompositeNavigationProp nav.reset requires double cast (as unknown as NativeStackNavigationProp) for RootStack routes — TypeScript strict rejects direct cast due to setParams incompatibility
 - 14-05: Verification banner placed outside ScrollView (between NeuralGrid and ScrollView) for fixed positioning at top
 - 14-05: Guest CTA uses nav.reset (not nav.navigate) to cleanly replace stack history when going to Welcome
+- v4.0: Adapty chosen over RevenueCat — better A/B paywall testing, analytics dashboard, more generous free tier
+- v4.0: AI Advisor uses anonymized context (bucketed age, status categories, supplement/med names) — no raw lab values, no exact birthdate, no Supabase user ID
+- v4.0: Claude API proxied through Supabase Edge Function — never install @anthropic-ai/sdk in Expo project (unsupported Hermes runtime + API key security)
+- v4.0: Exercise photos loaded from yuhonas/free-exercise-db CDN via expo-image disk cache — no local bundling (97 MB repo)
+- v4.0: photoKey field added to Exercise interface — holds free-exercise-db name string (e.g. "Barbell_Deadlift"), not Vitalspan numeric ID
+- v4.0: SubscriptionContext.isPremium — do NOT persist in AsyncStorage; Adapty owns subscription state
+- v4.0: Adapty activation race — activate with no customerUserId; call adapty.identify(user.id) only after Supabase getUser() resolves
 
 ### Pending Todos
 
@@ -86,9 +93,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 10: expo-health package requires HealthKit entitlement in app.json — verify Expo SDK 54 compatibility before install
-- Phase 10: PubMed NCBI API is free / no key required — confirm rate limits before caching strategy is finalized
-- Phase 14: updateUser() replaces linkIdentity() (which is OAuth-only); test that updateUser promotes anonymous session to email/password correctly in Supabase JS v2
+- Phase 15: yuhonas/free-exercise-db photoKey mapping is manual — 60 exercises need name-based matching against 873-exercise repo
+- Phase 16: react-native-adapty 3.17.1 requires expo prebuild --clean — HealthKit entitlements must be in app.json config plugins before running or they will be lost
+- Phase 16: Missing Restore Purchases = App Store rejection — wire adapty.restorePurchases() before submission
+- Phase 17: Anthropic API key must NEVER appear in Expo project source — Edge Function only; set spend alert in Anthropic Console before launch
+- Phase 17: Per-user rate limiting must be enforced before every Anthropic call — 5 reports/day, 20 chat messages/day
 
 ## Deferred Items
 
@@ -96,12 +105,12 @@ Items carried forward to future milestone:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Monetization | RevenueCat paywall | v4+ | v1 init |
-| Notifications | Protocol + labs reminders | v4+ | v1 init |
-| Biomarkers | Trend charts / sparklines | v4+ | v1 init |
+| Notifications | Protocol + labs reminders | v5+ | v1 init |
+| Biomarkers | Trend charts / sparklines | v5+ | v1 init |
+| Data Limits | Free tier 30-day history limit | v5+ | v4.0 — paywall ships first |
 
 ## Session Continuity
 
-Last session: 2026-06-09
-Stopped at: Phase 14 Plan 05 complete. ProfileScreen guest card + logout + DashboardScreen verification banner + verified toast. Phase 14 Auth & Login fully complete.
+Last session: 2026-06-10
+Stopped at: v4.0 roadmap defined. Phases 15-18 written to ROADMAP.md. Ready to start Phase 15 planning.
 Resume file: .planning/STATE.md
