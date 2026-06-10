@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-30)
+See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v3.0 — Intelligence & Growth (Phase 14 Auth & Login complete — Phase 10 plan 10-05 and Phase 11 remain)
+**Current focus:** v4.0 — Monetization & Intelligence (defining requirements)
 
 ## Current Position
 
-Phase: 14 (complete)
-Plan: 14-05 complete. All 5 plans in Phase 14 done. Phase 14 Auth & Login complete.
-Status: Phase 14 complete. 14-01 nav/routing + 14-02 auth methods + 14-03 WelcomeScreen + 14-04 ForgotPasswordScreen + SignUpConfirmationScreen + 14-05 ProfileScreen guest card + DashboardScreen verification banner all done.
-Last activity: 2026-06-09 — 14-05 complete: ProfileScreen guest card (isAnonymous===true) + logout button (isAnonymous===false) + DashboardScreen amber verification banner + one-time verified toast + App.tsx confirmed clean of Landing refs.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-10 — Milestone v4.0 started (Adapty paywall + AI Longevity Advisor + exercise photos)
 
-Progress: [██████████] 100% Phase 14 complete
+Progress: [░░░░░░░░░░] 0% v4.0
 
 ## Performance Metrics
 
