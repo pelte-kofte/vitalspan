@@ -40,7 +40,7 @@ Users get their first clinically meaningful insight within minutes of opening th
 
 - [ ] Adapty paywall — free vs. premium tier, in-app purchase flow, paywall screen (PAY-01 through PAY-05)
 - [ ] AI Longevity Advisor — Claude API report + follow-up chat, anonymized health context, premium-only (AI-01 through AI-05)
-- [ ] Exercise photos — real photos from `yunohas/free-exercise-db` where available; Phase 12 SVG illustrations remain as fallback (EXP-01 through EXP-03)
+- [ ] Exercise photos — real photos from `yuhonas/free-exercise-db` where available; Phase 12 SVG illustrations remain as fallback (EXP-01 through EXP-03)
 
 ### Out of Scope
 
