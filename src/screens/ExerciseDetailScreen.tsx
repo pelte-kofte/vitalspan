@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Image } from 'expo-image';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
 } from 'react-native';
@@ -32,6 +33,9 @@ export default function ExerciseDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [muscleView, setMuscleView] = useState<'front' | 'back'>('front');
   const [logModalOpen, setLogModalOpen] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
+
+  useEffect(() => { setPhotoError(false); }, [exerciseId]);
 
   useFocusEffect(useCallback(() => {
     setStatusBarStyle('dark');
@@ -66,6 +70,10 @@ export default function ExerciseDetailScreen() {
     ? (ExerciseIllustrations as Record<string, React.ComponentType<{ size?: number }>>)[exercise.illustrationId]
     : null;
 
+  const photoUrl = exercise.photoKey && !photoError
+    ? `https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/${exercise.photoKey}/0.jpg`
+    : null;
+
   return (
     <View style={s.root}>
       {/* Header */}
@@ -76,16 +84,29 @@ export default function ExerciseDetailScreen() {
       </View>
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-        {/* 1. SVG Illustration */}
-        <View style={s.illustrationCard}>
-          {IllustrationComponent ? (
-            <IllustrationComponent size={160} />
-          ) : (
-            <View style={s.illustrationPlaceholder}>
-              <Text style={s.illustrationPlaceholderTxt}>No illustration</Text>
-            </View>
-          )}
-        </View>
+        {/* 1. Illustration — photo banner (if photoKey) or SVG (if illustrationId) or placeholder */}
+        {photoUrl ? (
+          <View style={s.illustrationCardPhoto}>
+            <Image
+              source={photoUrl}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={200}
+              placeholder={{ color: Colors.surfaceElevated }}
+              onError={() => setPhotoError(true)}
+            />
+          </View>
+        ) : (
+          <View style={s.illustrationCard}>
+            {IllustrationComponent ? (
+              <IllustrationComponent size={160} />
+            ) : (
+              <View style={s.illustrationPlaceholder}>
+                <Text style={s.illustrationPlaceholderTxt}>No illustration</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* 2. Muscle Map */}
         <View style={s.sectionCard}>
@@ -157,6 +178,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.base, gap: Spacing.md },
   illustrationCard: { backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, alignItems: 'center', paddingVertical: Spacing.xl, ...Elevation.sm },
+  illustrationCardPhoto: { backgroundColor: Colors.surfaceElevated, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, height: 220, overflow: 'hidden', ...Elevation.sm },
   illustrationPlaceholder: { width: 160, height: 160, backgroundColor: Colors.surfaceElevated, borderRadius: Radius.lg, justifyContent: 'center', alignItems: 'center' },
   illustrationPlaceholderTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
   sectionCard: { backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, padding: Spacing.base, ...Elevation.sm },
