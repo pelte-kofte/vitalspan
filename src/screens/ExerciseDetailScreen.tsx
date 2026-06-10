@@ -92,7 +92,6 @@ export default function ExerciseDetailScreen() {
               style={StyleSheet.absoluteFill}
               contentFit="cover"
               transition={200}
-              placeholder={{ color: Colors.surfaceElevated }}
               onError={() => setPhotoError(true)}
             />
           </View>
