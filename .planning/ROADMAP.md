@@ -368,7 +368,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Opening an exercise with a mapped photoKey shows a real JPG photo (start position) in the illustration area — the photo loads progressively and is disk-cached by expo-image for offline revisits
   2. Opening an exercise without a photoKey mapping shows the existing Phase 12 SVG illustration unchanged — no visible regression for unmapped exercises
   3. At least 42 of the 60 exercises (70%) have a verified photoKey that resolves to a valid yuhonas/free-exercise-db JPG URL
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 15-01-PLAN.md — Add photoKey?: string to Exercise interface + populate 46 verified mappings (EXP-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 15-02-PLAN.md — Install expo-image + rewrite ExerciseDetailScreen illustration section with CDN photo banner + SVG fallback (EXP-01, EXP-02)
+
 **UI hint**: yes
 
 ### Phase 16: Adapty Paywall & Subscriptions
@@ -429,7 +438,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
 | 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |
-| 15. Exercise Photos | v4.0 | 0/TBD | Not started | - |
+| 15. Exercise Photos | v4.0 | 0/2 | Planned | - |
 | 16. Adapty Paywall & Subscriptions | v4.0 | 0/TBD | Not started | - |
 | 17. AI Advisor — Backend | v4.0 | 0/TBD | Not started | - |
 | 18. AI Advisor — UI | v4.0 | 0/TBD | Not started | - |
