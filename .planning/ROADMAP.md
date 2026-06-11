@@ -352,7 +352,7 @@ Plans:
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
+- [x] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
 - [ ] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
 - [ ] **Phase 17: AI Advisor — Backend** - Build the Supabase Edge Function, anonymized context assembler, and per-user rate limiting that powers the AI Longevity Advisor
 - [ ] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate
@@ -373,10 +373,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 
 **Wave 1**
-- [ ] 15-01-PLAN.md — Add photoKey?: string to Exercise interface + populate 46 verified mappings (EXP-03)
+- [x] 15-01-PLAN.md — Add photoKey?: string to Exercise interface + populate 46 verified mappings (EXP-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 15-02-PLAN.md — Install expo-image + rewrite ExerciseDetailScreen illustration section with CDN photo banner + SVG fallback (EXP-01, EXP-02)
+- [x] 15-02-PLAN.md — Install expo-image + rewrite ExerciseDetailScreen illustration section with CDN photo banner + SVG fallback (EXP-01, EXP-02)
 
 **UI hint**: yes
 

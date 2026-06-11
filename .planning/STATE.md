@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (roadmap defined, ready to plan Phase 15)
+**Current focus:** v4.0 — Monetization & Intelligence (Phase 15 complete, ready to plan Phase 16)
 
 ## Current Position
 
-Phase: 15 (Exercise Photos) — Ready to execute
-Plan: 2 plans in 2 waves
-Status: Planned — ready for /gsd:execute-phase 15
-Last activity: 2026-06-10 — Phase 15 planned (2 plans, research complete, checker passed)
+Phase: 16 (Adapty Paywall & Subscriptions) — Ready to plan
+Plan: —
+Status: Phase 15 complete — ready for /gsd:discuss-phase 16
+Last activity: 2026-06-11 — Phase 15 executed and verified (2/2 plans, 3/3 criteria met)
 
-Progress: [░░░░░░░░░░] 0% v4.0
+Progress: [██░░░░░░░░] 25% v4.0
 
 ## Performance Metrics
 
