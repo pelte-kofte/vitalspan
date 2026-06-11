@@ -1,6 +1,10 @@
 import { supabase } from './supabase';
 import { EXERCISES, type Exercise } from '../data/exercises';
 
+const PHOTO_KEY_MAP = new Map<string, string>(
+  EXERCISES.filter(ex => ex.photoKey).map(ex => [ex.id, ex.photoKey as string]),
+);
+
 interface ExerciseRow {
   id: string;
   name: string;
@@ -56,7 +60,10 @@ export async function getExercises(): Promise<Exercise[]> {
       return EXERCISES;
     }
 
-    return (data as ExerciseRow[]).map(mapRowToExercise);
+    return (data as ExerciseRow[]).map(row => ({
+      ...mapRowToExercise(row),
+      photoKey: PHOTO_KEY_MAP.get(row.id),
+    }));
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn('[exerciseService] Unexpected error, using static fallback:', message);

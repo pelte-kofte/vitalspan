@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Image } from 'expo-image';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
@@ -22,7 +22,8 @@ const EQUIPMENT_SHORT: Record<string, string> = {
 };
 
 function equipShort(eq: string): string {
-  return EQUIPMENT_SHORT[eq] ?? eq.split(' ').map(w => w[0].toUpperCase()).join('');
+  if (!eq) return '';
+  return EQUIPMENT_SHORT[eq] ?? eq.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).join('');
 }
 
 export default function ExerciseDetailScreen() {
@@ -34,8 +35,6 @@ export default function ExerciseDetailScreen() {
   const [muscleView, setMuscleView] = useState<'front' | 'back'>('front');
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [photoError, setPhotoError] = useState(false);
-
-  useEffect(() => { setPhotoError(false); }, [exerciseId]);
 
   useFocusEffect(useCallback(() => {
     setStatusBarStyle('dark');
