@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 16 (Adapty Paywall & Subscriptions) — Ready to execute
-Plan: 6 plans in 4 waves
-Status: Planned — ready for /gsd:execute-phase 16
-Last activity: 2026-06-12 — Phase 16 planned (6 plans, 4 waves: SDK install → context+nav → paywall UI → audit)
+Phase: 16 (Adapty Paywall & Subscriptions) — Executing (2/6 plans complete)
+Plan: 6 plans in 4 waves — 16-01 and 16-02 complete
+Status: Executing — Wave 1 done (SDK install), Wave 2 done (context + nav + stub)
+Last activity: 2026-06-12 — 16-02 complete: PremiumContext + AppNavigator routes + AIAdvisorScreen stub
 
 Progress: [██░░░░░░░░] 25% v4.0
 
@@ -111,6 +111,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-06-10
-Stopped at: v4.0 roadmap defined. Phases 15-18 written to ROADMAP.md. Ready to start Phase 15 planning.
+Last session: 2026-06-12
+Stopped at: Phase 16 plan 02 complete. PremiumContext, AIAdvisorScreen, Paywall+AIAdvisor routes committed. Next: 16-03 (PaywallScreen UI) or 16-04 (PaywallScreen + paywallGate hook).
 Resume file: .planning/STATE.md

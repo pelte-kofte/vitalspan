@@ -395,10 +395,10 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 16-01-PLAN.md — Package legitimacy checkpoint + install react-native-adapty + adapty.ts singleton (PAY-01)
+- [x] 16-01-PLAN.md — Package legitimacy checkpoint + install react-native-adapty + adapty.ts singleton (PAY-01)
 
 **Wave 2** *(run in parallel)*
-- [ ] 16-02-PLAN.md — PremiumContext.tsx + AppNavigator Paywall/AIAdvisor routes + AIAdvisorScreen stub (PAY-04, AI-06)
+- [x] 16-02-PLAN.md — PremiumContext.tsx + AppNavigator Paywall/AIAdvisor routes + AIAdvisorScreen stub (PAY-04, AI-06)
 - [ ] 16-03-PLAN.md — Adapty dashboard + App Store Connect setup + sandbox Apple ID (PAY-01, PAY-02, PAY-03) [human action]
 
 **Wave 3** *(run in parallel, blocked on Wave 2)*
@@ -456,6 +456,6 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
 | 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |
 | 15. Exercise Photos | v4.0 | 0/2 | Planned | - |
-| 16. Adapty Paywall & Subscriptions | v4.0 | 0/TBD | Not started | - |
+| 16. Adapty Paywall & Subscriptions | v4.0 | 2/6 | Executing | PremiumContext, routes, AIAdvisorScreen stub done |
 | 17. AI Advisor — Backend | v4.0 | 0/TBD | Not started | - |
 | 18. AI Advisor — UI | v4.0 | 0/TBD | Not started | - |
