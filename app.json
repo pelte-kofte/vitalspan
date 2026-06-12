@@ -46,7 +46,8 @@
           "NSHealthShareUsageDescription": "Vitalspan reads your health data to display longevity metrics on your dashboard.",
           "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
         }
-      ]
+      ],
+      "react-native-adapty"
     ]
   }
 }
