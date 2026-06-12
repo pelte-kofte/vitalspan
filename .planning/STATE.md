@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (Phase 15 complete, ready to plan Phase 16)
+**Current focus:** v4.0 — Monetization & Intelligence (Phase 16 planned, ready to execute)
 
 ## Current Position
 
-Phase: 16 (Adapty Paywall & Subscriptions) — Ready to plan
-Plan: —
-Status: Phase 15 complete — ready for /gsd:discuss-phase 16
-Last activity: 2026-06-11 — Phase 15 executed and verified (2/2 plans, 3/3 criteria met)
+Phase: 16 (Adapty Paywall & Subscriptions) — Ready to execute
+Plan: 6 plans in 4 waves
+Status: Planned — ready for /gsd:execute-phase 16
+Last activity: 2026-06-12 — Phase 16 planned (6 plans, 4 waves: SDK install → context+nav → paywall UI → audit)
 
 Progress: [██░░░░░░░░] 25% v4.0
 
