@@ -816,22 +816,25 @@ dayNumBilled: { color: Colors.textMuted },
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`product.subscription.introductoryOffer` property name in v3.17.1**
    - What we know: The SDK reference at `react-native.adapty.io/interfaces/adaptypaywallproduct` (v3.11.4 snapshot) shows a `subscription` field of type `AdaptySubscriptionDetails`. The `introductoryOffer` is nested within it.
    - What's unclear: The exact property path in v3.17.1 — the TypeScript types in the installed package are authoritative.
    - Recommendation: After install, run `npx tsc --noEmit` and inspect the `AdaptyPaywallProduct` type definition to confirm. Adjust code if the path differs.
+   - **RESOLVED:** Plan 16-01 Task 2 acceptance criteria requires `npx tsc --noEmit` exits 0 after install. The executor must inspect the installed `AdaptyPaywallProduct` TypeScript type definition to confirm the exact property path and adjust code if it differs from `product.subscription.introductoryOffer`.
 
 2. **Adapty free tier limits for phase 16 testing**
    - What we know: Adapty has a free tier; the pricing page exists but limits are not researched.
    - What's unclear: Whether the free tier supports production use or requires a paid plan for real IAP.
    - Recommendation: Verify on adapty.io/pricing/ before launch. The free tier likely covers development testing.
+   - **RESOLVED:** Informational only — does not block code execution. Developer must verify on adapty.io/pricing/ before launch; development testing is covered by the free tier.
 
 3. **Placement ID must be created in Adapty dashboard before code ships**
    - What we know: `adapty.getPaywall(placementId)` requires the placement to be published in the dashboard.
    - What's unclear: Whether a hardcoded `PLACEMENT_ID = 'vitalspan_premium_paywall'` can be used in code before the dashboard configuration exists (it will simply return nothing / throw until configured).
    - Recommendation: Planner includes a `checkpoint:human-verify` task for Adapty dashboard setup as a prerequisite Wave before PaywallScreen implementation.
+   - **RESOLVED:** Plan 16-03 is a dedicated `checkpoint:human-action` plan that covers the full Adapty dashboard setup sequence as a prerequisite Wave before PaywallScreen implementation (16-04).
 
 ---
 
