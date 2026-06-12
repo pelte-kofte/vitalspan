@@ -390,7 +390,24 @@ Plans:
   2. User who previously subscribed taps "Restore Purchases" and regains premium access without initiating a new purchase; if no subscription is found, a plain-language message is shown
   3. Free user tapping the Articles entry point or AI Advisor entry point is redirected to the paywall; a premium user tapping the same entry points proceeds directly without seeing the paywall
   4. Closing and reopening the app preserves subscription status — premium access does not require re-purchase or re-restore after an app restart
-**Plans**: TBD
+**Plans**: 6 plans in 4 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 16-01-PLAN.md — Package legitimacy checkpoint + install react-native-adapty + adapty.ts singleton (PAY-01)
+
+**Wave 2** *(run in parallel)*
+- [ ] 16-02-PLAN.md — PremiumContext.tsx + AppNavigator Paywall/AIAdvisor routes + AIAdvisorScreen stub (PAY-04, AI-06)
+- [ ] 16-03-PLAN.md — Adapty dashboard + App Store Connect setup + sandbox Apple ID (PAY-01, PAY-02, PAY-03) [human action]
+
+**Wave 3** *(run in parallel, blocked on Wave 2)*
+- [ ] 16-04-PLAN.md — PaywallScreen.tsx hybrid dark hero + white price card + purchase/restore wiring (PAY-01, PAY-02, PAY-03)
+- [ ] 16-05-PLAN.md — App.tsx Adapty activation + PremiumProvider + DashboardScreen Intelligence section (PAY-04, PAY-05, AI-06)
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 16-06-PLAN.md — tsc audit + security grep + on-device integration verification (PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, AI-06)
+
 **UI hint**: yes
 
 ### Phase 17: AI Advisor — Backend
