@@ -22,6 +22,8 @@ import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import SignUpConfirmationScreen from '../screens/SignUpConfirmationScreen';
+import AIAdvisorScreen from '../screens/AIAdvisorScreen';
+// PaywallScreen created in 16-04-PLAN — import added there
 
 import { Colors } from '../theme';
 import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
@@ -42,6 +44,8 @@ export type RootStackParamList = {
   About: undefined;
   Articles: undefined;
   ExerciseDetail: { exerciseId: string };
+  Paywall: undefined;
+  AIAdvisor: undefined;
 };
 
 export type MainTabParamList = {
@@ -208,6 +212,17 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="ExerciseDetail"
           component={ExerciseDetailScreen}
           options={{ presentation: 'card' }}
+        />
+        {/* Paywall: temporary component until PaywallScreen is created in 16-04 */}
+        <Stack.Screen
+          name="Paywall"
+          component={AIAdvisorScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
+        />
+        <Stack.Screen
+          name="AIAdvisor"
+          component={AIAdvisorScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
