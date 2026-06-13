@@ -353,7 +353,7 @@ Plans:
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
-- [ ] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
+- [x] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
 - [ ] **Phase 17: AI Advisor — Backend** - Build the Supabase Edge Function, anonymized context assembler, and per-user rate limiting that powers the AI Longevity Advisor
 - [ ] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate
 
@@ -399,14 +399,14 @@ Plans:
 
 **Wave 2** *(run in parallel)*
 - [x] 16-02-PLAN.md — PremiumContext.tsx + AppNavigator Paywall/AIAdvisor routes + AIAdvisorScreen stub (PAY-04, AI-06)
-- [ ] 16-03-PLAN.md — Adapty dashboard + App Store Connect setup + sandbox Apple ID (PAY-01, PAY-02, PAY-03) [human action]
+- [x] 16-03-PLAN.md — Adapty dashboard + App Store Connect setup + sandbox Apple ID (PAY-01, PAY-02, PAY-03) [human action]
 
 **Wave 3** *(run in parallel, blocked on Wave 2)*
-- [ ] 16-04-PLAN.md — PaywallScreen.tsx hybrid dark hero + white price card + purchase/restore wiring (PAY-01, PAY-02, PAY-03)
-- [ ] 16-05-PLAN.md — App.tsx Adapty activation + PremiumProvider + DashboardScreen Intelligence section (PAY-04, PAY-05, AI-06)
+- [x] 16-04-PLAN.md — PaywallScreen.tsx hybrid dark hero + white price card + purchase/restore wiring (PAY-01, PAY-02, PAY-03)
+- [x] 16-05-PLAN.md — App.tsx Adapty activation + PremiumProvider + DashboardScreen Intelligence section (PAY-04, PAY-05, AI-06)
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 16-06-PLAN.md — tsc audit + security grep + on-device integration verification (PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, AI-06)
+- [x] 16-06-PLAN.md — tsc audit + security grep + on-device integration verification (PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, AI-06)
 
 **UI hint**: yes
 
@@ -419,7 +419,18 @@ Plans:
   1. Calling the Edge Function with a valid Supabase JWT returns a structured longevity report JSON — no `@anthropic-ai/sdk` import exists anywhere in the Expo project source
   2. The anonymized context payload assembled by `advisorContext.ts` contains no user name, no exact birthdate, no raw lab values with timestamps, and no Supabase user ID — only bucketed age, biomarker status categories, supplement names, and medication names
   3. A user who triggers report generation 6 times in one day receives a 429 response with a plain-language message on the sixth attempt; the first 5 succeed normally
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
+
+Plans:
+
+**Wave 1** *(run in parallel)*
+- [ ] 17-01-PLAN.md — Supabase ai_usage migration (rate limit table + RLS) (AI-03)
+- [ ] 17-02-PLAN.md — advisorContext.ts: anonymized health context assembler (AI-01)
+
+**Wave 2** *(blocked on Wave 1, run in parallel)*
+- [ ] 17-03-PLAN.md — ai-advisor Edge Function: JWT auth + rate limiting + Claude API proxy (AI-02, AI-03)
+- [ ] 17-04-PLAN.md — advisorService.ts: client wrappers + tsc audit (AI-02)
+
 **UI hint**: no
 
 ### Phase 18: AI Advisor — UI
@@ -455,7 +466,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 12. Exercise UI Overhaul | v3.0 | 7/7 | Complete | 2026-06-08 |
 | 13. UI / Design System | v3.0 | 6/6 | Complete | 2026-06-09 |
 | 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |
-| 15. Exercise Photos | v4.0 | 0/2 | Planned | - |
-| 16. Adapty Paywall & Subscriptions | v4.0 | 2/6 | Executing | PremiumContext, routes, AIAdvisorScreen stub done |
+| 15. Exercise Photos | v4.0 | 2/2 | Complete | 2026-06-13 |
+| 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 0/TBD | Not started | - |
 | 18. AI Advisor — UI | v4.0 | 0/TBD | Not started | - |
