@@ -428,8 +428,8 @@ Plans:
 - [x] 17-02-PLAN.md — advisorContext.ts: anonymized health context assembler (AI-01)
 
 **Wave 2** *(blocked on Wave 1, run in parallel)*
-- [ ] 17-03-PLAN.md — ai-advisor Edge Function: JWT auth + rate limiting + Claude API proxy (AI-02, AI-03)
-- [ ] 17-04-PLAN.md — advisorService.ts: client wrappers + tsc audit (AI-02)
+- [x] 17-03-PLAN.md — ai-advisor Edge Function: JWT auth + rate limiting + Claude API proxy (AI-02, AI-03)
+- [x] 17-04-PLAN.md — advisorService.ts: client wrappers + tsc audit (AI-02)
 
 **UI hint**: no
 
