@@ -20,6 +20,7 @@ import FutureSelf from '../components/FutureSelf';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
 import { loadHealthData, deriveHealthState, HealthData } from '../lib/healthkit';
 import { ExerciseLogEntry } from '../data/exercises';
+import { usePremiumContext } from '../context/PremiumContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,12 +41,14 @@ interface UserProfile {
 
 export default function DashboardScreen() {
   const nav = useNavigation<Nav>();
+  const { isPremium } = usePremiumContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [takenItems, setTakenItems] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
+  const [addedSupplements, setAddedSupplements] = useState<string[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [showVerificationBanner, setShowVerificationBanner] = useState(false);
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
@@ -53,12 +56,13 @@ export default function DashboardScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw] = await Promise.all([
+      const [profileRaw, entriesRaw, protocolRaw, hData, exerciseRaw, protocolFullRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         AsyncStorage.getItem('@vitalspan_biomarkers'),
         AsyncStorage.getItem('@vitalspan_protocol_today'),
         loadHealthData(),
         AsyncStorage.getItem('@vitalspan_exercise_log'),
+        AsyncStorage.getItem('@vitalspan_protocol'),
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
@@ -105,6 +109,14 @@ export default function DashboardScreen() {
         const { date, taken }: { date: string; taken: string[] } = JSON.parse(protocolRaw);
         const today = new Date().toISOString().slice(0, 10);
         setTakenItems(date === today ? new Set(taken) : new Set());
+      }
+
+      if (protocolFullRaw) {
+        const pt: { addedSupplements?: string[]; customSupplements?: { name: string }[] } = JSON.parse(protocolFullRaw);
+        setAddedSupplements([
+          ...(pt.addedSupplements ?? []),
+          ...(pt.customSupplements ?? []).map(cs => cs.name),
+        ]);
       }
 
       // Email verification banner check (D-12, D-14) — reuses currentUser from above
@@ -203,13 +215,16 @@ export default function DashboardScreen() {
     return 'Good evening,';
   }, []);
 
-  const hasKnownInteractions = useMemo(() =>
-    profile !== null &&
-    profile.medications.length > 0 &&
-    profile.medications.some(med =>
-      INTERACTIONS.some(inter => inter.drug.toLowerCase() === med.toLowerCase())
-    ),
-  [profile]);
+  const hasKnownInteractions = useMemo(() => {
+    if (!profile || profile.medications.length === 0 || addedSupplements.length === 0) return false;
+    const suppLower = addedSupplements.map(s => s.toLowerCase());
+    return profile.medications.some(med =>
+      INTERACTIONS.some(inter =>
+        inter.drug.toLowerCase() === med.toLowerCase() &&
+        suppLower.some(s => s.includes(inter.supplement.toLowerCase()) || inter.supplement.toLowerCase().includes(s))
+      )
+    );
+  }, [profile, addedSupplements]);
 
   const biomarkerOptimality = useMemo(() => {
     const logged = BIOMARKERS.filter(bm => entryMap.has(bm.id));
@@ -527,20 +542,43 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          {/* Research CTA */}
+          {/* Intelligence section — D-05: groups Articles + AI Advisor */}
+          <View style={s.sectionHdr}>
+            <Text style={s.sectionTitle}>Intelligence</Text>
+          </View>
+
+          {/* Longevity Research — now gated per PAY-05 */}
           <TouchableOpacity
             style={[s.uploadCard, s.researchCard]}
             activeOpacity={0.82}
             accessibilityRole="button"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-              nav.navigate('Articles');
+              isPremium ? nav.navigate('Articles') : nav.navigate('Paywall');
             }}
           >
             <ClipboardIcon color={Colors.onSurface} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Longevity Research</Text>
               <Text style={s.uploadCardSub}>Personalised PubMed articles for your biomarker profile</Text>
+            </View>
+            <Text style={s.uploadCardArrow}>→</Text>
+          </TouchableOpacity>
+
+          {/* AI Advisor — new, per D-04 and AI-06 */}
+          <TouchableOpacity
+            style={[s.uploadCard, s.aiAdvisorCard]}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+              isPremium ? nav.navigate('AIAdvisor') : nav.navigate('Paywall');
+            }}
+          >
+            <DnaHelixIcon color={Colors.onSurface} size={20} />
+            <View style={s.uploadCardBody}>
+              <Text style={s.uploadCardTitle}>AI Advisor</Text>
+              <Text style={s.uploadCardSub}>Personalised longevity insights powered by AI</Text>
             </View>
             <Text style={s.uploadCardArrow}>→</Text>
           </TouchableOpacity>
@@ -589,7 +627,7 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.surface },
   screenContainer: { flex: 1 },
   scroll: { flex: 1 },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: Spacing.base, paddingTop: Spacing.md },
@@ -632,7 +670,7 @@ const s = StyleSheet.create({
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   bmBadgeEmpty: {
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
-    backgroundColor: Colors.bgSecondary, borderWidth: 0.5, borderColor: Colors.border,
+    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.border,
     alignSelf: 'flex-start',
   },
   bmBadgeEmptyTxt: { fontSize: 9, fontWeight: '500', color: Colors.primaryLight },
@@ -661,6 +699,7 @@ const s = StyleSheet.create({
   uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
   uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
   researchCard: { backgroundColor: Colors.primaryBg },
+  aiAdvisorCard: { backgroundColor: Colors.accentBg },
   weeklyCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,

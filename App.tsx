@@ -11,6 +11,8 @@ import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
+import { activationPromise, identifyAdaptyUser } from './src/lib/adapty';
+import { PremiumProvider } from './src/context/PremiumContext';
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Onboarding' | 'Main' | null>(null);
@@ -19,7 +21,11 @@ export default function App() {
     const init = async () => {
       try {
         await initSupabaseSession();
+        await activationPromise;
         const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id) {
+          identifyAdaptyUser(user.id).catch(() => null);
+        }
         if (user && !user.is_anonymous) {
           const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
           const profile = profileRaw ? JSON.parse(profileRaw) : null;
@@ -58,7 +64,9 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="auto" />
-      <AppNavigator initialRoute={initialRoute} />
+      <PremiumProvider>
+        <AppNavigator initialRoute={initialRoute} />
+      </PremiumProvider>
       <MedicalDisclaimer />
     </GestureHandlerRootView>
   );
