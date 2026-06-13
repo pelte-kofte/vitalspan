@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (Phase 16 planned, ready to execute)
+**Current focus:** v4.0 — Monetization & Intelligence (Phase 16 complete, Phase 17 next)
 
 ## Current Position
 
-Phase: 16 (Adapty Paywall & Subscriptions) — Executing (3/6 plans complete)
-Plan: 6 plans in 4 waves — 16-01, 16-02, 16-05 complete
-Status: Executing — Wave 1 done (SDK install), Wave 2 done (context + nav + stub), Wave 3 partial (App.tsx wiring + Dashboard Intelligence section done)
-Last activity: 2026-06-13 — 16-05 complete: App.tsx Adapty activation + PremiumProvider + Dashboard Intelligence section
+Phase: 17 (AI Advisor — Backend) — Planned
+Plan: 4 plans in 2 waves
+Status: Ready to execute — Phase 17 planned (4/4 plans, plan-checker passed 2026-06-13)
+Last activity: 2026-06-13 — Phase 17 planned: 4 plans created (17-01 through 17-04), plan-checker passed
 
-Progress: [██░░░░░░░░] 25% v4.0
+Progress: [████░░░░░░] 50% v4.0
 
 ## Performance Metrics
 
@@ -93,11 +93,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 15: yuhonas/free-exercise-db photoKey mapping is manual — 60 exercises need name-based matching against 873-exercise repo
-- Phase 16: react-native-adapty 3.17.1 requires expo prebuild --clean — HealthKit entitlements must be in app.json config plugins before running or they will be lost
-- Phase 16: Missing Restore Purchases = App Store rejection — wire adapty.restorePurchases() before submission
 - Phase 17: Anthropic API key must NEVER appear in Expo project source — Edge Function only; set spend alert in Anthropic Console before launch
 - Phase 17: Per-user rate limiting must be enforced before every Anthropic call — 5 reports/day, 20 chat messages/day
+- Phase 16 deferred QA: Sandbox purchase flow (Scenario 3) and restore after reinstall (Scenario 4) deferred to pre-TestFlight QA
 
 ## Deferred Items
 
@@ -112,5 +110,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-13
-Stopped at: Phase 16 plan 05 complete. App.tsx wired with Adapty activation and PremiumProvider. DashboardScreen Intelligence section replaces standalone Research CTA. Next: 16-03 (PaywallScreen UI) or 16-04 (PaywallScreen + paywallGate hook).
+Stopped at: Phase 16 complete (6/6 plans, on-device Scenarios 1+2 verified, VERIFICATION.md written). Next: /gsd:plan-phase 17 — AI Advisor Backend (Supabase Edge Function + Claude API proxy + rate limiting).
 Resume file: .planning/STATE.md
