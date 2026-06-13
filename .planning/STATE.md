@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 16 (Adapty Paywall & Subscriptions) — Executing (2/6 plans complete)
-Plan: 6 plans in 4 waves — 16-01 and 16-02 complete
-Status: Executing — Wave 1 done (SDK install), Wave 2 done (context + nav + stub)
-Last activity: 2026-06-12 — 16-02 complete: PremiumContext + AppNavigator routes + AIAdvisorScreen stub
+Phase: 16 (Adapty Paywall & Subscriptions) — Executing (3/6 plans complete)
+Plan: 6 plans in 4 waves — 16-01, 16-02, 16-05 complete
+Status: Executing — Wave 1 done (SDK install), Wave 2 done (context + nav + stub), Wave 3 partial (App.tsx wiring + Dashboard Intelligence section done)
+Last activity: 2026-06-13 — 16-05 complete: App.tsx Adapty activation + PremiumProvider + Dashboard Intelligence section
 
 Progress: [██░░░░░░░░] 25% v4.0
 
@@ -111,6 +111,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-06-12
-Stopped at: Phase 16 plan 02 complete. PremiumContext, AIAdvisorScreen, Paywall+AIAdvisor routes committed. Next: 16-03 (PaywallScreen UI) or 16-04 (PaywallScreen + paywallGate hook).
+Last session: 2026-06-13
+Stopped at: Phase 16 plan 05 complete. App.tsx wired with Adapty activation and PremiumProvider. DashboardScreen Intelligence section replaces standalone Research CTA. Next: 16-03 (PaywallScreen UI) or 16-04 (PaywallScreen + paywallGate hook).
 Resume file: .planning/STATE.md
