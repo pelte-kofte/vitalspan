@@ -38,9 +38,10 @@ Users get their first clinically meaningful insight within minutes of opening th
 
 ### Active (v4.0)
 
-- [ ] Adapty paywall — free vs. premium tier, in-app purchase flow, paywall screen (PAY-01 through PAY-05)
-- [ ] AI Longevity Advisor — Claude API report + follow-up chat, anonymized health context, premium-only (AI-01 through AI-05)
-- [ ] Exercise photos — real photos from `yuhonas/free-exercise-db` where available; Phase 12 SVG illustrations remain as fallback (EXP-01 through EXP-03)
+- [x] Adapty paywall — free vs. premium tier, in-app purchase flow, paywall screen (PAY-01 through PAY-05) — Phase 16 complete
+- [x] AI Advisor backend — Edge Function + context assembler + rate limiting (AI-01 through AI-03) — Phase 17 complete 2026-06-14
+- [ ] AI Advisor UI — 6-section report cards + follow-up chat (AI-04, AI-05) — Phase 18 next
+- [x] Exercise photos — real photos from `yuhonas/free-exercise-db` where available; Phase 12 SVG illustrations remain as fallback (EXP-01 through EXP-03) — Phase 15 complete
 
 ### Out of Scope
 
@@ -104,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-10 after milestone v4.0 start — Monetization & Intelligence: Adapty paywall, AI Longevity Advisor (Claude API), exercise photo upgrade.*
+*Last updated: 2026-06-14 after Phase 17 complete — AI Advisor backend: ai_usage migration, advisorContext.ts (zero-PII), ai-advisor Edge Function, advisorService.ts client wrapper. Phase 18 (AI Advisor UI) is next.*
