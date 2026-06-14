@@ -79,12 +79,16 @@ serve(async (req) => {
         ? (usageRow?.chat_count ?? 0) + 1
         : (usageRow?.chat_count ?? 0);
 
-    await serviceClient
+    const { error: upsertError } = await serviceClient
       .from("ai_usage")
       .upsert(
         { user_id: userId, date: todayUTC, report_count: newReportCount, chat_count: newChatCount },
         { onConflict: "user_id,date" }
       );
+    if (upsertError) {
+      console.error("Rate limit upsert failed:", upsertError.message);
+      return corsResponse({ error: "Service temporarily unavailable" }, 503);
+    }
 
     // Step 3: Guard API key
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
