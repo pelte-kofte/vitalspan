@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (Phase 16 complete, Phase 17 next)
+**Current focus:** v4.0 — Monetization & Intelligence (Phase 17 complete, Phase 18 next)
 
 ## Current Position
 
-Phase: 17 (AI Advisor — Backend) — Planned
-Plan: 4 plans in 2 waves
-Status: Ready to execute — Phase 17 planned (4/4 plans, plan-checker passed 2026-06-13)
-Last activity: 2026-06-13 — Phase 17 planned: 4 plans created (17-01 through 17-04), plan-checker passed
+Phase: 18 (AI Advisor — UI) — Not started
+Plan: -
+Status: Phase 17 complete (2026-06-14) — 4/4 plans executed, human UAT pending deployment
+Last activity: 2026-06-14 — Phase 17 complete: ai_usage migration, advisorContext.ts, ai-advisor Edge Function, advisorService.ts
 
-Progress: [████░░░░░░] 50% v4.0
+Progress: [█████░░░░░] 62% v4.0
 
 ## Performance Metrics
 

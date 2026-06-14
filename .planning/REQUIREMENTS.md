@@ -23,9 +23,9 @@
 
 ### AI Advisor — Backend (Phase 17)
 
-- [ ] **AI-01**: App assembles an anonymized health context object (bucketed age, biomarker status categories, supplement stack, medications list) from local AsyncStorage — no raw lab values, no exact birthdate, no Supabase user ID, no name
-- [ ] **AI-02**: App invokes a Supabase Edge Function (`ai-advisor`) via `supabase.functions.invoke()`, which calls Claude API server-side with the anonymized context and returns a structured longevity report (no `@anthropic-ai/sdk` in the Expo project)
-- [ ] **AI-03**: Edge Function enforces per-user rate limits (5 report generations/day, 20 follow-up chat messages/day) and returns a 429 with a user-readable message when limits are reached
+- [x] **AI-01**: App assembles an anonymized health context object (bucketed age, biomarker status categories, supplement stack, medications list) from local AsyncStorage — no raw lab values, no exact birthdate, no Supabase user ID, no name
+- [x] **AI-02**: App invokes a Supabase Edge Function (`ai-advisor`) via `supabase.functions.invoke()`, which calls Claude API server-side with the anonymized context and returns a structured longevity report (no `@anthropic-ai/sdk` in the Expo project)
+- [x] **AI-03**: Edge Function enforces per-user rate limits (5 report generations/day, 20 follow-up chat messages/day) and returns a 429 with a user-readable message when limits are reached
 
 ### AI Advisor — UI (Phase 18)
 
@@ -78,9 +78,9 @@
 | PAY-03 | Phase 16 | Pending |
 | PAY-04 | Phase 16 | Pending |
 | PAY-05 | Phase 16 | Pending |
-| AI-01 | Phase 17 | Pending |
-| AI-02 | Phase 17 | Pending |
-| AI-03 | Phase 17 | Pending |
+| AI-01 | Phase 17 | Complete |
+| AI-02 | Phase 17 | Complete |
+| AI-03 | Phase 17 | Complete |
 | AI-04 | Phase 18 | Pending |
 | AI-05 | Phase 18 | Pending |
 | AI-06 | Phase 18 | Pending |
