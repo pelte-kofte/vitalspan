@@ -7,6 +7,8 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -60,7 +62,11 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <SafeAreaView style={s.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={s.container}>
       <View style={s.content}>
         <Text style={s.title}>Reset Password</Text>
         <Text style={s.subtitle}>
@@ -100,6 +106,7 @@ export default function ForgotPasswordScreen() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

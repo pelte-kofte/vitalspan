@@ -325,7 +325,7 @@ const s = StyleSheet.create({
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs, marginLeft: 4 },
   rateBadge: {
     paddingHorizontal: Spacing.sm + 2, paddingVertical: 3,
-    borderRadius: Radius.full, backgroundColor: Colors.bgSecondary,
+    borderRadius: Radius.full, backgroundColor: Colors.surfaceElevated,
     borderWidth: 0.5, borderColor: Colors.border,
   },
   rateBadgeGood: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },

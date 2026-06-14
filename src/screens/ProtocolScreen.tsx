@@ -54,6 +54,7 @@ interface Supplement {
   evidence: 'A' | 'B' | 'C';
   goals: string[];
   dbId?: string;
+  dbInfo?: SupplementInfo;
 }
 
 const BASE_SUPPLEMENTS: Supplement[] = [
@@ -96,6 +97,22 @@ const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
   { key: 'evening',   label: 'Eve' },
   { key: 'night',     label: 'Night' },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  nad: 'NAD+ Pathway', mitochondrial: 'Mitochondrial', cardiovascular: 'Cardiovascular',
+  metabolic: 'Metabolic', antioxidant: 'Antioxidant', mineral: 'Mineral',
+  vitamin: 'Vitamin', sleep: 'Sleep Support', adaptogen: 'Adaptogen',
+  amino_acid: 'Amino Acid', nootropic: 'Nootropic', senolytic: 'Senolytic',
+  prescription_only: 'Prescription', other: 'Other',
+};
+const TIMING_LABELS: Record<string, string> = {
+  fasted: 'Fasted', with_meal: 'With meal', with_fat: 'With fat',
+  flexible: 'Flexible', bedtime: 'Bedtime',
+};
+const BEST_TIME_LABELS: Record<string, string> = {
+  morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening',
+  bedtime: 'Bedtime', anytime: 'Anytime',
+};
 
 const EMPTY_PROTOCOL: ProtocolState = {
   medTimes: {},
@@ -507,14 +524,24 @@ export default function ProtocolScreen() {
   }, [medications]);
 
   const addedSupps = protocol.addedSupplements.map(name => {
-    const dbEntry = SUPPLEMENT_DATABASE.find(
-      s => s.name.toLowerCase() === name.toLowerCase(),
-    );
+    const dbEntry = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
     return dbEntry
-      ? { name: dbEntry.name, dose: dbEntry.defaultDose, evidence: dbEntry.evidenceGrade as 'A' | 'B' | 'C', goals: [] as string[], dbId: dbEntry.id }
-      : { name, dose: '—', evidence: 'C' as const, goals: [] as string[], dbId: undefined };
+      ? { name: dbEntry.name, dose: dbEntry.defaultDose, evidence: dbEntry.evidenceGrade as 'A' | 'B' | 'C', goals: [] as string[], dbId: dbEntry.id, dbInfo: dbEntry as SupplementInfo }
+      : { name, dose: '—', evidence: 'C' as const, goals: [] as string[], dbId: undefined, dbInfo: undefined };
   });
   const customSupps = protocol.customSupplements ?? [];
+
+  const groupedSupps = useMemo(() => {
+    const order: string[] = [];
+    const groups = new Map<string, typeof addedSupps[number][]>();
+    for (const supp of addedSupps) {
+      const cat = supp.dbInfo?.category ?? 'other';
+      if (!groups.has(cat)) { groups.set(cat, []); order.push(cat); }
+      groups.get(cat)!.push(supp);
+    }
+    return { order, groups };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protocol.addedSupplements]);
 
   // Total doses: medications count as 1 each; multi-dose supplements count their full dose count
   const totalItems =
@@ -559,7 +586,6 @@ export default function ProtocolScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
-        {/* Screen-level empty state — shown only when there are no items at all */}
         {totalItems === 0 && (
           <View style={s.emptyScreenCard}>
             <PillIcon color={Colors.onSurfaceMuted} size={40} />
@@ -567,169 +593,208 @@ export default function ProtocolScreen() {
             <Text style={s.emptyScreenSubtext}>
               Add your medications and pharmacist-curated supplements to track your daily protocol and check for interactions.
             </Text>
-            <TouchableOpacity
-              style={s.emptyScreenCta}
-              onPress={() => setShowRecommendedSheet(true)}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={s.emptyScreenCta} onPress={() => setShowRecommendedSheet(true)} activeOpacity={0.8}>
               <Text style={s.emptyScreenCtaTxt}>Get Started</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Medications section */}
+        {/* ── Medications ───────────────────────────────────────── */}
         <Text style={s.sectionLabel}>Medications</Text>
-        <View style={s.card}>
-          {medications.length === 0 ? (
-            <View style={s.emptyState}>
-              <Text style={s.emptyTxt}>No medications in your profile</Text>
-              <TouchableOpacity
-                style={s.emptyCtaBtn}
-                onPress={() => nav.navigate('Profile')}
-              >
-                <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            medications.map((med, i) => {
-              const taken = protocol.taken.includes(med);
-              const time = protocol.medTimes[med];
-              const conflicts = medInteractionMap[med] ?? [];
-              const drugClass = medClassMap[med];
-              return (
-                <View key={med} style={[s.medRow, i < medications.length - 1 && s.rowBorder]}>
-                  <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(med)} activeOpacity={0.7}>
-                    <View style={[s.dot, taken && s.dotTaken]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.medName, taken && s.nameTaken]}>{med}</Text>
-                      {drugClass && <Text style={s.medClass}>{drugClass}</Text>}
-                      {time && <Text style={s.medTimeLbl}>{time.charAt(0).toUpperCase() + time.slice(1)}</Text>}
-                      {conflicts.length > 0 && (
-                        <TouchableOpacity
-                          style={s.conflictRow}
-                          onPress={() => nav.navigate('InteractionChecker')}
-                        >
-                          <Text style={s.conflictTxt}>
-                            ⚠ Conflicts with {conflicts.join(', ')} — tap to review
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+        {medications.length === 0 ? (
+          <View style={s.emptyCard}>
+            <Text style={s.emptyTxt}>No medications in your profile</Text>
+            <TouchableOpacity style={s.emptyCtaBtn} onPress={() => nav.navigate('Profile')}>
+              <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          medications.map(med => {
+            const taken = protocol.taken.includes(med);
+            const time = protocol.medTimes[med];
+            const conflicts = medInteractionMap[med] ?? [];
+            const drugClass = medClassMap[med];
+            return (
+              <View key={med} style={s.itemCard}>
+                <TouchableOpacity style={s.cardRow} onPress={() => toggleTaken(med)} activeOpacity={0.75}>
+                  <View style={[s.checkCircle, taken && s.checkCircleOn]}>
+                    {taken && <Text style={s.checkMark}>✓</Text>}
+                  </View>
+                  <View style={s.cardBody}>
+                    <Text style={[s.cardName, taken && s.cardNameDone]}>{med}</Text>
+                    {drugClass && <Text style={s.cardSub}>{drugClass}</Text>}
+                  </View>
+                  {drugClass && (
+                    <View style={s.classChip}>
+                      <Text style={s.classChipTxt} numberOfLines={1}>{drugClass}</Text>
                     </View>
+                  )}
+                </TouchableOpacity>
+
+                {conflicts.length > 0 && (
+                  <TouchableOpacity style={s.conflictPill} onPress={() => nav.navigate('InteractionChecker')}>
+                    <Text style={s.conflictPillTxt}>⚠ Interacts with {conflicts.join(', ')} — tap to review</Text>
                   </TouchableOpacity>
-                  <View style={s.timeRow}>
+                )}
+
+                <View style={s.cardFooter}>
+                  <Text style={s.footerLabel}>When</Text>
+                  <View style={s.chipRow}>
                     {TIME_SLOTS.map(slot => (
                       <TouchableOpacity
                         key={slot.key}
-                        style={[s.timeChip, time === slot.key && s.timeChipActive]}
+                        style={[s.timeChip, time === slot.key && s.timeChipOn]}
                         onPress={() => setMedTime(med, slot.key)}
                       >
-                        <Text style={[s.timeChipTxt, time === slot.key && s.timeChipTxtActive]}>
-                          {slot.label}
-                        </Text>
+                        <Text style={[s.timeChipTxt, time === slot.key && s.timeChipTxtOn]}>{slot.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
-              );
-            })
-          )}
+              </View>
+            );
+          })
+        )}
+
+        {/* ── Your Stack ────────────────────────────────────────── */}
+        <View style={s.sectionHdrRow}>
+          <Text style={s.stackHdrTxt}>Your Stack</Text>
+          <TouchableOpacity
+            style={s.sectionAddBtn}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null); setShowRecommendedSheet(true); }}
+          >
+            <Text style={s.sectionAddTxt}>+ Add</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Your Stack — recommended-added + custom supplements */}
-        <Text style={s.sectionLabel}>Your Stack</Text>
-        <View style={s.card}>
-          {addedSupps.length === 0 && customSupps.length === 0 ? (
-            <View style={s.emptyState}>
-              <Text style={s.emptyTxt}>No supplements in your stack yet</Text>
-            </View>
-          ) : null}
+        {addedSupps.length === 0 && customSupps.length === 0 && (
+          <View style={s.emptyCard}>
+            <Text style={s.emptyTxt}>No supplements in your stack yet</Text>
+          </View>
+        )}
 
-          {/* Recommended supplements that are added */}
-          {addedSupps.map((supp, i) => {
-            const doseCount = parseDoseCount(supp.dose);
-            const timeLabels = getDoseTimeLabels(doseCount);
-            const isLast = i === addedSupps.length - 1 && customSupps.length === 0;
-            return (
-              <View key={supp.name}>
-                <View style={[s.medRow, !isLast && s.rowBorder]}>
-                  <View style={[s.medLeft, { flex: 1 }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.medName}>{supp.name}</Text>
-                      <Text style={s.medClass}>{supp.dose} · Grade {supp.evidence}</Text>
+        {groupedSupps.order.map(cat => (
+          <View key={cat}>
+            <Text style={s.catLabel}>{CATEGORY_LABELS[cat] ?? cat}</Text>
+            {groupedSupps.groups.get(cat)!.map(supp => {
+              const doseCount = parseDoseCount(supp.dose);
+              const timeLabels = getDoseTimeLabels(doseCount);
+              const singleTaken = doseCount === 1 &&
+                (protocol.taken.includes(doseId(supp.name, 0)) || protocol.taken.includes(supp.name));
+              const gradeBg = ({ A: Colors.primaryBg, B: Colors.warningBg, C: Colors.surfaceElevated } as const)[supp.evidence];
+              const gradeBdr = ({ A: Colors.primaryBorder, B: Colors.warningBorder, C: Colors.borderLight } as const)[supp.evidence];
+              const gradeClr = ({ A: Colors.primary, B: Colors.warning, C: Colors.onSurfaceMuted } as const)[supp.evidence];
+              return (
+                <View key={supp.name} style={s.itemCard}>
+                  <View style={s.cardRow}>
+                    {doseCount === 1 ? (
+                      <TouchableOpacity onPress={() => toggleTaken(doseId(supp.name, 0))} activeOpacity={0.7}>
+                        <View style={[s.checkCircle, singleTaken && s.checkCircleOn]}>
+                          {singleTaken && <Text style={s.checkMark}>✓</Text>}
+                        </View>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={s.checkPlaceholder} />
+                    )}
+                    <View style={s.cardBody}>
+                      <Text style={[s.cardName, singleTaken && s.cardNameDone]}>{supp.name}</Text>
+                      {supp.dbInfo?.shortDescription && (
+                        <Text style={s.cardSub} numberOfLines={1}>{supp.dbInfo.shortDescription}</Text>
+                      )}
+                    </View>
+                    <View style={s.badgeGroup}>
+                      <View style={[s.gradeBadge, { backgroundColor: gradeBg, borderColor: gradeBdr }]}>
+                        <Text style={[s.gradeBadgeTxt, { color: gradeClr }]}>{supp.evidence}</Text>
+                      </View>
+                      {supp.dose !== '—' && (
+                        <View style={s.doseBadge}>
+                          <Text style={s.doseBadgeTxt}>{supp.dose}</Text>
+                        </View>
+                      )}
+                      <TouchableOpacity style={s.removeBtn} onPress={() => toggleSupplement(supp.name)}>
+                        <Text style={s.removeTxt}>✕</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <TouchableOpacity style={s.removeBtn} onPress={() => toggleSupplement(supp.name)}>
-                    <Text style={s.removeTxt}>✕</Text>
-                  </TouchableOpacity>
+
+                  {(supp.dbInfo?.bestTime || supp.dbInfo?.timing) && (
+                    <View style={s.infoRow}>
+                      {supp.dbInfo.bestTime && supp.dbInfo.bestTime !== 'anytime' && (
+                        <View style={s.infoChip}>
+                          <Text style={s.infoChipTxt}>{BEST_TIME_LABELS[supp.dbInfo.bestTime]}</Text>
+                        </View>
+                      )}
+                      {supp.dbInfo.timing && supp.dbInfo.timing !== 'flexible' && (
+                        <View style={s.infoChip}>
+                          <Text style={s.infoChipTxt}>{TIMING_LABELS[supp.dbInfo.timing]}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {doseCount > 1 && (
+                    <View style={s.multiDoseBlock}>
+                      {timeLabels.map((label, n) => {
+                        const id = doseId(supp.name, n);
+                        const dt = protocol.taken.includes(id);
+                        return (
+                          <TouchableOpacity key={id} style={s.doseTrack} onPress={() => toggleTaken(id)} activeOpacity={0.7}>
+                            <View style={[s.checkSm, dt && s.checkSmOn]}>
+                              {dt && <Text style={s.checkSmTxt}>✓</Text>}
+                            </View>
+                            <Text style={[s.doseTrackTxt, dt && s.doseTrackDone]}>{label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
-                {doseCount === 1 ? (
-                  <TouchableOpacity
-                    style={[s.doseRow, { paddingLeft: Spacing.md, marginBottom: 4 }]}
-                    onPress={() => toggleTaken(doseId(supp.name, 0))}
-                    activeOpacity={0.7}
-                  >
-                    {(() => {
-                      const taken = protocol.taken.includes(doseId(supp.name, 0)) || protocol.taken.includes(supp.name);
-                      return <>
-                        <View style={[s.dot, taken && s.dotTaken]} />
-                        <Text style={[s.doseLbl, taken && s.doseLblTaken]}>Mark taken</Text>
-                        <Text style={[s.doseTick, taken && s.doseTickDone]}>{taken ? '✓' : '○'}</Text>
-                      </>;
-                    })()}
-                  </TouchableOpacity>
-                ) : (
-                  <View style={s.doseRows}>
-                    {timeLabels.map((label, n) => {
-                      const id = doseId(supp.name, n);
-                      const taken = protocol.taken.includes(id);
-                      return (
-                        <TouchableOpacity key={id} style={s.doseRow} onPress={() => toggleTaken(id)} activeOpacity={0.7}>
-                          <View style={[s.dot, taken && s.dotTaken]} />
-                          <Text style={[s.doseLbl, taken && s.doseLblTaken]}>{label}</Text>
-                          <Text style={[s.doseTick, taken && s.doseTickDone]}>{taken ? '✓' : '○'}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+              );
+            })}
+          </View>
+        ))}
+
+        {customSupps.length > 0 && (
+          <View>
+            <Text style={s.catLabel}>Custom</Text>
+            {customSupps.map(cs => {
+              const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
+              const timingLabel = cs.timing ? TIME_SLOTS.find(t => t.key === cs.timing)?.label : null;
+              return (
+                <View key={cs.id} style={s.itemCard}>
+                  <View style={s.cardRow}>
+                    <TouchableOpacity onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
+                      <View style={[s.checkCircle, taken && s.checkCircleOn]}>
+                        {taken && <Text style={s.checkMark}>✓</Text>}
+                      </View>
+                    </TouchableOpacity>
+                    <View style={s.cardBody}>
+                      <Text style={[s.cardName, taken && s.cardNameDone]}>{cs.name}</Text>
+                      {cs.notes && <Text style={s.cardSub} numberOfLines={1}>{cs.notes}</Text>}
+                    </View>
+                    <View style={s.badgeGroup}>
+                      {cs.dose !== '—' && (
+                        <View style={s.doseBadge}>
+                          <Text style={s.doseBadgeTxt}>{cs.dose}</Text>
+                        </View>
+                      )}
+                      {timingLabel && (
+                        <View style={[s.timeChip, s.timeChipOn]}>
+                          <Text style={[s.timeChipTxt, s.timeChipTxtOn]}>{timingLabel}</Text>
+                        </View>
+                      )}
+                      <TouchableOpacity style={s.removeBtn} onPress={() => removeCustomSupplement(cs.id)}>
+                        <Text style={s.removeTxt}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                )}
-              </View>
-            );
-          })}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-          {/* Custom supplements */}
-          {customSupps.map((cs, i) => {
-            const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
-            return (
-              <View key={cs.id} style={[s.medRow, i < customSupps.length - 1 && s.rowBorder]}>
-                <TouchableOpacity style={s.medLeft} onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
-                  <View style={[s.dot, taken && s.dotTaken]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.medName, taken && s.nameTaken]}>{cs.name}</Text>
-                    <Text style={s.medClass}>{cs.dose}{cs.timing ? ` · ${cs.timing}` : ''}</Text>
-                    {cs.notes ? <Text style={s.medTimeLbl}>{cs.notes}</Text> : null}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.removeBtn} onPress={() => removeCustomSupplement(cs.id)}>
-                  <Text style={s.removeTxt}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Add supplement button */}
-        <TouchableOpacity
-          style={s.addStackBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-            setShowRecommendedSheet(true);
-          }}
-        >
-          <Text style={s.addStackIcon}>+</Text>
-          <Text style={s.addStackTxt}>Add supplement</Text>
-        </TouchableOpacity>
-
-        {/* Supplement Library */}
+        {/* ── Supplement Library ────────────────────────────────── */}
         <View style={s.libDivider} />
         <Text style={s.sectionLabel}>Supplement Library</Text>
         <SupplementLibrarySection
@@ -760,6 +825,8 @@ export default function ProtocolScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.surface },
   scroll: { flex: 1 },
+
+  // ── Header ──────────────────────────────────────────────────
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     padding: Spacing.base, paddingTop: Spacing.md,
@@ -772,135 +839,169 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
   progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primary },
+
+  // ── Section labels ───────────────────────────────────────────
   sectionLabel: {
     fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
-  suppSectionHdr: { paddingHorizontal: Spacing.base, marginTop: Spacing.base, marginBottom: Spacing.sm },
-  suppSectionTitle: {
+  sectionHdrRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base, marginTop: Spacing.base, marginBottom: Spacing.sm,
+  },
+  stackHdrTxt: {
     fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
   },
-  goalLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 3 },
-  card: {
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
-    overflow: 'hidden',
-    padding: Spacing.md,
+  sectionAddBtn: {
+    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md, paddingVertical: 4,
+    borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
-  emptyState: { paddingVertical: Spacing.sm, gap: Spacing.sm },
-  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, paddingVertical: Spacing.xs },
+  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '600' },
+  catLabel: {
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
+    textTransform: 'uppercase', letterSpacing: 1,
+    paddingHorizontal: Spacing.base, marginTop: Spacing.sm, marginBottom: 6,
+  },
+
+  // ── Item card ────────────────────────────────────────────────
+  itemCard: {
+    marginHorizontal: Spacing.base, marginBottom: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight,
+    ...Elevation.sm, padding: Spacing.md, overflow: 'hidden',
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  cardBody: { flex: 1 },
+  cardName: { fontSize: 15, fontWeight: '600', color: Colors.onSurface },
+  cardNameDone: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
+  cardSub: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+
+  // ── Check circle ─────────────────────────────────────────────
+  checkCircle: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 1.5, borderColor: Colors.border,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  checkCircleOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  checkMark: { fontSize: 11, color: Colors.surface, fontWeight: '700' },
+  checkPlaceholder: { width: 22, height: 22, flexShrink: 0 },
+
+  // ── Grade + dose badges ──────────────────────────────────────
+  badgeGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gradeBadge: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 0.5,
+  },
+  gradeBadgeTxt: { fontSize: 10, fontWeight: '700' },
+  doseBadge: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.sm,
+    borderWidth: 0.5, borderColor: Colors.borderLight, paddingHorizontal: 7, paddingVertical: 3,
+  },
+  doseBadgeTxt: { fontSize: 11, color: Colors.onSurface, fontWeight: '500' },
+
+  // ── Remove button ────────────────────────────────────────────
+  removeBtn: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 0.5, borderColor: Colors.borderLight,
+  },
+  removeTxt: { fontSize: 10, color: Colors.onSurfaceMuted },
+
+  // ── Info chips (best time, food timing) ──────────────────────
+  infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  infoChip: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 8,
+    borderWidth: 0.5, borderColor: Colors.borderLight, paddingHorizontal: 7, paddingVertical: 3,
+  },
+  infoChipTxt: { fontSize: 11, color: Colors.onSurfaceMuted, fontWeight: '500' },
+
+  // ── Drug class chip ──────────────────────────────────────────
+  classChip: {
+    backgroundColor: Colors.surfaceElevated, borderRadius: 8,
+    borderWidth: 0.5, borderColor: Colors.borderLight,
+    paddingHorizontal: 7, paddingVertical: 3, maxWidth: 120,
+  },
+  classChipTxt: { fontSize: 11, color: Colors.onSurfaceMuted, fontWeight: '500' },
+
+  // ── Medication timing row ────────────────────────────────────
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 10 },
+  footerLabel: {
+    fontSize: 11, fontWeight: '600', color: Colors.onSurfaceMuted,
+    textTransform: 'uppercase', letterSpacing: 0.5, width: 36,
+  },
+  chipRow: { flexDirection: 'row', gap: 5, flex: 1 },
+  timeChip: {
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
+    borderRadius: Radius.sm, backgroundColor: Colors.surfaceElevated,
+    borderWidth: 0.5, borderColor: Colors.borderLight,
+  },
+  timeChipOn: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  timeChipTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
+  timeChipTxtOn: { color: Colors.primary },
+
+  // ── Conflict pill ────────────────────────────────────────────
+  conflictPill: {
+    marginTop: 8, backgroundColor: Colors.warningBg,
+    borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Colors.warningBorder,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  conflictPillTxt: { fontSize: 11, color: Colors.warningText, fontWeight: '500' },
+
+  // ── Multi-dose rows ──────────────────────────────────────────
+  multiDoseBlock: { marginTop: 10, gap: 4 },
+  doseTrack: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 2 },
+  checkSm: {
+    width: 16, height: 16, borderRadius: 8,
+    borderWidth: 1.5, borderColor: Colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkSmOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  checkSmTxt: { fontSize: 9, color: Colors.surface, fontWeight: '700' },
+  doseTrackTxt: { flex: 1, fontSize: 12, color: Colors.textSecondary },
+  doseTrackDone: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
+
+  // ── Empty states ─────────────────────────────────────────────
+  emptyCard: {
+    marginHorizontal: Spacing.base, marginBottom: Spacing.sm,
+    backgroundColor: Colors.surface, borderRadius: Radius.xl,
+    borderWidth: 0.5, borderColor: Colors.borderLight,
+    ...Elevation.sm, padding: Spacing.md, gap: Spacing.sm,
+  },
+  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
   emptyCtaBtn: {
     backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
     borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start',
   },
   emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  medRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: Spacing.sm, gap: Spacing.sm },
-  medLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
-  medName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
-  nameTaken: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
-  medClass: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
-  medTimeLbl: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, marginTop: 2 },
-  conflictRow: {
-    marginTop: 4, backgroundColor: Colors.warningBg,
-    borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 3,
-    borderWidth: 0.5, borderColor: Colors.warningBorder, alignSelf: 'flex-start',
-  },
-  conflictTxt: { fontSize: 10, color: Colors.warningText, fontWeight: '500' },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.borderLight, marginTop: 4 },
-  dotTaken: { backgroundColor: Colors.primaryLight },
-  timeRow: { flexDirection: 'row', gap: 4, flexShrink: 0, marginTop: 4 }, /* intentional — no Spacing.* equivalent for gap: 4 */
-  timeChip: {
-    paddingHorizontal: 6, paddingVertical: 3, borderRadius: Radius.sm, /* intentional — no Spacing.* equivalent */
-    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight,
-  },
-  timeChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  timeChipTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
-  timeChipTxtActive: { color: Colors.primary },
-  removeBtn: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: Colors.surfaceElevated,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 0.5, borderColor: Colors.borderLight, marginTop: 2,
-  },
-  removeTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
-  addCustomBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    paddingVertical: Spacing.md, paddingTop: Spacing.base,
-    borderTopWidth: 0.5, borderTopColor: Colors.borderLight, marginTop: Spacing.sm,
-  },
-  addCustomIcon: { fontSize: 20, color: Colors.primaryLight, width: 22, textAlign: 'center' },
-  addCustomTxt: { fontSize: Typography.sizes.base, color: Colors.primaryLight, fontWeight: '500' },
-  addStackBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    marginHorizontal: Spacing.base, marginTop: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.primaryBorder,
-    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
-  },
-  addStackIcon: { fontSize: 20, color: Colors.primary, width: 22, textAlign: 'center', fontWeight: '300' },
-  addStackTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '500' },
 
-  // Screen-level empty state (totalItems === 0)
+  // ── Screen-level empty state ─────────────────────────────────
   emptyScreenCard: {
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    marginBottom: Spacing.base,
-    overflow: 'hidden',
+    marginHorizontal: Spacing.base, backgroundColor: Colors.surface,
+    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight,
+    ...Elevation.sm, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base, overflow: 'hidden',
   },
   emptyScreenHeadline: {
-    fontSize: Typography.sizes.h3,
-    fontWeight: '600',
-    color: Colors.onSurface,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
+    fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface,
+    textAlign: 'center', marginBottom: Spacing.sm, marginTop: Spacing.md,
   },
   emptyScreenSubtext: {
-    fontSize: Typography.sizes.base,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.lg,
+    fontSize: Typography.sizes.base, color: Colors.textSecondary,
+    textAlign: 'center', lineHeight: 22, marginBottom: Spacing.lg,
   },
   emptyScreenCta: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    minHeight: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.base,
+    backgroundColor: Colors.primary, borderRadius: Radius.xl,
+    minHeight: 44, height: 44, justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'stretch', paddingHorizontal: Spacing.base,
   },
-  emptyScreenCtaTxt: {
-    color: Colors.surface,
-    fontSize: Typography.sizes.base,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  emptyScreenCtaTxt: { color: Colors.surface, fontSize: Typography.sizes.base, fontWeight: '600', textAlign: 'center' },
 
+  // ── Library divider ──────────────────────────────────────────
   libDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
-
-  // Multi-dose supplement rows
-  doseRows: { marginLeft: 18, marginBottom: Spacing.sm, gap: 2 }, /* intentional — no Spacing.* equivalent for gap: 2 */
-  doseRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 5 }, /* intentional — no Spacing.* equivalent for paddingVertical: 5 */
-  doseLbl: { flex: 1, fontSize: Typography.sizes.xs, color: Colors.textSecondary },
-  doseLblTaken: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
-  doseTick: { fontSize: Typography.sizes.xs, color: Colors.borderLight, width: 16, textAlign: 'center' },
-  doseTickDone: { color: Colors.primaryLight },
 });
 
 // Modal styles

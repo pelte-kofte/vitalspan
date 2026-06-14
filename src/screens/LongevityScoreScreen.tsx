@@ -323,6 +323,20 @@ export default function LongevityScoreScreen() {
     setRefreshing(false);
   }
 
+  async function handleResync() {
+    if (connecting) return;
+    setConnecting(true);
+    try {
+      const syncResult = await connectAndSync();
+      if (syncResult.success && syncResult.data) setHealthData(syncResult.data);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    } catch (e) {
+      console.error('[LongevityScore resync]', e);
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   async function handleRequestPermission() {
     setConnecting(true);
     try {
@@ -524,7 +538,7 @@ export default function LongevityScoreScreen() {
     return (
       <TouchableOpacity
         style={[s.healthKitCard, s.healthKitCardConnected]}
-        onPress={handleRefresh}
+        onPress={handleResync}
         disabled={connecting}
       >
         <Text style={s.hkIcon}>✓</Text>

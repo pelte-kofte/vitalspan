@@ -153,8 +153,11 @@ export default function WelcomeScreen() {
         </TouchableWithoutFeedback>
       )}
 
-      <Animated.View style={[s.sheet, { transform: [{ translateY: sheetAnim }] }]}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={s.sheetKav}
+      >
+        <Animated.View style={[s.sheet, { transform: [{ translateY: sheetAnim }] }]}>
           <View style={s.handle} />
           <Text style={s.sheetTitle}>{sheet === 'signup' ? 'Create Account' : 'Welcome Back'}</Text>
           <SheetForm
@@ -168,8 +171,8 @@ export default function WelcomeScreen() {
               </TouchableOpacity>
             ) : undefined}
           />
-        </KeyboardAvoidingView>
-      </Animated.View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -192,7 +195,8 @@ const s = StyleSheet.create({
   btnSecondaryTxt: { color: Colors.dark.text, fontSize: Typography.sizes.body, fontWeight: '600' },
   ghost: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, textAlign: 'center', paddingVertical: Spacing.sm },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.surface, borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, padding: Spacing.xl, paddingBottom: Spacing.xxl },
+  sheetKav: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  sheet: { backgroundColor: Colors.surface, borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, padding: Spacing.xl, paddingBottom: Spacing.xxl },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: Spacing.lg },
   sheetTitle: { fontSize: Typography.sizes.h2, color: Colors.textPrimary, fontWeight: '700', marginBottom: Spacing.lg },
   forgotRow: { alignSelf: 'flex-end', marginBottom: Spacing.md },

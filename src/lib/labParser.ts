@@ -1,4 +1,4 @@
-import { File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
 
 export interface ParsedBiomarker {
   biomarkerId: string;
@@ -87,19 +87,9 @@ function matchBiomarkers(text: string): ParsedBiomarker[] {
 }
 
 export async function parseLabPDF(fileUri: string): Promise<ParsedBiomarker[]> {
-  // Use the new class-based expo-file-system API
-  const file = new File(fileUri);
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-
-  // Convert raw bytes to a binary string for text extraction
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
+  const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: 'base64' });
+  const binary = atob(base64);
   const text = extractTextFromPDF(binary);
   if (!text.trim()) throw new Error('Could not extract text from this PDF');
-
   return matchBiomarkers(text);
 }
