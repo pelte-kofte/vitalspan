@@ -69,7 +69,7 @@ const s = StyleSheet.create({
   },
   userText: {
     fontSize: Typography.sizes.base,
-    color: '#E8F5EE',
+    color: Colors.dark.text,
     lineHeight: 20,
   },
   assistantText: {
