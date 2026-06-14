@@ -442,7 +442,19 @@ Plans:
   1. A premium user tapping "AI Advisor" on the Dashboard triggers report generation; the completed report renders as 6 labeled cards: Score Summary, Priority Findings, Biomarker Analysis, Supplement & Medication Review, Recommendations (with evidence grades A/B/C), and a Follow-up Chat entry
   2. User can type a follow-up question in the chat interface and receive a response from Claude that references the generated report; sending a second question in the same session shows the conversation thread; closing and reopening the screen starts a fresh session with no prior messages
   3. A free user tapping "AI Advisor" sees the paywall — not an error, not a locked icon, not an empty screen
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 18-01-PLAN.md — Create ScoreSummaryCard, ReportCard (with A/B/C grade badge logic), and ChatThread sub-components (AI-04, AI-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 18-02-PLAN.md — Rewrite AIAdvisorScreen: report generation flow, loading state, 6-section report layout, chat integration (AI-04, AI-05, AI-06)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 18-03-PLAN.md — TypeScript audit + source code quality checks + human visual verification of full flow (AI-04, AI-05, AI-06)
+
 **UI hint**: yes
 
 ## Progress
@@ -468,5 +480,5 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 14. Auth & Login | v3.0 | 5/5 | Complete | 2026-06-09 |
 | 15. Exercise Photos | v4.0 | 2/2 | Complete | 2026-06-13 |
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
-| 17. AI Advisor — Backend | v4.0 | 0/TBD | Not started | - |
-| 18. AI Advisor — UI | v4.0 | 0/TBD | Not started | - |
+| 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
+| 18. AI Advisor — UI | v4.0 | 0/3 | Not started | - |
