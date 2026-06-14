@@ -481,4 +481,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 15. Exercise Photos | v4.0 | 2/2 | Complete | 2026-06-13 |
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
-| 18. AI Advisor — UI | v4.0 | 0/3 | Not started | - |
+| 18. AI Advisor — UI | v4.0 | 0/3 | Planned | - |

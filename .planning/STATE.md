@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 18 (AI Advisor — UI) — Not started
+Phase: 18 (AI Advisor — UI) — Ready to execute
 Plan: -
-Status: Phase 17 complete (2026-06-14) — 4/4 plans executed, human UAT pending deployment
-Last activity: 2026-06-14 — Phase 17 complete: ai_usage migration, advisorContext.ts, ai-advisor Edge Function, advisorService.ts
+Status: Phase 18 planned (2026-06-15) — 3 plans in 3 waves (18-01 sub-components, 18-02 main screen, 18-03 audit + human verify)
+Last activity: 2026-06-15 — Phase 18 planned: ScoreSummaryCard, ReportCard, ChatThread components + AIAdvisorScreen rewrite
 
 Progress: [█████░░░░░] 62% v4.0
 
