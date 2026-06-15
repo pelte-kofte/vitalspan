@@ -37,6 +37,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from '../components/NeuralGrid';
+import { OrbitalInfoModal } from '../components/OrbitalInfoModal';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PHENO_BIOMARKER_LIST, PhenoAgeInputs } from '../lib/phenoAge';
 import {
   connectAndSync,
@@ -272,6 +273,7 @@ export default function LongevityScoreScreen() {
   const [showTransparency, setShowTransparency] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [permissionState, setPermissionState] = useState<'pre-request' | 'granted' | 'denied' | 'loading'>('loading');
+  const [orbitalModal, setOrbitalModal] = useState<{ title: string; body: string; ctaLabel?: string; onCta?: () => void } | null>(null);
 
   // Derived for backward compat with bioConfidence calculation
   const isConnected = permissionState === 'granted';
@@ -368,6 +370,37 @@ export default function LongevityScoreScreen() {
   function handleDismissPrompt() {
     // User chose to continue without Health data — show empty orbitals
     setPermissionState('granted');
+  }
+
+  function handleOrbitalPress(metricKey: 'sleep' | 'hrv' | 'fitness') {
+    if (permissionState === 'pre-request') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+      handleRequestPermission();
+      return;
+    }
+    if (metricKey === 'sleep') {
+      if (permissionState === 'denied') {
+        // D-04: denied → call handleOpenSettings() directly, no modal
+        handleOpenSettings();
+        return;
+      }
+      // permissionState === 'granted' but no data
+      setOrbitalModal({
+        title: 'Sleep Score Unavailable',
+        body: 'Open Apple Health, record sleep for at least 3 nights, then return here to see your score.',
+      });
+    } else {
+      // hrv or fitness
+      const ctaAction = permissionState === 'denied'
+        ? () => { setOrbitalModal(null); handleOpenSettings(); }
+        : () => { setOrbitalModal(null); handleRequestPermission(); };
+      setOrbitalModal({
+        title: metricKey === 'hrv' ? 'HRV Score Unavailable' : 'Fitness Score Unavailable',
+        body: 'HRV and VO₂ max require Apple Watch paired to this iPhone. Ensure your Watch syncs with the Health app, then tap Connect Health below.',
+        ctaLabel: 'Connect Health',
+        onCta: ctaAction,
+      });
+    }
   }
 
   // Animations
