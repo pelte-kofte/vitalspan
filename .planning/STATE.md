@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.0 — Monetization & Intelligence (Phase 17 complete, Phase 18 next)
+**Current focus:** v4.1 — Global UX Fixes (Phase 19 in progress)
 
 ## Current Position
 
-Phase: 18 (AI Advisor — UI) — Complete
-Plan: 3/3
-Status: Phase 18 complete (2026-06-15) — all 3 plans verified, human checkpoint approved, TEMP bypass reverted, Edge Function 502 fixed and deployed
-Last activity: 2026-06-15 — Phase 18 complete: AI Advisor screen ships with 6-section report, follow-up chat, premium gate, and production-ready Edge Function
+Phase: 19 (Global UX Fixes) — In Progress
+Plan: 1/6
+Status: Phase 19 executing — Wave 1 complete, Wave 2 starting
+Last activity: 2026-06-15 — 19-01 complete: OrbitalInfoModal component created and tsc-clean
 
-Progress: [██████████] 100% v4.0
+Progress: [██░░░░░░░░] 17% Phase 19
 
 ## Performance Metrics
 

@@ -483,7 +483,7 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 19-01-PLAN.md — Create OrbitalInfoModal component (UX-04)
+- [x] 19-01-PLAN.md — Create OrbitalInfoModal component (UX-04)
 
 **Wave 2** *(run in parallel, Wave 1 must complete first for 19-04)*
 - [ ] 19-02-PLAN.md — ExerciseDetailScreen: Dynamic Island header fix + muscle diagram removal (UX-02, UX-05)
