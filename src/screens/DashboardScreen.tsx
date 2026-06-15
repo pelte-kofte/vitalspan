@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl, Alert,
@@ -53,6 +53,7 @@ export default function DashboardScreen() {
   const [showVerificationBanner, setShowVerificationBanner] = useState(false);
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -133,8 +134,8 @@ export default function DashboardScreen() {
             if (!notified) {
               await AsyncStorage.setItem('@vitalspan_email_verified_notified', 'true').catch(() => null);
               setShowVerifiedToast(true);
-              // Auto-dismiss toast after 3 seconds
-              setTimeout(() => setShowVerifiedToast(false), 3000);
+              // Auto-dismiss toast after 3 seconds — store ID for cleanup
+              toastTimerRef.current = setTimeout(() => setShowVerifiedToast(false), 3000);
             }
           }
         }
@@ -146,7 +147,12 @@ export default function DashboardScreen() {
   }, []);
 
   useFocusEffect(
-    useCallback(() => { loadData(); }, [loadData])
+    useCallback(() => {
+      loadData();
+      return () => {
+        if (toastTimerRef.current != null) clearTimeout(toastTimerRef.current);
+      };
+    }, [loadData])
   );
 
   async function handleRefresh() {
