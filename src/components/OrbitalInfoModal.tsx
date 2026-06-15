@@ -1,4 +1,6 @@
+import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing, Typography } from '../theme';
 
 export interface OrbitalInfoModalProps {
@@ -18,6 +20,7 @@ export function OrbitalInfoModal({
   onCta,
   onDismiss,
 }: OrbitalInfoModalProps) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
@@ -30,7 +33,7 @@ export function OrbitalInfoModal({
         activeOpacity={1}
         onPress={onDismiss}
       >
-        <View style={s.sheet}>
+        <View style={[s.sheet, { paddingBottom: Spacing.xxl + insets.bottom }]}>
           <View onStartShouldSetResponder={() => true}>
             <View style={s.handle} />
             <Text style={s.title}>{title}</Text>
@@ -60,7 +63,6 @@ const s = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     padding: Spacing.base,
-    paddingBottom: Spacing.xxl + Spacing.sm,
   },
   handle: {
     width: 36,
