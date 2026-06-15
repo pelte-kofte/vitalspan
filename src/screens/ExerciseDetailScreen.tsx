@@ -11,7 +11,6 @@ import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { Exercise } from '../data/exercises';
 import { getExercises } from '../lib/exerciseService';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import MuscleMapView from '../components/MuscleMapView';
 import QuickLogModal from '../components/QuickLogModal';
 import * as ExerciseIllustrations from '../components/exercise-illustrations';
 
@@ -106,18 +105,6 @@ export default function ExerciseDetailScreen() {
             )}
           </View>
         )}
-
-        {/* 2. Muscle Map */}
-        <View style={s.sectionCard}>
-          <Text style={s.sectionLabel}>MUSCLES</Text>
-          <MuscleMapView
-            primaryMuscles={[exercise.muscleGroup]}
-            secondaryMuscles={exercise.secondaryMuscles}
-            interactive={false}
-            view={muscleView}
-            onViewToggle={() => setMuscleView(v => v === 'front' ? 'back' : 'front')}
-          />
-        </View>
 
         {/* 3. Metadata chips */}
         <View style={s.chipsRow}>
