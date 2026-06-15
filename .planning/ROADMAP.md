@@ -486,10 +486,10 @@ Plans:
 - [x] 19-01-PLAN.md — Create OrbitalInfoModal component (UX-04)
 
 **Wave 2** *(run in parallel, Wave 1 must complete first for 19-04)*
-- [ ] 19-02-PLAN.md — ExerciseDetailScreen: Dynamic Island header fix + muscle diagram removal (UX-02, UX-05)
-- [ ] 19-03-PLAN.md — DashboardScreen: Movement Today card contrast fix (UX-03)
-- [ ] 19-04-PLAN.md — LongevityScoreScreen: Sleep/HRV/Fitness orbital CTA handlers (UX-04)
-- [ ] 19-05-PLAN.md — ProtocolScreen: keyboard overlap fix + tap-outside dismiss (UX-01)
+- [x] 19-02-PLAN.md — ExerciseDetailScreen: Dynamic Island header fix + muscle diagram removal (UX-02, UX-05)
+- [x] 19-03-PLAN.md — DashboardScreen: Movement Today card contrast fix (UX-03)
+- [x] 19-04-PLAN.md — LongevityScoreScreen: Sleep/HRV/Fitness orbital CTA handlers (UX-04)
+- [x] 19-05-PLAN.md — ProtocolScreen: keyboard overlap fix + tap-outside dismiss (UX-01)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 19-06-PLAN.md — TypeScript audit + AIAdvisorScreen smoke-test + human visual verification (UX-01, UX-02, UX-03, UX-04, UX-05)
