@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert,
-  KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform,
+  KeyboardAvoidingView, Keyboard, Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -185,11 +185,16 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); resetForm(); }}>
-        <View style={ms.overlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <TouchableWithoutFeedback onPress={() => { /* absorbs tap — prevents propagation to outer overlay */ }}>
-              <View style={ms.sheet}>
+      {/* Outer backdrop tap → dismiss */}
+      <TouchableOpacity
+        style={ms.overlay}
+        activeOpacity={1}
+        onPress={() => { Keyboard.dismiss(); onClose(); resetForm(); }}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {/* Inner sheet tap → absorbed via TouchableOpacity with activeOpacity=1 */}
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={ms.sheet}>
                 <View style={ms.handle} />
                 <Text style={ms.sheetTitle}>Add Supplement</Text>
 
@@ -281,11 +286,10 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                     <Text style={ms.addBtnTxt}>Add to Stack</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </View>
-      </TouchableWithoutFeedback>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </TouchableOpacity>
     </Modal>
   );
 }
