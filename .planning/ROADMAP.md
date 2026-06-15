@@ -463,7 +463,7 @@ Plans:
 
 **Milestone Goal:** Ship a single-build bundle of cross-screen UX fixes identified post-v4.0 — keyboard overlap, Dynamic Island layout bugs, contrast issues, and missing interaction handlers — so the app feels polished before TestFlight submission.
 
-- [ ] **Phase 19: Global UX Fixes** - Fix 5 cross-screen UX bugs: keyboard overlap, Dynamic Island header, Dashboard contrast, LongevityScore orbital CTAs, and Exercise Detail muscle diagram removal
+- [x] **Phase 19: Global UX Fixes** - Fix 5 cross-screen UX bugs: keyboard overlap, Dynamic Island header, Dashboard contrast, LongevityScore orbital CTAs, and Exercise Detail muscle diagram removal
 
 ## Phase Details — v4.1
 
@@ -492,7 +492,7 @@ Plans:
 - [x] 19-05-PLAN.md — ProtocolScreen: keyboard overlap fix + tap-outside dismiss (UX-01)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 19-06-PLAN.md — TypeScript audit + AIAdvisorScreen smoke-test + human visual verification (UX-01, UX-02, UX-03, UX-04, UX-05)
+- [x] 19-06-PLAN.md — TypeScript audit + AIAdvisorScreen smoke-test + human visual verification (UX-01, UX-02, UX-03, UX-04, UX-05)
 
 **UI hint**: yes
 
@@ -523,4 +523,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18 → 19
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
-| 19. Global UX Fixes | v4.1 | 0/6 | In Progress | — |
+| 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |

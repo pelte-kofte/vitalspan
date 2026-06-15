@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-10)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.1 — Global UX Fixes (Phase 19 in progress)
+**Current focus:** v4.1 complete — Phase 19 done; next milestone v5.0
 
 ## Current Position
 
-Phase: 19 (Global UX Fixes) — In Progress
-Plan: 5/6
-Status: Phase 19 executing — Wave 2 complete, Wave 3 pending human verification
-Last activity: 2026-06-15 — Wave 2 complete: ExerciseDetailScreen (Dynamic Island + muscle removal), DashboardScreen (contrast fix), LongevityScoreScreen (orbital CTAs), ProtocolScreen (keyboard fix) — all tsc-clean
+Phase: 19 (Global UX Fixes) — Complete
+Plan: 6/6
+Status: Phase 19 complete (2026-06-15) — all 5 UX bugs fixed, 6 plans verified, human checkpoint approved
+Last activity: 2026-06-15 — Phase 19 complete: keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram all fixed
 
-Progress: [████████░░] 83% Phase 19
+Progress: [██████████] 100% v4.1
 
 ## Performance Metrics
 
@@ -110,5 +110,5 @@ Items carried forward to future milestone:
 ## Session Continuity
 
 Last session: 2026-06-15
-Stopped at: Phase 18 complete — all 4 v4.0 phases shipped. v4.0 milestone (Monetization & Intelligence) is done. Next milestone: v5.0 (notifications, biomarker trend charts, data limits, TestFlight / EAS).
+Stopped at: Phase 19 complete — all 5 UX bugs fixed (keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram). v4.1 milestone done. Next milestone: v5.0 (notifications, biomarker trend charts, data limits, TestFlight / EAS).
 Resume file: .planning/STATE.md
