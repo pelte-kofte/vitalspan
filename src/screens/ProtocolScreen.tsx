@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert,
+  KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -184,101 +185,107 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={ms.overlay}>
-        <View style={ms.sheet}>
-          <View style={ms.handle} />
-          <Text style={ms.sheetTitle}>Add Supplement</Text>
+      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); resetForm(); }}>
+        <View style={ms.overlay}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <TouchableWithoutFeedback onPress={() => { /* absorbs tap — prevents propagation to outer overlay */ }}>
+              <View style={ms.sheet}>
+                <View style={ms.handle} />
+                <Text style={ms.sheetTitle}>Add Supplement</Text>
 
-          <Text style={ms.fieldLabel}>Search database</Text>
-          <TextInput
-            style={ms.input}
-            placeholder="Search Berberine, Quercetin, NMN…"
-            placeholderTextColor={Colors.onSurfaceMuted}
-            value={query}
-            onChangeText={t => { setQuery(t); setSelectedDb(null); }}
-            autoCorrect={false}
-          />
-          {dbResults.length > 0 && (
-            <View style={ms.dbResults}>
-              {dbResults.map(info => (
-                <TouchableOpacity key={info.id} style={ms.dbRow} onPress={() => selectFromDb(info)}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={ms.dbName}>{info.name}</Text>
-                    <Text style={ms.dbDesc}>{info.shortDescription}</Text>
+                <Text style={ms.fieldLabel}>Search database</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="Search Berberine, Quercetin, NMN…"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={query}
+                  onChangeText={t => { setQuery(t); setSelectedDb(null); }}
+                  autoCorrect={false}
+                />
+                {dbResults.length > 0 && (
+                  <View style={ms.dbResults}>
+                    {dbResults.map(info => (
+                      <TouchableOpacity key={info.id} style={ms.dbRow} onPress={() => selectFromDb(info)}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={ms.dbName}>{info.name}</Text>
+                          <Text style={ms.dbDesc}>{info.shortDescription}</Text>
+                        </View>
+                        <View style={[ms.gradeBadge, { backgroundColor: info.evidenceGrade === 'A' ? Colors.primaryBg : Colors.warningBg }]}>
+                          <Text style={[ms.gradeTxt, { color: info.evidenceGrade === 'A' ? Colors.primary : Colors.warning }]}>
+                            {info.evidenceGrade}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <View style={[ms.gradeBadge, { backgroundColor: info.evidenceGrade === 'A' ? Colors.primaryBg : Colors.warningBg }]}>
-                    <Text style={[ms.gradeTxt, { color: info.evidenceGrade === 'A' ? Colors.primary : Colors.warning }]}>
-                      {info.evidenceGrade}
-                    </Text>
+                )}
+                {query.length >= 2 && dbResults.length === 0 && (
+                  <Text style={ms.notFound}>Not in database — enter manually below</Text>
+                )}
+
+                {selectedDb && (
+                  <View style={ms.selectedBadge}>
+                    <Text style={ms.selectedTxt}>✓ From database: {selectedDb.name}</Text>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {query.length >= 2 && dbResults.length === 0 && (
-            <Text style={ms.notFound}>Not in database — enter manually below</Text>
-          )}
+                )}
 
-          {selectedDb && (
-            <View style={ms.selectedBadge}>
-              <Text style={ms.selectedTxt}>✓ From database: {selectedDb.name}</Text>
-            </View>
-          )}
+                <Text style={ms.fieldLabel}>Name {!selectedDb && <Text style={ms.required}>*</Text>}</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="Supplement name"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={name}
+                  onChangeText={setName}
+                  editable={!selectedDb}
+                />
 
-          <Text style={ms.fieldLabel}>Name {!selectedDb && <Text style={ms.required}>*</Text>}</Text>
-          <TextInput
-            style={ms.input}
-            placeholder="Supplement name"
-            placeholderTextColor={Colors.onSurfaceMuted}
-            value={name}
-            onChangeText={setName}
-            editable={!selectedDb}
-          />
+                <Text style={ms.fieldLabel}>Dose</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="e.g. 500mg, 2 capsules"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={dose}
+                  onChangeText={setDose}
+                />
 
-          <Text style={ms.fieldLabel}>Dose</Text>
-          <TextInput
-            style={ms.input}
-            placeholder="e.g. 500mg, 2 capsules"
-            placeholderTextColor={Colors.onSurfaceMuted}
-            value={dose}
-            onChangeText={setDose}
-          />
+                <Text style={ms.fieldLabel}>Time of day</Text>
+                <View style={ms.timingRow}>
+                  {TIME_SLOTS.map(slot => (
+                    <TouchableOpacity
+                      key={slot.key}
+                      style={[ms.timingChip, timing === slot.key && ms.timingChipActive]}
+                      onPress={() => setTiming(t => t === slot.key ? undefined : slot.key)}
+                    >
+                      <Text style={[ms.timingTxt, timing === slot.key && ms.timingTxtActive]}>
+                        {slot.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-          <Text style={ms.fieldLabel}>Time of day</Text>
-          <View style={ms.timingRow}>
-            {TIME_SLOTS.map(slot => (
-              <TouchableOpacity
-                key={slot.key}
-                style={[ms.timingChip, timing === slot.key && ms.timingChipActive]}
-                onPress={() => setTiming(t => t === slot.key ? undefined : slot.key)}
-              >
-                <Text style={[ms.timingTxt, timing === slot.key && ms.timingTxtActive]}>
-                  {slot.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                <Text style={ms.fieldLabel}>Notes (optional)</Text>
+                <TextInput
+                  style={[ms.input, ms.notesInput]}
+                  placeholder="Any notes, interactions, reminders…"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                />
 
-          <Text style={ms.fieldLabel}>Notes (optional)</Text>
-          <TextInput
-            style={[ms.input, ms.notesInput]}
-            placeholder="Any notes, interactions, reminders…"
-            placeholderTextColor={Colors.onSurfaceMuted}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-          />
-
-          <View style={ms.btnRow}>
-            <TouchableOpacity style={ms.cancelBtn} onPress={() => { resetForm(); onClose(); }}>
-              <Text style={ms.cancelTxt}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={ms.addBtn} onPress={handleAdd}>
-              <Text style={ms.addBtnTxt}>Add to Stack</Text>
-            </TouchableOpacity>
-          </View>
+                <View style={ms.btnRow}>
+                  <TouchableOpacity style={ms.cancelBtn} onPress={() => { resetForm(); onClose(); }}>
+                    <Text style={ms.cancelTxt}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={ms.addBtn} onPress={handleAdd}>
+                    <Text style={ms.addBtnTxt}>Add to Stack</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
