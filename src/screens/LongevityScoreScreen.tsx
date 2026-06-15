@@ -676,19 +676,35 @@ export default function LongevityScoreScreen() {
                 const { x, y } = polarToXY(dp.angle, ORBIT_R, SPHERE_CX, SPHERE_CY);
                 const val = dataValue(derivedHealth, dp.key, { inflammation: inflammationValue });
                 const empty = METRIC_EMPTY[dp.key];
+                const isTappableKey = dp.key === 'sleep' || dp.key === 'hrv' || dp.key === 'fitness';
+                const orbContent = val != null ? (
+                  <>
+                    <Text style={s.dataOrbVal}>{val}</Text>
+                    <Text style={s.dataOrbLabel}>{dp.label}</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={s.dataOrbEmptyIcon}>+</Text>
+                    <Text style={s.dataOrbEmptyLabel}>{empty.cta}</Text>
+                  </>
+                );
+                if (val == null && isTappableKey) {
+                  return (
+                    <TouchableOpacity
+                      key={dp.key}
+                      style={{ position: 'absolute', left: x - 30, top: y - 22 }}
+                      activeOpacity={0.75}
+                      onPress={() => handleOrbitalPress(dp.key as 'sleep' | 'hrv' | 'fitness')}
+                    >
+                      <View style={[s.dataOrb, s.dataOrbEmpty]}>
+                        {orbContent}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }
                 return (
                   <View key={dp.key} style={[s.dataOrb, { left: x - 30, top: y - 22 }, val == null && s.dataOrbEmpty]}>
-                    {val != null ? (
-                      <>
-                        <Text style={s.dataOrbVal}>{val}</Text>
-                        <Text style={s.dataOrbLabel}>{dp.label}</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={s.dataOrbEmptyIcon}>+</Text>
-                        <Text style={s.dataOrbEmptyLabel}>{empty.cta}</Text>
-                      </>
-                    )}
+                    {orbContent}
                   </View>
                 );
               })}
@@ -718,21 +734,35 @@ export default function LongevityScoreScreen() {
             {DATA_POINTS.map(dp => {
               const val = dataValue(derivedHealth, dp.key, { inflammation: inflammationValue });
               const empty = METRIC_EMPTY[dp.key];
+              const isTappableKey = dp.key === 'sleep' || dp.key === 'hrv' || dp.key === 'fitness';
+              const cellContent = val != null ? (
+                <>
+                  <Text style={s.metricVal}>{val}</Text>
+                  <Text style={s.metricLabel}>{dp.label}</Text>
+                  {dp.unit !== '' && <Text style={s.metricUnit}>{dp.unit}</Text>}
+                </>
+              ) : (
+                <>
+                  <Text style={s.metricEmptyVal}>○</Text>
+                  <Text style={s.metricLabel}>{dp.label}</Text>
+                  <Text style={s.metricEmptyReason}>{empty.reason}</Text>
+                </>
+              );
+              if (val == null && isTappableKey) {
+                return (
+                  <TouchableOpacity
+                    key={dp.key}
+                    style={[s.metricCell, s.metricCellEmpty]}
+                    activeOpacity={0.75}
+                    onPress={() => handleOrbitalPress(dp.key as 'sleep' | 'hrv' | 'fitness')}
+                  >
+                    {cellContent}
+                  </TouchableOpacity>
+                );
+              }
               return (
                 <View key={dp.key} style={[s.metricCell, val == null && s.metricCellEmpty]}>
-                  {val != null ? (
-                    <>
-                      <Text style={s.metricVal}>{val}</Text>
-                      <Text style={s.metricLabel}>{dp.label}</Text>
-                      {dp.unit !== '' && <Text style={s.metricUnit}>{dp.unit}</Text>}
-                    </>
-                  ) : (
-                    <>
-                      <Text style={s.metricEmptyVal}>○</Text>
-                      <Text style={s.metricLabel}>{dp.label}</Text>
-                      <Text style={s.metricEmptyReason}>{empty.reason}</Text>
-                    </>
-                  )}
+                  {cellContent}
                 </View>
               );
             })}
@@ -810,6 +840,16 @@ export default function LongevityScoreScreen() {
           chronoAge={chronoAge}
           yearsDiff={yearsDiff}
         />
+        {orbitalModal && (
+          <OrbitalInfoModal
+            visible={true}
+            title={orbitalModal.title}
+            body={orbitalModal.body}
+            ctaLabel={orbitalModal.ctaLabel}
+            onCta={orbitalModal.onCta}
+            onDismiss={() => setOrbitalModal(null)}
+          />
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
