@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { Exercise } from '../data/exercises';
@@ -32,7 +33,7 @@ export default function ExerciseDetailScreen() {
   const { exerciseId } = route.params;
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
-  const [muscleView, setMuscleView] = useState<'front' | 'back'>('front');
+  const insets = useSafeAreaInsets();
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [photoError, setPhotoError] = useState(false);
 
@@ -76,7 +77,7 @@ export default function ExerciseDetailScreen() {
   return (
     <View style={s.root}>
       {/* Header */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + Spacing.md }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBack} activeOpacity={0.7}>
           <Text style={s.headerBackTxt} numberOfLines={1}>← {exercise.name}</Text>
         </TouchableOpacity>
@@ -170,7 +171,7 @@ const s = StyleSheet.create({
   errorTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
   backBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm },
   backBtnTxt: { color: Colors.primaryBg, fontWeight: '600', fontSize: Typography.sizes.base },
-  header: { backgroundColor: Colors.surfaceElevated, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
+  header: { backgroundColor: Colors.surfaceElevated, paddingHorizontal: Spacing.base, paddingBottom: Spacing.md, borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
   headerBack: { flexDirection: 'row', alignItems: 'center' },
   headerBackTxt: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface, flex: 1 },
   scroll: { flex: 1 },
