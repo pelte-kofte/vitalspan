@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-06-10)
 
 ## Current Position
 
-Phase: 18 (AI Advisor — UI) — Ready to execute
-Plan: -
-Status: Phase 18 planned (2026-06-15) — 3 plans in 3 waves (18-01 sub-components, 18-02 main screen, 18-03 audit + human verify)
-Last activity: 2026-06-15 — Phase 18 planned: ScoreSummaryCard, ReportCard, ChatThread components + AIAdvisorScreen rewrite
+Phase: 18 (AI Advisor — UI) — Complete
+Plan: 3/3
+Status: Phase 18 complete (2026-06-15) — all 3 plans verified, human checkpoint approved, TEMP bypass reverted, Edge Function 502 fixed and deployed
+Last activity: 2026-06-15 — Phase 18 complete: AI Advisor screen ships with 6-section report, follow-up chat, premium gate, and production-ready Edge Function
 
-Progress: [█████░░░░░] 62% v4.0
+Progress: [██████████] 100% v4.0
 
 ## Performance Metrics
 
@@ -109,6 +109,6 @@ Items carried forward to future milestone:
 
 ## Session Continuity
 
-Last session: 2026-06-13
-Stopped at: Phase 16 complete (6/6 plans, on-device Scenarios 1+2 verified, VERIFICATION.md written). Next: /gsd:plan-phase 17 — AI Advisor Backend (Supabase Edge Function + Claude API proxy + rate limiting).
+Last session: 2026-06-15
+Stopped at: Phase 18 complete — all 4 v4.0 phases shipped. v4.0 milestone (Monetization & Intelligence) is done. Next milestone: v5.0 (notifications, biomarker trend charts, data limits, TestFlight / EAS).
 Resume file: .planning/STATE.md

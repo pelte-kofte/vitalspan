@@ -355,7 +355,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
 - [x] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
 - [x] **Phase 17: AI Advisor — Backend** - Build the Supabase Edge Function, anonymized context assembler, and per-user rate limiting that powers the AI Longevity Advisor (completed 2026-06-14)
-- [ ] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate
+- [x] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate (completed 2026-06-15)
 
 ## Phase Details
 
@@ -447,13 +447,13 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 18-01-PLAN.md — Create ScoreSummaryCard, ReportCard (with A/B/C grade badge logic), and ChatThread sub-components (AI-04, AI-05)
+- [x] 18-01-PLAN.md — Create ScoreSummaryCard, ReportCard (with A/B/C grade badge logic), and ChatThread sub-components (AI-04, AI-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 18-02-PLAN.md — Rewrite AIAdvisorScreen: report generation flow, loading state, 6-section report layout, chat integration (AI-04, AI-05, AI-06)
+- [x] 18-02-PLAN.md — Rewrite AIAdvisorScreen: report generation flow, loading state, 6-section report layout, chat integration (AI-04, AI-05, AI-06)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 18-03-PLAN.md — TypeScript audit + source code quality checks + human visual verification of full flow (AI-04, AI-05, AI-06)
+- [x] 18-03-PLAN.md — TypeScript audit + source code quality checks + human visual verification of full flow (AI-04, AI-05, AI-06)
 
 **UI hint**: yes
 
@@ -481,4 +481,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 15. Exercise Photos | v4.0 | 2/2 | Complete | 2026-06-13 |
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
-| 18. AI Advisor — UI | v4.0 | 0/3 | Planned | - |
+| 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
