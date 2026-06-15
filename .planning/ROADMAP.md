@@ -478,7 +478,21 @@ Plans:
   3. Dashboard "Movement Today" section text and values pass AA contrast against their background; the section is visually distinct from adjacent cards
   4. LongevityScore orbital cards for Sleep, HRV, and Fitness have working onPress handlers: Sleep → appropriate entry flow; HRV/Fitness → "Requires Apple Watch" explanation + Connect Health CTA; Inflammation/Glucose CTAs already routing correctly remain unchanged
   5. ExerciseDetailScreen no longer renders the muscle diagram (front/back silhouette toggle) — the exercise photo and text details fill the space cleanly
-**Plans**: TBD
+**Plans**: 6 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 19-01-PLAN.md — Create OrbitalInfoModal component (UX-04)
+
+**Wave 2** *(run in parallel, Wave 1 must complete first for 19-04)*
+- [ ] 19-02-PLAN.md — ExerciseDetailScreen: Dynamic Island header fix + muscle diagram removal (UX-02, UX-05)
+- [ ] 19-03-PLAN.md — DashboardScreen: Movement Today card contrast fix (UX-03)
+- [ ] 19-04-PLAN.md — LongevityScoreScreen: Sleep/HRV/Fitness orbital CTA handlers (UX-04)
+- [ ] 19-05-PLAN.md — ProtocolScreen: keyboard overlap fix + tap-outside dismiss (UX-01)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 19-06-PLAN.md — TypeScript audit + AIAdvisorScreen smoke-test + human visual verification (UX-01, UX-02, UX-03, UX-04, UX-05)
 
 **UI hint**: yes
 
@@ -509,4 +523,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18 → 19
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
-| 19. Global UX Fixes | v4.1 | 0/TBD | In Progress | — |
+| 19. Global UX Fixes | v4.1 | 0/6 | In Progress | — |
