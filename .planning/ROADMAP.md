@@ -457,10 +457,37 @@ Plans:
 
 **UI hint**: yes
 
+---
+
+## Phases — v4.1 UX Quality Pass
+
+**Milestone Goal:** Ship a single-build bundle of cross-screen UX fixes identified post-v4.0 — keyboard overlap, Dynamic Island layout bugs, contrast issues, and missing interaction handlers — so the app feels polished before TestFlight submission.
+
+- [ ] **Phase 19: Global UX Fixes** - Fix 5 cross-screen UX bugs: keyboard overlap, Dynamic Island header, Dashboard contrast, LongevityScore orbital CTAs, and Exercise Detail muscle diagram removal
+
+## Phase Details — v4.1
+
+### Phase 19: Global UX Fixes
+**Goal**: All identified post-v4.0 UX bugs are fixed in a single build — keyboard no longer obscures inputs, Dynamic Island no longer clips headers, "Movement Today" is readable, LongevityScore orbital CTAs are tappable with appropriate destination routing, and the low-quality muscle diagram is removed from ExerciseDetailScreen
+**Mode:** standard
+**Depends on**: Phase 18
+**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05
+**Success Criteria** (what must be TRUE):
+  1. On Protocol (custom supplement add) and AI Advisor (chat input), tapping a text field raises the keyboard without obscuring the input; tapping outside the input dismisses the keyboard
+  2. ExerciseDetailScreen back button and title are fully visible below the Dynamic Island/notch on iPhone 15 Pro and iPhone 16 Plus — no clipping
+  3. Dashboard "Movement Today" section text and values pass AA contrast against their background; the section is visually distinct from adjacent cards
+  4. LongevityScore orbital cards for Sleep, HRV, and Fitness have working onPress handlers: Sleep → appropriate entry flow; HRV/Fitness → "Requires Apple Watch" explanation + Connect Health CTA; Inflammation/Glucose CTAs already routing correctly remain unchanged
+  5. ExerciseDetailScreen no longer renders the muscle diagram (front/back silhouette toggle) — the exercise photo and text details fill the space cleanly
+**Plans**: TBD
+
+**UI hint**: yes
+
+---
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 15 → 16 → 17 → 18
+Phases execute in numeric order: 15 → 16 → 17 → 18 → 19
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -482,3 +509,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 16. Adapty Paywall & Subscriptions | v4.0 | 6/6 | Complete | 2026-06-13 |
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
+| 19. Global UX Fixes | v4.1 | 0/TBD | In Progress | — |
