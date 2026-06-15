@@ -363,8 +363,10 @@ export default function LongevityScoreScreen() {
     }
   }
 
-  async function handleOpenSettings() {
-    await Linking.openURL('app-settings:');
+  function handleOpenSettings() {
+    Linking.openURL('app-settings:').catch((e) =>
+      console.warn('[LongevityScore] Could not open settings', e),
+    );
   }
 
   function handleDismissPrompt() {
@@ -391,13 +393,16 @@ export default function LongevityScoreScreen() {
       });
     } else {
       // hrv or fitness
+      const isGranted = permissionState === 'granted';
       const ctaAction = permissionState === 'denied'
         ? () => { setOrbitalModal(null); handleOpenSettings(); }
-        : () => { setOrbitalModal(null); handleRequestPermission(); };
+        : undefined; // no CTA when already connected — the body text is sufficient
       setOrbitalModal({
         title: metricKey === 'hrv' ? 'HRV Score Unavailable' : 'Fitness Score Unavailable',
-        body: 'HRV and VO₂ max require Apple Watch paired to this iPhone. Ensure your Watch syncs with the Health app, then tap Connect Health below.',
-        ctaLabel: 'Connect Health',
+        body: isGranted
+          ? 'HRV and VO₂ max require an Apple Watch paired to this iPhone and synced with Apple Health.'
+          : 'Connect Apple Health to see live HRV and VO₂ max data from your Apple Watch.',
+        ctaLabel: isGranted ? undefined : 'Connect Health',
         onCta: ctaAction,
       });
     }
@@ -435,21 +440,26 @@ export default function LongevityScoreScreen() {
     opacity: interpolate(spherePulse.value, [0.85, 1.0], [0.85, 1.0]),
   }));
 
+  // Single entryMap — used by both PhenoAge computation and score transparency UI
+  const entryMap = React.useMemo(() => {
+    const m = new Map<string, StoredEntry>();
+    for (const e of biomarkerEntries) {
+      const ex = m.get(e.biomarkerId);
+      if (!ex || e.date > ex.date) m.set(e.biomarkerId, e);
+    }
+    return m;
+  }, [biomarkerEntries]);
+
   // PhenoAge computation
   const phenoResult = React.useMemo(() => {
     if (!profile?.age || profile.age <= 0) return null;
-    const entryMap = new Map<string, StoredEntry>();
-    for (const e of biomarkerEntries) {
-      const ex = entryMap.get(e.biomarkerId);
-      if (!ex || e.date > ex.date) entryMap.set(e.biomarkerId, e);
-    }
     const inputs: PhenoAgeInputs = { age: profile.age };
     for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
       const entry = entryMap.get(biomarkerId);
       if (entry != null && entry.value != null) inputs[inputKey] = entry.value;
     }
     return computePhenoAge(inputs);
-  }, [biomarkerEntries, profile]);
+  }, [entryMap, profile]);
 
   // Enrich health data with biomarker-derived values
   const derivedHealth = React.useMemo((): HealthData => {
@@ -477,16 +487,6 @@ export default function LongevityScoreScreen() {
   const chronoAge = profile?.age;
   const yearsDiff = bioAge != null && chronoAge != null ? chronoAge - bioAge : 0;
   const [gradStart, gradEnd] = healthScoreColor(bioAge ?? undefined, chronoAge);
-
-  // Score transparency data
-  const entryMap = React.useMemo(() => {
-    const m = new Map<string, StoredEntry>();
-    for (const e of biomarkerEntries) {
-      const ex = m.get(e.biomarkerId);
-      if (!ex || e.date > ex.date) m.set(e.biomarkerId, e);
-    }
-    return m;
-  }, [biomarkerEntries]);
 
   const loggedPhenoCount = PHENO_BIOMARKER_LIST.filter(b => entryMap.has(b.id)).length;
   const totalPhenoCount = PHENO_BIOMARKER_LIST.length;
@@ -629,11 +629,6 @@ export default function LongevityScoreScreen() {
                   <Stop offset="60%" stopColor={gradEnd} stopOpacity="1" />
                   <Stop offset="100%" stopColor="#040808" stopOpacity="1" />
                 </RadialGradient>
-                <SvgGradient id="arcGrad" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0%" stopColor={Colors.viz.bioGreen} stopOpacity="0.8" />
-                  <Stop offset="50%" stopColor={Colors.viz.cyan} stopOpacity="0.6" />
-                  <Stop offset="100%" stopColor={Colors.viz.bioGreen} stopOpacity="0.1" />
-                </SvgGradient>
               </Defs>
               <Circle cx={SPHERE_CX} cy={SPHERE_CY} r={ORBIT_R + 2} fill="none"
                 stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
@@ -646,6 +641,13 @@ export default function LongevityScoreScreen() {
 
             <Animated.View style={[StyleSheet.absoluteFill, arcStyle]}>
               <Svg width={W} height={SVG_H} style={StyleSheet.absoluteFill}>
+                <Defs>
+                  <SvgGradient id="arcGrad" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0%" stopColor={Colors.viz.bioGreen} stopOpacity="0.8" />
+                    <Stop offset="50%" stopColor={Colors.viz.cyan} stopOpacity="0.6" />
+                    <Stop offset="100%" stopColor={Colors.viz.bioGreen} stopOpacity="0.1" />
+                  </SvgGradient>
+                </Defs>
                 <Path d={arcPath(SPHERE_R + 14)} fill="none" stroke="url(#arcGrad)"
                   strokeWidth={2} strokeLinecap="round" strokeDasharray="8 6" />
               </Svg>
