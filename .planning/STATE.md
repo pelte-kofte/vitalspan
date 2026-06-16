@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 20 — Protocol Schema Migration
-Plan: —
-Status: Phase 20 context gathered — ready for planning
-Last activity: 2026-06-16 — Phase 20 context gathered (discuss session complete)
+Plan: 3 plans in 3 waves
+Status: Ready to execute
+Last activity: 2026-06-16 — Phase 20 planned (3 plans: types foundation, ProtocolScreen overhaul, downstream consumers)
 
 Progress: [░░░░░░░░░░] 0% v5.0
 
