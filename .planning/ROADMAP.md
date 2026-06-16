@@ -660,7 +660,24 @@ Plans:
   4. Exercise log entries capture weightKg and repsPerSet per set — not just intensity — so progressive overload can be computed
   5. Each exercise card in the Rutinim view shows the weight and reps from the last logged session for that exercise, plus a weekly trend indicator (improving/stable/declining); ExerciseDetailScreen shows a sparkline chart of weekly overload history
 
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+
+- [ ] 21-01-PLAN.md — SetRecord interface + setsData on ExerciseLogEntry + drag-to-reorder dependency (HIST-04, ROUT-01 to ROUT-05)
+
+**Wave 2** *(blocked on Wave 1, run in parallel)*
+
+- [ ] 21-02-PLAN.md — QuickLogModal: replace intensity chips with Sets/Reps/Weight inputs + write setsData on save (HIST-04)
+- [ ] 21-03-PLAN.md — SwipeableLogRow: full-date display + onEdit prop + tap-to-edit (HIST-01, HIST-02, HIST-03)
+
+**Wave 3** *(blocked on Wave 2, run in parallel)*
+
+- [ ] 21-04-PLAN.md — ExerciseScreen: Rutinim/Kesfet toggle, routine CRUD, Rutinim cards, Kesfet add button, edit-log sheet (ROUT-01 to ROUT-05, HIST-01, HIST-02, HIST-03, OVLD-01, OVLD-02)
+- [ ] 21-05-PLAN.md — ExerciseDetailScreen: 8-week progressive overload sparkline (LineChart) (OVLD-03)
+
 **UI hint**: yes
 
 ### Phase 22: Engagement & Visualization
@@ -724,6 +741,6 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
 | 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
-| 21. Exercise Routine & History | v5.0 | 0/TBD | Not started | - |
+| 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
 | 22. Engagement & Visualization | v5.0 | 0/TBD | Not started | - |
 | 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |
