@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 20 — Protocol Schema Migration
-Plan: 3 plans in 3 waves (1/3 complete)
+Plan: 3 plans in 3 waves (2/3 complete)
 Status: In progress
-Last activity: 2026-06-16 — Plan 20-01 complete: src/types/protocol.ts created with ProtocolItem, ProtocolState, TimeSlot, CustomSupplement, EMPTY_PROTOCOL
+Last activity: 2026-06-16 — Plan 20-02 complete: ProtocolScreen migrated to unified supplements[] schema; migrateProtocol(), EditSupplementSheet, EditMedicationSheet, hiddenMeds implemented
 
-Progress: [█░░░░░░░░░] 8% v5.0 (1/12 plans complete)
+Progress: [██░░░░░░░░] 16% v5.0 (2/12 plans complete)
 
 ## Performance Metrics
 
@@ -97,6 +97,10 @@ Recent decisions affecting current work:
 - 20-01: ProtocolItem unifies addedSupplements + customSupplements with source discriminant ('db' | 'manual') — CustomSupplement retained migration-detection-only
 - 20-01: hiddenMeds: string[] on ProtocolState for soft-hide of medications from protocol view (D-07)
 - 20-01: personalDose?: string on ProtocolItem for supplements-only override; medications use medTimes only (D-06)
+- 20-02: migrateProtocol() detects old schema by 'addedSupplements' in parsed and writes back immediately — idempotent (D-05)
+- 20-02: Custom category label removed — protocol.supplements renders as flat list in add order (D-01)
+- 20-02: Inline medication timing chips removed from card JSX — timing now set only from EditMedicationSheet (D-10)
+- 20-02: SupplementLibrarySection.tsx unchanged — callers pass string[] (addedSupplementNames) which matches existing prop type
 
 ### Pending Todos
 
@@ -123,6 +127,6 @@ Items carried forward to future milestones:
 ## Session Continuity
 
 Last session: 2026-06-16
-Stopped at: Plan 20-01 complete — src/types/protocol.ts created.
-Resume file: .planning/phases/20-protocol-schema-migration/20-01-SUMMARY.md
-Next action: Execute Plan 20-02 (ProtocolScreen overhaul)
+Stopped at: Plan 20-02 complete — ProtocolScreen migrated to unified supplements[] schema.
+Resume file: .planning/phases/20-protocol-schema-migration/20-02-SUMMARY.md
+Next action: Execute Plan 20-03 (downstream consumers: InteractionCheckerScreen + advisorContext.ts)
