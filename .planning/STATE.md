@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Personalization & Production
-status: executing
-stopped_at: Plan 20-03 complete — Phase 20 schema migration complete; all consumers read from supplements[]; tsc exits 0.
-last_updated: "2026-06-16T20:23:56.628Z"
-last_activity: "2026-06-16 — Plan 20-03 complete: InteractionCheckerScreen + advisorContext.ts migrated to supplements[] schema; full tsc audit exits 0; Phase 20 complete"
+status: phase_complete
+stopped_at: Phase 20 complete — protocol schema migration done; verification passed 10/10; all gaps resolved
+last_updated: "2026-06-16T20:30:00.000Z"
+last_activity: "2026-06-16 — Phase 20 complete: unified supplements[] schema, EditSupplementSheet/EditMedicationSheet, hidden meds, downstream consumers updated, tsc clean, PROT-01/02/03/04 all marked Complete"
 progress:
   total_phases: 4
   completed_phases: 1
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v5.0 — Personalization & Production (Phase 20)
+**Current focus:** v5.0 — Personalization & Production (Phase 21 next)
 
 ## Current Position
 
