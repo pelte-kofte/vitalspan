@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 
 Phase: 20 — Protocol Schema Migration
 Plan: —
-Status: Roadmap created — ready for Phase 20 planning
-Last activity: 2026-06-16 — v5.0 roadmap created (Phases 20-23)
+Status: Phase 20 context gathered — ready for planning
+Last activity: 2026-06-16 — Phase 20 context gathered (discuss session complete)
 
 Progress: [░░░░░░░░░░] 0% v5.0
 
@@ -119,6 +119,6 @@ Items carried forward to future milestones:
 ## Session Continuity
 
 Last session: 2026-06-16
-Stopped at: v5.0 roadmap created — Phases 20-23 defined. Ready to plan Phase 20.
-Resume file: .planning/STATE.md
+Stopped at: Phase 20 context gathered — schema decisions locked.
+Resume file: .planning/phases/20-protocol-schema-migration/20-CONTEXT.md
 Next action: `/gsd:plan-phase 20`
