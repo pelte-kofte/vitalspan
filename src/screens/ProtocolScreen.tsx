@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
@@ -18,6 +18,13 @@ import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 import SupplementLibrarySection from '../components/SupplementLibrarySection';
 import { PillIcon } from '../components/DesignSystemIcons';
+import {
+  ProtocolItem,
+  ProtocolState,
+  TimeSlot,
+  CustomSupplement,
+  EMPTY_PROTOCOL,
+} from '../types/protocol';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -28,25 +35,6 @@ interface UserProfile {
   name: string;
   goal: string;
   medications: string[];
-}
-
-type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night';
-
-export interface CustomSupplement {
-  id: string;
-  name: string;
-  dose: string;
-  timing?: TimeSlot;
-  notes?: string;
-  addedAt: string;
-}
-
-interface ProtocolState {
-  medTimes: Record<string, TimeSlot>;
-  addedSupplements: string[];
-  customSupplements: CustomSupplement[];
-  taken: string[];
-  takenDate: string;
 }
 
 interface Supplement {
@@ -99,13 +87,6 @@ const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
   { key: 'night',     label: 'Night' },
 ];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  nad: 'NAD+ Pathway', mitochondrial: 'Mitochondrial', cardiovascular: 'Cardiovascular',
-  metabolic: 'Metabolic', antioxidant: 'Antioxidant', mineral: 'Mineral',
-  vitamin: 'Vitamin', sleep: 'Sleep Support', adaptogen: 'Adaptogen',
-  amino_acid: 'Amino Acid', nootropic: 'Nootropic', senolytic: 'Senolytic',
-  prescription_only: 'Prescription', other: 'Other',
-};
 const TIMING_LABELS: Record<string, string> = {
   fasted: 'Fasted', with_meal: 'With meal', with_fat: 'With fat',
   flexible: 'Flexible', bedtime: 'Bedtime',
@@ -115,13 +96,62 @@ const BEST_TIME_LABELS: Record<string, string> = {
   bedtime: 'Bedtime', anytime: 'Anytime',
 };
 
-const EMPTY_PROTOCOL: ProtocolState = {
-  medTimes: {},
-  addedSupplements: [],
-  customSupplements: [],
-  taken: [],
-  takenDate: '',
-};
+// ── Migration utility ─────────────────────────────────────────────────────────
+function migrateProtocol(parsed: Record<string, unknown>): ProtocolState {
+  try {
+    // Old schema: has 'addedSupplements' key
+    if ('addedSupplements' in parsed) {
+      const oldAdded = (parsed.addedSupplements as string[]) ?? [];
+      const oldCustom = (parsed.customSupplements as CustomSupplement[]) ?? [];
+
+      const convertedDb: ProtocolItem[] = oldAdded.map((name, index) => {
+        const dbEntry = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
+        return {
+          id: `supp_migrated_${Date.now()}_${index}`,
+          name: dbEntry?.name ?? name,
+          dose: dbEntry?.defaultDose ?? '—',
+          source: 'db' as const,
+          addedAt: new Date().toISOString(),
+        };
+      });
+
+      const convertedCustom: ProtocolItem[] = oldCustom.map(cs => ({
+        id: cs.id,
+        name: cs.name,
+        dose: cs.dose,
+        timing: cs.timing,
+        source: 'manual' as const,
+        addedAt: cs.addedAt,
+      }));
+
+      return {
+        supplements: [...convertedDb, ...convertedCustom],
+        medTimes: (parsed.medTimes as Record<string, TimeSlot>) ?? {},
+        hiddenMeds: [],
+        taken: [],
+        takenDate: '',
+      };
+    }
+
+    // New schema: has 'supplements' key
+    if ('supplements' in parsed) {
+      return {
+        ...EMPTY_PROTOCOL,
+        ...(parsed as unknown as ProtocolState),
+        hiddenMeds: (parsed.hiddenMeds as string[]) ?? [],
+        supplements: (parsed.supplements as ProtocolItem[]) ?? [],
+        medTimes: (parsed.medTimes as Record<string, TimeSlot>) ?? {},
+        taken: (parsed.taken as string[]) ?? [],
+        takenDate: (parsed.takenDate as string) ?? '',
+      };
+    }
+
+    // Unknown shape
+    return EMPTY_PROTOCOL;
+  } catch {
+    return EMPTY_PROTOCOL;
+  }
+}
 
 // ── Custom Supplement Modal ──────────────────────────────────────────────────
 interface AddModalProps {
@@ -294,7 +324,182 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
   );
 }
 
-// ── Add Supplement Sheet (recommended picker + custom entry point) ────────────
+// ── Edit Supplement Sheet ─────────────────────────────────────────────────────
+interface EditSupplementSheetProps {
+  visible: boolean;
+  item: ProtocolItem | null;
+  onClose: () => void;
+  onSave: (updates: { personalDose?: string; timing?: TimeSlot }) => void;
+}
+
+function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementSheetProps) {
+  const [personalDose, setPersonalDose] = useState('');
+  const [timing, setTiming] = useState<TimeSlot | undefined>(undefined);
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (item) {
+      setPersonalDose(item.personalDose ?? item.dose);
+      setTiming(item.timing);
+      setNotes('');
+    }
+  }, [item]);
+
+  function handleClose() {
+    onClose();
+  }
+
+  function handleSave() {
+    onSave({
+      personalDose: personalDose.trim() || undefined,
+      timing,
+    });
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <TouchableOpacity
+        style={ms.overlay}
+        activeOpacity={1}
+        onPress={() => { Keyboard.dismiss(); handleClose(); }}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={ms.sheet}>
+              <View style={ms.handle} />
+              <Text style={ms.readOnlyName}>{item?.name ?? ''}</Text>
+
+              <Text style={ms.fieldLabel}>Your Dose</Text>
+              <TextInput
+                style={ms.input}
+                placeholder="e.g. 500mg, 2 capsules"
+                placeholderTextColor={Colors.onSurfaceMuted}
+                value={personalDose}
+                onChangeText={setPersonalDose}
+              />
+
+              <Text style={ms.fieldLabel}>Time of day</Text>
+              <View style={ms.timingRow}>
+                {TIME_SLOTS.map(slot => (
+                  <TouchableOpacity
+                    key={slot.key}
+                    style={[ms.timingChip, timing === slot.key && ms.timingChipActive]}
+                    onPress={() => setTiming(t => t === slot.key ? undefined : slot.key)}
+                  >
+                    <Text style={[ms.timingTxt, timing === slot.key && ms.timingTxtActive]}>
+                      {slot.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {item?.source === 'manual' && (
+                <>
+                  <Text style={ms.fieldLabel}>Notes (optional)</Text>
+                  <TextInput
+                    style={[ms.input, ms.notesInput]}
+                    placeholder="Any notes, interactions, reminders…"
+                    placeholderTextColor={Colors.onSurfaceMuted}
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                  />
+                </>
+              )}
+
+              <View style={ms.btnRow}>
+                <TouchableOpacity style={ms.cancelBtn} onPress={handleClose}>
+                  <Text style={ms.cancelTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={ms.addBtn} onPress={handleSave}>
+                  <Text style={ms.addBtnTxt}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ── Edit Medication Sheet ─────────────────────────────────────────────────────
+interface EditMedicationSheetProps {
+  visible: boolean;
+  medName: string | null;
+  currentTiming: TimeSlot | undefined;
+  onClose: () => void;
+  onSaveTiming: (time: TimeSlot | undefined) => void;
+  onHide: () => void;
+}
+
+function EditMedicationSheet({ visible, medName, currentTiming, onClose, onSaveTiming, onHide }: EditMedicationSheetProps) {
+  const [selectedTiming, setSelectedTiming] = useState<TimeSlot | undefined>(undefined);
+
+  useEffect(() => {
+    setSelectedTiming(currentTiming);
+  }, [currentTiming, medName]);
+
+  function handleHide() {
+    Alert.alert(
+      'Hide medication?',
+      `${medName} will be hidden from your protocol view. You can still see it in your profile.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hide', style: 'destructive', onPress: () => { onClose(); onHide(); } },
+      ],
+    );
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity
+        style={ms.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={ms.sheet}>
+              <View style={ms.handle} />
+              <Text style={ms.readOnlyName}>{medName ?? ''}</Text>
+
+              <Text style={ms.fieldLabel}>Time of day</Text>
+              <View style={ms.timingRow}>
+                {TIME_SLOTS.map(slot => (
+                  <TouchableOpacity
+                    key={slot.key}
+                    style={[ms.timingChip, selectedTiming === slot.key && ms.timingChipActive]}
+                    onPress={() => setSelectedTiming(t => t === slot.key ? undefined : slot.key)}
+                  >
+                    <Text style={[ms.timingTxt, selectedTiming === slot.key && ms.timingTxtActive]}>
+                      {slot.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity style={ms.destructiveBtn} onPress={handleHide}>
+                <Text style={ms.destructiveTxt}>Remove from view</Text>
+              </TouchableOpacity>
+
+              <View style={ms.btnRow}>
+                <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
+                  <Text style={ms.cancelTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={ms.addBtn} onPress={() => onSaveTiming(selectedTiming)}>
+                  <Text style={ms.addBtnTxt}>Save Timing</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ── Add Supplement Sheet (recommended picker + custom entry point) ─────────────
 interface AddSupplementSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -359,10 +564,11 @@ export default function ProtocolScreen() {
   const nav = useNavigation<Nav>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
-  const [expandedTimings, setExpandedTimings] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRecommendedSheet, setShowRecommendedSheet] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [editingSupplement, setEditingSupplement] = useState<ProtocolItem | null>(null);
+  const [editingMed, setEditingMed] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -372,17 +578,22 @@ export default function ProtocolScreen() {
       ]);
       if (profileRaw) setProfile(JSON.parse(profileRaw));
       if (protocolRaw) {
-        const saved: ProtocolState = JSON.parse(protocolRaw);
+        const parsed = JSON.parse(protocolRaw) as Record<string, unknown>;
+        const migrated = migrateProtocol(parsed);
+
+        // If old schema detected (addedSupplements key), write back immediately
+        if ('addedSupplements' in parsed) {
+          await AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(migrated)).catch(console.error);
+        }
+
+        // Daily taken reset
         const today = new Date().toISOString().slice(0, 10);
-        setProtocol({
-          ...EMPTY_PROTOCOL,
-          ...saved,
-          medTimes: saved.medTimes ?? {},
-          addedSupplements: saved.addedSupplements ?? [],
-          customSupplements: saved.customSupplements ?? [],
-          taken: saved.takenDate === today ? (saved.taken ?? []) : [],
+        const finalState: ProtocolState = {
+          ...migrated,
+          taken: migrated.takenDate === today ? migrated.taken : [],
           takenDate: today,
-        });
+        };
+        setProtocol(finalState);
       }
     } catch (e) {
       console.error('ProtocolScreen loadData failed:', e);
@@ -417,87 +628,105 @@ export default function ProtocolScreen() {
     persist({ ...protocol, taken, takenDate: today });
   }
 
-  function setMedTime(med: string, time: TimeSlot) {
+  // Medication timing is now set from EditMedicationSheet only
+  function setMedTimeFromSheet(med: string, time: TimeSlot | undefined) {
     const newTimes = { ...protocol.medTimes };
-    if (newTimes[med] === time) delete newTimes[med];
-    else newTimes[med] = time;
+    if (time === undefined) {
+      delete newTimes[med];
+    } else {
+      newTimes[med] = time;
+    }
     persist({ ...protocol, medTimes: newTimes });
   }
 
-  function toggleExpanded(name: string) {
-    setExpandedTimings(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
-      return next;
-    });
+  function hideMedication(name: string) {
+    persist({ ...protocol, hiddenMeds: [...protocol.hiddenMeds, name] });
   }
 
-  function toggleSupplement(name: string) {
-    const isAdded = protocol.addedSupplements.includes(name);
-    const addedSupplements = isAdded
-      ? protocol.addedSupplements.filter(s => s !== name)
-      : [...protocol.addedSupplements, name];
-    const taken = isAdded ? protocol.taken.filter(t => t !== name) : protocol.taken;
-    persist({ ...protocol, addedSupplements, taken });
+  // Add from library (DB item)
+  function addFromLibrary(name: string) {
+    const dbEntry = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
+    const item: ProtocolItem = {
+      id: `supp_${Date.now()}`,
+      name: dbEntry?.name ?? name,
+      dose: dbEntry?.defaultDose ?? '—',
+      source: 'db',
+      addedAt: new Date().toISOString(),
+    };
+    const alreadyIn = protocol.supplements.some(s => s.name.toLowerCase() === name.toLowerCase());
+    if (alreadyIn) return;
+    persist({ ...protocol, supplements: [...protocol.supplements, item] });
   }
 
-  function addCustomSupplement(s: CustomSupplement) {
-    const nameLower = s.name.toLowerCase().trim();
-    const allNames = [
-      ...protocol.addedSupplements.map(n => n.toLowerCase()),
-      ...(protocol.customSupplements ?? []).map(cs => cs.name.toLowerCase()),
-    ];
-    if (allNames.includes(nameLower)) {
-      Alert.alert('Already in your stack', `${s.name} is already in your supplement stack.`);
+  // Add manually (custom supplement)
+  function addManual(item: Omit<ProtocolItem, 'id' | 'addedAt' | 'source'>) {
+    const nameLower = item.name.toLowerCase().trim();
+    const alreadyIn = protocol.supplements.some(s => s.name.toLowerCase() === nameLower);
+    if (alreadyIn) {
+      Alert.alert('Already in your stack', `${item.name} is already in your supplement stack.`);
       return;
     }
-    const customSupplements = [...(protocol.customSupplements ?? []), s];
-    persist({ ...protocol, customSupplements });
+    const newItem: ProtocolItem = {
+      ...item,
+      id: `supp_custom_${Date.now()}`,
+      source: 'manual',
+      addedAt: new Date().toISOString(),
+    };
+    persist({ ...protocol, supplements: [...protocol.supplements, newItem] });
   }
 
-  function removeCustomSupplement(id: string) {
+  // Remove supplement by id
+  function removeFromStack(id: string) {
     Alert.alert('Remove supplement?', 'This will remove it from your stack.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
         onPress: () => {
-          const customSupplements = protocol.customSupplements.filter(s => s.id !== id);
-          const taken = protocol.taken.filter(t => t !== id);
-          persist({ ...protocol, customSupplements, taken });
+          const supplements = protocol.supplements.filter(s => s.id !== id);
+          const taken = protocol.taken.filter(t => !t.startsWith(id) && t !== id);
+          persist({ ...protocol, supplements, taken });
         },
       },
     ]);
   }
 
-  const recommended = useMemo(() => {
-    const goal = profile?.goal ?? '';
-    return [...BASE_SUPPLEMENTS, ...GOAL_SUPPLEMENTS].filter(s =>
-      s.goals.includes('all') || s.goals.some(g => g.toLowerCase() === goal.toLowerCase())
+  // Update a supplement item's personalDose/timing
+  function updateSupplementItem(id: string, updates: Partial<Pick<ProtocolItem, 'personalDose' | 'timing'>>) {
+    const supplements = protocol.supplements.map(s =>
+      s.id === id ? { ...s, ...updates } : s,
     );
-  }, [profile?.goal]);
+    persist({ ...protocol, supplements });
+  }
 
+  // Toggle for library section: add or remove by name
+  function toggleSupplementByName(name: string) {
+    const existing = protocol.supplements.find(s => s.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      removeFromStack(existing.id);
+    } else {
+      addFromLibrary(name);
+    }
+  }
+
+  // Visible medications (excludes hidden)
   const medications = profile?.medications ?? [];
+  const visibleMeds = medications.filter(m => !protocol.hiddenMeds.includes(m));
 
   // Build inline interaction map for medications
   const medInteractionMap = useMemo(() => {
     const map: Record<string, string[]> = {};
-    for (const med of medications) {
+    for (const med of visibleMeds) {
       const medLower = med.toLowerCase();
       const conflicts: string[] = [];
       for (const inter of INTERACTIONS) {
         if (medLower.includes(inter.drug.toLowerCase())) {
-          // Check if user has this supplement added
-          const allAdded = [
-            ...protocol.addedSupplements,
-            ...(protocol.customSupplements ?? []).map(cs => cs.name),
-          ];
+          const allAdded = protocol.supplements.map(s => s.name);
           if (allAdded.some(s => s.toLowerCase().includes(inter.supplement.toLowerCase()))) {
             conflicts.push(inter.supplement);
           }
         }
       }
-      // Also check drug class from medications database
       const drugEntry = MEDICATION_DATABASE.find(m =>
         m.genericName.toLowerCase() === medLower ||
         m.brandNames.some(b => b.toLowerCase() === medLower),
@@ -505,10 +734,7 @@ export default function ProtocolScreen() {
       if (drugEntry) {
         for (const inter of INTERACTIONS) {
           if (inter.drug.toLowerCase() === drugEntry.drugClass.toLowerCase()) {
-            const allAdded = [
-              ...protocol.addedSupplements,
-              ...(protocol.customSupplements ?? []).map(cs => cs.name),
-            ];
+            const allAdded = protocol.supplements.map(s => s.name);
             if (allAdded.some(s => s.toLowerCase().includes(inter.supplement.toLowerCase()))) {
               if (!conflicts.includes(inter.supplement)) conflicts.push(inter.supplement);
             }
@@ -518,12 +744,13 @@ export default function ProtocolScreen() {
       if (conflicts.length > 0) map[med] = conflicts;
     }
     return map;
-  }, [medications, protocol.addedSupplements, protocol.customSupplements]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleMeds, protocol.supplements]);
 
   // Drug class labels from medications database
   const medClassMap = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const med of medications) {
+    for (const med of visibleMeds) {
       const medLower = med.toLowerCase();
       const drugEntry = MEDICATION_DATABASE.find(m =>
         m.genericName.toLowerCase() === medLower ||
@@ -532,48 +759,31 @@ export default function ProtocolScreen() {
       if (drugEntry?.drugClass) map[med] = drugEntry.drugClass;
     }
     return map;
-  }, [medications]);
+  }, [visibleMeds]);
 
-  const addedSupps = protocol.addedSupplements.map(name => {
-    const dbEntry = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
-    return dbEntry
-      ? { name: dbEntry.name, dose: dbEntry.defaultDose, evidence: dbEntry.evidenceGrade as 'A' | 'B' | 'C', goals: [] as string[], dbId: dbEntry.id, dbInfo: dbEntry as SupplementInfo }
-      : { name, dose: '—', evidence: 'C' as const, goals: [] as string[], dbId: undefined, dbInfo: undefined };
-  });
-  const customSupps = protocol.customSupplements ?? [];
+  // Names currently in stack (for library toggle check)
+  const addedSupplementNames = useMemo(
+    () => protocol.supplements.map(s => s.name),
+    [protocol.supplements],
+  );
 
-  const groupedSupps = useMemo(() => {
-    const order: string[] = [];
-    const groups = new Map<string, typeof addedSupps[number][]>();
-    for (const supp of addedSupps) {
-      const cat = supp.dbInfo?.category ?? 'other';
-      if (!groups.has(cat)) { groups.set(cat, []); order.push(cat); }
-      groups.get(cat)!.push(supp);
-    }
-    return { order, groups };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [protocol.addedSupplements]);
-
-  // Total doses: medications count as 1 each; multi-dose supplements count their full dose count
+  // Total doses: visibleMeds count as 1 each; multi-dose supplements count their full dose count
   const totalItems =
-    medications.length +
-    addedSupps.reduce((sum, s) => sum + parseDoseCount(s.dose), 0) +
-    customSupps.length;
+    visibleMeds.length +
+    protocol.supplements.reduce((sum, s) => sum + parseDoseCount(s.personalDose ?? s.dose), 0);
 
   const takenCount = protocol.taken.filter(t => {
-    if (medications.includes(t)) return true;
-    if (customSupps.some(cs => cs.id === t || cs.name === t)) return true;
-    // Multi-dose supplement dose IDs: "{name}_dose_{n}"
-    for (const s of addedSupps) {
-      const count = parseDoseCount(s.dose);
+    if (visibleMeds.includes(t)) return true;
+    for (const s of protocol.supplements) {
+      if (t === s.id) return true;
+      const count = parseDoseCount(s.personalDose ?? s.dose);
       for (let i = 0; i < count; i++) {
         if (t === doseId(s.name, i)) return true;
       }
-      // Fallback: old-style single-dose ID
-      if (count === 1 && t === s.name) return true;
     }
     return false;
   }).length;
+
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
@@ -612,57 +822,64 @@ export default function ProtocolScreen() {
 
         {/* ── Medications ───────────────────────────────────────── */}
         <Text style={s.sectionLabel}>Medications</Text>
-        {medications.length === 0 ? (
+        {visibleMeds.length === 0 ? (
           <View style={s.emptyCard}>
-            <Text style={s.emptyTxt}>No medications in your profile</Text>
-            <TouchableOpacity style={s.emptyCtaBtn} onPress={() => nav.navigate('Profile')}>
-              <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
-            </TouchableOpacity>
+            <Text style={s.emptyTxt}>
+              {medications.length === 0
+                ? 'No medications in your profile'
+                : 'All medications are hidden from view'}
+            </Text>
+            {medications.length === 0 && (
+              <TouchableOpacity style={s.emptyCtaBtn} onPress={() => nav.navigate('Profile')}>
+                <Text style={s.emptyCtaTxt}>Go to Profile →</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          medications.map(med => {
-            const taken = protocol.taken.includes(med);
+          visibleMeds.map(med => {
+            const isTaken = protocol.taken.includes(med);
             const time = protocol.medTimes[med];
             const conflicts = medInteractionMap[med] ?? [];
             const drugClass = medClassMap[med];
             return (
-              <View key={med} style={s.itemCard}>
-                <TouchableOpacity style={s.cardRow} onPress={() => toggleTaken(med)} activeOpacity={0.75}>
-                  <View style={[s.checkCircle, taken && s.checkCircleOn]}>
-                    {taken && <Text style={s.checkMark}>✓</Text>}
-                  </View>
+              <TouchableOpacity
+                key={med}
+                style={s.itemCard}
+                onPress={() => setEditingMed(med)}
+                activeOpacity={0.85}
+              >
+                <View style={s.cardRow}>
+                  <TouchableOpacity
+                    onPress={e => { e.stopPropagation(); toggleTaken(med); }}
+                    activeOpacity={0.75}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <View style={[s.checkCircle, isTaken && s.checkCircleOn]}>
+                      {isTaken && <Text style={s.checkMark}>✓</Text>}
+                    </View>
+                  </TouchableOpacity>
                   <View style={s.cardBody}>
-                    <Text style={[s.cardName, taken && s.cardNameDone]}>{med}</Text>
+                    <Text style={[s.cardName, isTaken && s.cardNameDone]}>{med}</Text>
                     {drugClass && <Text style={s.cardSub}>{drugClass}</Text>}
                   </View>
-                  {drugClass && (
-                    <View style={s.classChip}>
-                      <Text style={s.classChipTxt} numberOfLines={1}>{drugClass}</Text>
+                  {time && (
+                    <View style={[s.timeChip, s.timeChipOn]}>
+                      <Text style={[s.timeChipTxt, s.timeChipTxtOn]}>
+                        {TIME_SLOTS.find(sl => sl.key === time)?.label ?? time}
+                      </Text>
                     </View>
                   )}
-                </TouchableOpacity>
+                </View>
 
                 {conflicts.length > 0 && (
-                  <TouchableOpacity style={s.conflictPill} onPress={() => nav.navigate('InteractionChecker')}>
+                  <TouchableOpacity
+                    style={s.conflictPill}
+                    onPress={e => { e.stopPropagation(); nav.navigate('InteractionChecker'); }}
+                  >
                     <Text style={s.conflictPillTxt}>⚠ Interacts with {conflicts.join(', ')} — tap to review</Text>
                   </TouchableOpacity>
                 )}
-
-                <View style={s.cardFooter}>
-                  <Text style={s.footerLabel}>When</Text>
-                  <View style={s.chipRow}>
-                    {TIME_SLOTS.map(slot => (
-                      <TouchableOpacity
-                        key={slot.key}
-                        style={[s.timeChip, time === slot.key && s.timeChipOn]}
-                        onPress={() => setMedTime(med, slot.key)}
-                      >
-                        <Text style={[s.timeChipTxt, time === slot.key && s.timeChipTxtOn]}>{slot.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
@@ -678,139 +895,122 @@ export default function ProtocolScreen() {
           </TouchableOpacity>
         </View>
 
-        {addedSupps.length === 0 && customSupps.length === 0 && (
+        {protocol.supplements.length === 0 && (
           <View style={s.emptyCard}>
             <Text style={s.emptyTxt}>No supplements in your stack yet</Text>
           </View>
         )}
 
-        {groupedSupps.order.map(cat => (
-          <View key={cat}>
-            <Text style={s.catLabel}>{CATEGORY_LABELS[cat] ?? cat}</Text>
-            {groupedSupps.groups.get(cat)!.map(supp => {
-              const doseCount = parseDoseCount(supp.dose);
-              const timeLabels = getDoseTimeLabels(doseCount);
-              const singleTaken = doseCount === 1 &&
-                (protocol.taken.includes(doseId(supp.name, 0)) || protocol.taken.includes(supp.name));
-              const gradeBg = ({ A: Colors.primaryBg, B: Colors.warningBg, C: Colors.surfaceElevated } as const)[supp.evidence];
-              const gradeBdr = ({ A: Colors.primaryBorder, B: Colors.warningBorder, C: Colors.borderLight } as const)[supp.evidence];
-              const gradeClr = ({ A: Colors.primary, B: Colors.warning, C: Colors.onSurfaceMuted } as const)[supp.evidence];
-              return (
-                <View key={supp.name} style={s.itemCard}>
-                  <View style={s.cardRow}>
-                    {doseCount === 1 ? (
-                      <TouchableOpacity onPress={() => toggleTaken(doseId(supp.name, 0))} activeOpacity={0.7}>
-                        <View style={[s.checkCircle, singleTaken && s.checkCircleOn]}>
-                          {singleTaken && <Text style={s.checkMark}>✓</Text>}
-                        </View>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={s.checkPlaceholder} />
-                    )}
-                    <View style={s.cardBody}>
-                      <Text style={[s.cardName, singleTaken && s.cardNameDone]}>{supp.name}</Text>
-                      {supp.dbInfo?.shortDescription && (
-                        <Text style={s.cardSub} numberOfLines={1}>{supp.dbInfo.shortDescription}</Text>
-                      )}
-                    </View>
-                    <View style={s.badgeGroup}>
-                      <View style={[s.gradeBadge, { backgroundColor: gradeBg, borderColor: gradeBdr }]}>
-                        <Text style={[s.gradeBadgeTxt, { color: gradeClr }]}>{supp.evidence}</Text>
-                      </View>
-                      {supp.dose !== '—' && (
-                        <View style={s.doseBadge}>
-                          <Text style={s.doseBadgeTxt}>{supp.dose}</Text>
-                        </View>
-                      )}
-                      <TouchableOpacity style={s.removeBtn} onPress={() => toggleSupplement(supp.name)}>
-                        <Text style={s.removeTxt}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+        {protocol.supplements.map(item => {
+          const displayDose = item.personalDose ?? item.dose;
+          const doseCount = parseDoseCount(displayDose);
+          const timeLabels = getDoseTimeLabels(doseCount);
+          const singleTaken = doseCount === 1 &&
+            (protocol.taken.includes(item.id) || protocol.taken.includes(doseId(item.name, 0)));
+          const dbInfo = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === item.name.toLowerCase());
+          const evidence = (dbInfo?.evidenceGrade ?? 'C') as 'A' | 'B' | 'C';
+          const gradeBg = ({ A: Colors.primaryBg, B: Colors.warningBg, C: Colors.surfaceElevated } as const)[evidence];
+          const gradeBdr = ({ A: Colors.primaryBorder, B: Colors.warningBorder, C: Colors.borderLight } as const)[evidence];
+          const gradeClr = ({ A: Colors.primary, B: Colors.warning, C: Colors.onSurfaceMuted } as const)[evidence];
+          const timingLabel = item.timing ? TIME_SLOTS.find(t => t.key === item.timing)?.label : null;
 
-                  {(supp.dbInfo?.bestTime || supp.dbInfo?.timing) && (
-                    <View style={s.infoRow}>
-                      {supp.dbInfo.bestTime && supp.dbInfo.bestTime !== 'anytime' && (
-                        <View style={s.infoChip}>
-                          <Text style={s.infoChipTxt}>{BEST_TIME_LABELS[supp.dbInfo.bestTime]}</Text>
-                        </View>
-                      )}
-                      {supp.dbInfo.timing && supp.dbInfo.timing !== 'flexible' && (
-                        <View style={s.infoChip}>
-                          <Text style={s.infoChipTxt}>{TIMING_LABELS[supp.dbInfo.timing]}</Text>
-                        </View>
-                      )}
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={s.itemCard}
+              onPress={() => setEditingSupplement(item)}
+              activeOpacity={0.85}
+            >
+              <View style={s.cardRow}>
+                {doseCount === 1 ? (
+                  <TouchableOpacity
+                    onPress={e => { e.stopPropagation(); toggleTaken(item.id); }}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <View style={[s.checkCircle, singleTaken && s.checkCircleOn]}>
+                      {singleTaken && <Text style={s.checkMark}>✓</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={s.checkPlaceholder} />
+                )}
+                <View style={s.cardBody}>
+                  <Text style={[s.cardName, singleTaken && s.cardNameDone]}>{item.name}</Text>
+                  {dbInfo?.shortDescription && (
+                    <Text style={s.cardSub} numberOfLines={1}>{dbInfo.shortDescription}</Text>
+                  )}
+                </View>
+                <View style={s.badgeGroup}>
+                  <View style={[s.gradeBadge, { backgroundColor: gradeBg, borderColor: gradeBdr }]}>
+                    <Text style={[s.gradeBadgeTxt, { color: gradeClr }]}>{evidence}</Text>
+                  </View>
+                  {displayDose !== '—' && (
+                    <View style={s.doseBadge}>
+                      <Text style={s.doseBadgeTxt}>{displayDose}</Text>
                     </View>
                   )}
+                  <TouchableOpacity
+                    style={s.removeBtn}
+                    onPress={e => { e.stopPropagation(); removeFromStack(item.id); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={s.removeTxt}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                  {doseCount > 1 && (
-                    <View style={s.multiDoseBlock}>
-                      {timeLabels.map((label, n) => {
-                        const id = doseId(supp.name, n);
-                        const dt = protocol.taken.includes(id);
-                        return (
-                          <TouchableOpacity key={id} style={s.doseTrack} onPress={() => toggleTaken(id)} activeOpacity={0.7}>
-                            <View style={[s.checkSm, dt && s.checkSmOn]}>
-                              {dt && <Text style={s.checkSmTxt}>✓</Text>}
-                            </View>
-                            <Text style={[s.doseTrackTxt, dt && s.doseTrackDone]}>{label}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+              {(dbInfo?.bestTime || dbInfo?.timing || timingLabel) && (
+                <View style={s.infoRow}>
+                  {timingLabel && (
+                    <View style={[s.infoChip, { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder }]}>
+                      <Text style={[s.infoChipTxt, { color: Colors.primary }]}>{timingLabel}</Text>
+                    </View>
+                  )}
+                  {dbInfo?.bestTime && dbInfo.bestTime !== 'anytime' && (
+                    <View style={s.infoChip}>
+                      <Text style={s.infoChipTxt}>{BEST_TIME_LABELS[dbInfo.bestTime]}</Text>
+                    </View>
+                  )}
+                  {dbInfo?.timing && dbInfo.timing !== 'flexible' && (
+                    <View style={s.infoChip}>
+                      <Text style={s.infoChipTxt}>{TIMING_LABELS[dbInfo.timing]}</Text>
                     </View>
                   )}
                 </View>
-              );
-            })}
-          </View>
-        ))}
+              )}
 
-        {customSupps.length > 0 && (
-          <View>
-            <Text style={s.catLabel}>Custom</Text>
-            {customSupps.map(cs => {
-              const taken = protocol.taken.includes(cs.id) || protocol.taken.includes(cs.name);
-              const timingLabel = cs.timing ? TIME_SLOTS.find(t => t.key === cs.timing)?.label : null;
-              return (
-                <View key={cs.id} style={s.itemCard}>
-                  <View style={s.cardRow}>
-                    <TouchableOpacity onPress={() => toggleTaken(cs.id)} activeOpacity={0.7}>
-                      <View style={[s.checkCircle, taken && s.checkCircleOn]}>
-                        {taken && <Text style={s.checkMark}>✓</Text>}
-                      </View>
-                    </TouchableOpacity>
-                    <View style={s.cardBody}>
-                      <Text style={[s.cardName, taken && s.cardNameDone]}>{cs.name}</Text>
-                      {cs.notes && <Text style={s.cardSub} numberOfLines={1}>{cs.notes}</Text>}
-                    </View>
-                    <View style={s.badgeGroup}>
-                      {cs.dose !== '—' && (
-                        <View style={s.doseBadge}>
-                          <Text style={s.doseBadgeTxt}>{cs.dose}</Text>
+              {doseCount > 1 && (
+                <View style={s.multiDoseBlock}>
+                  {timeLabels.map((label, n) => {
+                    const id = doseId(item.name, n);
+                    const dt = protocol.taken.includes(id);
+                    return (
+                      <TouchableOpacity
+                        key={id}
+                        style={s.doseTrack}
+                        onPress={e => { e.stopPropagation(); toggleTaken(id); }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[s.checkSm, dt && s.checkSmOn]}>
+                          {dt && <Text style={s.checkSmTxt}>✓</Text>}
                         </View>
-                      )}
-                      {timingLabel && (
-                        <View style={[s.timeChip, s.timeChipOn]}>
-                          <Text style={[s.timeChipTxt, s.timeChipTxtOn]}>{timingLabel}</Text>
-                        </View>
-                      )}
-                      <TouchableOpacity style={s.removeBtn} onPress={() => removeCustomSupplement(cs.id)}>
-                        <Text style={s.removeTxt}>✕</Text>
+                        <Text style={[s.doseTrackTxt, dt && s.doseTrackDone]}>{label}</Text>
                       </TouchableOpacity>
-                    </View>
-                  </View>
+                    );
+                  })}
                 </View>
-              );
-            })}
-          </View>
-        )}
+              )}
+            </TouchableOpacity>
+          );
+        })}
 
         {/* ── Supplement Library ────────────────────────────────── */}
         <View style={s.libDivider} />
         <Text style={s.sectionLabel}>Supplement Library</Text>
         <SupplementLibrarySection
-          addedSupplements={protocol.addedSupplements}
-          onToggle={toggleSupplement}
+          addedSupplements={addedSupplementNames}
+          onToggle={toggleSupplementByName}
         />
 
         <View style={{ height: 32 }} />
@@ -820,14 +1020,39 @@ export default function ProtocolScreen() {
         visible={showRecommendedSheet}
         onClose={() => setShowRecommendedSheet(false)}
         goal={profile?.goal ?? ''}
-        addedSupplements={protocol.addedSupplements}
-        onToggle={toggleSupplement}
+        addedSupplements={addedSupplementNames}
+        onToggle={toggleSupplementByName}
         onOpenCustom={() => setShowAddModal(true)}
       />
       <AddCustomSupplementModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={addCustomSupplement}
+        onAdd={cs => addManual({ name: cs.name, dose: cs.dose, timing: cs.timing })}
+      />
+      <EditSupplementSheet
+        visible={editingSupplement !== null}
+        item={editingSupplement}
+        onClose={() => setEditingSupplement(null)}
+        onSave={updates => {
+          if (editingSupplement) {
+            updateSupplementItem(editingSupplement.id, updates);
+          }
+          setEditingSupplement(null);
+        }}
+      />
+      <EditMedicationSheet
+        visible={editingMed !== null}
+        medName={editingMed}
+        currentTiming={editingMed ? protocol.medTimes[editingMed] : undefined}
+        onClose={() => setEditingMed(null)}
+        onSaveTiming={t => {
+          if (editingMed) setMedTimeFromSheet(editingMed, t);
+          setEditingMed(null);
+        }}
+        onHide={() => {
+          if (editingMed) hideMedication(editingMed);
+          setEditingMed(null);
+        }}
       />
     </SafeAreaView>
   );
@@ -871,11 +1096,6 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
   sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '600' },
-  catLabel: {
-    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
-    textTransform: 'uppercase', letterSpacing: 1,
-    paddingHorizontal: Spacing.base, marginTop: Spacing.sm, marginBottom: 6,
-  },
 
   // ── Item card ────────────────────────────────────────────────
   itemCard: {
@@ -922,7 +1142,7 @@ const s = StyleSheet.create({
   },
   removeTxt: { fontSize: 10, color: Colors.onSurfaceMuted },
 
-  // ── Info chips (best time, food timing) ──────────────────────
+  // ── Info chips (best time, food timing, personal timing) ─────
   infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   infoChip: {
     backgroundColor: Colors.surfaceElevated, borderRadius: 8,
@@ -930,21 +1150,7 @@ const s = StyleSheet.create({
   },
   infoChipTxt: { fontSize: 11, color: Colors.onSurfaceMuted, fontWeight: '500' },
 
-  // ── Drug class chip ──────────────────────────────────────────
-  classChip: {
-    backgroundColor: Colors.surfaceElevated, borderRadius: 8,
-    borderWidth: 0.5, borderColor: Colors.borderLight,
-    paddingHorizontal: 7, paddingVertical: 3, maxWidth: 120,
-  },
-  classChipTxt: { fontSize: 11, color: Colors.onSurfaceMuted, fontWeight: '500' },
-
-  // ── Medication timing row ────────────────────────────────────
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 10 },
-  footerLabel: {
-    fontSize: 11, fontWeight: '600', color: Colors.onSurfaceMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5, width: 36,
-  },
-  chipRow: { flexDirection: 'row', gap: 5, flex: 1 },
+  // ── Medication timing chip (read-only display) ───────────────
   timeChip: {
     paddingHorizontal: Spacing.sm, paddingVertical: 4,
     borderRadius: Radius.sm, backgroundColor: Colors.surfaceElevated,
@@ -1027,6 +1233,7 @@ const ms = StyleSheet.create({
     alignSelf: 'center', marginBottom: Spacing.base,
   },
   sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.base },
+  readOnlyName: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurfaceMuted, marginBottom: Spacing.base },
   fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm }, /* intentional — no Spacing.* equivalent for marginBottom: 6 */
   required: { color: Colors.danger },
   input: {
@@ -1073,4 +1280,10 @@ const ms = StyleSheet.create({
   cancelTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, fontWeight: '500' },
   addBtn: { flex: 1, padding: Spacing.md, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignItems: 'center' },
   addBtnTxt: { fontSize: Typography.sizes.base, color: Colors.primaryBg, fontWeight: '600' },
+  destructiveBtn: {
+    padding: Spacing.md, borderRadius: Radius.lg,
+    backgroundColor: Colors.dangerBg, alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.danger, marginTop: Spacing.base,
+  },
+  destructiveTxt: { fontSize: Typography.sizes.base, color: Colors.danger, fontWeight: '500' },
 });
