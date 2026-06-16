@@ -524,7 +524,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User can enter a personal dose for any supplement or medication in their protocol and see it saved and displayed on next app open
   3. User can edit an existing protocol item (change dose, timing, or notes) and see the updated values reflected immediately
   4. User can remove any supplement or medication from their protocol; the item disappears from the protocol list and does not reappear on next open
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+- [ ] 20-01-PLAN.md — Create src/types/protocol.ts with ProtocolItem, ProtocolState, TimeSlot, EMPTY_PROTOCOL (PROT-01, PROT-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 20-02-PLAN.md — Migrate ProtocolScreen to new schema: migrateProtocol(), EditSupplementSheet, EditMedicationSheet, remove Custom category, remove inline med timing chips (PROT-01, PROT-02, PROT-03, PROT-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 20-03-PLAN.md — Update InteractionCheckerScreen + advisorContext.ts to read from supplements[]; full tsc audit (PROT-02, PROT-03)
+
 **UI hint**: yes
 
 ### Phase 21: Exercise Routine & History
@@ -594,7 +606,7 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
-| 20. Protocol Schema Migration | v5.0 | 0/TBD | Not started | - |
+| 20. Protocol Schema Migration | v5.0 | 0/3 | In progress | - |
 | 21. Exercise Routine & History | v5.0 | 0/TBD | Not started | - |
 | 22. Engagement & Visualization | v5.0 | 0/TBD | Not started | - |
 | 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |
