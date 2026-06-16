@@ -1,419 +1,792 @@
-# Architecture Research — v4.0
+# Architecture Research — v5.0
 
-**Researched:** 2026-06-10
-**Confidence:** HIGH (Adapty — Context7/official SDK docs), HIGH (Claude API security — official SDK README), MEDIUM (exercise photos — web search + confirmed GitHub URL pattern)
+**Researched:** 2026-06-16
+**Confidence:** HIGH (all integration points derived from direct source-code inspection of existing files)
 
 ---
 
-## Adapty Integration
+## System Overview
 
-### Initialization location in App.tsx
+Current layered architecture (unchanged in v5.0):
 
-Adapty's `activate()` must be called as early as possible in the app lifecycle, before any other SDK method. In the existing `App.tsx`, the `init()` async function inside `useEffect` already sequences Supabase first. Adapty goes **immediately after** `initSupabaseSession()`, inside the same `init()` block, before `setInitialRoute` is called.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Screens Layer                            │
+│  DashboardScreen  ProtocolScreen  ExerciseScreen  ...       │
+│  BiomarkerDetailScreen  AIAdvisorScreen                     │
+├─────────────────────────────────────────────────────────────┤
+│                   Components Layer                           │
+│  SwipeableLogRow  QuickLogModal  SupplementRow  RangeBar    │
+│  TrendChart (new)  ProtocolItemRow (new)                    │
+├─────────────────────────────────────────────────────────────┤
+│                     Hooks / Context                          │
+│  usePremiumContext  useBreathing  useRoutine (new)          │
+│  useOverloadTrend (new)  PremiumContext                     │
+├─────────────────────────────────────────────────────────────┤
+│                       Lib Layer                              │
+│  advisorContext.ts  phenoAge.ts  healthkit.ts               │
+│  notificationService.ts (new)  streakService.ts (new)      │
+├─────────────────────────────────────────────────────────────┤
+│                      Data Layer                              │
+│  exercises.ts  biomarkers.ts  medications.ts                │
+│  supplementTimings.ts                                        │
+├─────────────────────────────────────────────────────────────┤
+│                    Storage Layer                              │
+│  AsyncStorage keys:                                          │
+│  @vitalspan_protocol  @vitalspan_biomarkers                 │
+│  @vitalspan_exercise_log  @vitalspan_routine (new)          │
+│  @vitalspan_protocol_today  @vitalspan_streak (new)         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Rationale: Supabase session must resolve first because the Supabase `user.id` is passed to `adapty.identify()`. You cannot identify the user to Adapty until you know the Supabase identity. The `activate()` call itself does not block on a user ID — it fires without `customerUserId`, then `identify()` is called after the user is known.
+---
 
-Recommended sequence in `init()`:
+## Feature Integration Map
+
+### Feature 1: Exercise Rutinim (personal routine + tab switch)
+
+**What changes:**
+
+`src/screens/ExerciseScreen.tsx` is the only file that needs structural changes. Its current layout has a single scrollable view mixing log history and the exercise library. v5.0 splits the screen into two logical views controlled by an in-screen tab switch:
+
+- **Rutinim tab** — shows the ordered personal routine (list of `RoutineItem`s) and the exercise history log sections (Today / This Week / History). Tapping a routine item triggers `QuickLogModal` directly.
+- **Kesfet tab** — shows the muscle-map filter + category scroll + exercise library list (the existing browse UI, moved here as-is).
+
+The tab switch is a two-button pill segment control rendered inside `ExerciseScreen` above the content — not a new navigation route. `useState<'routine' | 'browse'>('routine')` controls which section renders. This avoids any changes to `AppNavigator.tsx` or `MainTabParamList`.
+
+**New AsyncStorage key:** `@vitalspan_routine`
 
 ```typescript
-// 1. Supabase session (existing — unchanged)
-await initSupabaseSession();
+// Shape of @vitalspan_routine
+type RoutineItem = {
+  exerciseId: string;   // matches Exercise.id in exercises.ts
+  order: number;        // 0-indexed display order
+  addedAt: string;      // ISO timestamp
+};
+// Stored as RoutineItem[]
+```
 
-// 2. Adapty activation — SDK key from env, does NOT need user ID yet
-adapty.activate(process.env.EXPO_PUBLIC_ADAPTY_PUBLIC_KEY ?? '', {
-  __ignoreActivationOnFastRefresh: true,
-  logLevel: __DEV__ ? LogLevel.Verbose : LogLevel.Error,
-});
-// activate() is intentionally not awaited — the SDK queues
-// subsequent calls made before activation completes internally.
+**New files:**
+- None required. Routine state can be managed inline in `ExerciseScreen` using `AsyncStorage.getItem('@vitalspan_routine')` following the same pattern already used for `@vitalspan_exercise_log`.
 
-// 3. Resolve Supabase user (existing logic)
-const { data: { user } } = await supabase.auth.getUser();
+**Modified files:**
+- `src/screens/ExerciseScreen.tsx` — add `routineTab` state, load `@vitalspan_routine`, render two-tab switch, render routine list in Rutinim tab, move library UI into Kesfet tab.
+- `src/screens/SettingsScreen.tsx` — add `'@vitalspan_routine'` to `ALL_STORAGE_KEYS` array (line 18-27) so it is cleared on "Reset Data".
 
-// 4. Link Adapty profile to Supabase user ID — fire-and-forget
-if (user && !user.is_anonymous) {
-  adapty.identify(user.id).catch(() => null);
+**No navigation changes.** `ExerciseDetail` stack screen stays as-is. The "add to routine" action is a button inside `ExerciseDetailScreen` that reads and writes `@vitalspan_routine`.
+
+---
+
+### Feature 2: Progressive Overload (weight/reps per set)
+
+**Current schema in `src/data/exercises.ts`:**
+
+```typescript
+export interface ExerciseLogEntry {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  category: ExerciseCategory;
+  date: string;          // 'YYYY-MM-DD' — already present
+  sets?: number;
+  reps?: number;
+  durationMin?: number;
+  intensity?: ExerciseIntensity;
+  caloriesEstimated?: number;
+  notes?: string;
+  loggedAt: string;      // full ISO — already present
+}
+```
+
+**Required schema extension (additive, backward-compatible):**
+
+```typescript
+export interface SetEntry {
+  setNumber: number;   // 1-indexed
+  weightKg?: number;   // undefined for bodyweight exercises
+  reps?: number;
 }
 
-// 5. Existing route logic (unchanged)
-if (user && !user.is_anonymous) { ... }
+export interface ExerciseLogEntry {
+  // ...all existing fields unchanged...
+  sets?: number;          // keep for backward compat (total set count)
+  reps?: number;          // keep for backward compat (target reps)
+  setsDetail?: SetEntry[]; // NEW — per-set weight/reps; undefined for old entries
+}
 ```
 
-`EXPO_PUBLIC_ADAPTY_PUBLIC_KEY` is safe in `.env` because Adapty deliberately uses a **public** SDK key client-side — this is their architecture, not a security exception. Their server-side secret is never sent to clients.
+`setsDetail` is optional and undefined on all existing log entries — the UI falls back to the existing `sets × reps` display when `setsDetail` is absent. No migration script is needed.
 
-### Paywall gating pattern
+**Modified files:**
+- `src/data/exercises.ts` — add `SetEntry` type and `setsDetail?: SetEntry[]` to `ExerciseLogEntry`.
+- `src/components/QuickLogModal.tsx` — add a per-set weight input UI when exercise is not cardio. The modal currently has `sets` and `reps` number inputs. v5.0 replaces these with a dynamic list of `N` set rows (each row: weight kg + reps inputs), where N is controlled by a `+` / `-` set count control. The modal saves `setsDetail` on the `ExerciseLogEntry`.
 
-Use a React Context, not per-screen `getProfile()` calls. Create `src/contexts/SubscriptionContext.tsx`:
-
-- Holds `isPremium: boolean` and `isLoadingSubscription: boolean`
-- On mount, calls `adapty.getProfile()` and reads `profile.accessLevels['premium']?.isActive`
-- Listens to `adapty.addEventListener('onLatestProfileLoad', ...)` for reactive updates when a purchase completes or subscription lapses
-- Exposes a `showPaywall()` helper that navigates to the `Paywall` screen
-
-Components and screens read `isPremium` from the context. No screen makes direct `getProfile()` calls. This prevents N redundant network hits on navigation.
-
-```typescript
-// src/contexts/SubscriptionContext.tsx
-export type SubscriptionContextValue = {
-  isPremium: boolean;
-  isLoadingSubscription: boolean;
-  showPaywall: () => void;
-};
-```
-
-Gate a premium feature at the call site:
-
-```typescript
-const { isPremium, showPaywall } = useSubscription();
-
-const handleAdvisorPress = () => {
-  if (!isPremium) { showPaywall(); return; }
-  navigation.navigate('AIAdvisor');
-};
-```
-
-Do NOT add per-screen paywall checks in navigator route guards — the app uses a flat `initialRoute` prop pattern and premium gating is soft (feature-level), not route-level.
-
-### Adapty user ID and Supabase user ID relationship
-
-Adapty and Supabase have separate identity systems. The link is `adapty.identify(supabaseUserId)`. The Supabase `user.id` UUID satisfies Adapty's `userId` string requirement with no transformation.
-
-Rules by auth state:
-
-- **Anonymous Supabase user** (pre-auth): Call `activate()` with no `customerUserId`. Do NOT call `identify()` — Adapty creates an internal anonymous profile.
-- **After Supabase email sign-up or login**: Call `adapty.identify(user.id)` immediately. Purchase history made while anonymous is merged.
-- **When Supabase anonymous → email conversion** (`convertAnonymousToEmail`): Call `adapty.identify(user.id)` immediately after success in the same code path.
-
-`adapty.identify()` must be called in three places:
-1. `App.tsx` init (when an existing non-anonymous user is found on cold start)
-2. `WelcomeScreen` after successful sign-in
-3. The sign-up / email promotion flow (wherever `convertAnonymousToEmail` is called)
-
-### Paywall screen navigation placement
-
-Add `Paywall` to `RootStackParamList` and register in the stack as `fullScreenModal` with `gestureEnabled: false`:
-
-```typescript
-// AppNavigator.tsx additions to RootStackParamList:
-Paywall: { placement?: string };
-
-// Stack.Screen:
-<Stack.Screen
-  name="Paywall"
-  component={PaywallScreen}
-  options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
-/>
-```
-
-`gestureEnabled: false` prevents swipe-to-dismiss so Adapty's `onCloseButtonPress` handler fires correctly and analytics impression/dismiss events are logged. This matches the existing pattern for `LongevityScore` and `GuidedFirstRun`.
-
-`PaywallScreen` renders `AdaptyPaywallView` from `react-native-adapty` filling the full screen. It handles `onPurchaseCompleted` by popping the modal and updating the context.
-
-### New files
-
-- `src/contexts/SubscriptionContext.tsx` — context + provider + event listener
-- `src/hooks/useSubscription.ts` — convenience hook wrapping `useContext(SubscriptionContext)`
-- `src/screens/PaywallScreen.tsx` — renders `AdaptyPaywallView`
-
-### Modified files
-
-- `App.tsx` — add `adapty.activate()` + `adapty.identify()` in `init()`; wrap with `AdaptyProvider` if Adapty requires a context root (check SDK docs — may just need `activate()` at top level)
-- `src/navigation/AppNavigator.tsx` — add `Paywall` to `RootStackParamList` + `Stack.Screen`
-- `.env` + `.env.example` — add `EXPO_PUBLIC_ADAPTY_PUBLIC_KEY`
-
-### Expo prebuild requirement
-
-`react-native-adapty` is a native module:
-
-```
-npx expo install react-native-adapty
-npx expo prebuild
-cd ios && pod install
-```
-
-Expo Go will not work after this. The project must run via `npx expo run:ios` or an EAS dev build. This is already the existing constraint — `react-native-gesture-handler` and `react-native-reanimated` are both native modules already in the project. No new workflow change is required — just run prebuild before testing.
-
-**Audit `ios/` before running prebuild.** Any manual changes to native files (e.g., entitlement additions) must be represented as `app.json` config plugins first, or they will be overwritten. The existing `@kingstinct/react-native-healthkit` (in `package.json`) may already require a config plugin entry.
+**New file (optional but recommended):**
+- `src/hooks/useOverloadTrend.ts` — pure hook that receives `exerciseId: string` and `logs: ExerciseLogEntry[]`, returns last-N-weeks average weight/reps per set for trend display. Used by `ExerciseDetailScreen` to render the sparkline.
 
 ---
 
-## Claude API Integration
+### Feature 3: Exercise History Edit/Delete
 
-### API key security — Supabase Edge Function is mandatory
+**Current state:** `ExerciseScreen` renders `SwipeableLogRow` with swipe-to-delete working. The `date` field is already `YYYY-MM-DD` and `loggedAt` is full ISO. Delete is wired via `deleteLog(id: string)` in `ExerciseScreen`.
 
-`@anthropic-ai/sdk` **explicitly states React Native is not a supported runtime** (from the official SDK README on GitHub). This is not a workaround issue — the SDK depends on Node.js built-in modules that are not present in the React Native JS engine.
+**What is missing:**
+- Edit: no edit action on log entries exists.
+- Full ISO date display: `loggedAt` exists but the UI in `SwipeableLogRow` doesn't display it.
 
-Beyond the runtime incompatibility: an `EXPO_PUBLIC_` key is bundled into the app binary and fully extractable by anyone who downloads the IPA from TestFlight or the App Store. A compromised Anthropic API key has no scope limitation — it allows unlimited spend.
+**Integration approach:**
 
-**The mandatory approach is a Supabase Edge Function as a proxy.** The Edge Function runs in Deno (a supported `@anthropic-ai/sdk` runtime), reads `ANTHROPIC_API_KEY` from Supabase project secrets, and is never exposed to the client.
+Add an "edit" action to `SwipeableLogRow`. The existing component uses RNGH v2 `Gesture.Pan` with a left-swipe-to-delete pattern. v5.0 options:
 
-Architecture:
-```
-iOS app
-  → supabase.functions.invoke('ai-advisor', { body: context })
-    [authenticated via existing Supabase JWT]
-  → Deno Edge Function
-    → validates Supabase JWT
-    → calls Anthropic API with server-side key
-    → returns { report: string } or { message: string, role: 'assistant' }
-  → iOS app renders response
-```
+- **Option A (simpler):** Long-press or tap row → inline edit modal (re-use `QuickLogModal` in edit mode). No new gesture direction needed.
+- **Option B (consistent):** Right-swipe reveals edit zone; left-swipe reveals delete zone. Requires extending the `Gesture.Pan` logic in `SwipeableLogRow`.
 
-The client invokes using the already-configured `supabase` client singleton:
+**Recommendation: Option A.** The `SwipeableLogRow` component is already at the complexity boundary for Gesture.Pan; adding bidirectional swipe risks gesture conflicts. Tap-to-edit via a modal is consistent with how `BiomarkerDetailScreen` handles entry editing (inline `TextInput` state + save).
+
+**Modified files:**
+- `src/components/SwipeableLogRow.tsx` — add `onEdit?: (id: string) => void` prop; add tap handler that calls `onEdit`.
+- `src/components/QuickLogModal.tsx` — accept optional `existingEntry?: ExerciseLogEntry` prop for edit mode; when present, pre-fill all fields and save by replacing the entry (not prepending).
+- `src/screens/ExerciseScreen.tsx` — pass `onEdit` to `SwipeableLogRow`; manage `editModal` state.
+- `src/components/SwipeableLogRow.tsx` — display formatted `loggedAt` date (e.g., `"Jun 16 · 2:34 PM"`).
+
+---
+
+### Feature 4: Protocol Personal Dose
+
+**Current schema in `src/screens/ProtocolScreen.tsx` (also redeclared in `src/lib/advisorContext.ts`):**
+
 ```typescript
-const { data, error } = await supabase.functions.invoke('ai-advisor', {
-  body: { context: anonymizedHealthContext },
+interface ProtocolState {
+  medTimes: Record<string, TimeSlot>;
+  addedSupplements: string[];      // names only — no dose
+  customSupplements: CustomSupplement[];  // has .dose already
+  taken: string[];
+  takenDate: string;
+}
+```
+
+**Migration strategy — in-place upgrade, backward-compatible:**
+
+Change `addedSupplements: string[]` to `addedSupplements: ProtocolSupplement[]`:
+
+```typescript
+export interface ProtocolSupplement {
+  name: string;          // supplement name (key for DB lookup)
+  personalDose?: string; // user-overridden dose; undefined = use DB default
+  timing?: TimeSlot;     // user-set time slot; undefined = use DB bestTime
+}
+```
+
+**AsyncStorage migration (in-place, no separate migration step):**
+
+In `ProtocolScreen.loadData()`, after reading `@vitalspan_protocol`, apply a one-time normalizer before setting state:
+
+```typescript
+function normalizeProtocol(saved: unknown): ProtocolState {
+  const raw = saved as Record<string, unknown>;
+  const addedSupplements = (raw.addedSupplements as (string | ProtocolSupplement)[])
+    ?.map(item =>
+      typeof item === 'string'
+        ? { name: item }           // upgrade string → ProtocolSupplement
+        : item
+    ) ?? [];
+  return {
+    ...EMPTY_PROTOCOL,
+    ...raw,
+    addedSupplements,
+    medTimes: (raw.medTimes as Record<string, TimeSlot>) ?? {},
+    customSupplements: (raw.customSupplements as CustomSupplement[]) ?? [],
+    taken: (raw.taken as string[]) ?? [],
+    takenDate: (raw.takenDate as string) ?? '',
+  };
+}
+```
+
+This runs on every load — strings become `{ name }` objects, existing objects pass through unchanged. No one-time migration flag is needed because the normalizer is idempotent.
+
+**Modified files:**
+- `src/screens/ProtocolScreen.tsx` — add `ProtocolSupplement` type, replace `addedSupplements: string[]` with `addedSupplements: ProtocolSupplement[]`, add `normalizeProtocol()`, update all usages of `protocol.addedSupplements` (toggle, group, advisor extraction, interaction check).
+- `src/lib/advisorContext.ts` — update the `ProtocolState` interface copy (lines 70-76) to use `addedSupplements: Array<{ name: string; personalDose?: string }>`. Update the supplements extraction (line 193) to read `.name` from each item.
+
+---
+
+### Feature 5: Protocol Edit/Delete Items
+
+**Current state:** Custom supplements have a remove button (`✕`) rendered at line 726 for `addedSupplements` and line 796 for `customSupplements`. The remove action for `addedSupplements` calls `toggleSupplement(supp.name)` which filters by name. The remove action for `customSupplements` calls `removeCustomSupplement(cs.id)` which shows an Alert.
+
+**What is missing:** Edit action on protocol items — currently no way to change personal dose or timing after initial add.
+
+**Integration approach:**
+
+No new swipe gesture for protocol items. The Protocol screen items are not in a `GestureDetector` wrapper and `ProtocolScreen` does not import RNGH. Adding swipe-to-delete here is more invasive than it's worth.
+
+**Recommended pattern:** Add an edit button (pencil icon or "Edit" text) to the item card, which opens a small modal (similar to `AddCustomSupplementModal`) pre-filled with the current name/dose/timing. This is consistent with what already exists for custom supplements.
+
+**Modified files:**
+- `src/screens/ProtocolScreen.tsx`:
+  - Add `EditItemModal` component (inline, same file) with `name`, `personalDose`, `timing` fields.
+  - Add `editingItem` state: `{ type: 'added' | 'custom'; id: string } | null`.
+  - For `addedSupplements` items: show edit icon in `badgeGroup`; on press open `EditItemModal` pre-filled.
+  - For `customSupplements` items: wire the existing `✕` remove button to show an Alert (already done); add edit icon next to it.
+
+---
+
+### Feature 6: Protocol Category Routing (remove Custom section)
+
+**Current state:** `customSupplements` is a separate array in `ProtocolState`. The "Custom" section renders at the bottom of the stack section with its own `catLabel`. The `AddCustomSupplementModal` creates `CustomSupplement` objects that always land in `customSupplements`, regardless of whether the supplement matches the DB.
+
+**Target state:** No "Custom" category visible in the list. All supplements (DB-matched or freeform) unify into `addedSupplements: ProtocolSupplement[]`.
+
+**Migration strategy:**
+
+1. Extend `ProtocolSupplement` with optional `isCustom` and `dose` fields:
+
+```typescript
+export interface ProtocolSupplement {
+  name: string;
+  personalDose?: string;   // user-set dose (replaces CustomSupplement.dose)
+  timing?: TimeSlot;
+  notes?: string;          // for freeform supplements
+  isCustom?: boolean;      // true for freeform (not in SUPPLEMENT_DATABASE)
+  addedAt?: string;        // for new additions (not on upgraded strings)
+}
+```
+
+2. In `normalizeProtocol()`, merge existing `customSupplements` into `addedSupplements`:
+
+```typescript
+// During normalization, also migrate customSupplements → addedSupplements
+const migratedCustom: ProtocolSupplement[] = (raw.customSupplements as CustomSupplement[] ?? [])
+  .map(cs => ({
+    name: cs.name,
+    personalDose: cs.dose !== '—' ? cs.dose : undefined,
+    timing: cs.timing,
+    notes: cs.notes,
+    isCustom: true,
+    addedAt: cs.addedAt,
+  }));
+
+// Merge, deduplicating by name
+const allNames = new Set(addedSupplements.map(s => s.name.toLowerCase()));
+for (const cs of migratedCustom) {
+  if (!allNames.has(cs.name.toLowerCase())) {
+    addedSupplements.push(cs);
+  }
+}
+
+// Drop customSupplements from state after migration
+return { ...rest, addedSupplements, customSupplements: [] };
+```
+
+3. After normalization, `customSupplements` is always empty. The `AddCustomSupplementModal` saves to `addedSupplements` instead of `customSupplements`. Category grouping uses the DB category when `isCustom` is false, and 'other' when `isCustom` is true — but renders under the supplement's DB category label, not "Custom".
+
+**This migration is safe and one-shot:** once the normalizer runs and the user's data is written back, `customSupplements` is empty forever. The `customSupplements` field can be kept in the type (as `customSupplements?: never[]`) for a transitional period then removed later.
+
+**Modified files:**
+- `src/screens/ProtocolScreen.tsx` — full `ProtocolSupplement` type update, `normalizeProtocol()` migration, remove "Custom" section render, update `AddCustomSupplementModal` to save to `addedSupplements`.
+
+---
+
+### Feature 7: Adherence Streak
+
+**New AsyncStorage key:** `@vitalspan_streak`
+
+```typescript
+// Shape of @vitalspan_streak
+interface StreakState {
+  currentStreak: number;    // days in current streak
+  longestStreak: number;    // all-time best
+  lastCompletedDate: string; // 'YYYY-MM-DD' of last day with takenCount === totalItems
+}
+```
+
+**Update logic:** The streak is updated in `ProtocolScreen.persist()` — the function already writes to both `@vitalspan_protocol` and `@vitalspan_protocol_today`. Add a third write: after comparing `taken.length` to `totalItems`, if all items are taken today, read `@vitalspan_streak`, check if `lastCompletedDate` is yesterday (to extend streak) or today (no change), update, and write back.
+
+The streak should NOT be derived on the fly from `@vitalspan_protocol_today` history (that key only stores a single day's state, not a date-keyed history). The `StreakState` object is the authoritative counter.
+
+**New file:**
+- `src/lib/streakService.ts` — `updateStreak(takenCount: number, totalItems: number): Promise<void>` — reads `@vitalspan_streak`, applies logic, writes back. Called from `ProtocolScreen.persist()`.
+
+**Modified files:**
+- `src/screens/ProtocolScreen.tsx` — call `streakService.updateStreak(takenCount, totalItems)` inside `persist()`.
+- `src/screens/DashboardScreen.tsx` — load `@vitalspan_streak` and display the current streak as a badge or card element.
+- `src/screens/SettingsScreen.tsx` — add `'@vitalspan_streak'` to `ALL_STORAGE_KEYS`.
+
+---
+
+### Feature 8: Local Push Notifications (expo-notifications)
+
+**Install required (not currently in package.json):**
+
+```bash
+npx expo install expo-notifications
+```
+
+`expo-notifications` is an Expo SDK-compatible package. It requires a config plugin entry in `app.json` and an EAS build (Expo Go will not receive push tokens on iOS). It does NOT require custom native code beyond the config plugin.
+
+**app.json addition:**
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "expo-font",
+      "expo-notifications",
+      [...existing plugins...]
+    ]
+  }
+}
+```
+
+The `expo-notifications` plugin handles the `UNUserNotificationCenter` entitlement and `NSUserNotificationUsageDescription` automatically.
+
+**Architecture: notification service as a standalone lib module**
+
+Create `src/lib/notificationService.ts`. This module is the single point of notification scheduling — no screen imports `expo-notifications` directly.
+
+```typescript
+// src/lib/notificationService.ts
+
+import * as Notifications from 'expo-notifications';
+import { ProtocolState, ProtocolSupplement } from '../screens/ProtocolScreen';
+
+export async function requestPermission(): Promise<boolean> { ... }
+
+export async function rescheduleProtocolNotifications(
+  protocol: ProtocolState
+): Promise<void> {
+  // 1. Cancel all existing scheduled notifications with identifier prefix 'protocol-'
+  // 2. Group items by TimeSlot (morning/afternoon/evening/night)
+  // 3. Schedule one notification per time slot that has items
+  //    - Trigger: daily at fixed hour per slot (morning=8am, afternoon=1pm, evening=6pm, night=9pm)
+  //    - Body: "Time for your [slot] protocol: [item1], [item2]"
+  //    - Identifier: 'protocol-morning', 'protocol-afternoon', etc.
+}
+```
+
+**Scheduling trigger:** `Notifications.scheduleNotificationAsync` with `DailyTriggerInput`:
+
+```typescript
+await Notifications.scheduleNotificationAsync({
+  identifier: `protocol-${slot}`,
+  content: { title: 'Vitalspan', body: slotBody, sound: true },
+  trigger: { hour: SLOT_HOURS[slot], minute: 0, repeats: true, type: Notifications.SchedulableTriggerInputTypes.DAILY },
 });
 ```
 
-The Supabase JWT is automatically attached — no additional auth header is needed. Rate limiting can be enforced in the Edge Function by checking the user ID against a Supabase table (e.g., one report per day per user) without any client-side changes.
+**When to call `rescheduleProtocolNotifications`:** Every time `ProtocolScreen.persist()` runs (which covers all adds, removes, timing changes, and taken toggles). This re-schedules all 4 possible slots, cancelling any that now have zero items.
 
-`ANTHROPIC_API_KEY` is set exclusively via:
-```
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-```
-Never committed to source. Never in `.env`. Never in any `EXPO_PUBLIC_` variable.
+**Permission request location:** In `ProtocolScreen`, on first-ever protocol item addition, call `requestPermission()`. Do not request at app launch — asking before the user has added anything hurts conversion.
 
-### Anonymized context object shape
+**New files:**
+- `src/lib/notificationService.ts`
 
-The context object sent to the Edge Function must never include raw personal identifiers. The Edge Function receives this, builds the Claude prompt, and returns a structured response.
+**Modified files:**
+- `app.json` — add `"expo-notifications"` plugin.
+- `src/screens/ProtocolScreen.tsx` — call `notificationService.rescheduleProtocolNotifications(next)` inside `persist()`, after AsyncStorage writes. Call `notificationService.requestPermission()` on first item add.
+- `src/screens/SettingsScreen.tsx` — wire the existing `notificationsEnabled` switch to call `notificationService.cancelAllProtocolNotifications()` when toggled off, and `notificationService.rescheduleProtocolNotifications(protocol)` when toggled back on.
+
+---
+
+### Feature 9: Personal Dose in AI Advisor Context
+
+**Current state in `src/lib/advisorContext.ts` (lines 193-195):**
 
 ```typescript
-// src/lib/advisorContext.ts
+const addedSups = protocolState?.addedSupplements ?? [];
+const customSups = (protocolState?.customSupplements ?? []).map((s) => s.name);
+const supplements = Array.from(new Set([...addedSups, ...customSups]));
+```
+
+`addedSups` is currently treated as `string[]`. After Feature 4's schema migration, it is `ProtocolSupplement[]`.
+
+**Required change:**
+
+Update the `ProtocolState` interface copy inside `advisorContext.ts` (lines 70-76):
+
+```typescript
+// Before:
+interface ProtocolState {
+  addedSupplements: string[];
+  ...
+}
+
+// After:
+interface ProtocolState {
+  addedSupplements: Array<{ name: string; personalDose?: string }>;
+  customSupplements: Array<{ name: string }>;
+  ...
+}
+```
+
+Update supplements extraction to include dose info in the context payload:
+
+```typescript
+// After Feature 4 migration, customSupplements will always be empty,
+// but keep backward-compat read until fully verified
+const addedSups = (protocolState?.addedSupplements ?? []).map(item =>
+  typeof item === 'string'
+    ? { name: item, dose: undefined }
+    : { name: item.name, dose: item.personalDose }
+);
+const customSups = (protocolState?.customSupplements ?? []).map(s => ({
+  name: s.name,
+  dose: undefined,
+}));
+const supplements = Array.from(
+  new Map([...addedSups, ...customSups].map(s => [s.name, s])).values()
+);
+```
+
+Update `AdvisorContext` type to carry dose:
+
+```typescript
 export interface AdvisorContext {
-  // Demographic — non-identifying
-  ageGroup: '18-30' | '31-45' | '46-60' | '61-75' | '75+';
-  sex: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  primaryGoal: string; // e.g. "longevity", "performance"
-
-  // Biomarkers — latest classification + value, no timestamps
-  biomarkers: Array<{
-    name: string;       // e.g. "ApoB", "HbA1c"
-    status: 'optimal' | 'suboptimal' | 'concerning' | 'no_data';
-    value?: number;     // included only when status !== 'no_data'
-    unit?: string;
-  }>;
-
-  // PhenoAge — derived score only, no raw Levine component values
-  phenoAge?: {
-    biologicalAge: number;
-    chronologicalAge: number;
-    agingRate: 'slower' | 'average' | 'faster';
-  };
-
-  // Protocol — names only, no doses or schedule
-  supplements: string[];    // e.g. ["Vitamin D3", "Magnesium Glycinate"]
-  medications: string[];    // e.g. ["Metformin", "Atorvastatin"]
-
-  // Exercise — aggregate metrics only
-  exerciseSummary?: {
-    weeklySessionCount: number;
-    dominantCategory: string; // e.g. "Strength", "Cardio"
-    avgIntensity: 'easy' | 'moderate' | 'hard';
-  };
-
-  // Request type
-  requestType: 'full_report' | 'chat_followup';
-  chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  // ...existing fields...
+  supplements: Array<{ name: string; dose?: string }>;  // was: string[]
 }
 ```
 
-Privacy rules enforced by `advisorContext.ts`:
-- No name field. No exact birthdate — only age group bucket.
-- Biomarker values included only when present (not inferred/default). No timestamps.
-- No raw PhenoAge Levine component values (albumin, creatinine, etc.) — only the derived biological age and classification.
-- `chatHistory` is ephemeral — assembled in component state, not persisted to AsyncStorage or Supabase. Each session is stateless.
+Privacy note: personal dose is user-set text (e.g., "500mg"), not a clinical value. Including it does not violate the zero-PII privacy boundary.
 
-`advisorContext.ts` reads from `@vitalspan_user_profile`, `@vitalspan_biomarkers`, and `@vitalspan_protocol` AsyncStorage keys to assemble the context. It is a pure function with no side effects.
-
-### AI Advisor screen navigation placement
-
-A new tab is wrong. Five tabs is already the maximum for legible tab bar text at 10pt. The AI Advisor is a premium feature — presenting it as a modal preserves the "unlock reveal" experience and avoids showing a locked tab icon to free users.
-
-**Placement: stack modal from Dashboard**, triggered by a prominent entry card on `DashboardScreen`. This follows the existing pattern for `LongevityScore` (fullScreenModal from Dashboard). The AI Advisor card on Dashboard should be premium-gated — tapping it calls `showPaywall()` for free users, or `navigation.navigate('AIAdvisor')` for premium users.
-
-Add to `RootStackParamList`:
-```typescript
-AIAdvisor: undefined;
-```
-
-```typescript
-<Stack.Screen
-  name="AIAdvisor"
-  component={AIAdvisorScreen}
-  options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
-/>
-```
-
-`AIAdvisorScreen` contains two sub-views managed by local state, not separate stack screens:
-1. **Report view** — generated on first open via `supabase.functions.invoke`; shows structured longevity report sections
-2. **Chat view** — scrollable message thread for follow-up questions; subsequent invocations include `chatHistory`
-
-Keeping report and chat in one screen avoids navigation state complexity and lets the user reference the report while chatting.
-
-### New files
-
-- `supabase/functions/ai-advisor/index.ts` — Deno Edge Function (new)
-- `src/screens/AIAdvisorScreen.tsx` — report + chat UI with loading state (new)
-- `src/lib/advisorContext.ts` — assembles `AdvisorContext` from AsyncStorage (new)
-- `src/components/AdvisorReportCard.tsx` — renders a single report section (new)
-- `src/components/ChatBubble.tsx` — renders a single chat message (new)
-
-### Modified files
-
-- `src/navigation/AppNavigator.tsx` — add `AIAdvisor` to `RootStackParamList` + `Stack.Screen`
-- `src/screens/DashboardScreen.tsx` — add AI Advisor entry card (premium-gated via `useSubscription`)
+**Modified files:**
+- `src/lib/advisorContext.ts` — update `ProtocolState` copy, supplements extraction, `AdvisorContext` type.
+- `src/lib/advisorContext.test.ts` — update test fixtures to use new supplement shape.
 
 ---
 
-## Exercise Photos Integration
+### Feature 10: Biomarker Trend Charts
 
-### Asset strategy: remote CDN URLs, do not bundle locally
+**Current state:** `src/screens/BiomarkerDetailScreen.tsx` loads `@vitalspan_biomarkers` (a `StoredEntry[]`). Entries have `date: string` (ISO) and `value: number`. The screen currently has edit-in-place of individual entries but no chart visualization.
 
-The `yuhohas/free-exercise-db` repository provides images at a deterministic raw.githubusercontent.com URL:
+**Chart library:** `react-native-chart-kit` is already in `package.json` (`^6.12.0`). No new package needed. Use `LineChart` from `react-native-chart-kit` for both biomarker trends and exercise overload trends.
 
-```
-https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{ExerciseName}/0.jpg
-```
+**chart-kit caveats:**
+- Requires `react-native-svg` (already installed at `15.12.1`).
+- `LineChart` needs at least 2 data points to render non-trivially.
+- Dimensions must be pixel-explicit — use `Dimensions.get('window').width - Spacing.base * 2` for full-width minus margins.
+- Does not support date-aware x-axis natively — labels must be formatted manually.
 
-Where `{ExerciseName}` is the exercise name with spaces replaced by underscores, capitalized as it appears in the repo (e.g., `Barbell_Deadlift`, `Dumbbell_Bent_Over_Row`, `Air_Bike`).
-
-Do NOT bundle as local `require()` assets. The free-exercise-db has 800+ exercises with multiple images each — bundling a subset would add tens of megabytes to the IPA, slowing EAS builds and increasing download size for all users. The raw.githubusercontent.com CDN is stable and served globally via Fastly.
-
-Fallback logic when the remote image fails: fall back to the existing `IllustrationComponent` SVG. If no SVG exists either, fall back to the existing placeholder view. This is a two-level graceful fallback using existing UI — no new placeholder components needed.
-
-### Data model change
-
-Add an optional `photoKey` field to the `Exercise` interface:
+**New shared component:**
 
 ```typescript
-// src/data/exercises.ts
-export interface Exercise {
-  // ...existing fields unchanged...
-  illustrationId?: string;  // keep — SVG fallback layer
-  photoKey?: string;        // new — free-exercise-db name key
+// src/components/TrendChart.tsx
+interface TrendChartProps {
+  data: Array<{ date: string; value: number }>;
+  unit: string;
+  range: '30d' | '90d' | '365d';
+  onRangeChange: (r: '30d' | '90d' | '365d') => void;
+  optMin?: number;
+  optMax?: number;
 }
 ```
 
-A helper converts `photoKey` to a URL:
+`TrendChart` renders the `LineChart` with range selector chips above it. Optimal range is rendered as a horizontal reference band using an SVG `Rect` layered behind the line (react-native-svg `Rect` drawn as absolute positioned overlay).
+
+This component is used in both `BiomarkerDetailScreen` (biomarker history over time) and `ExerciseDetailScreen` (exercise overload trend over weeks).
+
+**Free-tier data limit integration:** `TrendChart` receives the already-filtered `data` prop — the filtering happens in the screen, not the component. In `BiomarkerDetailScreen`, apply the 30-day cap before passing to `TrendChart`:
 
 ```typescript
-// src/lib/exercisePhotos.ts
-export function exercisePhotoUrl(photoKey: string): string {
-  return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${photoKey}/0.jpg`;
+const { isPremium } = usePremiumContext();
+const filteredEntries = useMemo(() => {
+  if (isPremium) return entries;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  return entries.filter(e => new Date(e.date) >= cutoff);
+}, [entries, isPremium]);
+```
+
+Show a locked/upgrade banner below the chart when `!isPremium && entries.length > filteredEntries.length`.
+
+**New files:**
+- `src/components/TrendChart.tsx`
+
+**Modified files:**
+- `src/screens/BiomarkerDetailScreen.tsx` — import `TrendChart`, add 30/90/365d range state, apply free-tier filter, render `TrendChart` above the entry list.
+- `src/screens/ExerciseDetailScreen.tsx` — import `TrendChart`, compute weekly weight/reps trend from `@vitalspan_exercise_log` filtered to the current exercise, render `TrendChart`.
+
+---
+
+### Feature 11: Free-Tier Data Limits
+
+**Gate:** `usePremiumContext().isPremium` (already available everywhere via `PremiumContext`).
+
+**Biomarker history:** Applied in `BiomarkerDetailScreen` as described in Feature 10 — filter `entries` to 30 days for non-premium users before passing to `TrendChart`.
+
+**Exercise log history:** Same pattern in `ExerciseScreen` — only show Today + This Week for free users; History section is hidden with an upgrade prompt. The existing `historyLogs` useMemo can be wrapped with `isPremium` check.
+
+No new files. No schema changes. The cap is a runtime display filter, not a storage filter — data is always stored in full and displayed in full to premium users.
+
+**Modified files:**
+- `src/screens/BiomarkerDetailScreen.tsx` — 30-day filter + upgrade banner (done in Feature 10).
+- `src/screens/ExerciseScreen.tsx` — hide `historyLogs` section for non-premium users + upgrade prompt.
+
+---
+
+### Feature 12: EAS Build (push notifications + production pipeline)
+
+**Current state:** `app.json` has the EAS `projectId`. `eas.json` likely already exists from v4.0. `expo-notifications` is not yet a plugin.
+
+**Required `app.json` additions:**
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "expo-font",
+      "expo-notifications",
+      ["@kingstinct/react-native-healthkit", { ... }],
+      "react-native-adapty"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vitalspan.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": [],
+        "aps-environment": "production"
+      }
+    }
+  }
 }
 ```
 
-**Critical ID mismatch:** Vitalspan's `Exercise.id` values (`'0720'`, `'0095'`, etc.) come from `hasaneyldrm/exercises-dataset`, which is a completely different dataset from `yuhohas/free-exercise-db`. There is no numeric ID overlap between the two repos. Mapping must be done manually by exercise name. The `photoKey` field holds the free-exercise-db name string (e.g., `"Barbell_Deadlift"`), not a shared numeric ID. This is a one-time manual mapping effort performed when populating `exercises.ts` entries. Exercises with no match in free-exercise-db simply leave `photoKey` undefined, activating the SVG fallback.
+The `aps-environment: production` entitlement enables push notification delivery in production builds. For development builds it should be `"development"` — or managed via EAS environment overrides.
 
-### ExerciseDetailScreen changes
+**`eas.json` additions** (if not already present):
 
-The `illustrationCard` section (lines 80–90) is replaced with a priority-ordered media section. The container `View` and its style stay identical — only the inner content is conditional:
-
-```typescript
-// State addition:
-const [photoFailed, setPhotoFailed] = useState(false);
-
-// Render — replaces the existing IllustrationComponent block:
-{exercise.photoKey && !photoFailed ? (
-  <Image
-    source={{ uri: exercisePhotoUrl(exercise.photoKey) }}
-    style={s.exercisePhoto}
-    onError={() => setPhotoFailed(true)}
-  />
-) : IllustrationComponent ? (
-  <IllustrationComponent size={160} />
-) : (
-  <View style={s.illustrationPlaceholder}>
-    <Text style={s.illustrationPlaceholderTxt}>No illustration</Text>
-  </View>
-)}
+```json
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": { "simulator": false }
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  }
+}
 ```
 
-Add to `StyleSheet`:
-```typescript
-exercisePhoto: {
-  width: '100%',
-  height: 200,
-  borderRadius: Radius.lg,
-  resizeMode: 'cover',
-},
-```
-
-`Image` from `react-native` with `onError` is sufficient. `expo-image` would provide better disk caching but requires `npx expo install expo-image` — worth adding if network performance is a concern, but not strictly required for the feature to work.
-
-### New files
-
-- `src/lib/exercisePhotos.ts` — `exercisePhotoUrl(photoKey: string): string` helper
-
-### Modified files
-
-- `src/data/exercises.ts` — add `photoKey?: string` to `Exercise` interface; populate `photoKey` on all exercises that have a match in free-exercise-db
-- `src/screens/ExerciseDetailScreen.tsx` — add `photoFailed` state; replace illustration block with priority-ordered photo/SVG/placeholder render
+**Modified files:**
+- `app.json` — add `expo-notifications` plugin, add `aps-environment` entitlement.
+- `eas.json` — verify/add build profiles.
 
 ---
 
-## Build Order
+## ProtocolState Migration: Canonical Strategy
 
-### Recommended phase sequence
+The migration from the current schema to the v5.0 schema happens in a single `normalizeProtocol()` function called in `ProtocolScreen.loadData()`. This function is the only place that touches the raw AsyncStorage data before it enters React state.
 
-**Phase 1: Exercise Photos**
-Build first. Zero dependencies on Adapty or the AI Advisor. Entirely additive: one new field on a TypeScript interface, one utility function, one modified render block in one screen. No new native modules, no new backend infrastructure, no new secrets. Completing it first provides a fast visual win and confirms the EAS build pipeline is healthy before native module changes arrive in Phase 2.
+**Migration sequence (all handled in `normalizeProtocol()`):**
 
-**Phase 2: Adapty (subscriptions)**
-Build second. No dependency on Phase 1 or the AI Advisor. Must come before the AI Advisor because `SubscriptionContext.isPremium` is the gate for the AI Advisor feature. Building Adapty second also flushes out the `expo prebuild` requirement and validates EAS builds with a native module change before the additional Edge Function complexity of Phase 3. Completing Phase 2 makes `useSubscription` available for Phase 3.
+1. `addedSupplements: string[]` → `addedSupplements: ProtocolSupplement[]` (string → `{ name }`)
+2. `customSupplements: CustomSupplement[]` → merged into `addedSupplements` as `ProtocolSupplement[]` with `isCustom: true`, then `customSupplements: []`
+3. All normalizations are idempotent — running multiple times on already-migrated data produces the same output.
 
-**Phase 3: Claude API / AI Advisor**
-Build last. Depends on:
-- `SubscriptionContext` + `useSubscription` hook (Phase 2) for the premium gate
-- `supabase.functions.invoke` (already available via existing Supabase client)
-- `advisorContext.ts` reading existing `@vitalspan_*` AsyncStorage keys
-
-Phase 3 can be parallelized internally into two workstreams once Phase 2 is complete:
-- Workstream A: Supabase Edge Function (`supabase/functions/ai-advisor/index.ts`) + set `ANTHROPIC_API_KEY` secret + deploy
-- Workstream B: `AIAdvisorScreen` UI shell + `advisorContext.ts` + component scaffolding
-
-Both workstreams converge when the screen calls `supabase.functions.invoke`.
-
-### Dependency table
-
-| Before building | What must exist first |
-|----------------|----------------------|
-| `AIAdvisorScreen` premium gate | `SubscriptionContext` + `useSubscription` (Phase 2) |
-| `PaywallScreen` rendering | `react-native-adapty` installed + `expo prebuild` run |
-| Edge Function calling Anthropic | `ANTHROPIC_API_KEY` set in Supabase project secrets |
-| `photoKey` in `exercises.ts` | Manual name-matching against free-exercise-db exercise list (one-time work, must precede ExerciseDetailScreen changes) |
-| `adapty.identify()` in sign-in flows | `react-native-adapty` installed (not just imported) |
+**Backward compatibility:** The key `@vitalspan_protocol` is preserved. No new key is introduced for the protocol. Old reads (e.g., `advisorContext.ts`) are also updated to handle both string and object shapes in the `addedSupplements` array (defensive `typeof item === 'string'` check) until v5.0 is fully deployed.
 
 ---
 
-## Cross-Cutting Concerns
-
-### expo prebuild audit
-
-Before running `npx expo prebuild` for Adapty, audit what is currently in `ios/` that would be overwritten. Specifically: `@kingstinct/react-native-healthkit` is already in `package.json` — confirm its config plugin entry in `app.json`'s `plugins` array. Any entitlements (HealthKit, Sign In with Apple) must be declared via config plugins before prebuild runs, or they will be lost.
-
-### Environment variable summary
+## Notification Scheduling Architecture
 
 ```
-# .env additions for v4.0
-EXPO_PUBLIC_ADAPTY_PUBLIC_KEY=public_live_...
-
-# Supabase project secrets (set via CLI, never in .env)
-# supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+User changes protocol (add/remove/time change)
+          ↓
+ProtocolScreen.persist(next: ProtocolState)
+          ↓
+AsyncStorage.setItem('@vitalspan_protocol', ...)
+AsyncStorage.setItem('@vitalspan_protocol_today', ...)
+          ↓
+notificationService.rescheduleProtocolNotifications(next)
+          ↓
+  for each TimeSlot: morning / afternoon / evening / night
+    items = filter next.addedSupplements + medications by slot
+    if items.length > 0:
+      scheduleNotificationAsync({ identifier: 'protocol-{slot}', daily trigger })
+    else:
+      cancelScheduledNotificationAsync('protocol-{slot}')
 ```
 
-### Subscription state — do not duplicate in AsyncStorage
+**Notification identifiers** are deterministic strings (`'protocol-morning'`, etc.) — not UUIDs. This means re-scheduling always cancels and replaces, never accumulates duplicates.
 
-`adapty.getProfile()` falls back to the SDK's internal cache when offline. Do NOT persist `isPremium` in `@vitalspan_*` AsyncStorage keys. Duplicating this state creates a desync vector when subscriptions lapse or are refunded. Let Adapty own subscription state entirely.
+**Medications** derive their slot from `protocol.medTimes[medName]`. Supplements derive their slot from `ProtocolSupplement.timing` or `SupplementInfo.bestTime` as fallback.
+
+---
+
+## Build Order and Dependency Graph
+
+The 12 features have these data-level dependencies:
+
+```
+Feature 4 (ProtocolSupplement schema)
+  ├── must precede Feature 5 (edit/delete UI reads ProtocolSupplement)
+  ├── must precede Feature 6 (category routing merges into ProtocolSupplement)
+  ├── must precede Feature 8 (notifications read ProtocolSupplement.timing)
+  └── must precede Feature 9 (advisorContext reads ProtocolSupplement.personalDose)
+
+Feature 1 (Routine key)
+  └── must precede Feature 2 (progressive overload reads loggedAt; routine reuses QuickLogModal)
+
+Feature 10 (TrendChart component)
+  ├── must precede Feature 11 free-tier filter (chart is the display surface)
+  └── used independently by Feature 2 (exercise overload sparkline)
+
+Feature 8 (notifications)
+  └── depends on Feature 4 schema (reads timing from ProtocolSupplement)
+```
+
+**Recommended build sequence:**
+
+| Phase | Features | Rationale |
+|-------|----------|-----------|
+| Phase A | Feature 4 (protocol schema + migration) | Foundation — unblocks 5, 6, 8, 9 |
+| Phase B | Features 5 + 6 (edit/delete + category routing) | Build on A; completes protocol overhaul |
+| Phase C | Feature 7 (streak) | Standalone; only touches `persist()` + new lib file |
+| Phase D | Feature 1 + 2 (routine + overload schema) | Exercise features; `ExerciseLogEntry` schema change before UI |
+| Phase E | Feature 3 (history edit/delete) | Builds on D; adds `QuickLogModal` edit mode |
+| Phase F | Feature 10 (TrendChart component) | Standalone component; no screen dependencies |
+| Phase G | Features 11 + Biomarker chart wiring | Builds on F; gates on `isPremium` already available |
+| Phase H | Feature 9 (advisor context dose) | Builds on A; small change, low risk |
+| Phase I | Feature 8 (notifications) | Builds on A; requires `npx expo install` + EAS build |
+| Phase J | Feature 12 (EAS build config) | Last — production build after all features land |
+
+**Why schema changes first:** AsyncStorage is the only shared state layer. `normalizeProtocol()` must exist before any UI that writes or reads the new schema. Building the migration function in Phase A means Phases B–H all operate on a known-good schema with backward compat in place.
+
+**Why notifications late:** `expo-notifications` is a new native module requiring an EAS build to test on device. Build all features that work in the Expo dev client first; test notifications as part of the EAS validation cycle.
+
+---
+
+## Component Boundaries
+
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `TrendChart` | Renders a time-series line chart with range selector; stateless display | `BiomarkerDetailScreen`, `ExerciseDetailScreen` |
+| `QuickLogModal` | Create and edit exercise log entries; handles `setsDetail` | `ExerciseScreen`, `ExerciseDetailScreen` |
+| `SwipeableLogRow` | Swipe-to-delete + tap-to-edit for a single log entry | `ExerciseScreen` |
+| `notificationService` | Schedule and cancel daily protocol notifications; single import point for `expo-notifications` | `ProtocolScreen`, `SettingsScreen` |
+| `streakService` | Read/write `@vitalspan_streak`; pure async functions | `ProtocolScreen`, `DashboardScreen` |
+| `normalizeProtocol()` | One-shot idempotent migration of raw `@vitalspan_protocol` data | `ProtocolScreen.loadData()` only |
+
+---
+
+## Data Flow
+
+### Protocol change → notifications
+
+```
+User taps time chip / adds item / removes item
+  → ProtocolScreen local state update
+  → persist(next: ProtocolState)
+    → AsyncStorage.setItem (2 keys)
+    → streakService.updateStreak(takenCount, totalItems)
+    → notificationService.rescheduleProtocolNotifications(next)
+```
+
+### Exercise log → overload trend
+
+```
+User logs exercise (QuickLogModal.handleSave)
+  → ExerciseLogEntry with setsDetail written to @vitalspan_exercise_log
+  → ExerciseDetailScreen.loadData() on next focus
+  → useOverloadTrend(exerciseId, logs) computes week-by-week avg weight
+  → TrendChart renders sparkline
+```
+
+### Biomarker entry → chart (free tier gated)
+
+```
+User adds biomarker (BiomarkerEntryScreen → @vitalspan_biomarkers)
+  → BiomarkerDetailScreen.loadData() on next focus
+  → isPremium ? all entries : last 30 days
+  → filteredEntries → TrendChart
+  → if truncated and !isPremium: show upgrade banner
+```
+
+---
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Importing expo-notifications directly in screens
+
+**What people do:** `import * as Notifications from 'expo-notifications'` in `ProtocolScreen` or `SettingsScreen`.
+
+**Why it's wrong:** Scatters notification logic across multiple files; makes it impossible to guarantee one-and-only-one source of notification IDs; risks scheduling duplicates.
+
+**Do this instead:** All `expo-notifications` usage goes through `src/lib/notificationService.ts`. Screens call `notificationService.*` functions only.
+
+### Anti-Pattern 2: Storing isPremium in AsyncStorage
+
+**What people do:** Cache `isPremium` in `@vitalspan_user_profile` or a new key to avoid the Adapty API call on cold start.
+
+**Why it's wrong:** Creates a desync vector when subscriptions lapse, are refunded, or are granted server-side. Adapty's SDK has its own internal cache that handles offline correctly.
+
+**Do this instead:** `PremiumContext` already handles this. `isPremiumLoading` prevents flash of incorrect state on cold start. Trust the SDK cache.
+
+### Anti-Pattern 3: Running normalizeProtocol on every AsyncStorage write
+
+**What people do:** Call `normalizeProtocol(JSON.parse(await AsyncStorage.getItem(...)))` before every write to ensure the written data is in the new schema.
+
+**Why it's wrong:** Redundant after the first read-and-write cycle; masks bugs where state diverges between in-memory and storage.
+
+**Do this instead:** Run `normalizeProtocol` only in `loadData()` on read. After normalization, in-memory state is always in the new schema. `persist()` writes the in-memory state directly — it is already normalized.
+
+### Anti-Pattern 4: Separate migration key/flag
+
+**What people do:** Add `@vitalspan_protocol_v2_migrated: 'true'` to AsyncStorage; only run migration if flag is absent; set flag after.
+
+**Why it's wrong:** Extra complexity with no benefit when the normalizer is idempotent. If the migration is safe to run multiple times, the flag adds code surface area for free.
+
+**Do this instead:** Make the normalizer idempotent (safe to run on already-migrated data). Skip the flag entirely.
+
+### Anti-Pattern 5: New notification identifier per user or per day
+
+**What people do:** `identifier: \`protocol-morning-${userId}-${date}\``
+
+**Why it's wrong:** iOS limits scheduled notifications to 64. Unique identifiers per day means the app exhausts the limit in 16 days.
+
+**Do this instead:** Use static identifiers (`'protocol-morning'`, `'protocol-afternoon'`, etc.) with daily repeating triggers. Cancelling and re-scheduling with the same identifier replaces, not accumulates.
+
+---
+
+## Modified Files Summary (v5.0)
+
+| File | Changes |
+|------|---------|
+| `src/screens/ProtocolScreen.tsx` | `ProtocolSupplement` type, `normalizeProtocol()`, edit modal, category routing, notifications call, streak call |
+| `src/screens/ExerciseScreen.tsx` | Tab switch (Rutinim/Kesfet), routine state, `@vitalspan_routine` load, premium gate on History |
+| `src/screens/ExerciseDetailScreen.tsx` | Add to routine button, `TrendChart` for overload |
+| `src/screens/BiomarkerDetailScreen.tsx` | `TrendChart` integration, 30-day free-tier filter, upgrade banner |
+| `src/screens/DashboardScreen.tsx` | Load and display streak |
+| `src/screens/SettingsScreen.tsx` | Add new keys to `ALL_STORAGE_KEYS`; wire notifications toggle to `notificationService` |
+| `src/data/exercises.ts` | Add `SetEntry` type, `setsDetail?: SetEntry[]` to `ExerciseLogEntry` |
+| `src/components/QuickLogModal.tsx` | Per-set weight/reps input, optional `existingEntry` edit mode |
+| `src/components/SwipeableLogRow.tsx` | Add `onEdit` prop, display `loggedAt` date, tap handler |
+| `src/lib/advisorContext.ts` | Update `ProtocolState` copy, supplement extraction with dose, `AdvisorContext.supplements` type |
+| `src/lib/advisorContext.test.ts` | Update test fixtures |
+| `app.json` | Add `expo-notifications` plugin, `aps-environment` entitlement |
+| `eas.json` | Verify/add build profiles |
+
+## New Files Summary (v5.0)
+
+| File | Purpose |
+|------|---------|
+| `src/lib/notificationService.ts` | All `expo-notifications` scheduling; single import point |
+| `src/lib/streakService.ts` | Read/write `@vitalspan_streak`; update logic |
+| `src/components/TrendChart.tsx` | Shared `LineChart` wrapper with range selector; used by biomarker + exercise screens |
+| `src/hooks/useOverloadTrend.ts` | Derives week-by-week weight/reps trend from `ExerciseLogEntry[]` for a given `exerciseId` |
 
 ---
 
 ## Sources
 
-- Adapty React Native SDK initialization, identify, getProfile, paywall presentation: Context7 `/adaptyteam/adaptysdk-react-native` — HIGH confidence
-- Adapty installation with Expo prebuild: Context7 `/adaptyteam/adaptysdk-react-native` README — HIGH confidence
-- `@anthropic-ai/sdk` React Native not supported: official SDK README via Context7 `/anthropics/anthropic-sdk-typescript` — HIGH confidence
-- Supabase Edge Functions `invoke` pattern: Context7 `/supabase/supabase` — HIGH confidence
-- free-exercise-db URL structure `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{name}/0.jpg`: confirmed via web search result citing GitHub repo README — MEDIUM confidence (URL pattern verified from search result, not direct file read)
-- free-exercise-db GitHub: https://github.com/yuhonas/free-exercise-db
+- All integration points derived from direct inspection of: `src/screens/ProtocolScreen.tsx`, `src/screens/ExerciseScreen.tsx`, `src/data/exercises.ts`, `src/lib/advisorContext.ts`, `src/components/QuickLogModal.tsx`, `src/components/SwipeableLogRow.tsx`, `src/context/PremiumContext.tsx`, `src/navigation/AppNavigator.tsx`, `src/screens/SettingsScreen.tsx`, `app.json`, `package.json` — HIGH confidence (live source code)
+- expo-notifications scheduling API and config plugin behavior: standard Expo SDK 54 patterns — HIGH confidence
+- react-native-chart-kit `LineChart` API and SVG dependency: `package.json` confirms v6.12.0 and `react-native-svg` 15.12.1 already installed — HIGH confidence
+- Notification 64-limit on iOS: Apple UNUserNotificationCenter documentation — HIGH confidence

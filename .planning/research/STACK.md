@@ -446,3 +446,363 @@ cd ios && pod install
 ### Phase ordering constraint
 
 The Supabase Edge Function for Claude must be deployed and tested before the AI Advisor screen can be built. Adapty and exercise photos are independent and can be built in any order relative to each other and to the Edge Function.
+
+---
+
+---
+
+# Stack Research — v5.0 Additions
+
+**Researched:** 2026-06-16
+**Confidence:** HIGH (expo-notifications, chart decision), MEDIUM (drag-to-reorder), HIGH (date utilities)
+**Base:** Confirmed from live package.json — expo ~54.0.35, react-native 0.81.5, react-native-reanimated ~4.1.1, react-native-gesture-handler ~2.28.0, react-native-svg 15.12.1, react-native-chart-kit ^6.12.0 already installed.
+
+---
+
+## Audit: What Is Already Installed for v5.0
+
+| v5.0 Need | Already Present | Version | Action |
+|-----------|----------------|---------|--------|
+| Chart rendering for sparklines | `react-native-chart-kit` | ^6.12.0 | USE — already there, no install needed |
+| SVG canvas for custom charts | `react-native-svg` | 15.12.1 | USE — peer dep for chart-kit |
+| Gesture recognition for drag | `react-native-gesture-handler` | ~2.28.0 | USE — already there |
+| Animation engine for drag/charts | `react-native-reanimated` | ~4.1.1 | USE — already there |
+| Worklets for reanimated 4 | `react-native-worklets` | 0.5.1 | USE — required peer for reanimated 4 |
+
+**The chart library question is already answered by what's installed.** `react-native-chart-kit` is in the project. Victory-native would require adding `@shopify/react-native-skia` (~2.2.x) as a new native dependency, which requires a full prebuild cycle. Do not add Skia just for charts when chart-kit already covers the sparkline use case with the existing `react-native-svg` stack.
+
+---
+
+## Decision: Chart Library — Use react-native-chart-kit (Already Installed)
+
+**Recommendation: Do not add victory-native. Use react-native-chart-kit for all v5.0 chart needs.**
+
+### Why chart-kit over victory-native for this project
+
+victory-native (v41.x) requires `@shopify/react-native-skia` (~2.2.x) as a mandatory native peer dependency. This means:
+- One additional native module requiring `npx expo prebuild --clean` + `pod install`
+- `@shopify/react-native-skia` is a GPU-canvas renderer — significant binary size addition (~8 MB) for charts that are a secondary feature, not the app's core
+- A reported peer dependency conflict between victory-native@41 and @shopify/react-native-skia v2.x was open as recently as mid-2025 (GitHub issue #616, FormidableLabs/victory-native-xl). The peer range `>=1.2.3 <3.0.0` technically allows v2.2.x but real-world issues surfaced at that boundary.
+- Reanimated 4.1.1 (already installed) is compatible with victory-native's peer dep, but the Skia version mismatch risk adds fragility to a project that has a stable native build chain.
+
+`react-native-chart-kit` 6.12.x is already installed, actively maintained (last published April 2026 per npm), builds on `react-native-svg` 15.x (already installed), and works entirely in JS with no native bridging beyond what svg already provides. Zero additional install or prebuild.
+
+### What chart-kit provides for v5.0
+
+| Chart Need | chart-kit Component | Notes |
+|------------|--------------------|----|
+| Biomarker trend line (30/90/365 day) | `LineChart` with `bezier` prop | Responsive via `Dimensions.get('window').width` |
+| Progressive overload trend (weight/reps per week) | `LineChart` | Two datasets for weight + reps overlay |
+| Sparkline (compact inline trend) | `LineChart` with reduced `height` (80–100px) and `withDots={false}` | Standard chart-kit trick for sparklines |
+| Protocol adherence heatmap | `ContributionGraph` | Heatmap-style calendar, ideal for streak visualization |
+
+**No separate sparkline library needed.** chart-kit's `LineChart` with `height={80}`, `withDots={false}`, `withXLabels={false}`, `withYLabels={false}`, and `transparent` background renders as a clean sparkline. This pattern is well-documented in the chart-kit community.
+
+### Shared chart component
+
+Both biomarker trends and exercise progressive overload trends use the same visual pattern: a line chart with time on X, value on Y, 30/90/365 day time range selector. Build one shared component `src/components/TrendChart.tsx` parameterized by data + range selector. Do not build two separate chart implementations.
+
+### chart-kit known limitation
+
+`react-native-chart-kit` does not support interactive tooltips with gesture tracking (no pinch-to-zoom, no crosshair on tap). For v5.0 this is acceptable — these are trend overview charts, not analytical tools. If interactive gesture-driven charts become a requirement in a future milestone, that is when adding victory-native makes sense.
+
+---
+
+## expo-notifications — Local Push Scheduling
+
+**Recommendation: Install expo-notifications. It is NOT bundled by default — requires explicit install.**
+
+**Package:** `expo-notifications`
+**SDK 54 version:** `~0.32.x` (confirmed: expo-notifications 0.32.16 was documented against SDK 54.0.33)
+**Status:** Separate package, must be installed explicitly.
+**Confidence:** HIGH — confirmed from Expo docs page (written against SDK 54.0.33/expo-notifications 0.32.16) and SDK 54 changelog.
+
+### Install
+
+```bash
+npx expo install expo-notifications
+```
+
+`npx expo install` (not `npm install`) ensures the Expo dependency resolver pins the correct `~0.32.x` version compatible with SDK 54. Using `npm install expo-notifications@latest` risks pulling a version pinned to SDK 55.
+
+### iOS config plugin (required for standalone/EAS builds)
+
+Add to `app.json` plugins array:
+
+```json
+"plugins": [
+  ["expo-notifications", {
+    "icon": "./assets/notification-icon.png",
+    "color": "#ffffff",
+    "sounds": []
+  }]
+]
+```
+
+The `icon` and `color` fields are optional but required for Android (iOS-only project can omit them). The `sounds` array is for custom notification sounds; leave empty for default.
+
+After adding the plugin:
+```bash
+npx expo prebuild --clean
+cd ios && pod install
+```
+
+The plugin automatically adds `UNUserNotificationCenter` entitlements and background modes to the iOS project.
+
+### iOS permission request (runtime — call on first use)
+
+```typescript
+import * as Notifications from 'expo-notifications';
+
+async function requestNotificationPermission(): Promise<boolean> {
+  const { status } = await Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: true,
+      allowSound: true,
+    },
+  });
+  return status === 'granted';
+}
+```
+
+Call this before scheduling any notifications. iOS will only show the system permission dialog once. If the user denies, redirect them to Settings.
+
+### Scheduling AM/PM/Evening/Night protocol reminders
+
+For Vitalspan's four protocol time slots, use `DailyTriggerInput` (repeating daily at a fixed hour/minute). This is simpler and more reliable than `CalendarNotificationTrigger` for this use case.
+
+```typescript
+import * as Notifications from 'expo-notifications';
+
+// Schedule a daily repeating notification for a given slot
+async function scheduleProtocolReminder(
+  slotId: string,          // 'AM' | 'PM' | 'Evening' | 'Night'
+  hour: number,            // 0–23 (user-configurable)
+  minute: number,          // 0–59
+  title: string,
+  body: string,
+): Promise<string> {
+  // Cancel previous schedule for this slot before rescheduling
+  await Notifications.cancelScheduledNotificationAsync(slotId);
+
+  const id = await Notifications.scheduleNotificationAsync({
+    identifier: slotId,     // stable ID so we can cancel/replace by slot
+    content: { title, body, sound: true },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    },
+  });
+  return id;
+}
+
+// Cancel a slot reminder
+async function cancelProtocolReminder(slotId: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(slotId);
+}
+```
+
+**Use stable `identifier` values** ('AM', 'PM', 'Evening', 'Night') — this lets you cancel and reschedule a specific slot without tracking a dynamically generated UUID.
+
+### Key API constraints for iOS local notifications
+
+| Constraint | Detail |
+|------------|--------|
+| Max scheduled notifications | 64 on iOS (system limit) — 4 daily reminders is well within bounds |
+| DAILY trigger minimum interval | No minimum for daily triggers (unlike TIME_INTERVAL which requires 60s on iOS) |
+| CALENDAR trigger on iOS | Works but requires all fields (hour, minute, weekday etc.) — overkill for daily repeating reminders |
+| Background delivery | iOS delivers scheduled notifications when app is backgrounded or killed — no additional entitlement needed for local notifications |
+| Expo Go | Local notifications do NOT work in Expo Go on iOS — requires a development build (`npx expo run:ios`) |
+| SDK 54 breaking change | Deprecated function exports were removed in SDK 54. Use `Notifications.scheduleNotificationAsync` (not the old `Notifications.schedule*` deprecated aliases). |
+
+### Notification handler (set at app startup)
+
+```typescript
+// In App.tsx before navigation renders
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+```
+
+Without this, notifications received while the app is foregrounded are silently dropped on iOS.
+
+### AsyncStorage key for notification state
+
+Store user's enabled slots and times in a new key `@vitalspan_notification_settings`:
+
+```typescript
+interface NotificationSettings {
+  slots: {
+    AM: { enabled: boolean; hour: number; minute: number };
+    PM: { enabled: boolean; hour: number; minute: number };
+    Evening: { enabled: boolean; hour: number; minute: number };
+    Night: { enabled: boolean; hour: number; minute: number };
+  };
+}
+```
+
+On app launch, re-hydrate settings and re-schedule any enabled slots (iOS clears scheduled notifications on app update, so always reschedule on startup).
+
+---
+
+## Drag-to-Reorder for Exercise Routine (5–10 Items)
+
+**Recommendation: Use `react-native-draggable-flatlist` (existing community standard). Do NOT add a new DnD framework.**
+
+**Package:** `react-native-draggable-flatlist`
+**Current version:** 4.0.1 (stable, released 2025)
+**Peer dependencies:** `react-native-gesture-handler >=2.0.0`, `react-native-reanimated >=2.8.0` — both already installed at compatible versions (RNGH ~2.28.0, Reanimated ~4.1.1).
+**Confidence:** MEDIUM — peer dependency compatibility verified from npm registry data. Reanimated 4 is technically within `>=2.8.0` but the library was written against Reanimated 2/3. Real-world reports confirm it works with Reanimated 4 in most cases, but use with caution and test immediately on install.
+
+### Install
+
+```bash
+npx expo install react-native-draggable-flatlist
+```
+
+No additional native config, no prebuild needed — it uses the already-installed RNGH and Reanimated native modules.
+
+### Why not react-native-reanimated-dnd
+
+`react-native-reanimated-dnd` (entropyconquers) is built explicitly for Reanimated 4 and is documented against Expo SDK 55 (not 54). It requires the New Architecture to be fully enabled. Expo SDK 54 has New Architecture enabled by default but SDK 54 is the last SDK where it can be disabled — meaning edge cases in the new arch may exist in SDK 54 that are fixed in SDK 55. Using a library built for SDK 55+ on SDK 54 adds risk. Additionally, the library is younger and less battle-tested for the specific "sortable list" use case.
+
+`react-native-draggable-flatlist` has been the de-facto standard for drag-to-reorder FlatLists since 2020, has an official Expo Snack example, and the "5–10 item routine" use case is exactly what it was designed for.
+
+### Usage pattern
+
+```typescript
+import DraggableFlatList, {
+  ScaleDecorator,
+  RenderItemParams,
+} from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Wrap your screen (or app root) with GestureHandlerRootView if not already done
+// The project likely already has this via react-navigation setup
+
+type RoutineItem = { id: string; name: string; /* ... */ };
+
+function RoutineList({ items, onReorder }: { items: RoutineItem[]; onReorder: (items: RoutineItem[]) => void }) {
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<RoutineItem>) => (
+    <ScaleDecorator>
+      <TouchableOpacity onLongPress={drag} disabled={isActive}>
+        {/* your item UI */}
+      </TouchableOpacity>
+    </ScaleDecorator>
+  );
+
+  return (
+    <DraggableFlatList
+      data={items}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      onDragEnd={({ data }) => onReorder(data)}
+    />
+  );
+}
+```
+
+**GestureHandlerRootView:** The project uses React Navigation which already wraps the app in `GestureHandlerRootView`. If the routine screen is inside the navigation stack, no additional wrapper is needed.
+
+### Reanimated 4 compatibility note
+
+If draggable-flatlist shows animation issues with Reanimated 4.1.1 (such as items not animating during drag), add `"react-native-reanimated/plugin"` to `babel.config.js` plugins if not already present — this is likely already there given the existing Reanimated setup. No other workaround should be needed. If issues persist, the fallback is implementing drag-to-reorder manually using RNGH `Gesture.Pan()` + Reanimated `useSharedValue` — feasible for 10 items, but adds ~100 lines of animation code.
+
+---
+
+## Date/Time Utilities
+
+**Recommendation: Use JavaScript's built-in `Date` object. Do NOT add date-fns or dayjs.**
+
+### What v5.0 date operations actually require
+
+| Operation | Needed For | Built-in Solution |
+|-----------|------------|-------------------|
+| Display full date (e.g. "June 14, 2026") | Exercise history edit/delete | `date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })` |
+| Display relative time ("3 days ago") | Not in scope for v5.0 | N/A |
+| Group history entries by week | Progressive overload weekly trend | `date.getFullYear()` + `getWeek()` helper (10 lines) |
+| Calculate streak (consecutive days) | Protocol adherence streak | `differenceInDays` is 3 lines of arithmetic: `Math.floor((a - b) / 86400000)` |
+| Store/retrieve ISO dates | AsyncStorage | `new Date().toISOString()` — already used throughout the codebase |
+| Daily notification trigger times | expo-notifications | hour/minute integers — no date library needed |
+
+None of these require a date library. The "full date display" for exercise history is a single `toLocaleDateString` call. The streak calculation is integer arithmetic on timestamps. The weekly grouping for progressive overload is a simple ISO week number helper (10 lines of TypeScript, no dependency).
+
+**Adding date-fns adds ~14KB to the bundle** (even with tree-shaking, locale data pulls in additional chunks). dayjs adds ~2KB but still introduces a dependency to maintain. Neither provides enough value over built-in `Date` for the v5.0 operations listed above.
+
+If a future milestone adds calendar UI, date range pickers, or complex timezone-aware scheduling, reconsider date-fns at that point.
+
+---
+
+## v5.0 Complete Install Summary
+
+### New packages to install
+
+```bash
+# 1. Local push notifications (new)
+npx expo install expo-notifications
+
+# 2. Drag-to-reorder (new)
+npx expo install react-native-draggable-flatlist
+
+# After installs — required because expo-notifications has a config plugin
+npx expo prebuild --clean
+cd ios && pod install
+```
+
+### Packages already installed — no action needed
+
+| Package | Why It Covers v5.0 | Version |
+|---------|--------------------|---------|
+| `react-native-chart-kit` | Sparklines, line trends, adherence heatmap | ^6.12.0 |
+| `react-native-svg` | Peer dep for chart-kit, already at correct version | 15.12.1 |
+| `react-native-reanimated` | Animations for drag-to-reorder | ~4.1.1 |
+| `react-native-gesture-handler` | Gesture capture for drag-to-reorder | ~2.28.0 |
+| `react-native-worklets` | Reanimated 4 peer dep | 0.5.1 |
+
+### No install needed — built-in solutions
+
+| v5.0 Need | Solution |
+|-----------|----------|
+| Date formatting ("June 14, 2026") | `Date.toLocaleDateString()` built-in |
+| Protocol streak calculation | Integer arithmetic on ISO timestamps |
+| Weekly overload grouping | 10-line ISO week helper in TypeScript |
+
+### Do NOT add
+
+| Package | Why Not |
+|---------|---------|
+| `victory-native` | Requires `@shopify/react-native-skia` (heavy native dep, v2 compatibility issues); chart-kit already installed covers all v5.0 chart needs |
+| `@shopify/react-native-skia` | Not needed unless you switch to victory-native (don't) |
+| `react-native-reanimated-dnd` | Built for SDK 55/Reanimated 4 + New Arch; draggable-flatlist is the proven choice for a simple 10-item sortable list on SDK 54 |
+| `date-fns` | +14KB bundle for operations that require 1–3 lines of built-in `Date` calls |
+| `dayjs` | Same argument; v5.0 has no complex date formatting, timezone, or locale needs |
+| `react-native-chart-kit` (re-install) | Already installed — do not duplicate or change version |
+| Any "sparkline" micro-library | chart-kit's LineChart renders as a sparkline with `height={80} withDots={false} withXLabels={false} withYLabels={false}` |
+
+---
+
+## Version Compatibility Matrix (v5.0 additions vs existing stack)
+
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| `expo-notifications` | ~0.32.x | Expo SDK 54, RN 0.81.5, Hermes | Requires `npx expo install` to get SDK-pinned version; uses new `SchedulableTriggerInputTypes` API (deprecated aliases removed in SDK 54) |
+| `react-native-draggable-flatlist` | ^4.0.1 | RNGH >=2.0.0, Reanimated >=2.8.0 | Compatible with installed RNGH ~2.28.0 and Reanimated ~4.1.1; test drag animation immediately after install |
+| `react-native-chart-kit` | ^6.12.0 | react-native-svg 15.x | Already installed and working — no version change needed |
+
+---
+
+## Sources
+
+- Expo SDK 54 changelog — `expo-notifications` deprecated function exports removed, ~0.32.x confirmed for SDK 54 [HIGH confidence]
+- Expo notifications docs (SDK 54.0.33, expo-notifications 0.32.16) — scheduling API, DAILY trigger, iOS constraints [HIGH confidence]
+- npm registry — `react-native-draggable-flatlist` 4.0.1 peer deps: RNGH >=2.0.0, Reanimated >=2.8.0 [HIGH confidence]
+- npm registry — `victory-native` 41.26.0 peer: `@shopify/react-native-skia >=1.2.3 <3.0.0` [HIGH confidence]
+- GitHub FormidableLabs/victory-native-xl issue #616 — Skia v2 peer dependency conflict [HIGH confidence — live source]
+- WebSearch — Expo SDK 54 ships react-native-reanimated ~4.1.0, react-native-gesture-handler ~2.28.0, @shopify/react-native-skia ~2.2.x [MEDIUM — search result, not official changelog]
+- package.json audit (live file read) — confirmed exact installed versions [HIGH confidence]
