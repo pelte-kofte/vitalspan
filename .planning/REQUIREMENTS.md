@@ -102,43 +102,43 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROUT-01 | — | Pending |
-| ROUT-02 | — | Pending |
-| ROUT-03 | — | Pending |
-| ROUT-04 | — | Pending |
-| ROUT-05 | — | Pending |
-| HIST-01 | — | Pending |
-| HIST-02 | — | Pending |
-| HIST-03 | — | Pending |
-| HIST-04 | — | Pending |
-| OVLD-01 | — | Pending |
-| OVLD-02 | — | Pending |
-| OVLD-03 | — | Pending |
-| PROT-01 | — | Pending |
-| PROT-02 | — | Pending |
-| PROT-03 | — | Pending |
-| PROT-04 | — | Pending |
-| PROT-05 | — | Pending |
-| STRK-01 | — | Pending |
-| STRK-02 | — | Pending |
-| STRK-03 | — | Pending |
-| NTFY-01 | — | Pending |
-| NTFY-02 | — | Pending |
-| NTFY-03 | — | Pending |
-| NTFY-04 | — | Pending |
-| TRND-01 | — | Pending |
-| TRND-02 | — | Pending |
-| TRND-03 | — | Pending |
-| DLIM-01 | — | Pending |
-| DLIM-02 | — | Pending |
-| PROD-01 | — | Pending |
-| PROD-02 | — | Pending |
+| ROUT-01 | Phase 21 | Pending |
+| ROUT-02 | Phase 21 | Pending |
+| ROUT-03 | Phase 21 | Pending |
+| ROUT-04 | Phase 21 | Pending |
+| ROUT-05 | Phase 21 | Pending |
+| HIST-01 | Phase 21 | Pending |
+| HIST-02 | Phase 21 | Pending |
+| HIST-03 | Phase 21 | Pending |
+| HIST-04 | Phase 21 | Pending |
+| OVLD-01 | Phase 21 | Pending |
+| OVLD-02 | Phase 21 | Pending |
+| OVLD-03 | Phase 21 | Pending |
+| PROT-01 | Phase 20 | Pending |
+| PROT-02 | Phase 20 | Pending |
+| PROT-03 | Phase 20 | Pending |
+| PROT-04 | Phase 20 | Pending |
+| PROT-05 | Phase 22 | Pending |
+| STRK-01 | Phase 22 | Pending |
+| STRK-02 | Phase 22 | Pending |
+| STRK-03 | Phase 22 | Pending |
+| NTFY-01 | Phase 23 | Pending |
+| NTFY-02 | Phase 23 | Pending |
+| NTFY-03 | Phase 23 | Pending |
+| NTFY-04 | Phase 23 | Pending |
+| TRND-01 | Phase 22 | Pending |
+| TRND-02 | Phase 22 | Pending |
+| TRND-03 | Phase 22 | Pending |
+| DLIM-01 | Phase 22 | Pending |
+| DLIM-02 | Phase 22 | Pending |
+| PROD-01 | Phase 23 | Pending |
+| PROD-02 | Phase 23 | Pending |
 
 **Coverage:**
 - v5.0 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31 ⚠️
+- Mapped to phases: 31
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-16*
-*Last updated: 2026-06-16 after initial definition*
+*Last updated: 2026-06-16 — traceability filled in after roadmap creation*

@@ -5,11 +5,15 @@
 - ✅ **v1.0 TestFlight** - Phases 1-3 (shipped 2026-05-25)
 - ✅ **v2.0 Premium, Backend & Exercise** - Phases 4-9 (complete 2026-06-02)
 - ✅ **v3.0 Intelligence & Growth** - Phases 10-14 (complete 2026-06-09)
-- 🚧 **v4.0 Monetization & Intelligence** - Phases 15-18 (in progress)
+- ✅ **v4.0 Monetization & Intelligence** - Phases 15-18 (complete 2026-06-15)
+- ✅ **v4.1 UX Quality Pass** - Phase 19 (complete 2026-06-15)
+- 🚧 **v5.0 Personalization & Production** - Phases 20-23 (in progress)
 
 ## Overview
 
 v3.0 shipped a complete intelligent longevity platform — live HealthKit data, PubMed articles, 60-exercise SVG library, expanded supplement/drug database, clinical design system, and full Supabase Auth. v4.0 turns Vitalspan into a sustainable business: exercise photos elevate the visual quality of the library with real CDN-hosted JPGs from a public-domain source, Adapty-powered subscriptions add a premium tier with in-app purchase and a trial timeline paywall, and the AI Longevity Advisor (Claude API via Supabase Edge Function) becomes the flagship premium feature — generating a structured 6-section longevity report and follow-up chat from anonymized health context.
+
+v5.0 turns users from passive data viewers into active longevity managers: a personal exercise routine with progressive overload tracking, an overhauled editable protocol with adherence streaks and push notification reminders, biomarker trend sparklines, free-tier data limits, and a production EAS build pipeline to TestFlight.
 
 ---
 
@@ -342,22 +346,15 @@ Plans:
 
 ---
 
-## Phases — v4.0 Monetization & Intelligence
+<details>
+<summary>✅ v4.0 Monetization & Intelligence (Phases 15-18) — COMPLETE 2026-06-15</summary>
 
 **Milestone Goal:** Turn Vitalspan into a sustainable business — real exercise photography elevates the visual library, Adapty-powered subscriptions add a premium tier with Apple in-app purchase, and the AI Longevity Advisor (Claude API via Supabase Edge Function) becomes the flagship premium feature generating a structured health report and follow-up chat from anonymized context.
-
-**Phase Numbering:**
-- Integer phases (15, 16, 17, 18): Planned milestone work
-- Decimal phases (15.1, 15.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 15: Exercise Photos** - Add real CDN-hosted exercise photos to ExerciseDetailScreen with SVG fallback for unmapped exercises
 - [x] **Phase 16: Adapty Paywall & Subscriptions** - Ship Adapty-powered in-app purchase with a compliant paywall screen, free/premium tier gating, and restore purchases
 - [x] **Phase 17: AI Advisor — Backend** - Build the Supabase Edge Function, anonymized context assembler, and per-user rate limiting that powers the AI Longevity Advisor (completed 2026-06-14)
 - [x] **Phase 18: AI Advisor — UI** - Deliver the AI Advisor premium screen with a 6-section report layout, follow-up chat, and subscription soft gate (completed 2026-06-15)
-
-## Phase Details
 
 ### Phase 15: Exercise Photos
 **Goal**: ExerciseDetailScreen displays real JPG photos for exercises with a mapped photoKey, loaded from the yuhonas/free-exercise-db CDN — SVG illustrations remain as fallback for unmapped exercises and a neutral placeholder covers any remaining gaps
@@ -457,15 +454,16 @@ Plans:
 
 **UI hint**: yes
 
+</details>
+
 ---
 
-## Phases — v4.1 UX Quality Pass
+<details>
+<summary>✅ v4.1 UX Quality Pass (Phase 19) — COMPLETE 2026-06-15</summary>
 
 **Milestone Goal:** Ship a single-build bundle of cross-screen UX fixes identified post-v4.0 — keyboard overlap, Dynamic Island layout bugs, contrast issues, and missing interaction handlers — so the app feels polished before TestFlight submission.
 
 - [x] **Phase 19: Global UX Fixes** - Fix 5 cross-screen UX bugs: keyboard overlap, Dynamic Island header, Dashboard contrast, LongevityScore orbital CTAs, and Exercise Detail muscle diagram removal
-
-## Phase Details — v4.1
 
 ### Phase 19: Global UX Fixes
 **Goal**: All identified post-v4.0 UX bugs are fixed in a single build — keyboard no longer obscures inputs, Dynamic Island no longer clips headers, "Movement Today" is readable, LongevityScore orbital CTAs are tappable with appropriate destination routing, and the low-quality muscle diagram is removed from ExerciseDetailScreen
@@ -496,12 +494,84 @@ Plans:
 
 **UI hint**: yes
 
+</details>
+
+---
+
+## Phases — v5.0 Personalization & Production
+
+**Milestone Goal:** Turn users from passive data viewers into active longevity managers — personal exercise routine with progressive overload tracking, editable protocol with adherence streaks and push notification reminders, biomarker trend sparklines, free-tier data limits, and a production EAS build to TestFlight.
+
+**Phase Numbering:**
+- Integer phases (20, 21, 22, 23): Planned milestone work
+- Decimal phases (20.1, 20.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 20: Protocol Schema Migration** - Migrate ProtocolState schema to type-correct sections, add personal dose fields, and remove the Custom category — the load-bearing change that unblocks all downstream v5.0 work
+- [ ] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines
+- [ ] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context
+- [ ] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission
+
+## Phase Details
+
+### Phase 20: Protocol Schema Migration
+**Goal**: ProtocolState stores supplements and medications in type-correct sections with optional personal dose per item — the Custom category is gone and the schema is stable for all Phase 22-23 consumers
+**Depends on**: Phase 19
+**Requirements**: PROT-04, PROT-01, PROT-02, PROT-03
+**Success Criteria** (what must be TRUE):
+  1. Items added to the protocol appear only in their correct section (Supplements or Medications) — no "Custom" category is visible anywhere in the app
+  2. User can enter a personal dose for any supplement or medication in their protocol and see it saved and displayed on next app open
+  3. User can edit an existing protocol item (change dose, timing, or notes) and see the updated values reflected immediately
+  4. User can remove any supplement or medication from their protocol; the item disappears from the protocol list and does not reappear on next open
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 21: Exercise Routine & History
+**Goal**: Users have a personal Rutinim tab with up to 10 exercises they can add, order, and remove; history entries show full dates with weight/reps captured per set; users can edit and delete past entries; exercise cards in the routine show last-session load and a weekly overload trend sparkline
+**Depends on**: Phase 20
+**Requirements**: ROUT-01, ROUT-02, ROUT-03, ROUT-04, ROUT-05, HIST-01, HIST-02, HIST-03, HIST-04, OVLD-01, OVLD-02, OVLD-03
+**Success Criteria** (what must be TRUE):
+  1. Tapping the Exercise tab shows a Rutinim/Kesfet toggle; Rutinim view is empty with an "Add exercises" CTA when no routine has been built; switching to Kesfet shows the full exercise library
+  2. User can add up to 10 exercises to their routine from the library, drag to reorder them, and remove individual exercises — changes persist across app restarts
+  3. Past exercise log entries display the full date (day, month, year); tapping an entry opens an edit sheet where the user can update sets, reps, and weight, or delete the entry
+  4. Exercise log entries capture weightKg and repsPerSet per set — not just intensity — so progressive overload can be computed
+  5. Each exercise card in the Rutinim view shows the weight and reps from the last logged session for that exercise, plus a weekly trend indicator (improving/stable/declining); ExerciseDetailScreen shows a sparkline chart of weekly overload history
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 22: Engagement & Visualization
+**Goal**: Users see their adherence streak on the Protocol screen, biomarker trends as sparkline charts with range band overlays on BiomarkerDetailScreen, and non-premium users see a 30-day data limit enforced with an upgrade banner; AI Advisor context includes personal dose bucketing
+**Depends on**: Phase 20
+**Requirements**: STRK-01, STRK-02, STRK-03, TRND-01, TRND-02, TRND-03, DLIM-01, DLIM-02, PROT-05
+**Success Criteria** (what must be TRUE):
+  1. Protocol screen displays the user's current consecutive-day adherence streak and all-time best streak; a day where all items are marked taken increments the streak; a missed day resets the current streak to zero
+  2. BiomarkerDetailScreen shows a sparkline chart of lab values with a 30/90/365-day toggle; the chart renders correctly with 2 or more data points and shows a placeholder message when fewer than 2 exist
+  3. The sparkline chart overlays the biomarker's optimal longevity range as a visual band so users can see at a glance whether their trend is inside or outside the target
+  4. A non-premium user with more than 30 days of biomarker entries sees only the most recent 30 days of history; an upgrade banner states how many entries are hidden; a premium user sees full history
+  5. When AI Advisor generates a report, the context sent to the Edge Function includes each protocol item's personal dose bucketed as "high", "standard", or "low" relative to the DB recommended range
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 23: Notifications & Production Build
+**Goal**: Users can independently toggle and time AM/PM/Evening/Night push reminders for their protocol; the app requests notification permission gracefully on first toggle; scheduled notifications repeat daily and survive app updates; app.json includes the production push entitlement; an EAS production build is submitted to TestFlight
+**Depends on**: Phase 22
+**Requirements**: PROD-01, NTFY-01, NTFY-02, NTFY-03, NTFY-04, PROD-02
+**Success Criteria** (what must be TRUE):
+  1. app.json includes the expo-notifications config plugin and `aps-environment: production` entitlement — `eas build --platform ios --profile production` succeeds without entitlement errors
+  2. User toggling a reminder slot for the first time triggers a permission request; granting permission enables the slot; denying shows a plain-language explanation without crashing or leaving the UI in a broken state
+  3. User can independently enable or disable each of the four reminder slots (Morning, Afternoon, Evening, Night) and set a specific time for each enabled slot; preferences persist across app restarts
+  4. Enabled notifications fire at the configured times each day; after an app update (new EAS build installed), notifications are rescheduled automatically without user action
+  5. EAS production build installs on a physical device via TestFlight, completes the full user flow (onboarding → protocol → notifications → AI Advisor), and passes App Store submission pre-checks
+**Plans**: TBD
+**UI hint**: yes
+
 ---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 15 → 16 → 17 → 18 → 19
+Phases execute in numeric order: 20 → 21 → 22 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -524,3 +594,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18 → 19
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
+| 20. Protocol Schema Migration | v5.0 | 0/TBD | Not started | - |
+| 21. Exercise Routine & History | v5.0 | 0/TBD | Not started | - |
+| 22. Engagement & Visualization | v5.0 | 0/TBD | Not started | - |
+| 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |

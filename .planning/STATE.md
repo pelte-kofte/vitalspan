@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v5.0 — Personalization & Production (Phase 20 onwards)
+**Current focus:** v5.0 — Personalization & Production (Phase 20)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 20 — Protocol Schema Migration
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-16 — Milestone v5.0 started (Personalization & Production)
+Status: Roadmap created — ready for Phase 20 planning
+Last activity: 2026-06-16 — v5.0 roadmap created (Phases 20-23)
 
 Progress: [░░░░░░░░░░] 0% v5.0
 
@@ -86,6 +86,13 @@ Recent decisions affecting current work:
 - v4.0: photoKey field added to Exercise interface — holds free-exercise-db name string (e.g. "Barbell_Deadlift"), not Vitalspan numeric ID
 - v4.0: SubscriptionContext.isPremium — do NOT persist in AsyncStorage; Adapty owns subscription state
 - v4.0: Adapty activation race — activate with no customerUserId; call adapty.identify(user.id) only after Supabase getUser() resolves
+- v5.0: PROT-04 (schema migration) is Phase 20 — must complete before STRK, NTFY, and PROT-05 which all depend on the updated ProtocolState schema
+- v5.0: HIST-04 (weightKg + repsPerSet on ExerciseLogEntry) must land in Phase 21 before OVLD-01/02/03 UI which reads those fields
+- v5.0: TRND-02 (empty-data guard) built in Phase 22 before TRND-01/03 to prevent undefined access on live data wiring
+- v5.0: PROD-01 (app.json entitlements + expo-notifications config plugin) is first step of Phase 23 — notifications fail silently without it
+- v5.0: PROD-02 (EAS production build) is always last in Phase 23 — it ships the milestone
+- v5.0: Personal dose stored AsyncStorage-only for v5.0 — Supabase sync deferred; raw dose string omitted from AI context (bucketed high/standard/low only, pharmacist liability)
+- v5.0: react-native-chart-kit already installed and sufficient — victory-native excluded (Skia peer conflict with Expo SDK 54)
 
 ### Pending Todos
 
@@ -96,6 +103,7 @@ None yet.
 - Phase 17: Anthropic API key must NEVER appear in Expo project source — Edge Function only; set spend alert in Anthropic Console before launch
 - Phase 17: Per-user rate limiting must be enforced before every Anthropic call — 5 reports/day, 20 chat messages/day
 - Phase 16 deferred QA: Sandbox purchase flow (Scenario 3) and restore after reinstall (Scenario 4) deferred to pre-TestFlight QA
+- Phase 23: expo-notifications requires physical device for push testing — simulator cannot receive push notifications
 
 ## Deferred Items
 
@@ -105,9 +113,12 @@ Items carried forward to future milestones:
 |----------|------|--------|-------------|
 | Articles | Card/grid redesign, search, AI personalization | v5.1 | v5.0 scope decision |
 | Notifications | Remote push / Supabase push tokens | v5.1+ | v5.0 — local-only chosen |
+| Exercise | Multiple named routines (Upper Body / Leg Day) | v6.0+ | v5.0 scope decision |
+| Exercise | AI-generated routine recommendations | v6.0+ | v5.0 scope decision |
 
 ## Session Continuity
 
 Last session: 2026-06-16
-Stopped at: Milestone v5.0 started — requirements and roadmap being defined. v4.0/v4.1 (Phases 15–19) complete and validated.
+Stopped at: v5.0 roadmap created — Phases 20-23 defined. Ready to plan Phase 20.
 Resume file: .planning/STATE.md
+Next action: `/gsd:plan-phase 20`
