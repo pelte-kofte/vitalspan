@@ -11,6 +11,7 @@ import { SUPPLEMENT_DATABASE } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 import MedicationSearch from '../components/MedicationSearch';
 import { checkDrugInteractions, DrugInteractionResult } from '../services/rxnav';
+import { ProtocolItem } from '../types/protocol';
 
 const SAFE_COMBOS = [
   { pair: 'NMN + Resveratrol', body: 'Synergistic NAD+ pathway. Resveratrol activates SIRT1; NMN provides the NAD+ substrate. No known adverse interactions.' },
@@ -96,9 +97,10 @@ export default function InteractionCheckerScreen() {
         const newItems: { name: string; type: 'drug' | 'supp' }[] = [];
 
         if (protocolRaw) {
-          const protocol: { addedSupplements?: string[] } = JSON.parse(protocolRaw);
-          for (const suppName of (protocol.addedSupplements ?? [])) {
-            newItems.push({ name: suppName, type: 'supp' });
+          const protocol: { supplements?: ProtocolItem[]; addedSupplements?: string[] } = JSON.parse(protocolRaw);
+          const suppItems = protocol.supplements ?? (protocol.addedSupplements ?? []).map(name => ({ name } as ProtocolItem));
+          for (const item of suppItems) {
+            newItems.push({ name: item.name, type: 'supp' });
           }
         }
 
