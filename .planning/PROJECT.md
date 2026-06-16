@@ -8,14 +8,15 @@ Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It let
 
 Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
 
-## Current Milestone: v4.0 — Monetization & Intelligence
+## Current Milestone: v5.0 — Personalization & Production
 
-**Goal:** Turn Vitalspan into a sustainable business — ship Adapty-powered subscriptions, an AI Longevity Advisor backed by Claude API, and real exercise photography to elevate the visual quality of the exercise library.
+**Goal:** Turn users from passive data viewers into active longevity managers — personal exercise routine, editable protocol with push reminders, trend charts, and a production-ready EAS build.
 
 **Target features:**
-- Adapty paywall & subscription — free vs. premium tiers, in-app purchase, paywall screen soft-gating premium features
-- AI Longevity Advisor (Claude API) — generated report analyzing biomarkers + supplement stack + medications, follow-up chat interface; premium-only
-- Exercise photos — real photos from `yunohas/free-exercise-db` (public domain) where available; Phase 12 SVG illustrations remain as fallback
+- Exercise Rutinim — tab-inside switch (Rutinim / Keşfet); 5–10 exercise personal routine; history edit/delete with full date; weekly progressive overload trend
+- Protocol Overhaul — editable personal dose; edit/delete added items; remove "Custom" category (type-correct sections); adherence streak; AM/PM/Evening/Night local push notifications; personal dose fed into advisorContext.ts
+- Biomarker Trend Charts — BiomarkerDetail sparkline (30/90/365 day); shares chart pattern with exercise overload trend
+- Data Limits + EAS/TestFlight — 30-day free-tier history cap; production EAS build pipeline
 
 ## Requirements
 
@@ -35,13 +36,23 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ Custom Vitalspan app icon and branded splash screen — Phase 2
 - ✓ About screen pharmacist credential section and mission statement — Phase 2
 - ✓ UX polish pass — all screens verified on iPhone 15/16 form factors — Phase 3
+- ✓ Exercise photos from yuhonas/free-exercise-db CDN; SVG fallback preserved — Phase 15
+- ✓ Adapty paywall — free vs. premium tier, in-app purchase, 7-day trial timeline — Phase 16
+- ✓ AI Advisor backend — Edge Function, zero-PII context assembler, rate limiting — Phase 17
+- ✓ AI Advisor UI — 6-section report cards + follow-up chat interface — Phase 18
+- ✓ Global UX fixes — keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram — Phase 19
 
-### Active (v4.0)
+### Active (v5.0)
 
-- [x] Adapty paywall — free vs. premium tier, in-app purchase flow, paywall screen (PAY-01 through PAY-05) — Phase 16 complete
-- [x] AI Advisor backend — Edge Function + context assembler + rate limiting (AI-01 through AI-03) — Phase 17 complete 2026-06-14
-- [ ] AI Advisor UI — 6-section report cards + follow-up chat (AI-04, AI-05) — Phase 18 next
-- [x] Exercise photos — real photos from `yuhonas/free-exercise-db` where available; Phase 12 SVG illustrations remain as fallback (EXP-01 through EXP-03) — Phase 15 complete
+- [ ] Exercise Rutinim — tab-inside Rutinim/Keşfet switch; personal routine of 5–10 exercises with ordering; history edit/delete with full date display
+- [ ] Progressive overload tracking — weekly weight/rep trend per exercise
+- [ ] Protocol editable dose — user's actual taken dose (not DB range); edit/delete any added item; remove "Custom" category, route items to correct type section
+- [ ] Protocol adherence streak — daily streak counter
+- [ ] Local push notifications — expo-notifications; AM/PM/Evening/Night protocol reminders
+- [ ] Personal dose in AI Advisor context — advisorContext.ts updated with user-set doses
+- [ ] Biomarker trend charts — BiomarkerDetail sparkline (30/90/365 day); shared chart component with exercise overload trend
+- [ ] Free-tier data limits — 30-day biomarker history cap for non-premium users
+- [ ] Production EAS build + TestFlight submission pipeline
 
 ### Out of Scope
 
@@ -105,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-14 after Phase 17 complete — AI Advisor backend: ai_usage migration, advisorContext.ts (zero-PII), ai-advisor Edge Function, advisorService.ts client wrapper. Phase 18 (AI Advisor UI) is next.*
+*Last updated: 2026-06-16 — Milestone v5.0 started (Personalization & Production). v4.0/v4.1 work (Phases 15–19) moved to Validated.*

@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-10)
+See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v4.1 complete — Phase 19 done; next milestone v5.0
+**Current focus:** v5.0 — Personalization & Production (Phase 20 onwards)
 
 ## Current Position
 
-Phase: 19 (Global UX Fixes) — Complete
-Plan: 6/6
-Status: Phase 19 complete (2026-06-15) — all 5 UX bugs fixed, 6 plans verified, human checkpoint approved
-Last activity: 2026-06-15 — Phase 19 complete: keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram all fixed
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-16 — Milestone v5.0 started (Personalization & Production)
 
-Progress: [██████████] 100% v4.1
+Progress: [░░░░░░░░░░] 0% v5.0
 
 ## Performance Metrics
 
@@ -99,16 +99,15 @@ None yet.
 
 ## Deferred Items
 
-Items carried forward to future milestone:
+Items carried forward to future milestones:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Notifications | Protocol + labs reminders | v5+ | v1 init |
-| Biomarkers | Trend charts / sparklines | v5+ | v1 init |
-| Data Limits | Free tier 30-day history limit | v5+ | v4.0 — paywall ships first |
+| Articles | Card/grid redesign, search, AI personalization | v5.1 | v5.0 scope decision |
+| Notifications | Remote push / Supabase push tokens | v5.1+ | v5.0 — local-only chosen |
 
 ## Session Continuity
 
-Last session: 2026-06-15
-Stopped at: Phase 19 complete — all 5 UX bugs fixed (keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram). v4.1 milestone done. Next milestone: v5.0 (notifications, biomarker trend charts, data limits, TestFlight / EAS).
+Last session: 2026-06-16
+Stopped at: Milestone v5.0 started — requirements and roadmap being defined. v4.0/v4.1 (Phases 15–19) complete and validated.
 Resume file: .planning/STATE.md
