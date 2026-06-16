@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 20 — Protocol Schema Migration
-Plan: 3 plans in 3 waves
-Status: Ready to execute
-Last activity: 2026-06-16 — Phase 20 planned (3 plans: types foundation, ProtocolScreen overhaul, downstream consumers)
+Plan: 3 plans in 3 waves (1/3 complete)
+Status: In progress
+Last activity: 2026-06-16 — Plan 20-01 complete: src/types/protocol.ts created with ProtocolItem, ProtocolState, TimeSlot, CustomSupplement, EMPTY_PROTOCOL
 
-Progress: [░░░░░░░░░░] 0% v5.0
+Progress: [█░░░░░░░░░] 8% v5.0 (1/12 plans complete)
 
 ## Performance Metrics
 
@@ -93,6 +93,10 @@ Recent decisions affecting current work:
 - v5.0: PROD-02 (EAS production build) is always last in Phase 23 — it ships the milestone
 - v5.0: Personal dose stored AsyncStorage-only for v5.0 — Supabase sync deferred; raw dose string omitted from AI context (bucketed high/standard/low only, pharmacist liability)
 - v5.0: react-native-chart-kit already installed and sufficient — victory-native excluded (Skia peer conflict with Expo SDK 54)
+- 20-01: src/types/protocol.ts is the canonical home for all protocol types — Phase 22 and 23 consumers import from here, not from ProtocolScreen.tsx
+- 20-01: ProtocolItem unifies addedSupplements + customSupplements with source discriminant ('db' | 'manual') — CustomSupplement retained migration-detection-only
+- 20-01: hiddenMeds: string[] on ProtocolState for soft-hide of medications from protocol view (D-07)
+- 20-01: personalDose?: string on ProtocolItem for supplements-only override; medications use medTimes only (D-06)
 
 ### Pending Todos
 
@@ -119,6 +123,6 @@ Items carried forward to future milestones:
 ## Session Continuity
 
 Last session: 2026-06-16
-Stopped at: Phase 20 context gathered — schema decisions locked.
-Resume file: .planning/phases/20-protocol-schema-migration/20-CONTEXT.md
-Next action: `/gsd:plan-phase 20`
+Stopped at: Plan 20-01 complete — src/types/protocol.ts created.
+Resume file: .planning/phases/20-protocol-schema-migration/20-01-SUMMARY.md
+Next action: Execute Plan 20-02 (ProtocolScreen overhaul)
