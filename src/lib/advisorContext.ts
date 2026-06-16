@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BIOMARKERS } from '../data/biomarkers';
 import { ExerciseLogEntry } from '../data/exercises';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from './phenoAge';
+import { ProtocolItem } from '../types/protocol';
 
 // ── Exported types ────────────────────────────────────────────────────────────
 
@@ -68,11 +69,13 @@ interface CustomSupplement {
 }
 
 interface ProtocolState {
+  supplements?: ProtocolItem[];
+  addedSupplements?: string[];           // legacy — for backward compat during migration window
+  customSupplements?: CustomSupplement[];  // legacy — for backward compat
   medTimes: Record<string, string>;
-  addedSupplements: string[];
-  customSupplements: CustomSupplement[];
   taken: string[];
   takenDate: string;
+  hiddenMeds?: string[];
 }
 
 interface HealthData {
@@ -189,10 +192,16 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     const phenoResult = computePhenoAge(phenoInputs);
     const biologicalAge = phenoResult.biologicalAge;
 
-    // ── Supplements — merge addedSupplements + customSupplements.name, deduped ─
-    const addedSups = protocolState?.addedSupplements ?? [];
-    const customSups = (protocolState?.customSupplements ?? []).map((s) => s.name);
-    const supplements = Array.from(new Set([...addedSups, ...customSups]));
+    // ── Supplements — new schema: read from supplements[]; backward compat fallback ─
+    // New schema: read from supplements[]
+    // Backward compat: fall back to addedSupplements + customSupplements if migration hasn't run yet
+    const suppNames = protocolState?.supplements
+      ? protocolState.supplements.map((s) => s.name)
+      : [
+          ...(protocolState?.addedSupplements ?? []),
+          ...(protocolState?.customSupplements ?? []).map((s) => s.name),
+        ];
+    const supplements = Array.from(new Set(suppNames));
 
     // ── Medications — names only (D-09) ───────────────────────────────────
     const medications = userProfile?.medications ?? [];
