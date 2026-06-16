@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v5.0
+milestone_name: Personalization & Production
+status: executing
+stopped_at: Plan 20-03 complete — Phase 20 schema migration complete; all consumers read from supplements[]; tsc exits 0.
+last_updated: "2026-06-16T20:23:56.628Z"
+last_activity: "2026-06-16 — Plan 20-03 complete: InteractionCheckerScreen + advisorContext.ts migrated to supplements[] schema; full tsc audit exits 0; Phase 20 complete"
+progress:
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 25
+---
+
 # Project State
 
 ## Project Reference
@@ -10,15 +26,16 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 20 — Protocol Schema Migration
-Plan: 3 plans in 3 waves (2/3 complete)
-Status: In progress
-Last activity: 2026-06-16 — Plan 20-02 complete: ProtocolScreen migrated to unified supplements[] schema; migrateProtocol(), EditSupplementSheet, EditMedicationSheet, hiddenMeds implemented
+Plan: 3 plans in 3 waves (3/3 complete)
+Status: Phase 20 complete — ready for Phase 21
+Last activity: 2026-06-16 — Plan 20-03 complete: InteractionCheckerScreen + advisorContext.ts migrated to supplements[] schema; full tsc audit exits 0; Phase 20 complete
 
-Progress: [██░░░░░░░░] 16% v5.0 (2/12 plans complete)
+Progress: [███░░░░░░░] 25% v5.0 (3/12 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 8 (v1 phases 1-3)
 - Average duration: -
 - Total execution time: -
@@ -32,6 +49,7 @@ Progress: [██░░░░░░░░] 16% v5.0 (2/12 plans complete)
 | 3 (v1) | 3/3 | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: v1 execution (all complete)
 - Trend: Stable
 
@@ -101,6 +119,9 @@ Recent decisions affecting current work:
 - 20-02: Custom category label removed — protocol.supplements renders as flat list in add order (D-01)
 - 20-02: Inline medication timing chips removed from card JSX — timing now set only from EditMedicationSheet (D-10)
 - 20-02: SupplementLibrarySection.tsx unchanged — callers pass string[] (addedSupplementNames) which matches existing prop type
+- 20-03: InteractionCheckerScreen fallback maps addedSupplements string[] to { name } as ProtocolItem so loop body reads .name uniformly across both schema versions
+- 20-03: advisorContext.ts internal ProtocolState marks addedSupplements and customSupplements optional (legacy); CustomSupplement interface retained for backward-compat fallback path
+- 20-03: Phase 20 protocol schema migration complete — all three files (types, ProtocolScreen, downstream consumers) updated; tsc exits 0 project-wide
 
 ### Pending Todos
 
@@ -127,6 +148,6 @@ Items carried forward to future milestones:
 ## Session Continuity
 
 Last session: 2026-06-16
-Stopped at: Plan 20-02 complete — ProtocolScreen migrated to unified supplements[] schema.
-Resume file: .planning/phases/20-protocol-schema-migration/20-02-SUMMARY.md
-Next action: Execute Plan 20-03 (downstream consumers: InteractionCheckerScreen + advisorContext.ts)
+Stopped at: Plan 20-03 complete — Phase 20 protocol schema migration complete; all consumers read from supplements[]; tsc exits 0.
+Resume file: .planning/phases/20-protocol-schema-migration/20-03-SUMMARY.md
+Next action: Execute Phase 21 (ExerciseLogEntry schema expansion: weightKg + repsPerSet fields)
