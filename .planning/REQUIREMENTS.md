@@ -30,10 +30,10 @@
 
 ### Protocol Overhaul (PROT)
 
-- [ ] **PROT-01**: User can enter and edit a personal dose for any supplement or medication in their protocol (independent of the DB recommended range)
+- [x] **PROT-01**: User can enter and edit a personal dose for any supplement in their protocol (independent of the DB recommended range) — medication personal dose deferred to Phase 22 per D-06 (medications are prescribed; no user dose override in Phase 20)
 - [x] **PROT-02**: User can edit any supplement or medication they have added to their protocol
 - [x] **PROT-03**: User can remove any supplement or medication from their protocol
-- [ ] **PROT-04**: Items added to the protocol appear in the correct type-based section (Supplements or Medications) — the "Custom" category is removed; all items route to the appropriate section
+- [x] **PROT-04**: Items added to the protocol appear in the correct type-based section (Supplements or Medications) — the "Custom" category is removed; all items route to the appropriate section
 - [ ] **PROT-05**: AI Advisor context includes the user's personal dose for each protocol item, bucketed as "high/standard/low" relative to the DB recommended range
 
 ### Adherence Streak (STRK)
@@ -114,10 +114,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OVLD-01 | Phase 21 | Pending |
 | OVLD-02 | Phase 21 | Pending |
 | OVLD-03 | Phase 21 | Pending |
-| PROT-01 | Phase 20 | Pending |
+| PROT-01 | Phase 20 | Complete |
 | PROT-02 | Phase 20 | Complete |
 | PROT-03 | Phase 20 | Complete |
-| PROT-04 | Phase 20 | Pending |
+| PROT-04 | Phase 20 | Complete |
 | PROT-05 | Phase 22 | Pending |
 | STRK-01 | Phase 22 | Pending |
 | STRK-02 | Phase 22 | Pending |

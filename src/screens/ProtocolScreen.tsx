@@ -550,7 +550,7 @@ function AddSupplementSheet({ visible, onClose, goal, addedSupplements, onToggle
               <Text style={ms.cancelTxt}>Done</Text>
             </TouchableOpacity>
             <TouchableOpacity style={ms.addBtn} onPress={() => { onClose(); onOpenCustom(); }}>
-              <Text style={ms.addBtnTxt}>+ Custom</Text>
+              <Text style={ms.addBtnTxt}>+ Add manually</Text>
             </TouchableOpacity>
           </View>
         </View>
