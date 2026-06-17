@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Personalization & Production
 status: ready_to_execute
-stopped_at: Phase 21 planned — 5 plans in 3 waves; verification passed; ready to execute
+stopped_at: Phase 21 complete — Exercise Routine & History; 5/5 plans done; 18/18 verification checks passed; human UAT approved 2026-06-17
 last_updated: "2026-06-17T00:00:00.000Z"
-last_activity: "2026-06-17 — Phase 21 planned: 5 plans (21-01 to 21-05) covering ROUT-01/02/03/04/05, HIST-01/02/03/04, OVLD-01/02/03; plan checker passed after 1 revision"
+last_activity: "2026-06-17 — Phase 21 complete: Rutinim/Keşfet tabs, DraggableFlatList routine, EditLogSheet, Sets/Reps/Weight capture, progressive overload sparkline; ROUT-01–05 + HIST-01–04 + OVLD-01–03 validated"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 8
-  completed_plans: 3
-  percent: 25
+  completed_phases: 2
+  total_plans: 13
+  completed_plans: 8
+  percent: 50
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v5.0 — Personalization & Production (Phase 21 executing next)
+**Current focus:** v5.0 — Personalization & Production (Phase 22 next: Engagement & Visualization)
 
 ## Current Position
 
-Phase: 21 — Exercise Routine & History
-Plan: 5 plans in 3 waves (0/5 complete)
-Status: Ready to execute
-Last activity: 2026-06-16 — Plan 20-03 complete: InteractionCheckerScreen + advisorContext.ts migrated to supplements[] schema; full tsc audit exits 0; Phase 20 complete
+Phase: 22 — Engagement & Visualization (not yet started)
+Plan: 0 plans (not yet planned)
+Status: Ready to plan
+Last activity: 2026-06-17 — Phase 21 complete: Exercise Routine & History; all 5 plans done, 18/18 verification checks passed; human UAT approved; ROUT-01–05, HIST-01–04, OVLD-01–03 validated
 
-Progress: [███░░░░░░░] 25% v5.0 (3/12 plans complete)
+Progress: [██████░░░░] 50% v5.0 (8/13 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 8 (v1 phases 1-3)
+- Total plans completed: 8 (v5.0 Phases 20–21)
 - Average duration: -
 - Total execution time: -
 
@@ -44,9 +44,8 @@ Progress: [███░░░░░░░] 25% v5.0 (3/12 plans complete)
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 (v1) | 3/3 | - | - |
-| 2 (v1) | 2/2 | - | - |
-| 3 (v1) | 3/3 | - | - |
+| 20 — Protocol Schema Migration | 3/3 | - | - |
+| 21 — Exercise Routine & History | 5/5 | - | - |
 
 **Recent Trend:**
 
@@ -147,7 +146,7 @@ Items carried forward to future milestones:
 
 ## Session Continuity
 
-Last session: 2026-06-16
-Stopped at: Plan 20-03 complete — Phase 20 protocol schema migration complete; all consumers read from supplements[]; tsc exits 0.
-Resume file: .planning/phases/20-protocol-schema-migration/20-03-SUMMARY.md
-Next action: Execute Phase 21 (ExerciseLogEntry schema expansion: weightKg + repsPerSet fields)
+Last session: 2026-06-17
+Stopped at: Phase 21 complete — Exercise Routine & History; human UAT approved; all tracking files updated.
+Resume file: .planning/phases/21-exercise-routine-and-history/21-VERIFICATION.md
+Next action: Plan Phase 22 (Engagement & Visualization: adherence streak, biomarker trend charts, data limits, AI dose bucketing)

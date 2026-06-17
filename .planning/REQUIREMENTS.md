@@ -9,24 +9,24 @@
 
 ### Exercise Routine (ROUT)
 
-- [ ] **ROUT-01**: User can toggle between "Rutinim" (personal routine) and "Keşfet" (full library) views within the Exercise tab using an in-screen toggle
-- [ ] **ROUT-02**: User can add any exercise from the full library to their personal routine (max 10 exercises)
-- [ ] **ROUT-03**: User can reorder exercises in their personal routine via drag-to-reorder
-- [ ] **ROUT-04**: User can remove an exercise from their personal routine
-- [ ] **ROUT-05**: "Rutinim" view shows an empty state with an "Add exercises" CTA when no exercises have been added
+- [x] **ROUT-01**: User can toggle between "Rutinim" (personal routine) and "Keşfet" (full library) views within the Exercise tab using an in-screen toggle
+- [x] **ROUT-02**: User can add any exercise from the full library to their personal routine (max 10 exercises)
+- [x] **ROUT-03**: User can reorder exercises in their personal routine via drag-to-reorder
+- [x] **ROUT-04**: User can remove an exercise from their personal routine
+- [x] **ROUT-05**: "Rutinim" view shows an empty state with an "Add exercises" CTA when no exercises have been added
 
 ### Exercise History (HIST)
 
-- [ ] **HIST-01**: Past exercise log entries display the full date (day + month + year)
-- [ ] **HIST-02**: User can edit a past exercise log entry (update sets, reps, weight)
-- [ ] **HIST-03**: User can delete a past exercise log entry
-- [ ] **HIST-04**: Exercise log entries capture weight (weightKg) and reps (repsPerSet) per set, in addition to intensity
+- [x] **HIST-01**: Past exercise log entries display the full date (day + month + year)
+- [x] **HIST-02**: User can edit a past exercise log entry (update sets, reps, weight)
+- [x] **HIST-03**: User can delete a past exercise log entry
+- [x] **HIST-04**: Exercise log entries capture weight (weightKg) and reps (repsPerSet) per set, in addition to intensity
 
 ### Progressive Overload (OVLD)
 
-- [ ] **OVLD-01**: Routine exercise cards display the user's last-session weight and reps for that exercise
-- [ ] **OVLD-02**: Each exercise card in the routine shows a weekly trend indicator (improving / stable / declining)
-- [ ] **OVLD-03**: ExerciseDetailScreen shows a weekly progressive overload sparkline chart for the selected exercise
+- [x] **OVLD-01**: Routine exercise cards display the user's last-session weight and reps for that exercise
+- [x] **OVLD-02**: Each exercise card in the routine shows a weekly trend indicator (improving / stable / declining)
+- [x] **OVLD-03**: ExerciseDetailScreen shows a weekly progressive overload sparkline chart for the selected exercise
 
 ### Protocol Overhaul (PROT)
 
@@ -102,18 +102,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROUT-01 | Phase 21 | Pending |
-| ROUT-02 | Phase 21 | Pending |
-| ROUT-03 | Phase 21 | Pending |
-| ROUT-04 | Phase 21 | Pending |
-| ROUT-05 | Phase 21 | Pending |
-| HIST-01 | Phase 21 | Pending |
-| HIST-02 | Phase 21 | Pending |
-| HIST-03 | Phase 21 | Pending |
-| HIST-04 | Phase 21 | Pending |
-| OVLD-01 | Phase 21 | Pending |
-| OVLD-02 | Phase 21 | Pending |
-| OVLD-03 | Phase 21 | Pending |
+| ROUT-01 | Phase 21 | Complete |
+| ROUT-02 | Phase 21 | Complete |
+| ROUT-03 | Phase 21 | Complete |
+| ROUT-04 | Phase 21 | Complete |
+| ROUT-05 | Phase 21 | Complete |
+| HIST-01 | Phase 21 | Complete |
+| HIST-02 | Phase 21 | Complete |
+| HIST-03 | Phase 21 | Complete |
+| HIST-04 | Phase 21 | Complete |
+| OVLD-01 | Phase 21 | Complete |
+| OVLD-02 | Phase 21 | Complete |
+| OVLD-03 | Phase 21 | Complete |
 | PROT-01 | Phase 20 | Complete |
 | PROT-02 | Phase 20 | Complete |
 | PROT-03 | Phase 20 | Complete |
@@ -142,4 +142,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-16*
-*Last updated: 2026-06-16 — traceability filled in after roadmap creation*
+*Last updated: 2026-06-17 — Phase 21 requirements validated and closed*

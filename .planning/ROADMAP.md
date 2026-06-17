@@ -611,7 +611,7 @@ Plans:
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 20: Protocol Schema Migration** - Migrate ProtocolState schema to type-correct sections, add personal dose fields, and remove the Custom category — the load-bearing change that unblocks all downstream v5.0 work (completed 2026-06-16)
-- [ ] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines
+- [x] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines (completed 2026-06-17)
 - [ ] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context
 - [ ] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission
 
@@ -666,17 +666,17 @@ Plans:
 
 **Wave 1**
 
-- [ ] 21-01-PLAN.md — SetRecord interface + setsData on ExerciseLogEntry + drag-to-reorder dependency (HIST-04)
+- [x] 21-01-PLAN.md — SetRecord interface + setsData on ExerciseLogEntry + drag-to-reorder dependency (HIST-04)
 
 **Wave 2** *(blocked on Wave 1, run in parallel)*
 
-- [ ] 21-02-PLAN.md — QuickLogModal: replace intensity chips with Sets/Reps/Weight inputs + write setsData on save (HIST-04)
-- [ ] 21-03-PLAN.md — SwipeableLogRow: full-date display + onEdit prop + tap-to-edit (HIST-01, HIST-02, HIST-03)
+- [x] 21-02-PLAN.md — QuickLogModal: replace intensity chips with Sets/Reps/Weight inputs + write setsData on save (HIST-04)
+- [x] 21-03-PLAN.md — SwipeableLogRow: full-date display + onEdit prop + tap-to-edit (HIST-01, HIST-02, HIST-03)
 
 **Wave 3** *(blocked on Wave 2, run in parallel)*
 
-- [ ] 21-04-PLAN.md — ExerciseScreen: Rutinim/Kesfet toggle, routine CRUD, Rutinim cards, Kesfet add button, edit-log sheet (ROUT-01 to ROUT-05, HIST-01, HIST-02, HIST-03, OVLD-01, OVLD-02)
-- [ ] 21-05-PLAN.md — ExerciseDetailScreen: 8-week progressive overload sparkline (LineChart) (OVLD-03)
+- [x] 21-04-PLAN.md — ExerciseScreen: Rutinim/Kesfet toggle, routine CRUD, Rutinim cards, Kesfet add button, edit-log sheet (ROUT-01 to ROUT-05, HIST-01, HIST-02, HIST-03, OVLD-01, OVLD-02)
+- [x] 21-05-PLAN.md — ExerciseDetailScreen: 8-week progressive overload sparkline (LineChart) (OVLD-03)
 
 **UI hint**: yes
 

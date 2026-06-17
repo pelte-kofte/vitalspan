@@ -41,11 +41,10 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ AI Advisor backend — Edge Function, zero-PII context assembler, rate limiting — Phase 17
 - ✓ AI Advisor UI — 6-section report cards + follow-up chat interface — Phase 18
 - ✓ Global UX fixes — keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram — Phase 19
+- ✓ Exercise Rutinim — Rutinim/Keşfet tab switch; drag-to-reorder personal routine (max 10); history edit/delete with full date; Sets/Reps/Weight capture; progressive overload sparkline — Phase 21
 
 ### Active (v5.0)
 
-- [ ] Exercise Rutinim — tab-inside Rutinim/Keşfet switch; personal routine of 5–10 exercises with ordering; history edit/delete with full date display
-- [ ] Progressive overload tracking — weekly weight/rep trend per exercise
 - [ ] Protocol editable dose — user's actual taken dose (not DB range); edit/delete any added item; remove "Custom" category, route items to correct type section
 - [ ] Protocol adherence streak — daily streak counter
 - [ ] Local push notifications — expo-notifications; AM/PM/Evening/Night protocol reminders
@@ -116,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-16 — Milestone v5.0 started (Personalization & Production). v4.0/v4.1 work (Phases 15–19) moved to Validated.*
+*Last updated: 2026-06-17 — Phase 21 complete (Exercise Routine & History). ROUT-01–05, HIST-01–04, OVLD-01–03 validated and moved to Validated.*
