@@ -31,6 +31,11 @@ export interface Exercise {
 
 export type ExerciseIntensity = 'easy' | 'moderate' | 'hard';
 
+export interface SetRecord {
+  reps: number;
+  weightKg?: number;
+}
+
 export interface ExerciseLogEntry {
   id: string;
   exerciseId: string;
@@ -43,6 +48,7 @@ export interface ExerciseLogEntry {
   intensity?: ExerciseIntensity;
   caloriesEstimated?: number;
   notes?: string;
+  setsData?: SetRecord[];
   loggedAt: string;
 }
 
