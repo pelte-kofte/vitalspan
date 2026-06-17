@@ -56,6 +56,12 @@ export interface ProtocolState {
   taken: string[];
   /** ISO date string (YYYY-MM-DD) of the current taken session */
   takenDate: string;
+  /** Consecutive days where all visible items were taken. Optional — absent on legacy data. */
+  currentStreak?: number;
+  /** All-time best consecutive-day streak. Optional — absent on legacy data. */
+  bestStreak?: number;
+  /** ISO date (YYYY-MM-DD) of the last day all items were taken. '' when never completed. */
+  lastCompleteDate?: string;
 }
 
 // ─── CustomSupplement (migration detection only — D-04, D-05) ─────────────────
@@ -82,4 +88,8 @@ export const EMPTY_PROTOCOL: ProtocolState = {
   hiddenMeds: [],
   taken: [],
   takenDate: '',
+  // Phase 22 additions:
+  currentStreak: 0,
+  bestStreak: 0,
+  lastCompleteDate: '',
 };
