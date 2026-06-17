@@ -589,7 +589,7 @@ PremiumContext hook: `usePremiumContext()` from `'../context/PremiumContext'` â€
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **AdvisorContext supplement type change scope**
    - What we know: `supplements: string[]` is the current exported type; dose bucketing requires richer data per supplement
