@@ -1,19 +1,73 @@
 import React, { useState, useCallback } from 'react';
 import { Image } from 'expo-image';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setStatusBarStyle } from 'expo-status-bar';
+import { LineChart } from 'react-native-chart-kit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { Exercise } from '../data/exercises';
+import { Exercise, ExerciseLogEntry } from '../data/exercises';
 import { getExercises } from '../lib/exerciseService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import QuickLogModal from '../components/QuickLogModal';
 import * as ExerciseIllustrations from '../components/exercise-illustrations';
 
 type RouteProps = RouteProp<RootStackParamList, 'ExerciseDetail'>;
+
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// rgba helpers — extracted from Colors.primary (#2D6A4F) and Colors.onSurfaceMuted (#6B6B64)
+const PRIMARY_RGBA = (opacity: number): string => `rgba(45, 106, 79, ${opacity})`;
+const SURFACE_MUTED_RGBA = (opacity: number): string => `rgba(107, 107, 100, ${opacity})`;
+
+function getMondayStr(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeWeeklyMaxes(logs: ExerciseLogEntry[], exerciseId: string): { data: number[]; labels: string[] } {
+  const currentMondayStr = getMondayStr(new Date());
+  const currentMonday = new Date(currentMondayStr + 'T00:00:00');
+  // Build 8 week-start dates: weeks[0] = 7 weeks ago, weeks[7] = current week
+  const weeks: Date[] = [];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(currentMonday.getTime() - (7 - i) * 7 * 24 * 60 * 60 * 1000);
+    weeks.push(d);
+  }
+  const data: number[] = [];
+  const labels: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    const weekStart = weeks[i].toISOString().slice(0, 10);
+    const weekEndDate = i < 7 ? weeks[i + 1] : new Date(weeks[i].getTime() + 7 * 86400000);
+    const weekEnd = weekEndDate.toISOString().slice(0, 10);
+    const weekLogs = logs.filter(l => l.exerciseId === exerciseId && l.date >= weekStart && l.date < weekEnd);
+    if (weekLogs.length === 0) {
+      data.push(0);
+    } else {
+      // D-07 two-branch bodyweight logic
+      const hasWeight = weekLogs.some(l => l.setsData?.some(s => s.weightKg !== undefined));
+      if (hasWeight) {
+        const weights = weekLogs.flatMap(l =>
+          l.setsData?.filter(s => s.weightKg !== undefined).map(s => s.weightKg as number) ?? []
+        ).filter(n => n > 0);
+        data.push(weights.length > 0 ? Math.max(...weights) : 0);
+      } else {
+        const reps = weekLogs.flatMap(l =>
+          l.setsData?.map(s => s.reps) ?? (l.reps ? [l.reps] : [0])
+        );
+        data.push(reps.length > 0 ? Math.max(0, ...reps) : 0);
+      }
+    }
+    labels.push(`${weeks[i].getDate()} ${MONTH_ABBR[weeks[i].getMonth()]}`);
+  }
+  return { data, labels };
+}
 
 const EQUIPMENT_SHORT: Record<string, string> = {
   'body weight': 'BW', 'dumbbell': 'DB', 'barbell': 'BB',
@@ -34,6 +88,8 @@ export default function ExerciseDetailScreen() {
   const insets = useSafeAreaInsets();
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [photoError, setPhotoError] = useState(false);
+  const [overloadData, setOverloadData] = useState<number[]>(Array(8).fill(0));
+  const [overloadLabels, setOverloadLabels] = useState<string[]>(Array(8).fill(''));
 
   useFocusEffect(useCallback(() => {
     setStatusBarStyle('dark');
@@ -42,6 +98,12 @@ export default function ExerciseDetailScreen() {
       setExercise(exs.find(e => e.id === exerciseId) ?? null);
       setLoading(false);
     }).catch(() => setLoading(false));
+    AsyncStorage.getItem('@vitalspan_exercise_log').then(raw => {
+      const allLogs: ExerciseLogEntry[] = raw ? JSON.parse(raw) : [];
+      const { data, labels } = computeWeeklyMaxes(allLogs, exerciseId);
+      setOverloadData(data);
+      setOverloadLabels(labels);
+    }).catch(() => null);
     return () => {};
   }, [exerciseId]));
 
@@ -132,6 +194,42 @@ export default function ExerciseDetailScreen() {
           <Text style={s.longevityNoteTxt}>{exercise.longevityNote}</Text>
         )}
 
+        {/* 7. Progressive Overload Sparkline */}
+        {(() => {
+          const nonZeroCount = overloadData.filter(v => v > 0).length;
+          const chartWidth = Dimensions.get('window').width - Spacing.base * 2 - Spacing.md * 2;
+          return (
+            <View style={s.sectionCard}>
+              <Text style={s.sectionLabel}>PROGRESSIVE OVERLOAD — 8 WEEKS</Text>
+              {nonZeroCount >= 2 ? (
+                <LineChart
+                  data={{ labels: overloadLabels, datasets: [{ data: overloadData }] }}
+                  width={chartWidth}
+                  height={120}
+                  chartConfig={{
+                    backgroundColor: Colors.surface,
+                    backgroundGradientFrom: Colors.surface,
+                    backgroundGradientTo: Colors.surface,
+                    decimalPlaces: 0,
+                    color: PRIMARY_RGBA,
+                    labelColor: SURFACE_MUTED_RGBA,
+                    propsForDots: { r: '3', strokeWidth: '1', stroke: Colors.primary },
+                    propsForBackgroundLines: { stroke: Colors.borderLight },
+                  }}
+                  bezier
+                  style={{ borderRadius: Radius.lg }}
+                  withShadow={false}
+                  withOuterLines={false}
+                />
+              ) : (
+                <Text style={s.overloadPlaceholder}>
+                  Log this exercise in 2 or more weeks to see your progress trend.
+                </Text>
+              )}
+            </View>
+          );
+        })()}
+
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
 
@@ -174,6 +272,7 @@ const s = StyleSheet.create({
   formCueTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
   setsRepsTxt: { fontSize: Typography.sizes.md, fontWeight: '700', color: Colors.accent },
   longevityNoteTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontStyle: 'italic', paddingHorizontal: Spacing.xs, lineHeight: 20 },
+  overloadPlaceholder: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontStyle: 'italic', textAlign: 'center', paddingVertical: Spacing.md, lineHeight: 20 },
   ctaContainer: { padding: Spacing.base, paddingBottom: Spacing.lg, backgroundColor: Colors.surface, borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
   ctaBtn: { backgroundColor: Colors.primary, borderRadius: Radius.xl, padding: 15, alignItems: 'center', ...Elevation.sm },
   ctaBtnTxt: { fontSize: Typography.sizes.base, fontWeight: '700', color: Colors.primaryBg },
