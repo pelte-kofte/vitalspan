@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Personalization & Production
-status: phase_complete
-stopped_at: Phase 20 complete — protocol schema migration done; verification passed 10/10; all gaps resolved
-last_updated: "2026-06-16T20:30:00.000Z"
-last_activity: "2026-06-16 — Phase 20 complete: unified supplements[] schema, EditSupplementSheet/EditMedicationSheet, hidden meds, downstream consumers updated, tsc clean, PROT-01/02/03/04 all marked Complete"
+status: ready_to_execute
+stopped_at: Phase 21 planned — 5 plans in 3 waves; verification passed; ready to execute
+last_updated: "2026-06-17T00:00:00.000Z"
+last_activity: "2026-06-17 — Phase 21 planned: 5 plans (21-01 to 21-05) covering ROUT-01/02/03/04/05, HIST-01/02/03/04, OVLD-01/02/03; plan checker passed after 1 revision"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
+  total_plans: 8
   completed_plans: 3
   percent: 25
 ---
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-16)
 
 **Core value:** Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-**Current focus:** v5.0 — Personalization & Production (Phase 21 next)
+**Current focus:** v5.0 — Personalization & Production (Phase 21 executing next)
 
 ## Current Position
 
-Phase: 20 — Protocol Schema Migration
-Plan: 3 plans in 3 waves (3/3 complete)
-Status: Phase 20 complete — ready for Phase 21
+Phase: 21 — Exercise Routine & History
+Plan: 5 plans in 3 waves (0/5 complete)
+Status: Ready to execute
 Last activity: 2026-06-16 — Plan 20-03 complete: InteractionCheckerScreen + advisorContext.ts migrated to supplements[] schema; full tsc audit exits 0; Phase 20 complete
 
 Progress: [███░░░░░░░] 25% v5.0 (3/12 plans complete)

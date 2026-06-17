@@ -666,7 +666,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 21-01-PLAN.md — SetRecord interface + setsData on ExerciseLogEntry + drag-to-reorder dependency (HIST-04, ROUT-01 to ROUT-05)
+- [ ] 21-01-PLAN.md — SetRecord interface + setsData on ExerciseLogEntry + drag-to-reorder dependency (HIST-04)
 
 **Wave 2** *(blocked on Wave 1, run in parallel)*
 
