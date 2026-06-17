@@ -588,6 +588,52 @@ export default function ProtocolScreen() {
 
         // Daily taken reset
         const today = new Date().toISOString().slice(0, 10);
+
+        // ── Phase 22 streak evaluation ──────────────────────────────────────────
+        // Guard: only fire when takenDate is a real past date (not '' and not today)
+        // Pitfall 1: empty-string guard is mandatory — first launch has takenDate: ''
+        // which must NOT trigger streak eval (RESEARCH Pitfall 1)
+        if (migrated.takenDate !== '' && migrated.takenDate !== today) {
+          const profileData = profileRaw
+            ? JSON.parse(profileRaw) as { medications?: string[] }
+            : null;
+          const medsForStreak = (profileData?.medications ?? []).filter(
+            (m: string) => !migrated.hiddenMeds.includes(m),
+          );
+
+          // Build visible item IDs — mirrors totalItems / takenCount logic (lines 770-785)
+          const visibleItemIds: string[] = [
+            ...medsForStreak,
+            ...migrated.supplements.flatMap(s => {
+              const count = parseDoseCount(s.personalDose ?? s.dose);
+              return count === 1
+                ? [s.id]
+                : Array.from({ length: count }, (_, i) => doseId(s.name, i));
+            }),
+          ];
+
+          if (visibleItemIds.length === 0) {
+            // No visible items — pause streak (neither increment nor reset)
+          } else {
+            const takenSet = new Set(migrated.taken);
+            const allTaken = visibleItemIds.every(id => takenSet.has(id));
+            if (allTaken) {
+              migrated.currentStreak = (migrated.currentStreak ?? 0) + 1;
+              migrated.bestStreak = Math.max(migrated.bestStreak ?? 0, migrated.currentStreak);
+              migrated.lastCompleteDate = migrated.takenDate;
+            } else {
+              migrated.currentStreak = 0;
+            }
+            // Persist streak update before finalState wipes taken[]
+            await AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify({
+              ...migrated,
+              taken: [],
+              takenDate: today,
+            })).catch(console.error);
+          }
+        }
+        // ── end streak evaluation ───────────────────────────────────────────────
+
         const finalState: ProtocolState = {
           ...migrated,
           taken: migrated.takenDate === today ? migrated.taken : [],
@@ -798,6 +844,18 @@ export default function ProtocolScreen() {
             <Text style={s.progressTxt}>{takenCount} / {totalItems} taken</Text>
           </View>
         )}
+      </View>
+
+      {/* Phase 22: Streak stat row */}
+      <View style={s.streakRow}>
+        <Text style={[s.streakTxt, (protocol.currentStreak ?? 0) > 0 ? s.streakActive : s.streakMuted]}>
+          {'🔥'} {protocol.currentStreak ?? 0}-day streak
+        </Text>
+        {(protocol.bestStreak ?? 0) > 0 ? (
+          <Text style={s.streakBest}>Best: {protocol.bestStreak} days</Text>
+        ) : (protocol.currentStreak ?? 0) === 0 ? (
+          <Text style={s.streakHint}>Start your streak today!</Text>
+        ) : null}
       </View>
 
       <ScrollView
@@ -1075,6 +1133,19 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.primaryBorder,
   },
   progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primary },
+  // Phase 22 streak row styles
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm,
+  },
+  streakTxt: { fontSize: Typography.sizes.xs, fontWeight: '600' },
+  streakActive: { color: Colors.status.optimalText },
+  streakMuted: { color: Colors.onSurfaceMuted },
+  streakBest: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  streakHint: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic' },
 
   // ── Section labels ───────────────────────────────────────────
   sectionLabel: {
