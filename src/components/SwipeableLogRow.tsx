@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -19,13 +19,19 @@ const INTENSITY_DOT: Record<ExerciseIntensity, string> = {
   hard: Colors.status.critical,
 };
 
+function formatLogDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 interface SwipeableLogRowProps {
   log: ExerciseLogEntry;
   onDelete: (id: string) => void;
+  onEdit?: (log: ExerciseLogEntry) => void;
   showBorder: boolean;
 }
 
-export function SwipeableLogRow({ log, onDelete, showBorder }: SwipeableLogRowProps) {
+export function SwipeableLogRow({ log, onDelete, onEdit, showBorder }: SwipeableLogRowProps) {
   const translateX = useSharedValue(0);
 
   function triggerDelete() {
@@ -56,6 +62,10 @@ export function SwipeableLogRow({ log, onDelete, showBorder }: SwipeableLogRowPr
 
   const dotColor = log.intensity ? INTENSITY_DOT[log.intensity] : Colors.status.optimal;
 
+  const setsMetaSegment = log.setsData && log.setsData.length > 0
+    ? ` · ${log.setsData.length}×${log.setsData[0]?.reps ?? ''}${log.setsData[0]?.weightKg ? ` @ ${log.setsData[0].weightKg}kg` : ''}`
+    : log.sets ? ` · ${log.sets}×${log.reps}` : '';
+
   return (
     <View style={[s.container, showBorder && s.border]}>
       {/* Red delete zone revealed as user swipes left */}
@@ -65,15 +75,22 @@ export function SwipeableLogRow({ log, onDelete, showBorder }: SwipeableLogRowPr
 
       <GestureDetector gesture={pan}>
         <Animated.View style={[s.row, rowStyle]}>
-          <View style={s.left}>
-            <Text style={s.name}>{log.exerciseName}</Text>
-            <Text style={s.meta}>
-              {log.category}
-              {log.sets ? ` · ${log.sets}×${log.reps}` : ''}
-              {log.durationMin ? ` · ${log.durationMin}min` : ''}
-            </Text>
-          </View>
-          <View style={[s.dot, { backgroundColor: dotColor }]} />
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => { if (onEdit) onEdit(log); }}
+            style={s.rowInner}
+          >
+            <View style={s.left}>
+              <Text style={s.name}>{log.exerciseName}</Text>
+              <Text style={s.meta}>
+                {formatLogDate(log.date)}
+                {` · ${log.category}`}
+                {setsMetaSegment}
+                {log.durationMin ? ` · ${log.durationMin}min` : ''}
+              </Text>
+            </View>
+            <View style={[s.dot, { backgroundColor: dotColor }]} />
+          </TouchableOpacity>
         </Animated.View>
       </GestureDetector>
     </View>
@@ -92,11 +109,13 @@ const s = StyleSheet.create({
   },
   deleteText: { color: Colors.surface, fontWeight: '600', fontSize: Typography.sizes.base },
   row: {
+    backgroundColor: Colors.surface,
+  },
+  rowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
   },
   left: { flex: 1 },
   name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
