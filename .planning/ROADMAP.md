@@ -693,7 +693,16 @@ Plans:
   4. A non-premium user with more than 30 days of biomarker entries sees only the most recent 30 days of history; an upgrade banner states how many entries are hidden; a premium user sees full history
   5. When AI Advisor generates a report, the context sent to the Edge Function includes each protocol item's personal dose bucketed as "high", "standard", or "low" relative to the DB recommended range
 
-**Plans**: TBD
+**Plans**: 3 plans in 1 wave
+
+Plans:
+
+**Wave 1** *(run in parallel — zero file overlap)*
+
+- [ ] 22-01-PLAN.md — ProtocolState streak fields + ProtocolScreen streak evaluation & stat row (STRK-01, STRK-02, STRK-03)
+- [ ] 22-02-PLAN.md — BiomarkerDetailScreen trend chart + SVG range band + 30/90/365 toggle + 30-day free-tier cap & upgrade banner (TRND-01, TRND-02, TRND-03, DLIM-01, DLIM-02)
+- [ ] 22-03-PLAN.md — advisorContext.ts personal dose bucketing (supplementDetails) (PROT-05)
+
 **UI hint**: yes
 
 ### Phase 23: Notifications & Production Build
@@ -742,5 +751,5 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
 | 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
 | 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
-| 22. Engagement & Visualization | v5.0 | 0/TBD | Not started | - |
+| 22. Engagement & Visualization | v5.0 | 0/3 | Not started | - |
 | 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |
