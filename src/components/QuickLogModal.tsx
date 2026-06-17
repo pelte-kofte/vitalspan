@@ -5,7 +5,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import {
-  Exercise, ExerciseIntensity, ExerciseLogEntry, CATEGORY_MET,
+  Exercise, ExerciseIntensity, ExerciseLogEntry, SetRecord, CATEGORY_MET,
 } from '../data/exercises';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 
@@ -40,8 +40,9 @@ export function estimateCalories(
 export default function QuickLogModal({ exercise, visible, onClose }: QuickLogModalProps) {
   const [sets, setSets] = useState('3');
   const [reps, setReps] = useState('12');
+  const [repsPerSet, setRepsPerSet] = useState('10');
+  const [weightKg, setWeightKg] = useState('');
   const [duration, setDuration] = useState('30');
-  const [intensity, setIntensity] = useState<ExerciseIntensity>('moderate');
   const [notes, setNotes] = useState('');
   const [userWeightKg, setUserWeightKg] = useState<number>(75);
 
@@ -58,8 +59,9 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
     if (exercise) {
       setSets('3');
       setReps('12');
+      setRepsPerSet('10');
+      setWeightKg('');
       setDuration('30');
-      setIntensity('moderate');
       setNotes('');
     }
   }, [exercise?.id]);
@@ -67,25 +69,27 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
   if (!exercise) return null;
 
   const isCardio = exercise.category === 'Cardio';
-  const durationNum = parseInt(duration) || 0;
-  const calories = durationNum > 0
-    ? estimateCalories(exercise.category, durationNum, intensity, userWeightKg)
-    : 0;
 
   async function handleSave() {
     if (!exercise) return;
+    const setsNum = Math.min(parseInt(sets) || 1, 20);
+    const repsNum = parseInt(repsPerSet) || 0;
+    const weightNum = parseFloat(weightKg) || undefined;
+    const setsData: SetRecord[] = Array(setsNum).fill({ reps: repsNum, weightKg: weightNum });
+    const durationNum = parseInt(duration) || 0;
     const entry: ExerciseLogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       category: exercise.category,
       date: new Date().toISOString().slice(0, 10),
-      sets: isCardio ? undefined : parseInt(sets) || undefined,
+      sets: isCardio ? undefined : setsNum,
       reps: isCardio ? undefined : parseInt(reps) || undefined,
       durationMin: durationNum > 0 ? durationNum : undefined,
-      intensity,
-      caloriesEstimated: durationNum > 0 ? calories : undefined,
+      intensity: undefined,
+      caloriesEstimated: undefined,
       notes: notes.trim() || undefined,
+      setsData: isCardio ? undefined : setsData,
       loggedAt: new Date().toISOString(),
     };
     try {
@@ -116,8 +120,19 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
                 <TextInput style={s.fieldInput} value={sets} onChangeText={setSets} keyboardType="numeric" selectTextOnFocus />
               </View>
               <View style={[s.fieldRow, s.fieldRowBorder]}>
-                <Text style={s.fieldLabel}>Reps</Text>
-                <TextInput style={s.fieldInput} value={reps} onChangeText={setReps} keyboardType="numeric" selectTextOnFocus />
+                <Text style={s.fieldLabel}>Reps / set</Text>
+                <TextInput style={s.fieldInput} value={repsPerSet} onChangeText={setRepsPerSet} keyboardType="decimal-pad" selectTextOnFocus />
+              </View>
+              <View style={[s.fieldRow, s.fieldRowBorder]}>
+                <Text style={s.fieldLabel}>Weight (kg)</Text>
+                <TextInput
+                  style={s.fieldInput}
+                  value={weightKg}
+                  onChangeText={setWeightKg}
+                  keyboardType="decimal-pad"
+                  placeholder="optional"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                />
               </View>
             </>
           )}
@@ -136,32 +151,6 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
             />
           </View>
         </View>
-
-        <Text style={s.intensityLabel}>Intensity</Text>
-        <View style={s.intensityRow}>
-          {INTENSITY_OPTIONS.map(opt => (
-            <TouchableOpacity
-              key={opt.key}
-              style={[
-                s.intensityChip,
-                intensity === opt.key && {
-                  backgroundColor: INTENSITY_COLORS[opt.key].bg,
-                  borderColor: INTENSITY_COLORS[opt.key].border,
-                },
-              ]}
-              onPress={() => { setIntensity(opt.key); Haptics.selectionAsync().catch(() => null); }}
-            >
-              <Text style={[
-                s.intensityTxt,
-                intensity === opt.key && { color: INTENSITY_COLORS[opt.key].text, fontWeight: '600' },
-              ]}>{opt.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {calories > 0 && (
-          <Text style={s.calEstimate}>≈ {calories} kcal estimated</Text>
-        )}
 
         <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
           <Text style={s.saveBtnTxt}>Log Exercise ✓</Text>
@@ -220,33 +209,6 @@ const s = StyleSheet.create({
     color: Colors.onSurface,
     textAlign: 'right',
     minWidth: 64,
-  },
-  intensityLabel: {
-    fontSize: Typography.sizes.xs,
-    fontWeight: '600',
-    color: Colors.onSurfaceMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  intensityRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  intensityChip: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    alignItems: 'center',
-  },
-  intensityTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.onSurfaceMuted },
-  calEstimate: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.primaryLight,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
   },
   saveBtn: {
     backgroundColor: Colors.primary,
