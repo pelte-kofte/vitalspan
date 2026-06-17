@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, RefreshControl,
+  StyleSheet, SafeAreaView, RefreshControl, Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { RunnerIcon } from '../components/DesignSystemIcons';
 import {
@@ -18,6 +19,8 @@ import { SwipeableLogRow } from '../components/SwipeableLogRow';
 import QuickLogModal from '../components/QuickLogModal';
 import MuscleMapView, { muscleMatches, MUSCLE_REGIONS } from '../components/MuscleMapView';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import RoutineCard from '../components/RoutineCard';
+import EditLogSheet from '../components/EditLogSheet';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -42,6 +45,50 @@ function getMondayStr(date: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function getWeeklyMaxWeight(logs: ExerciseLogEntry[], exerciseId: string, weekMonday: string): number | null {
+  const nextMonday = new Date(new Date(weekMonday + 'T00:00:00').getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const filtered = logs.filter(l => l.exerciseId === exerciseId && l.date >= weekMonday && l.date < nextMonday);
+  if (filtered.length === 0) return null;
+  const hasWeight = filtered.some(l => l.setsData?.some(s => s.weightKg !== undefined));
+  if (hasWeight) {
+    const weights = filtered.flatMap(l =>
+      l.setsData?.filter(s => s.weightKg !== undefined).map(s => s.weightKg as number) ?? []
+    ).filter(n => n > 0);
+    return weights.length > 0 ? Math.max(...weights) : 0;
+  }
+  const reps = filtered.flatMap(l =>
+    l.setsData?.map(s => s.reps) ?? (l.reps ? [l.reps] : [0])
+  );
+  return reps.length > 0 ? Math.max(0, ...reps) : 0;
+}
+
+function getTrendBadge(curr: number | null, prev: number | null): '↑' | '–' | '↓' | null {
+  if (curr === null) return null;
+  if (prev === null) return curr > 0 ? '↑' : null;
+  if (curr > prev) return '↑';
+  if (curr < prev) return '↓';
+  return '–';
+}
+
+function getTrendColor(badge: '↑' | '–' | '↓' | null): string {
+  if (badge === '↑') return Colors.status.optimal;
+  if (badge === '↓') return Colors.status.critical;
+  if (badge === '–') return Colors.onSurfaceMuted;
+  return 'transparent';
+}
+
+function getLastSessionSummary(logs: ExerciseLogEntry[], exerciseId: string): string | null {
+  const recent = logs.filter(l => l.exerciseId === exerciseId).sort((a, b) => b.loggedAt.localeCompare(a.loggedAt))[0];
+  if (!recent) return null;
+  if (recent.setsData && recent.setsData.length > 0) {
+    const s0 = recent.setsData[0];
+    return s0.weightKg !== undefined
+      ? `${recent.setsData.length}×${s0.reps} @ ${s0.weightKg}kg`
+      : `${recent.setsData.length}×${s0.reps} reps`;
+  }
+  if (recent.sets) return `${recent.sets}×${recent.reps}`;
+  return null;
+}
 
 export default function ExerciseScreen() {
   const nav = useNavigation<Nav>();
@@ -53,14 +100,24 @@ export default function ExerciseScreen() {
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [muscleMapOpen, setMuscleMapOpen] = useState(false);
   const [muscleMapView, setMuscleMapView] = useState<'front' | 'back'>('front');
+  const [activeTab, setActiveTab] = useState<'rutinim' | 'kesset'>('kesset');
+  const [routine, setRoutine] = useState<string[]>([]);
+  const [editingLog, setEditingLog] = useState<ExerciseLogEntry | null>(null);
+  const [editSets, setEditSets] = useState('3');
+  const [editRepsPerSet, setEditRepsPerSet] = useState('10');
+  const [editWeightKg, setEditWeightKg] = useState('');
 
   const loadData = useCallback(() => {
     return Promise.all([
       AsyncStorage.getItem('@vitalspan_exercise_log'),
       getExercises(),
-    ]).then(([rawLogs, exs]) => {
+      AsyncStorage.getItem('@vitalspan_exercise_routine'),
+    ]).then(([rawLogs, exs, rawRoutine]) => {
       if (rawLogs) setLogs(JSON.parse(rawLogs));
       setExercises(exs);
+      const parsedRoutine: string[] = rawRoutine ? JSON.parse(rawRoutine) : [];
+      setRoutine(parsedRoutine);
+      setActiveTab(parsedRoutine.length > 0 ? 'rutinim' : 'kesset');
     }).catch(console.error);
   }, []);
 
@@ -77,6 +134,55 @@ export default function ExerciseScreen() {
     const updated = logs.filter(l => l.id !== id);
     setLogs(updated);
     await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify(updated)).catch(console.error);
+  }
+
+  async function addToRoutine(exerciseId: string) {
+    if (routine.includes(exerciseId)) return;
+    if (routine.length >= 10) {
+      Alert.alert('Routine full', 'You can add up to 10 exercises to your routine. Remove one to add another.');
+      return;
+    }
+    const updated = [...routine, exerciseId];
+    setRoutine(updated);
+    await AsyncStorage.setItem('@vitalspan_exercise_routine', JSON.stringify(updated)).catch(console.error);
+  }
+
+  async function removeFromRoutine(exerciseId: string) {
+    const updated = routine.filter(id => id !== exerciseId);
+    setRoutine(updated);
+    await AsyncStorage.setItem('@vitalspan_exercise_routine', JSON.stringify(updated)).catch(console.error);
+  }
+
+  async function reorderRoutine(data: string[]) {
+    setRoutine(data);
+    await AsyncStorage.setItem('@vitalspan_exercise_routine', JSON.stringify(data)).catch(console.error);
+  }
+
+  function openEditSheet(log: ExerciseLogEntry) {
+    setEditingLog(log);
+    setEditSets(String(log.setsData?.length ?? log.sets ?? 3));
+    setEditRepsPerSet(String(log.setsData?.[0]?.reps ?? log.reps ?? 10));
+    setEditWeightKg(log.setsData?.[0]?.weightKg != null ? String(log.setsData[0].weightKg) : '');
+  }
+
+  async function saveEditLog() {
+    if (!editingLog) return;
+    const setsNum = Math.min(parseInt(editSets) || 1, 20);
+    const repsNum = parseInt(editRepsPerSet) || 0;
+    const weightNum = parseFloat(editWeightKg) || undefined;
+    const updated: ExerciseLogEntry = { ...editingLog, setsData: Array(setsNum).fill({ reps: repsNum, weightKg: weightNum }) };
+    const newLogs = logs.map(l => l.id === editingLog.id ? updated : l);
+    setLogs(newLogs);
+    await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify(newLogs)).catch(console.error);
+    setEditingLog(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+  }
+
+  async function deleteAndCloseSheet() {
+    if (!editingLog) return;
+    const id = editingLog.id;
+    setEditingLog(null);
+    await deleteLog(id);
   }
 
   const filtered = useMemo(() => {
@@ -122,6 +228,22 @@ export default function ExerciseScreen() {
         )}
       </View>
 
+      {/* Rutinim / Kesfet segmented control */}
+      <View style={s.segmentedControl}>
+        <TouchableOpacity
+          style={[s.segment, activeTab === 'rutinim' && s.segmentActive]}
+          onPress={() => { setActiveTab('rutinim'); Haptics.selectionAsync().catch(() => null); }}
+        >
+          <Text style={[s.segmentTxt, activeTab === 'rutinim' && s.segmentTxtActive]}>Rutinim</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.segment, activeTab === 'kesset' && s.segmentActive]}
+          onPress={() => { setActiveTab('kesset'); Haptics.selectionAsync().catch(() => null); }}
+        >
+          <Text style={[s.segmentTxt, activeTab === 'kesset' && s.segmentTxtActive]}>Keşfet</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Today's activity summary card */}
       <View style={s.activityCard}>
         <Text style={s.activityLabel}>TODAY'S ACTIVITY</Text>
@@ -147,75 +269,80 @@ export default function ExerciseScreen() {
         )}
       </View>
 
-      {/* Category tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.tabsScroll}
-        style={s.tabsBar}
-      >
-        <TouchableOpacity
-          style={[s.tab, selectedCat === 'All' && s.tabActive]}
-          onPress={() => { setSelectedCat('All'); Haptics.selectionAsync().catch(() => null); }}
+      {/* Category tabs — Kesfet only */}
+      {activeTab === 'kesset' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.tabsScroll}
+          style={s.tabsBar}
         >
-          <Text style={[s.tabTxt, selectedCat === 'All' && s.tabTxtActive]}>All</Text>
-        </TouchableOpacity>
-        {EXERCISE_CATEGORIES.map(cat => (
           <TouchableOpacity
-            key={cat}
-            style={[s.tab, selectedCat === cat && s.tabActive]}
-            onPress={() => { setSelectedCat(cat); Haptics.selectionAsync().catch(() => null); }}
+            style={[s.tab, selectedCat === 'All' && s.tabActive]}
+            onPress={() => { setSelectedCat('All'); Haptics.selectionAsync().catch(() => null); }}
           >
-            <Text style={[s.tabTxt, selectedCat === cat && s.tabTxtActive]}>
-              {cat}
-            </Text>
+            <Text style={[s.tabTxt, selectedCat === 'All' && s.tabTxtActive]}>All</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Muscle map filter toggle button */}
-      <TouchableOpacity
-        style={s.muscleFilterToggle}
-        onPress={() => {
-          Haptics.selectionAsync().catch(() => null);
-          setMuscleMapOpen(prev => !prev);
-        }}
-        activeOpacity={0.75}
-      >
-        <Text style={s.muscleFilterToggleTxt}>
-          {selectedMuscle
-            ? `Muscle: ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}`
-            : 'Muscle Group Filter'}
-        </Text>
-        <Text style={s.muscleFilterChevron}>{muscleMapOpen ? '▲' : '▼'}</Text>
-      </TouchableOpacity>
-
-      {/* Collapsible muscle map filter panel */}
-      {muscleMapOpen && (
-        <View style={s.muscleFilterPanel}>
-          <MuscleMapView
-            interactive={true}
-            view={muscleMapView}
-            onViewToggle={() => setMuscleMapView(v => v === 'front' ? 'back' : 'front')}
-            onMusclePress={(regionId) => {
-              Haptics.selectionAsync().catch(() => null);
-              setSelectedMuscle(prev => prev === regionId ? null : regionId);
-            }}
-            primaryMuscles={selectedMuscle ? [selectedMuscle] : []}
-            secondaryMuscles={[]}
-          />
-          {selectedMuscle && (
+          {EXERCISE_CATEGORIES.map(cat => (
             <TouchableOpacity
-              style={s.clearFilterBtn}
-              onPress={() => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(null); }}
-              activeOpacity={0.75}
+              key={cat}
+              style={[s.tab, selectedCat === cat && s.tabActive]}
+              onPress={() => { setSelectedCat(cat); Haptics.selectionAsync().catch(() => null); }}
             >
-              <Text style={s.clearFilterTxt}>
-                Clear filter: {MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}
+              <Text style={[s.tabTxt, selectedCat === cat && s.tabTxtActive]}>
+                {cat}
               </Text>
             </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Muscle map filter — Kesfet only */}
+      {activeTab === 'kesset' && (
+        <>
+          <TouchableOpacity
+            style={s.muscleFilterToggle}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => null);
+              setMuscleMapOpen(prev => !prev);
+            }}
+            activeOpacity={0.75}
+          >
+            <Text style={s.muscleFilterToggleTxt}>
+              {selectedMuscle
+                ? `Muscle: ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}`
+                : 'Muscle Group Filter'}
+            </Text>
+            <Text style={s.muscleFilterChevron}>{muscleMapOpen ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+
+          {muscleMapOpen && (
+            <View style={s.muscleFilterPanel}>
+              <MuscleMapView
+                interactive={true}
+                view={muscleMapView}
+                onViewToggle={() => setMuscleMapView(v => v === 'front' ? 'back' : 'front')}
+                onMusclePress={(regionId) => {
+                  Haptics.selectionAsync().catch(() => null);
+                  setSelectedMuscle(prev => prev === regionId ? null : regionId);
+                }}
+                primaryMuscles={selectedMuscle ? [selectedMuscle] : []}
+                secondaryMuscles={[]}
+              />
+              {selectedMuscle && (
+                <TouchableOpacity
+                  style={s.clearFilterBtn}
+                  onPress={() => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(null); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.clearFilterTxt}>
+                    Clear filter: {MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-        </View>
+        </>
       )}
 
       <ScrollView
@@ -225,8 +352,66 @@ export default function ExerciseScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
-        {/* Motivating empty state — shown when no logs at all */}
-        {logs.length === 0 && (
+        {/* Rutinim tab: empty state or routine cards */}
+        {activeTab === 'rutinim' && routine.length === 0 && (
+          <View style={s.emptyStateCard}>
+            <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
+            <Text style={s.emptyStateHeadline}>Build your routine</Text>
+            <Text style={s.emptyStateBody}>
+              Add exercises from Keşfet to build your personal routine.
+            </Text>
+            <TouchableOpacity
+              style={s.emptyStateCta}
+              onPress={() => { setActiveTab('kesset'); Haptics.selectionAsync().catch(() => null); }}
+              activeOpacity={0.82}
+            >
+              <Text style={s.emptyStateCtaTxt}>Explore Exercises</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'rutinim' && routine.length > 0 && (() => {
+          const currentMonday = getMondayStr(new Date());
+          const prevMonday = getMondayStr(new Date(new Date(currentMonday + 'T00:00:00').getTime() - 7 * 86400000));
+          const routineExercises = routine.map(id => exercises.find(e => e.id === id)).filter((e): e is Exercise => e !== undefined);
+          return (
+            <View style={s.card}>
+              <DraggableFlatList
+                data={routine}
+                keyExtractor={item => item}
+                onDragEnd={({ data }) => reorderRoutine(data)}
+                renderItem={({ item: exerciseId, drag, isActive }: RenderItemParams<string>) => {
+                  const ex = exercises.find(e => e.id === exerciseId);
+                  if (!ex) return null;
+                  const currMax = getWeeklyMaxWeight(logs, exerciseId, currentMonday);
+                  const prevMax = getWeeklyMaxWeight(logs, exerciseId, prevMonday);
+                  const badge = getTrendBadge(currMax, prevMax);
+                  return (
+                    <ScaleDecorator>
+                      <RoutineCard
+                        exercise={ex}
+                        index={routineExercises.indexOf(ex)}
+                        lastSession={getLastSessionSummary(logs, exerciseId)}
+                        trendBadge={badge}
+                        trendColor={getTrendColor(badge)}
+                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null); nav.navigate('ExerciseDetail', { exerciseId }); }}
+                        onRemove={() => removeFromRoutine(exerciseId)}
+                        dragHandle={
+                          <TouchableOpacity onLongPress={drag} disabled={isActive} style={s.dragHandle} delayLongPress={150}>
+                            <Text style={s.dragHandleTxt}>⠿</Text>
+                          </TouchableOpacity>
+                        }
+                      />
+                    </ScaleDecorator>
+                  );
+                }}
+              />
+            </View>
+          );
+        })()}
+
+        {/* Motivating empty state — shown when no logs at all (Kesfet only) */}
+        {activeTab === 'kesset' && logs.length === 0 && (
           <View style={s.emptyStateCard}>
             <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
@@ -256,6 +441,7 @@ export default function ExerciseScreen() {
                   key={log.id}
                   log={log}
                   onDelete={deleteLog}
+                  onEdit={openEditSheet}
                   showBorder={i < todayLogs.length - 1}
                 />
               ))}
@@ -273,6 +459,7 @@ export default function ExerciseScreen() {
                   key={log.id}
                   log={log}
                   onDelete={deleteLog}
+                  onEdit={openEditSheet}
                   showBorder={i < thisWeekLogs.length - 1}
                 />
               ))}
@@ -290,6 +477,7 @@ export default function ExerciseScreen() {
                   key={log.id}
                   log={log}
                   onDelete={deleteLog}
+                  onEdit={openEditSheet}
                   showBorder={i < historyLogs.length - 1}
                 />
               ))}
@@ -297,8 +485,8 @@ export default function ExerciseScreen() {
           </>
         )}
 
-        {/* Exercise library */}
-        {exercises.length > 0 && (
+        {/* Exercise library — Kesfet only */}
+        {activeTab === 'kesset' && exercises.length > 0 && (
           <>
             <Text style={s.sectionLabel}>
               {selectedMuscle
@@ -336,6 +524,16 @@ export default function ExerciseScreen() {
                       >
                         <Text style={s.logBtnTxt}>+ Log</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        style={s.addToRoutineBtn}
+                        onPress={() => { Haptics.selectionAsync().catch(() => null); addToRoutine(ex.id); }}
+                        disabled={routine.includes(ex.id)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[s.addToRoutineTxt, routine.includes(ex.id) && { color: Colors.status.optimal }]}>
+                          {routine.includes(ex.id) ? '✓' : '+'}
+                        </Text>
+                      </TouchableOpacity>
                       <Text style={s.chevron}>→</Text>
                     </View>
                   </TouchableOpacity>
@@ -347,6 +545,19 @@ export default function ExerciseScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      <EditLogSheet
+        editingLog={editingLog}
+        editSets={editSets}
+        editRepsPerSet={editRepsPerSet}
+        editWeightKg={editWeightKg}
+        onChangeSets={setEditSets}
+        onChangeReps={setEditRepsPerSet}
+        onChangeWeight={setEditWeightKg}
+        onSave={saveEditLog}
+        onDelete={deleteAndCloseSheet}
+        onClose={() => setEditingLog(null)}
+      />
 
       <QuickLogModal
         exercise={logModal}
@@ -542,5 +753,33 @@ const s = StyleSheet.create({
     fontSize: Typography.sizes.base,
     fontWeight: '600',
   },
+
+  // Rutinim/Kesfet segmented control
+  segmentedControl: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.full,
+    padding: 3,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+  },
+  segmentActive: { backgroundColor: Colors.primary },
+  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurfaceMuted },
+  segmentTxtActive: { color: Colors.primaryBg },
+
+  // Drag handle
+  dragHandle: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.md },
+  dragHandleTxt: { fontSize: Typography.sizes.lg, color: Colors.onSurfaceMuted },
+
+  // Add-to-routine button
+  addToRoutineBtn: { padding: Spacing.sm, minWidth: 28, alignItems: 'center' },
+  addToRoutineTxt: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.primary },
 
 });
