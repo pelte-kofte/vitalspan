@@ -2,21 +2,33 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
-  TextInput, Alert,
+  TextInput, Alert, Dimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
+import { LineChart } from 'react-native-chart-kit';
+import Svg, { Rect } from 'react-native-svg';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { ClipboardIcon, ChartBarIcon } from '../components/DesignSystemIcons';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry, getStatus } from './BiomarkerEntryScreen';
+import { usePremiumContext } from '../context/PremiumContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// ── Chart constants ───────────────────────────────────────────────────────────
+const CHART_HEIGHT = 160;
+const CHART_TOP_PAD = 16;
+const CHART_BOTTOM_PAD = 32;
+// rgba helpers — chart-kit color callbacks require rgba functions, not hex tokens
+// values mirror Colors.primary and Colors.onSurfaceMuted from theme/index.ts
+const PRIMARY_RGBA = (opacity: number): string => `rgba(45, 106, 79, ${opacity})`;
+const SURFACE_MUTED_RGBA = (opacity: number): string => `rgba(107, 107, 100, ${opacity})`;
 
 const CATEGORIES = [
   { key: 'cardio',        label: 'Cardiovascular' },
@@ -31,6 +43,8 @@ const CATEGORIES = [
   { key: 'metabolicPanel',label: 'Metabolic Panel' },
   { key: 'longevity',     label: 'Longevity' },
 ] as const;
+
+type TimeWindow = '30D' | '90D' | '365D';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -47,6 +61,11 @@ export default function BiomarkerDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+
+  // Premium gate (Adapty source of truth — never AsyncStorage)
+  const { isPremium } = usePremiumContext();
+  // Time-window toggle — default 90D (covers a typical quarterly lab cycle, D-05)
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('90D');
 
   const loadData = useCallback(() => {
     return Promise.all([
@@ -121,6 +140,29 @@ export default function BiomarkerDetailScreen() {
     const latest = latestFor(selectedId);
     const history = historyFor(selectedId);
     const status = latest ? getStatus(latest.value, bm.optMin, bm.optMax) : null;
+
+    // ── Premium gate + time-window filter (D-06: premium cap applied FIRST, then window on top) ──
+    const cutoff30 = new Date();
+    cutoff30.setDate(cutoff30.getDate() - 30);
+    const cutoff30ISO = cutoff30.toISOString().slice(0, 10);
+    const premiumFilteredHistory = isPremium
+      ? history
+      : history.filter(e => e.date >= cutoff30ISO);
+    const hiddenCount = history.length - premiumFilteredHistory.length;
+
+    // Time window filter applied on top of premium filter (anti-pattern: never reverse order)
+    const windowDays = timeWindow === '30D' ? 30 : timeWindow === '90D' ? 90 : 365;
+    const windowCutoff = new Date();
+    windowCutoff.setDate(windowCutoff.getDate() - windowDays);
+    const windowCutoffISO = windowCutoff.toISOString().slice(0, 10);
+    const chartHistory = premiumFilteredHistory.filter(e => e.date >= windowCutoffISO);
+
+    // Chart data arrays — reverse because history is date-DESC; chart needs ascending order
+    const chartValues = [...chartHistory].reverse().map(e => e.value);
+    const chartLabels = [...chartHistory].reverse().map(e => {
+      const d = new Date(e.date);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    });
 
     const insightBg = status === 'optimal'
       ? Colors.status.optimalBg
@@ -206,9 +248,99 @@ export default function BiomarkerDetailScreen() {
             </View>
           )}
 
+          {/* Phase 22: Time-window segmented pill — same pattern as ExerciseScreen lines 231-245 */}
+          <View style={s.segmentedControl}>
+            {(['30D', '90D', '365D'] as TimeWindow[]).map(w => (
+              <TouchableOpacity
+                key={w}
+                style={[s.segment, timeWindow === w && s.segmentActive]}
+                onPress={() => {
+                  setTimeWindow(w);
+                  Haptics.selectionAsync().catch(() => null);
+                }}
+              >
+                <Text style={[s.segmentTxt, timeWindow === w && s.segmentTxtActive]}>{w}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Phase 22: Chart with SVG optimal-range band */}
+          {(() => {
+            const chartWidth = Dimensions.get('window').width - Spacing.base * 2 - Spacing.md * 2;
+            if (chartValues.length < 2) {
+              return (
+                <View style={s.chartPlaceholder}>
+                  <Text style={s.chartPlaceholderTxt}>Add at least 2 entries to see your trend.</Text>
+                </View>
+              );
+            }
+            // Y-coordinate math: chart plots dataMin at bottom, dataMax at top (y-axis inverted)
+            const plotH = CHART_HEIGHT - CHART_TOP_PAD - CHART_BOTTOM_PAD;
+            const dataMin = Math.min(...chartValues);
+            const dataMax = Math.max(...chartValues);
+            const dataRange = dataMax - dataMin || 1;
+            const clampedOptMin = Math.max(bm.optMin, dataMin);
+            const clampedOptMax = Math.min(bm.optMax, dataMax);
+            const yTop = CHART_TOP_PAD + plotH * (1 - (clampedOptMax - dataMin) / dataRange);
+            const yBot = CHART_TOP_PAD + plotH * (1 - (clampedOptMin - dataMin) / dataRange);
+
+            return (
+              <View style={{ width: chartWidth, height: CHART_HEIGHT, alignSelf: 'center' }}>
+                {/* SVG range band behind the chart — absoluteFill pattern */}
+                <Svg width={chartWidth} height={CHART_HEIGHT} style={StyleSheet.absoluteFill}>
+                  <Rect
+                    x={0}
+                    y={yTop}
+                    width={chartWidth}
+                    height={Math.max(yBot - yTop, 0)}
+                    fill={Colors.status.optimalBg}
+                    fillOpacity={0.15}
+                  />
+                </Svg>
+                {/* LineChart on top — chartConfig identical to ExerciseDetailScreen */}
+                <LineChart
+                  data={{ labels: chartLabels, datasets: [{ data: chartValues }] }}
+                  width={chartWidth}
+                  height={CHART_HEIGHT}
+                  chartConfig={{
+                    backgroundColor: Colors.surface,
+                    backgroundGradientFrom: Colors.surface,
+                    backgroundGradientTo: Colors.surface,
+                    decimalPlaces: 1,
+                    color: PRIMARY_RGBA,
+                    labelColor: SURFACE_MUTED_RGBA,
+                    propsForDots: { r: '3', strokeWidth: '1', stroke: Colors.primary },
+                    propsForBackgroundLines: { stroke: Colors.borderLight },
+                  }}
+                  bezier
+                  withShadow={false}
+                  withOuterLines={false}
+                  style={{ borderRadius: Radius.lg }}
+                />
+              </View>
+            );
+          })()}
+
+          {/* Phase 22: Upgrade banner — only for non-premium users with gated history */}
+          {!isPremium && hiddenCount > 0 && (
+            <TouchableOpacity
+              style={s.upgradeBanner}
+              onPress={() => nav.navigate('Paywall')}
+              activeOpacity={0.8}
+            >
+              <View style={s.upgradeBannerLeft}>
+                <Text style={s.upgradeBannerIcon}>{'🔒'}</Text>
+                <Text style={s.upgradeBannerTxt}>{hiddenCount} entries hidden — upgrade to see your full history.</Text>
+              </View>
+              <View style={s.upgradeCta}>
+                <Text style={s.upgradeCtaTxt}>Upgrade</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <Text style={s.sectionLabel}>History</Text>
           <View style={s.card}>
-            {history.length === 0 ? (
+            {premiumFilteredHistory.length === 0 ? (
               <View style={s.emptyHistRow}>
                 <Text style={s.emptyTxt}>No entries logged yet</Text>
                 <TouchableOpacity
@@ -222,10 +354,10 @@ export default function BiomarkerDetailScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              history.map((entry, i) => {
+              premiumFilteredHistory.map((entry, i) => {
                 const isEditing = editingId === entry.id;
                 return (
-                  <View key={entry.id} style={[s.histRow, i < history.length - 1 && s.rowBorder]}>
+                  <View key={entry.id} style={[s.histRow, i < premiumFilteredHistory.length - 1 && s.rowBorder]}>
                     <View style={s.histLeft}>
                       <Text style={s.histDate}>{formatDate(entry.date)}</Text>
                       <Text style={s.histSource}>{entry.source}</Text>
@@ -497,4 +629,67 @@ const s = StyleSheet.create({
   emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
   emptyTabCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
   emptyTabCtaTxt: { color: Colors.surface, fontSize: Typography.sizes.base, fontWeight: '600' },
+
+  // Phase 22: Segmented control — copied from ExerciseScreen.tsx styles
+  segmentedControl: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.full,
+    padding: 3, /* intentional — no Spacing.* equivalent, matches ExerciseScreen */
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+  },
+  segmentActive: { backgroundColor: Colors.primary },
+  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurfaceMuted },
+  segmentTxtActive: { color: Colors.primaryBg },
+
+  // Phase 22: Chart placeholder
+  chartPlaceholder: {
+    marginHorizontal: Spacing.base,
+    paddingVertical: Spacing.xl,
+    alignItems: 'center',
+  },
+  chartPlaceholderTxt: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.onSurfaceMuted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+
+  // Phase 22: Upgrade banner
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Colors.primaryBorder,
+    padding: Spacing.md,
+  },
+  upgradeBannerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.xs },
+  upgradeBannerIcon: { fontSize: Typography.sizes.base },
+  upgradeBannerTxt: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.status.optimalText,
+    flex: 1,
+    lineHeight: 18,
+  },
+  upgradeCta: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginLeft: Spacing.sm,
+  },
+  upgradeCtaTxt: { fontSize: Typography.sizes.xs, fontWeight: '700', color: Colors.primaryBg },
 });
