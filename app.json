@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.vitalspan.app",
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": []
+        "com.apple.developer.healthkit.access": [],
+        "aps-environment": "production"
       },
       "infoPlist": {
         "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health.",
@@ -47,7 +48,9 @@
           "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health."
         }
       ],
-      "react-native-adapty"
+      "react-native-adapty",
+      "@react-native-community/datetimepicker",
+      ["expo-notifications", { "sounds": [] }]
     ]
   }
 }
