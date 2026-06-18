@@ -612,7 +612,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 20: Protocol Schema Migration** - Migrate ProtocolState schema to type-correct sections, add personal dose fields, and remove the Custom category — the load-bearing change that unblocks all downstream v5.0 work (completed 2026-06-16)
 - [x] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines (completed 2026-06-17)
-- [ ] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context
+- [x] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context (completed 2026-06-18)
 - [ ] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission
 
 ## Phase Details
@@ -699,9 +699,9 @@ Plans:
 
 **Wave 1** *(run in parallel — zero file overlap)*
 
-- [ ] 22-01-PLAN.md — ProtocolState streak fields + ProtocolScreen streak evaluation & stat row (STRK-01, STRK-02, STRK-03)
-- [ ] 22-02-PLAN.md — BiomarkerDetailScreen trend chart + SVG range band + 30/90/365 toggle + 30-day free-tier cap & upgrade banner (TRND-01, TRND-02, TRND-03, DLIM-01, DLIM-02)
-- [ ] 22-03-PLAN.md — advisorContext.ts personal dose bucketing (supplementDetails) (PROT-05)
+- [x] 22-01-PLAN.md — ProtocolState streak fields + ProtocolScreen streak evaluation & stat row (STRK-01, STRK-02, STRK-03)
+- [x] 22-02-PLAN.md — BiomarkerDetailScreen trend chart + SVG range band + 30/90/365 toggle + 30-day free-tier cap & upgrade banner (TRND-01, TRND-02, TRND-03, DLIM-01, DLIM-02)
+- [x] 22-03-PLAN.md — advisorContext.ts personal dose bucketing (supplementDetails) (PROT-05)
 
 **UI hint**: yes
 
@@ -751,5 +751,5 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
 | 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
 | 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
-| 22. Engagement & Visualization | v5.0 | 0/3 | Not started | - |
+| 22. Engagement & Visualization | v5.0 | 3/3 | Complete   | 2026-06-18 |
 | 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |
