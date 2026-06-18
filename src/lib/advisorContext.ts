@@ -18,6 +18,7 @@ import { BIOMARKERS } from '../data/biomarkers';
 import { ExerciseLogEntry } from '../data/exercises';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from './phenoAge';
 import { ProtocolItem } from '../types/protocol';
+import { SUPPLEMENT_DATABASE } from '../data/supplementTimings';
 
 // ── Exported types ────────────────────────────────────────────────────────────
 
@@ -29,7 +30,13 @@ export interface AdvisorContext {
   sex: string;
   goal: string;
   medications: string[];             // names only (D-09)
-  supplements: string[];             // names only (D-09)
+  supplements: string[];             // names only (D-09) — preserved for backward compat
+  /** Phase 22 PROT-05: richer per-supplement data with dose bucketing. Raw dose never included (pharmacist-liability). */
+  supplementDetails?: Array<{
+    name: string;
+    timing?: string;
+    doseBucket?: 'high' | 'standard' | 'low';
+  }>;
   biomarkers: Array<{
     name: string;
     status: BiomarkerStatus;
@@ -193,15 +200,45 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     const biologicalAge = phenoResult.biologicalAge;
 
     // ── Supplements — new schema: read from supplements[]; backward compat fallback ─
-    // New schema: read from supplements[]
-    // Backward compat: fall back to addedSupplements + customSupplements if migration hasn't run yet
-    const suppNames = protocolState?.supplements
-      ? protocolState.supplements.map((s) => s.name)
+    // Phase 22 PROT-05: build supplementDetails (name + timing + doseBucket) first,
+    // then derive the backward-compat supplements: string[] from it.
+    // Raw personalDose string is NEVER placed in the output (pharmacist-liability, D-07/T-22-06).
+    type DoseBucket = 'high' | 'standard' | 'low';
+    interface SupplementDetail { name: string; timing?: string; doseBucket?: DoseBucket; }
+
+    const supplementDetails: SupplementDetail[] = protocolState?.supplements
+      ? protocolState.supplements.map((item: ProtocolItem): SupplementDetail => {
+          const dbEntry = SUPPLEMENT_DATABASE.find(
+            db => db.name.toLowerCase() === item.name.toLowerCase()
+          );
+          let doseBucket: DoseBucket | undefined;
+          if (!item.personalDose) {
+            // No personal override — using DB default, bucket as standard
+            doseBucket = 'standard';
+          } else if (dbEntry?.defaultDose) {
+            const personal = parseFloat(item.personalDose);
+            const standard = parseFloat(dbEntry.defaultDose);
+            // Guard: only compute ratio when both values are valid numbers (T-22-07 — never emit NaN)
+            if (!isNaN(personal) && !isNaN(standard) && standard > 0) {
+              const ratio = personal / standard;
+              doseBucket = ratio >= 1.25 ? 'high' : ratio <= 0.75 ? 'low' : 'standard';
+            }
+            // else: non-numeric units (e.g. "as directed") — doseBucket stays undefined → omitted from output
+          }
+          return {
+            name: item.name,
+            ...(item.timing ? { timing: item.timing } : {}),
+            ...(doseBucket !== undefined ? { doseBucket } : {}),
+          };
+        })
       : [
-          ...(protocolState?.addedSupplements ?? []),
-          ...(protocolState?.customSupplements ?? []).map((s) => s.name),
+          // Legacy fallback: addedSupplements + customSupplements (no dose data available)
+          ...(protocolState?.addedSupplements ?? []).map(name => ({ name })),
+          ...(protocolState?.customSupplements ?? []).map(s => ({ name: s.name })),
         ];
-    const supplements = Array.from(new Set(suppNames));
+
+    // Backward-compat: keep supplements: string[] for any consumer expecting the old shape
+    const supplements = Array.from(new Set(supplementDetails.map(s => s.name)));
 
     // ── Medications — names only (D-09) ───────────────────────────────────
     const medications = userProfile?.medications ?? [];
@@ -232,6 +269,7 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
       goal: userProfile?.goal ?? '',
       medications,
       supplements,
+      supplementDetails,
       biomarkers: biomarkerStatusList,
       healthDataAvailable,
     };
@@ -264,6 +302,7 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
       goal: '',
       medications: [],
       supplements: [],
+      supplementDetails: [],
       biomarkers: [],
       healthDataAvailable: false,
     };
