@@ -52,7 +52,7 @@ export interface AdvisorContext {
 
 interface StoredEntry {
   id: string;
-  type: string;
+  biomarkerId: string;
   value: number;
   unit: string;
   date: string;
@@ -171,9 +171,9 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     const latestEntries = new Map<string, StoredEntry>();
     if (storedEntries && Array.isArray(storedEntries)) {
       for (const entry of storedEntries) {
-        const existing = latestEntries.get(entry.type);
+        const existing = latestEntries.get(entry.biomarkerId);
         if (!existing || entry.date > existing.date) {
-          latestEntries.set(entry.type, entry);
+          latestEntries.set(entry.biomarkerId, entry);
         }
       }
     }
