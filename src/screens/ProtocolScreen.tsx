@@ -3,8 +3,17 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert,
-  KeyboardAvoidingView, Keyboard, Platform,
+  KeyboardAvoidingView, Keyboard, Platform, Switch,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import {
+  NotificationPrefs,
+  DEFAULT_PREFS,
+  NOTIFICATION_PREFS_KEY,
+  scheduleSlot,
+  cancelSlot,
+  ensurePermission,
+} from '../lib/notifications';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -569,6 +578,16 @@ export default function ProtocolScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState<ProtocolItem | null>(null);
   const [editingMed, setEditingMed] = useState<string | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [permDenied, setPermDenied] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activePickerSlot, setActivePickerSlot] = useState<TimeSlot | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(NOTIFICATION_PREFS_KEY)
+      .then(raw => { if (raw) setNotifPrefs(JSON.parse(raw) as NotificationPrefs); })
+      .catch(() => null);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -755,6 +774,50 @@ export default function ProtocolScreen() {
     }
   }
 
+  // Phase 23: Notification handlers
+  function timeStringToDate(time: string): Date {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+
+  async function handleSlotToggle(slot: TimeSlot, value: boolean): Promise<void> {
+    Haptics.selectionAsync().catch(() => null);
+    if (value) {
+      const granted = await ensurePermission();
+      if (!granted) { setPermDenied(true); return; }
+    }
+    setPermDenied(false);
+    const next: NotificationPrefs = { ...notifPrefs, [slot]: { ...notifPrefs[slot], enabled: value } };
+    setNotifPrefs(next);
+    await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(next)).catch(() => null);
+    if (value) {
+      await scheduleSlot(slot, next[slot].time).catch(() => null);
+    } else {
+      await cancelSlot(slot).catch(() => null);
+    }
+  }
+
+  function handleTimeChange(event: DateTimePickerEvent, date?: Date): void {
+    setShowTimePicker(false);
+    if (event.type !== 'set' || !date || !activePickerSlot) return;
+    Haptics.selectionAsync().catch(() => null);
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const newTime = `${hh}:${mm}`;
+    const next: NotificationPrefs = {
+      ...notifPrefs,
+      [activePickerSlot]: { ...notifPrefs[activePickerSlot], time: newTime },
+    };
+    setNotifPrefs(next);
+    AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(next)).catch(() => null);
+    if (next[activePickerSlot].enabled) {
+      scheduleSlot(activePickerSlot, newTime).catch(() => null);
+    }
+    setActivePickerSlot(null);
+  }
+
   // Visible medications (excludes hidden)
   const medications = profile?.medications ?? [];
   const visibleMeds = medications.filter(m => !protocol.hiddenMeds.includes(m));
@@ -857,6 +920,52 @@ export default function ProtocolScreen() {
           <Text style={s.streakHint}>Start your streak today!</Text>
         ) : null}
       </View>
+
+      {/* Phase 23: Reminders section */}
+      <View style={s.remindersSection}>
+        <Text style={s.sectionLabel}>Reminders</Text>
+        {(['morning', 'afternoon', 'evening', 'night'] as TimeSlot[]).map((slot, i) => (
+          <View key={slot} style={[s.reminderRow, i > 0 && s.reminderRowBorder]}>
+            <Text style={s.reminderSlotLabel}>
+              {slot.charAt(0).toUpperCase() + slot.slice(1)}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+              {notifPrefs[slot].enabled && (
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => null);
+                    setActivePickerSlot(slot);
+                    setShowTimePicker(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.reminderTimeTxt}>{notifPrefs[slot].time}</Text>
+                </TouchableOpacity>
+              )}
+              <Switch
+                value={notifPrefs[slot].enabled}
+                onValueChange={value => { void handleSlotToggle(slot, value); }}
+                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                thumbColor={notifPrefs[slot].enabled ? Colors.primary : Colors.onSurfaceMuted}
+              />
+            </View>
+          </View>
+        ))}
+        {permDenied && (
+          <Text style={s.permDeniedTxt}>
+            Notifications are disabled — go to Settings › Notifications to enable.
+          </Text>
+        )}
+      </View>
+
+      {showTimePicker && activePickerSlot && (
+        <DateTimePicker
+          mode="time"
+          display="spinner"
+          value={timeStringToDate(notifPrefs[activePickerSlot].time)}
+          onChange={handleTimeChange}
+        />
+      )}
 
       <ScrollView
         style={s.scroll}
@@ -1290,6 +1399,45 @@ const s = StyleSheet.create({
 
   // ── Library divider ──────────────────────────────────────────
   libDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
+
+  // Phase 23: Reminders section
+  remindersSection: {
+    paddingBottom: Spacing.sm,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  reminderRowBorder: {
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.borderLight,
+  },
+  reminderSlotLabel: {
+    fontSize: Typography.sizes.base,
+    color: Colors.onSurface,
+    fontWeight: '400',
+  },
+  reminderTimeTxt: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.primary,
+    fontWeight: '600',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: Radius.full,
+    borderWidth: 0.5,
+    borderColor: Colors.primaryBorder,
+  },
+  permDeniedTxt: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.onSurfaceMuted,
+    fontStyle: 'italic',
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm,
+  },
 });
 
 // Modal styles
