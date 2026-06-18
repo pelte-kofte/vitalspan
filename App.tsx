@@ -13,6 +13,17 @@ import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import { Colors } from './src/theme';
 import { activationPromise, identifyAdaptyUser } from './src/lib/adapty';
 import { PremiumProvider } from './src/context/PremiumContext';
+import * as Notifications from 'expo-notifications';
+import { loadNotificationPrefs, rescheduleAll } from './src/lib/notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Onboarding' | 'Main' | null>(null);
@@ -51,6 +62,17 @@ export default function App() {
       })();
     };
     init();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const prefs = await loadNotificationPrefs();
+        await rescheduleAll(prefs);
+      } catch {
+        // non-blocking — silently ignore notification reschedule errors
+      }
+    })();
   }, []);
 
   if (!initialRoute) {
