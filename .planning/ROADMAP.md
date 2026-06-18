@@ -724,12 +724,12 @@ Plans:
 
 **Wave 1**
 
-- [ ] 23-01-PLAN.md — Install expo-notifications + configure app.json (aps-environment: production + expo-notifications plugin) + create src/lib/notifications.ts (PROD-01)
+- [x] 23-01-PLAN.md — Install expo-notifications + configure app.json (aps-environment: production + expo-notifications plugin) + create src/lib/notifications.ts (PROD-01)
 
 **Wave 2** *(blocked on Wave 1, run in parallel)*
 
-- [ ] 23-02-PLAN.md — Wire App.tsx: module-scope setNotificationHandler + reschedule useEffect (NTFY-04)
-- [ ] 23-03-PLAN.md — ProtocolScreen Reminders section: 4-slot toggle + time picker + permission flow (NTFY-01, NTFY-02, NTFY-03)
+- [x] 23-02-PLAN.md — Wire App.tsx: module-scope setNotificationHandler + reschedule useEffect (NTFY-04)
+- [x] 23-03-PLAN.md — ProtocolScreen Reminders section: 4-slot toggle + time picker + permission flow (NTFY-01, NTFY-02, NTFY-03)
 
 **Wave 3** *(blocked on Wave 2)*
 
