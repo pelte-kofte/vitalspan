@@ -34,13 +34,13 @@
 - [x] **PROT-02**: User can edit any supplement or medication they have added to their protocol
 - [x] **PROT-03**: User can remove any supplement or medication from their protocol
 - [x] **PROT-04**: Items added to the protocol appear in the correct type-based section (Supplements or Medications) — the "Custom" category is removed; all items route to the appropriate section
-- [ ] **PROT-05**: AI Advisor context includes the user's personal dose for each protocol item, bucketed as "high/standard/low" relative to the DB recommended range
+- [x] **PROT-05**: AI Advisor context includes the user's personal dose for each protocol item, bucketed as "high/standard/low" relative to the DB recommended range
 
 ### Adherence Streak (STRK)
 
-- [ ] **STRK-01**: User sees their current consecutive-day adherence streak on the Protocol screen
-- [ ] **STRK-02**: User sees their all-time best streak on the Protocol screen
-- [ ] **STRK-03**: Streak increments only when the user marks all protocol items as taken for the day; missed days reset the current streak to zero
+- [x] **STRK-01**: User sees their current consecutive-day adherence streak on the Protocol screen
+- [x] **STRK-02**: User sees their all-time best streak on the Protocol screen
+- [x] **STRK-03**: Streak increments only when the user marks all protocol items as taken for the day; missed days reset the current streak to zero
 
 ### Notifications (NTFY)
 
@@ -51,14 +51,14 @@
 
 ### Biomarker Trend Charts (TRND)
 
-- [ ] **TRND-01**: BiomarkerDetailScreen shows a sparkline chart of lab values over time with a 30/90/365-day view toggle
-- [ ] **TRND-02**: Chart renders correctly with 2 or more data points; displays a placeholder when fewer than 2 data points exist
-- [ ] **TRND-03**: Chart displays the biomarker's optimal range band as a visual overlay
+- [x] **TRND-01**: BiomarkerDetailScreen shows a sparkline chart of lab values over time with a 30/90/365-day view toggle
+- [x] **TRND-02**: Chart renders correctly with 2 or more data points; displays a placeholder when fewer than 2 data points exist
+- [x] **TRND-03**: Chart displays the biomarker's optimal range band as a visual overlay
 
 ### Data Limits (DLIM)
 
-- [ ] **DLIM-01**: Non-premium users can view only the last 30 days of biomarker history; premium users see full history
-- [ ] **DLIM-02**: Non-premium users see an upgrade banner indicating how many entries are hidden beyond the 30-day window
+- [x] **DLIM-01**: Non-premium users can view only the last 30 days of biomarker history; premium users see full history
+- [x] **DLIM-02**: Non-premium users see an upgrade banner indicating how many entries are hidden beyond the 30-day window
 
 ### Production Build (PROD)
 
@@ -118,19 +118,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROT-02 | Phase 20 | Complete |
 | PROT-03 | Phase 20 | Complete |
 | PROT-04 | Phase 20 | Complete |
-| PROT-05 | Phase 22 | Pending |
-| STRK-01 | Phase 22 | Pending |
-| STRK-02 | Phase 22 | Pending |
-| STRK-03 | Phase 22 | Pending |
+| PROT-05 | Phase 22 | Complete |
+| STRK-01 | Phase 22 | Complete |
+| STRK-02 | Phase 22 | Complete |
+| STRK-03 | Phase 22 | Complete |
 | NTFY-01 | Phase 23 | Pending |
 | NTFY-02 | Phase 23 | Pending |
 | NTFY-03 | Phase 23 | Pending |
 | NTFY-04 | Phase 23 | Pending |
-| TRND-01 | Phase 22 | Pending |
-| TRND-02 | Phase 22 | Pending |
-| TRND-03 | Phase 22 | Pending |
-| DLIM-01 | Phase 22 | Pending |
-| DLIM-02 | Phase 22 | Pending |
+| TRND-01 | Phase 22 | Complete |
+| TRND-02 | Phase 22 | Complete |
+| TRND-03 | Phase 22 | Complete |
+| DLIM-01 | Phase 22 | Complete |
+| DLIM-02 | Phase 22 | Complete |
 | PROD-01 | Phase 23 | Pending |
 | PROD-02 | Phase 23 | Pending |
 
