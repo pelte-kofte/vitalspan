@@ -718,7 +718,23 @@ Plans:
   4. Enabled notifications fire at the configured times each day; after an app update (new EAS build installed), notifications are rescheduled automatically without user action
   5. EAS production build installs on a physical device via TestFlight, completes the full user flow (onboarding → protocol → notifications → AI Advisor), and passes App Store submission pre-checks
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
+
+Plans:
+
+**Wave 1**
+
+- [ ] 23-01-PLAN.md — Install expo-notifications + configure app.json (aps-environment: production + expo-notifications plugin) + create src/lib/notifications.ts (PROD-01)
+
+**Wave 2** *(blocked on Wave 1, run in parallel)*
+
+- [ ] 23-02-PLAN.md — Wire App.tsx: module-scope setNotificationHandler + reschedule useEffect (NTFY-04)
+- [ ] 23-03-PLAN.md — ProtocolScreen Reminders section: 4-slot toggle + time picker + permission flow (NTFY-01, NTFY-02, NTFY-03)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 23-04-PLAN.md — Pre-build audit + EAS production build + TestFlight submission + device verification (PROD-02)
+
 **UI hint**: yes
 
 ---
@@ -752,4 +768,4 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
 | 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
 | 22. Engagement & Visualization | v5.0 | 3/3 | Complete    | 2026-06-18 |
-| 23. Notifications & Production Build | v5.0 | 0/TBD | Not started | - |
+| 23. Notifications & Production Build | v5.0 | 0/4 | Not started | - |
