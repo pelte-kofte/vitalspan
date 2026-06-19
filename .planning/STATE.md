@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v5.0
 milestone_name: Personalization & Production
 status: ready_to_execute
-stopped_at: Phase 23 wave 2/3 complete — 3 plans done, awaiting EAS production build (plan 04 user checkpoint)
+stopped_at: Phase 23 complete — all 4 plans done, v5.0 milestone shipped to TestFlight
 last_updated: 2026-06-19T00:00:00.000Z
-last_activity: 2026-06-19 -- Phase 23 waves 1+2 complete (plans 01-03 done)
+last_activity: 2026-06-19 -- Phase 23 complete (all 4 plans done, EAS build on TestFlight)
 progress:
   total_phases: 4
   completed_phases: 2
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 23
-Plan: 04 (pending — user checkpoint)
-Status: Waves 1+2 complete, awaiting user for EAS build
+Plan: 04 (complete)
+Status: Phase complete — v5.0 milestone shipped
 Last activity: 2026-06-19
 
 Progress: [██████░░░░] 50% v5.0 (8/13 plans complete)

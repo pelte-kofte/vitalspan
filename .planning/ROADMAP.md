@@ -7,7 +7,7 @@
 - ✅ **v3.0 Intelligence & Growth** - Phases 10-14 (complete 2026-06-09)
 - ✅ **v4.0 Monetization & Intelligence** - Phases 15-18 (complete 2026-06-15)
 - ✅ **v4.1 UX Quality Pass** - Phase 19 (complete 2026-06-15)
-- 🚧 **v5.0 Personalization & Production** - Phases 20-23 (in progress)
+- ✅ **v5.0 Personalization & Production** - Phases 20-23 (complete 2026-06-19)
 
 ## Overview
 
@@ -613,7 +613,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 20: Protocol Schema Migration** - Migrate ProtocolState schema to type-correct sections, add personal dose fields, and remove the Custom category — the load-bearing change that unblocks all downstream v5.0 work (completed 2026-06-16)
 - [x] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines (completed 2026-06-17)
 - [x] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context (completed 2026-06-18)
-- [ ] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission
+- [x] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission (completed 2026-06-19)
 
 ## Phase Details
 
@@ -733,7 +733,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 23-04-PLAN.md — Pre-build audit + EAS production build + TestFlight submission + device verification (PROD-02)
+- [x] 23-04-PLAN.md — Pre-build audit + EAS production build + TestFlight submission + device verification (PROD-02)
 
 **UI hint**: yes
 
@@ -768,4 +768,4 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
 | 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
 | 22. Engagement & Visualization | v5.0 | 3/3 | Complete    | 2026-06-18 |
-| 23. Notifications & Production Build | v5.0 | 0/4 | Not started | - |
+| 23. Notifications & Production Build | v5.0 | 4/4 | Complete   | 2026-06-19 |
