@@ -44,10 +44,10 @@
 
 ### Notifications (NTFY)
 
-- [ ] **NTFY-01**: User can independently enable or disable push notification reminders for each timing slot (Morning, Afternoon, Evening, Night)
-- [ ] **NTFY-02**: User can set the time for each enabled notification slot
-- [ ] **NTFY-03**: App requests notification permission on the first reminder toggle; permission denial is handled gracefully with a user-friendly explanation
-- [ ] **NTFY-04**: Scheduled notifications repeat daily at the configured times and are rescheduled automatically after app updates
+- [x] **NTFY-01**: User can independently enable or disable push notification reminders for each timing slot (Morning, Afternoon, Evening, Night)
+- [x] **NTFY-02**: User can set the time for each enabled notification slot
+- [x] **NTFY-03**: App requests notification permission on the first reminder toggle; permission denial is handled gracefully with a user-friendly explanation
+- [x] **NTFY-04**: Scheduled notifications repeat daily at the configured times and are rescheduled automatically after app updates
 
 ### Biomarker Trend Charts (TRND)
 
@@ -62,8 +62,8 @@
 
 ### Production Build (PROD)
 
-- [ ] **PROD-01**: app.json includes expo-notifications config plugin and `aps-environment: production` entitlement — TestFlight-compatible push notification support
-- [ ] **PROD-02**: EAS production build profile configured with autoIncrement and store distribution; no secrets in source code; build succeeds cleanly
+- [x] **PROD-01**: app.json includes expo-notifications config plugin and `aps-environment: production` entitlement — TestFlight-compatible push notification support
+- [x] **PROD-02**: EAS production build profile configured with autoIncrement and store distribution; no secrets in source code; build succeeds cleanly
 
 ---
 
@@ -122,17 +122,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRK-01 | Phase 22 | Complete |
 | STRK-02 | Phase 22 | Complete |
 | STRK-03 | Phase 22 | Complete |
-| NTFY-01 | Phase 23 | Pending |
-| NTFY-02 | Phase 23 | Pending |
-| NTFY-03 | Phase 23 | Pending |
-| NTFY-04 | Phase 23 | Pending |
+| NTFY-01 | Phase 23 | Complete |
+| NTFY-02 | Phase 23 | Complete |
+| NTFY-03 | Phase 23 | Complete |
+| NTFY-04 | Phase 23 | Complete |
 | TRND-01 | Phase 22 | Complete |
 | TRND-02 | Phase 22 | Complete |
 | TRND-03 | Phase 22 | Complete |
 | DLIM-01 | Phase 22 | Complete |
 | DLIM-02 | Phase 22 | Complete |
-| PROD-01 | Phase 23 | Pending |
-| PROD-02 | Phase 23 | Pending |
+| PROD-01 | Phase 23 | Complete |
+| PROD-02 | Phase 23 | Complete |
 
 **Coverage:**
 
@@ -142,4 +142,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-16*
-*Last updated: 2026-06-17 — Phase 21 requirements validated and closed*
+*Last updated: 2026-06-19 — Phase 23 complete; all NTFY and PROD requirements closed*

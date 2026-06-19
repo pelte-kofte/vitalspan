@@ -11,9 +11,7 @@
 
 ## Overview
 
-v3.0 shipped a complete intelligent longevity platform — live HealthKit data, PubMed articles, 60-exercise SVG library, expanded supplement/drug database, clinical design system, and full Supabase Auth. v4.0 turns Vitalspan into a sustainable business: exercise photos elevate the visual quality of the library with real CDN-hosted JPGs from a public-domain source, Adapty-powered subscriptions add a premium tier with in-app purchase and a trial timeline paywall, and the AI Longevity Advisor (Claude API via Supabase Edge Function) becomes the flagship premium feature — generating a structured 6-section longevity report and follow-up chat from anonymized health context.
-
-v5.0 turns users from passive data viewers into active longevity managers: a personal exercise routine with progressive overload tracking, an overhauled editable protocol with adherence streaks and push notification reminders, biomarker trend sparklines, free-tier data limits, and a production EAS build pipeline to TestFlight.
+v5.0 turned Vitalspan users from passive data viewers into active longevity managers: personal exercise routine with progressive overload tracking, editable protocol with adherence streaks and push notification reminders, biomarker trend sparklines, free-tier data limits, and a production EAS build to TestFlight.
 
 ---
 
@@ -131,13 +129,6 @@ Plans:
 **Mode:** mvp
 **Depends on**: Phase 5
 **Requirements**: THEME-02, THEME-03, THEME-04, THEME-05, THEME-06
-**Success Criteria** (what must be TRUE):
-
-  1. Biomarkers, Protocol, Exercise, Profile, Settings, and About screens render with warm cream/beige backgrounds and card surfaces — no dark backgrounds visible on these screens
-  2. LongevityScore, Dashboard neural sections, and Landing screen retain their dark neural aesthetic — no beige bleed onto these screens
-  3. Status bar text is dark (readable) on warm screens and light on dark screens, switching correctly when navigating between them
-  4. Exercise, Protocol, and Profile screens each show a motivating empty state with an outcome-focused headline and a single CTA when the user has no data
-  5. `tsc --noEmit` passes and no hardcoded hex values appear in modified screen files
 
 **Plans**: 5 plans in 3 waves
 
@@ -165,13 +156,6 @@ Plans:
 **Mode:** mvp
 **Depends on**: Phase 6
 **Requirements**: SUPA-04, SUPA-05, EX-01, EX-02, EX-03, EX-04
-**Success Criteria** (what must be TRUE):
-
-  1. App online: biomarker definitions and exercise library load from Supabase; app offline: both fall back to static data arrays without error
-  2. Exercise screen shows today's logged sessions at the top, then this week, then the last 14 days of history — sections are empty-state-aware
-  3. User can browse the exercise library filtered by category; selecting an exercise shows its metadata (loaded from Supabase or static fallback)
-  4. Logging an exercise shows Easy/Moderate/Hard intensity pills with green/amber/coral color coding and haptic feedback on selection
-  5. Log entries are color-coded by intensity; swiping a log entry left reveals a delete action that removes it
 
 **Plans**: 4 plans in 3 waves
 
@@ -198,11 +182,6 @@ Plans:
 **Mode:** mvp
 **Depends on**: Phase 4
 **Requirements**: SUPA-06, SUPA-07
-**Success Criteria** (what must be TRUE):
-
-  1. User enters a biomarker value: it saves to AsyncStorage immediately (as before), then a fire-and-forget Supabase write is attempted — app behavior is unchanged if Supabase write fails
-  2. On first authenticated session after upgrade, all existing `@vitalspan_biomarkers` entries appear in the Supabase `biomarker_entries` table; the migration does not run again on subsequent launches (idempotency flag `@vitalspan_migrated_v2` is set)
-  3. Dashboard pulls biomarker entries from Supabase on mount when the cached data is stale; stale pull errors fall back to AsyncStorage silently
 
 **Plans**: 3 plans in 3 waves
 
@@ -228,12 +207,6 @@ Plans:
 **Mode:** mvp
 **Depends on**: Phase 8
 **Requirements**: PHENO-01, QUAL-01, QUAL-02, QUAL-03
-**Success Criteria** (what must be TRUE):
-
-  1. A user with known biomarker values (e.g. published reference set) sees a biological age output from PhenoAge that matches the expected value from the Levine 2018 paper coefficients
-  2. `tsc --noEmit` exits with zero errors — no `any` types, no missing type annotations
-  3. The full key flow — onboarding → biomarker entry → protocol → exercise log → LongevityScore — completes without crash on iOS simulator or device
-  4. Source audit (grep) confirms zero occurrences of Supabase URL or anon key in any source file
 
 **Plans**: 3 plans in 2 waves
 
@@ -263,12 +236,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 9
 **Requirements**: HK-01, HK-02, HK-03, HK-04, ART-01, ART-02, ART-03, ART-04
-**Success Criteria** (what must be TRUE):
-
-  1. On first launch after install, the app requests HealthKit read permissions; granting them causes LongevityScore orbitals to display real values instead of demo placeholders within the same session
-  2. When HealthKit permissions are denied, the LongevityScore screen shows a "Connect Health" prompt with a CTA — not stale demo numbers — and tapping it navigates to Profile/Settings where the user can connect Apple Health
-  3. User can open the Articles section and see a list of longevity-relevant PubMed articles (title, journal, date, abstract summary); articles load from cache on subsequent opens without waiting for a network request
-  4. Article recommendations visibly reflect the user's biomarker profile — a user with elevated CRP sees inflammation-focused articles surface higher than metabolic articles
 
 **Plans**: 5 plans in 3 waves
 
@@ -296,12 +263,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 10
 **Requirements**: SUPP-01, SUPP-02, SUPP-03, SUPP-04
-**Success Criteria** (what must be TRUE):
-
-  1. User browsing the supplement library sees all 8 longevity supplements (Urolithin A, NMN, NR, Spermidine, Fisetin, Quercetin, Rapamycin, Metformin) with dose, timing, evidence grade (A/B/C), and a one-line longevity relevance summary
-  2. User browsing the drug database sees all 5 drug classes (Ibuprofen, Aspirin, Statins, Levothyroxine, Metformin) with the same field structure
-  3. User running the interaction checker on a multi-item stack sees results grouped by severity (red/yellow/green flags) with a plain-language explanation and a specific recommendation for each flagged pair
-  4. Every interaction flag shown to the user includes an actionable recommendation — no flag is displayed without a "what to do" instruction
 
 **Plans**: 5 plans in 4 waves
 
@@ -332,11 +293,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 11
 **Requirements**: EX-01, EX-02, EX-03, EX-04, EX-05, EX-06
-**Success Criteria** (what must be TRUE):
-
-  1. Opening any exercise detail shows an SVG movement illustration, a neural-dot muscle map with primary muscles in accent color and secondary muscles in muted color, a 1–2 sentence form cue, and a longevity-optimized sets/reps recommendation
-  2. User can tap a muscle region on the exercise library's visual muscle map selector and see the list filtered to exercises targeting that group; clearing the filter restores the full list
-  3. Dashboard displays a weekly movement summary card showing total sessions, total active minutes, and the most-trained muscle group for the current week
 
 **Plans**: 7 plans in 4 waves
 
@@ -369,11 +325,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 12
 **Requirements**: DS-01, DS-02, DS-03, DS-04, DS-05
-**Success Criteria** (what must be TRUE):
-
-  1. A developer opening `src/theme/index.ts` sees the full clinical-premium token set (`primary`, `surface`, `surfaceElevated`, `accent`, `accentMuted`, `semantic.*`) and the documented typography scale; no screen file outside dynamic styles contains hardcoded hex values, font sizes, or margin/padding numbers
-  2. Every icon in the app — across all screens, modals, and empty states — renders as a consistent SVG neural-dot style with no placeholder icons, question marks, or emoji remaining
-  3. An EAS production build installs and runs with all SVG icons rendering correctly on device — no blank spaces, missing glyphs, or native module errors
 
 **Plans**: 6 plans
 **UI hint**: yes
@@ -384,12 +335,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 13
 **Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09
-**Success Criteria** (what must be TRUE):
-
-  1. A new user on first launch sees a Welcome screen with "Sign up", "Log in", and "Continue as guest" options; signing up creates a Supabase account, promotes the existing anonymous session via `supabase.auth.updateUser()`, and all previously entered data remains intact after account creation
-  2. A returning user logging in with correct credentials is taken directly to the main app with their biomarker history visible; a user logging in with wrong credentials sees a specific error message ("Incorrect password" not "Something went wrong")
-  3. User who forgets password can trigger a reset email from the Login screen and sees a confirmation screen; after clicking the reset link, they can set a new password and log in successfully
-  4. After backgrounding the app for any duration and reopening it, the user remains logged in without re-entering credentials; logging out clears the session, returns to the Welcome screen, and local AsyncStorage data is still accessible in guest mode
 
 **Plans**: 5 plans in 4 waves
 
@@ -434,11 +379,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 14
 **Requirements**: EXP-01, EXP-02, EXP-03
-**Success Criteria** (what must be TRUE):
-
-  1. Opening an exercise with a mapped photoKey shows a real JPG photo (start position) in the illustration area — the photo loads progressively and is disk-cached by expo-image for offline revisits
-  2. Opening an exercise without a photoKey mapping shows the existing Phase 12 SVG illustration unchanged — no visible regression for unmapped exercises
-  3. At least 42 of the 60 exercises (70%) have a verified photoKey that resolves to a valid yuhonas/free-exercise-db JPG URL
 
 **Plans**: 2 plans in 2 waves
 
@@ -460,12 +400,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 15
 **Requirements**: PAY-01, PAY-02, PAY-03, PAY-04, PAY-05
-**Success Criteria** (what must be TRUE):
-
-  1. User tapping "Get Premium" sees a paywall screen that displays the subscription price, billing period, and a Day 1–7 free / Day 8 billed visual timeline — no toggle UI; tapping Subscribe initiates Apple in-app purchase and grants premium access on success
-  2. User who previously subscribed taps "Restore Purchases" and regains premium access without initiating a new purchase; if no subscription is found, a plain-language message is shown
-  3. Free user tapping the Articles entry point or AI Advisor entry point is redirected to the paywall; a premium user tapping the same entry points proceeds directly without seeing the paywall
-  4. Closing and reopening the app preserves subscription status — premium access does not require re-purchase or re-restore after an app restart
 
 **Plans**: 6 plans in 4 waves
 
@@ -497,11 +431,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 16
 **Requirements**: AI-01, AI-02, AI-03
-**Success Criteria** (what must be TRUE):
-
-  1. Calling the Edge Function with a valid Supabase JWT returns a structured longevity report JSON — no `@anthropic-ai/sdk` import exists anywhere in the Expo project source
-  2. The anonymized context payload assembled by `advisorContext.ts` contains no user name, no exact birthdate, no raw lab values with timestamps, and no Supabase user ID — only bucketed age, biomarker status categories, supplement names, and medication names
-  3. A user who triggers report generation 6 times in one day receives a 429 response with a plain-language message on the sixth attempt; the first 5 succeed normally
 
 **Plans**: 4 plans in 2 waves
 
@@ -525,11 +454,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 17
 **Requirements**: AI-04, AI-05, AI-06
-**Success Criteria** (what must be TRUE):
-
-  1. A premium user tapping "AI Advisor" on the Dashboard triggers report generation; the completed report renders as 6 labeled cards: Score Summary, Priority Findings, Biomarker Analysis, Supplement & Medication Review, Recommendations (with evidence grades A/B/C), and a Follow-up Chat entry
-  2. User can type a follow-up question in the chat interface and receive a response from Claude that references the generated report; sending a second question in the same session shows the conversation thread; closing and reopening the screen starts a fresh session with no prior messages
-  3. A free user tapping "AI Advisor" sees the paywall — not an error, not a locked icon, not an empty screen
 
 **Plans**: 3 plans in 3 waves
 
@@ -566,13 +490,6 @@ Plans:
 **Mode:** standard
 **Depends on**: Phase 18
 **Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05
-**Success Criteria** (what must be TRUE):
-
-  1. On Protocol (custom supplement add) and AI Advisor (chat input), tapping a text field raises the keyboard without obscuring the input; tapping outside the input dismisses the keyboard
-  2. ExerciseDetailScreen back button and title are fully visible below the Dynamic Island/notch on iPhone 15 Pro and iPhone 16 Plus — no clipping
-  3. Dashboard "Movement Today" section text and values pass AA contrast against their background; the section is visually distinct from adjacent cards
-  4. LongevityScore orbital cards for Sleep, HRV, and Fitness have working onPress handlers: Sleep → appropriate entry flow; HRV/Fitness → "Requires Apple Watch" explanation + Connect Health CTA; Inflammation/Glucose CTAs already routing correctly remain unchanged
-  5. ExerciseDetailScreen no longer renders the muscle diagram (front/back silhouette toggle) — the exercise photo and text details fill the space cleanly
 
 **Plans**: 6 plans in 3 waves
 
@@ -599,35 +516,21 @@ Plans:
 
 ---
 
-## Phases — v5.0 Personalization & Production
+<details>
+<summary>✅ v5.0 Personalization & Production (Phases 20-23) — COMPLETE 2026-06-19</summary>
 
 **Milestone Goal:** Turn users from passive data viewers into active longevity managers — personal exercise routine with progressive overload tracking, editable protocol with adherence streaks and push notification reminders, biomarker trend sparklines, free-tier data limits, and a production EAS build to TestFlight.
-
-**Phase Numbering:**
-
-- Integer phases (20, 21, 22, 23): Planned milestone work
-- Decimal phases (20.1, 20.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 20: Protocol Schema Migration** - Migrate ProtocolState schema to type-correct sections, add personal dose fields, and remove the Custom category — the load-bearing change that unblocks all downstream v5.0 work (completed 2026-06-16)
 - [x] **Phase 21: Exercise Routine & History** - Deliver the personal Rutinim tab with add/reorder/remove, full-date history, edit/delete log entries, weightKg/reps data model, and per-exercise progressive overload sparklines (completed 2026-06-17)
 - [x] **Phase 22: Engagement & Visualization** - Ship adherence streak counters, biomarker trend charts with range bands, free-tier data limits, and personal dose bucketing in AI Advisor context (completed 2026-06-18)
 - [x] **Phase 23: Notifications & Production Build** - Configure push notification entitlements, implement AM/PM/Evening/Night local reminders with per-slot toggle and time picker, and produce the EAS production build for TestFlight submission (completed 2026-06-19)
 
-## Phase Details
-
 ### Phase 20: Protocol Schema Migration
 
 **Goal**: ProtocolState stores supplements and medications in type-correct sections with optional personal dose per item — the Custom category is gone and the schema is stable for all Phase 22-23 consumers
 **Depends on**: Phase 19
 **Requirements**: PROT-04, PROT-01, PROT-02, PROT-03
-**Success Criteria** (what must be TRUE):
-
-  1. Items added to the protocol appear only in their correct section (Supplements or Medications) — no "Custom" category is visible anywhere in the app
-  2. User can enter a personal dose for any supplement or medication in their protocol and see it saved and displayed on next app open
-  3. User can edit an existing protocol item (change dose, timing, or notes) and see the updated values reflected immediately
-  4. User can remove any supplement or medication from their protocol; the item disappears from the protocol list and does not reappear on next open
 
 **Plans**: 3 plans in 3 waves
 
@@ -652,13 +555,6 @@ Plans:
 **Goal**: Users have a personal Rutinim tab with up to 10 exercises they can add, order, and remove; history entries show full dates with weight/reps captured per set; users can edit and delete past entries; exercise cards in the routine show last-session load and a weekly overload trend sparkline
 **Depends on**: Phase 20
 **Requirements**: ROUT-01, ROUT-02, ROUT-03, ROUT-04, ROUT-05, HIST-01, HIST-02, HIST-03, HIST-04, OVLD-01, OVLD-02, OVLD-03
-**Success Criteria** (what must be TRUE):
-
-  1. Tapping the Exercise tab shows a Rutinim/Kesfet toggle; Rutinim view is empty with an "Add exercises" CTA when no routine has been built; switching to Kesfet shows the full exercise library
-  2. User can add up to 10 exercises to their routine from the library, drag to reorder them, and remove individual exercises — changes persist across app restarts
-  3. Past exercise log entries display the full date (day, month, year); tapping an entry opens an edit sheet where the user can update sets, reps, and weight, or delete the entry
-  4. Exercise log entries capture weightKg and repsPerSet per set — not just intensity — so progressive overload can be computed
-  5. Each exercise card in the Rutinim view shows the weight and reps from the last logged session for that exercise, plus a weekly trend indicator (improving/stable/declining); ExerciseDetailScreen shows a sparkline chart of weekly overload history
 
 **Plans**: 5 plans in 3 waves
 
@@ -685,13 +581,6 @@ Plans:
 **Goal**: Users see their adherence streak on the Protocol screen, biomarker trends as sparkline charts with range band overlays on BiomarkerDetailScreen, and non-premium users see a 30-day data limit enforced with an upgrade banner; AI Advisor context includes personal dose bucketing
 **Depends on**: Phase 20
 **Requirements**: STRK-01, STRK-02, STRK-03, TRND-01, TRND-02, TRND-03, DLIM-01, DLIM-02, PROT-05
-**Success Criteria** (what must be TRUE):
-
-  1. Protocol screen displays the user's current consecutive-day adherence streak and all-time best streak; a day where all items are marked taken increments the streak; a missed day resets the current streak to zero
-  2. BiomarkerDetailScreen shows a sparkline chart of lab values with a 30/90/365-day toggle; the chart renders correctly with 2 or more data points and shows a placeholder message when fewer than 2 exist
-  3. The sparkline chart overlays the biomarker's optimal longevity range as a visual band so users can see at a glance whether their trend is inside or outside the target
-  4. A non-premium user with more than 30 days of biomarker entries sees only the most recent 30 days of history; an upgrade banner states how many entries are hidden; a premium user sees full history
-  5. When AI Advisor generates a report, the context sent to the Edge Function includes each protocol item's personal dose bucketed as "high", "standard", or "low" relative to the DB recommended range
 
 **Plans**: 3 plans in 1 wave
 
@@ -710,13 +599,6 @@ Plans:
 **Goal**: Users can independently toggle and time AM/PM/Evening/Night push reminders for their protocol; the app requests notification permission gracefully on first toggle; scheduled notifications repeat daily and survive app updates; app.json includes the production push entitlement; an EAS production build is submitted to TestFlight
 **Depends on**: Phase 22
 **Requirements**: PROD-01, NTFY-01, NTFY-02, NTFY-03, NTFY-04, PROD-02
-**Success Criteria** (what must be TRUE):
-
-  1. app.json includes the expo-notifications config plugin and `aps-environment: production` entitlement — `eas build --platform ios --profile production` succeeds without entitlement errors
-  2. User toggling a reminder slot for the first time triggers a permission request; granting permission enables the slot; denying shows a plain-language explanation without crashing or leaving the UI in a broken state
-  3. User can independently enable or disable each of the four reminder slots (Morning, Afternoon, Evening, Night) and set a specific time for each enabled slot; preferences persist across app restarts
-  4. Enabled notifications fire at the configured times each day; after an app update (new EAS build installed), notifications are rescheduled automatically without user action
-  5. EAS production build installs on a physical device via TestFlight, completes the full user flow (onboarding → protocol → notifications → AI Advisor), and passes App Store submission pre-checks
 
 **Plans**: 4 plans in 3 waves
 
@@ -737,12 +619,11 @@ Plans:
 
 **UI hint**: yes
 
+</details>
+
 ---
 
 ## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 20 → 21 → 22 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -765,7 +646,7 @@ Phases execute in numeric order: 20 → 21 → 22 → 23
 | 17. AI Advisor — Backend | v4.0 | 4/4 | Complete | 2026-06-14 |
 | 18. AI Advisor — UI | v4.0 | 3/3 | Complete | 2026-06-15 |
 | 19. Global UX Fixes | v4.1 | 6/6 | Complete | 2026-06-15 |
-| 20. Protocol Schema Migration | v5.0 | 3/3 | Complete   | 2026-06-16 |
-| 21. Exercise Routine & History | v5.0 | 0/5 | Not started | - |
-| 22. Engagement & Visualization | v5.0 | 3/3 | Complete    | 2026-06-18 |
-| 23. Notifications & Production Build | v5.0 | 4/4 | Complete   | 2026-06-19 |
+| 20. Protocol Schema Migration | v5.0 | 3/3 | Complete | 2026-06-16 |
+| 21. Exercise Routine & History | v5.0 | 5/5 | Complete | 2026-06-17 |
+| 22. Engagement & Visualization | v5.0 | 3/3 | Complete | 2026-06-18 |
+| 23. Notifications & Production Build | v5.0 | 4/4 | Complete | 2026-06-19 |

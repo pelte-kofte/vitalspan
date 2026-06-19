@@ -2,21 +2,11 @@
 
 ## What This Is
 
-Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It lets users track biomarkers, manage a supplement/medication protocol, log workouts, and monitor their biological age via the Levine PhenoAge formula. The target audience is longevity-curious individuals who want clinically credible guidance without a clinical background.
+Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It lets users track biomarkers, manage a supplement/medication protocol, log and plan workouts with progressive overload tracking, and monitor their biological age via the Levine PhenoAge formula. Users receive push reminders for their protocol, trend charts on their biomarker history, and a premium AI Longevity Advisor powered by Claude. The target audience is longevity-curious individuals who want clinically credible guidance without a clinical background.
 
 ## Core Value
 
 Users get their first clinically meaningful insight within minutes of opening the app — not after hours of data entry.
-
-## Current Milestone: v5.0 — Personalization & Production
-
-**Goal:** Turn users from passive data viewers into active longevity managers — personal exercise routine, editable protocol with push reminders, trend charts, and a production-ready EAS build.
-
-**Target features:**
-- Exercise Rutinim — tab-inside switch (Rutinim / Keşfet); 5–10 exercise personal routine; history edit/delete with full date; weekly progressive overload trend
-- Protocol Overhaul — editable personal dose; edit/delete added items; remove "Custom" category (type-correct sections); adherence streak; AM/PM/Evening/Night local push notifications; personal dose fed into advisorContext.ts
-- Biomarker Trend Charts — BiomarkerDetail sparkline (30/90/365 day); shares chart pattern with exercise overload trend
-- Data Limits + EAS/TestFlight — 30-day free-tier history cap; production EAS build pipeline
 
 ## Requirements
 
@@ -36,41 +26,54 @@ Users get their first clinically meaningful insight within minutes of opening th
 - ✓ Custom Vitalspan app icon and branded splash screen — Phase 2
 - ✓ About screen pharmacist credential section and mission statement — Phase 2
 - ✓ UX polish pass — all screens verified on iPhone 15/16 form factors — Phase 3
+- ✓ Supabase anonymous session, JWT refresh, zero secrets in source — Phase 4
+- ✓ Clinical-premium design tokens + custom SVG tab icons — Phase 5
+- ✓ Warm Beige UI on data/list screens; dark neural on LongevityScore — Phase 6
+- ✓ Supabase-backed exercise library and biomarker definitions with static fallback — Phase 7
+- ✓ Biomarker entries synced to Supabase with AsyncStorage fallback — Phase 8
+- ✓ PhenoAge formula verified against Levine 2018 coefficients; tsc clean — Phase 9
+- ✓ Live Apple HealthKit data in LongevityScore orbitals — Phase 10
+- ✓ PubMed longevity articles personalized to biomarker profile — Phase 10
+- ✓ 69 supplements + drug classes with evidence grades; 54+ interaction pairs — Phase 11
+- ✓ 60-exercise SVG library with muscle maps, form cues, sets/reps — Phase 12
+- ✓ Full clinical design system; consistent SVG icon set — Phase 13
+- ✓ Supabase Auth (email/password + anonymous guest); anonymous→email promotion — Phase 14
 - ✓ Exercise photos from yuhonas/free-exercise-db CDN; SVG fallback preserved — Phase 15
 - ✓ Adapty paywall — free vs. premium tier, in-app purchase, 7-day trial timeline — Phase 16
 - ✓ AI Advisor backend — Edge Function, zero-PII context assembler, rate limiting — Phase 17
 - ✓ AI Advisor UI — 6-section report cards + follow-up chat interface — Phase 18
 - ✓ Global UX fixes — keyboard, Dynamic Island, contrast, orbital CTAs, muscle diagram — Phase 19
+- ✓ Protocol schema migration — type-correct supplements[]/medications[] sections; personal dose; edit/delete; "Custom" category removed — Phase 20
 - ✓ Exercise Rutinim — Rutinim/Keşfet tab switch; drag-to-reorder personal routine (max 10); history edit/delete with full date; Sets/Reps/Weight capture; progressive overload sparkline — Phase 21
+- ✓ Adherence streaks — current and all-time best on Protocol screen; daily evaluation — Phase 22
+- ✓ Biomarker trend sparkline — 30/90/365-day toggle; optimal range band; 30-day free-tier cap + upgrade banner — Phase 22
+- ✓ AI Advisor personal dose bucketing — supplementDetails with high/standard/low ratio; raw dose excluded — Phase 22
+- ✓ Local push notifications — 4-slot AM/PM/Evening/Night reminders; time picker; permission request; daily reschedule — Phase 23
+- ✓ Production EAS build — aps-environment: production; submitted to TestFlight; verified on device — Phase 23
 
-### Active (v5.0)
+### Active (v5.1+)
 
-- [ ] Protocol editable dose — user's actual taken dose (not DB range); edit/delete any added item; remove "Custom" category, route items to correct type section
-- [ ] Protocol adherence streak — daily streak counter
-- [ ] Local push notifications — expo-notifications; AM/PM/Evening/Night protocol reminders
-- [ ] Personal dose in AI Advisor context — advisorContext.ts updated with user-set doses
-- [ ] Biomarker trend charts — BiomarkerDetail sparkline (30/90/365 day); shared chart component with exercise overload trend
-- [ ] Free-tier data limits — 30-day biomarker history cap for non-premium users
-- [ ] Production EAS build + TestFlight submission pipeline
+- [ ] Remote push notifications via Supabase push tokens (server-side lab reminders)
+- [ ] Articles redesign — card/grid layout, search, AI personalization
+- [ ] Multiple named exercise routines (Upper Body / Leg Day)
+- [ ] Personal dose synced to Supabase
+- [ ] AI-generated routine recommendations
 
 ### Out of Scope
 
 - RevenueCat — switched to Adapty for better A/B paywall testing and analytics
-- Push notifications — still deferred; not in v4.0 scope
-- Biomarker history limits enforcement — paywall ships first; limits deferred to follow-up
-- Full AsyncStorage replacement — user data syncs to Supabase but AsyncStorage keys preserved as fallback/offline
-- Trend charts (BiomarkerDetail sparklines) — deferred
+- victory-native chart library — Skia peer conflict with Expo SDK 54; react-native-chart-kit sufficient
+- date-fns / dayjs — built-in Date sufficient for all operations
+- Raw dose string in AI Advisor context — pharmacist liability; bucketed values only
 - Android support — iOS-only by architecture decision
 
 ## Context
 
-v3.0 shipped a complete intelligent longevity platform: live HealthKit data, PubMed articles, 60-exercise SVG UI with muscle maps, expanded supplement/drug database (69 entries, 54 interactions), clinical design system, and full Supabase Auth. The app is now production-quality and ready to monetize.
+**Current state (v5.0, 2026-06-19):** Vitalspan is a full-featured longevity iOS app on TestFlight with ~23,500 LOC TypeScript. Tech stack: React Native + Expo SDK 54, TypeScript strict, AsyncStorage + Supabase (anon + email auth), Adapty subscriptions, Claude API via Edge Function, expo-notifications, react-native-chart-kit, expo-health.
 
-v4.0 is the business milestone. Adapty replaces the originally planned RevenueCat — Adapty was chosen for its paywall A/B testing, better analytics dashboard, and more generous free tier. The AI Longevity Advisor is the flagship premium feature: it sends an anonymized summary of the user's health data (latest biomarker values aggregated, supplement stack, medications) to Claude API and returns a structured report with evidence-based recommendations, plus a follow-up conversational interface. Raw health values are NOT sent — privacy is preserved.
+v5.0 shipped the first major personalization layer: a personal exercise routine with Sets/Reps/Weight logging and progressive overload sparklines, an editable protocol with adherence streaks and push notification reminders, biomarker trend charts with range-band overlays, 30-day free-tier data limits, and a production EAS build to TestFlight.
 
-The exercise photo upgrade uses the `yunohas/free-exercise-db` GitHub repository (public domain MIT license), which provides GIF/photo assets for common exercises. SVG illustrations from Phase 12 are preserved as fallback wherever photos are unavailable.
-
-**Tech environment:** React Native + Expo ~54, TypeScript strict, AsyncStorage + Supabase, Adapty SDK, Claude API (`@anthropic-ai/sdk`), expo-haptics, expo-linear-gradient. iOS only. No Android.
+The app now has a viable business model (Adapty premium tier), a flagship AI feature (Claude-powered Longevity Advisor), and an active engagement loop (streaks + reminders). The next natural focus is retention (remote push, habit reinforcement) and growth (social proof, sharing, premium upsell optimization).
 
 ## Constraints
 
@@ -86,16 +89,20 @@ The exercise photo upgrade uses the `yunohas/free-exercise-db` GitHub repository
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Guided first-run for Glucose, HbA1c, Cholesterol | Most common annual checkup values — lay users are likely to have these | ✓ Good — shipped Phase 1 |
-| Defer HealthKit to post-v1 | Mock layer already built; real entitlement complicates TestFlight submission | ✓ Good — still deferred |
-| AsyncStorage for v1 | No backend needed for single-device beta | ✓ Good — now adding Supabase as sync layer in v2 |
+| Defer HealthKit to post-v1 | Mock layer already built; real entitlement complicates TestFlight submission | ✓ Good — real HealthKit shipped Phase 10 |
+| AsyncStorage for v1 | No backend needed for single-device beta | ✓ Good — Supabase added as sync layer in v2 |
 | Selective UI overhaul (not full redesign) | Preserve dark aesthetic on immersive screens; warm beige on data/list screens | ✓ Complete — Phase 6 |
 | Supabase for reference data + user sync | Reference data (ranges, exercises) served from DB; user history synced with auth | ✓ Complete — ref data (Phase 7) + user biomarker sync (Phase 8) |
 | exerciseService / biomarkerService Supabase-first with static fallback | Remote updates without app release; offline resilience | ✓ Phase 7 |
 | Swipe-to-delete for exercise log (RNGH v2 Gesture.Pan) | Cleaner UX than long-press+Alert; no confirmation dialog needed for single-device local data | ✓ Phase 7 |
-| Adapty over RevenueCat | Better A/B paywall testing, analytics dashboard, and more generous free tier | — Pending |
-| AI uses anonymized summary (not raw values) | Privacy-first: user health data stays local; only aggregated context sent to Claude API | — Pending |
-| Biomarker history limits deferred | Paywall ships first; enforce limits in a follow-up phase once subscription infra is proven | — Pending |
-| Exercise photos: photos-where-available + SVG fallback | Avoids a full asset replacement; Phase 12 SVG work preserved for exercises without photo coverage | — Pending |
+| Adapty over RevenueCat | Better A/B paywall testing, analytics dashboard, and more generous free tier | ✓ Good — Phase 16 |
+| AI uses anonymized summary (not raw values) | Privacy-first: user health data stays local; only aggregated context sent to Claude API | ✓ Good — Phase 17 |
+| Exercise photos: photos-where-available + SVG fallback | Avoids a full asset replacement; Phase 12 SVG work preserved for exercises without photo coverage | ✓ Good — Phase 15 |
+| ProtocolItem unifies addedSupplements + customSupplements | Single source of truth for protocol; source discriminant ('db'|'manual') preserves origin | ✓ Good — Phase 20 |
+| react-native-chart-kit for sparklines | Already installed; victory-native excluded due to Skia peer conflict with Expo SDK 54 | ✓ Good — Phase 21/22 |
+| Personal dose AsyncStorage-only for v5.0 | Supabase sync deferred; raw dose string excluded from AI context for pharmacist liability | ✓ Good — Phase 20/22 |
+| expo-notifications for local push (not remote) | Local reminders sufficient for v5.0 engagement loop; remote push deferred to v5.1+ | ✓ Good — Phase 23 |
+| Biomarker history limits: 30-day cap for free users | Paywall proven first; then enforce limits to create upgrade incentive | ✓ Phase 22 |
 
 ## Evolution
 
@@ -115,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-17 — Phase 21 complete (Exercise Routine & History). ROUT-01–05, HIST-01–04, OVLD-01–03 validated and moved to Validated.*
+*Last updated: 2026-06-19 after v5.0 milestone — all 31 v5.0 requirements validated and moved to Validated*
