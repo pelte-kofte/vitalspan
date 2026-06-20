@@ -1,5 +1,6 @@
 import 'react-native-url-polyfill/auto'
 import * as WebBrowser from 'expo-web-browser'
+import * as AppleAuthentication from 'expo-apple-authentication'
 /**
  * Supabase client singleton for Vitalspan.
  *
@@ -271,30 +272,47 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
 }
 
 /**
- * Opens a browser to sign in with Apple via Supabase OAuth.
- * Requires: Supabase Dashboard → Auth → Providers → Apple enabled,
- * Apple Developer Console setup, and app.json "scheme": "vitalspan" set.
- * Note: native Sign in with Apple requires expo-apple-authentication.
+ * Native Sign in with Apple via expo-apple-authentication.
+ *
+ * Uses the system-native Apple authentication sheet (ASAuthorizationController)
+ * and passes the resulting identityToken directly to Supabase signInWithIdToken.
+ * This is the App Store-required approach for native iOS apps — not the
+ * WebBrowser OAuth redirect flow.
+ *
+ * Requires:
+ *  - expo-apple-authentication installed and plugin registered in app.json
+ *  - app.json entitlement: "com.apple.developer.applesignin": ["Default"]
+ *  - Supabase Dashboard → Auth → Providers → Apple enabled (JWT Secret populated)
+ *  - Apple Developer Console: Sign in with Apple capability on the App ID
  */
 export async function signInWithApple(): Promise<{ error: string | null }> {
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const isAvailable = await AppleAuthentication.isAvailableAsync()
+    if (!isAvailable) {
+      return { error: 'Sign in with Apple is not available on this device' }
+    }
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    })
+    if (!credential.identityToken) {
+      return { error: 'Apple sign-in did not return an identity token' }
+    }
+    const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
-      options: { redirectTo: OAUTH_REDIRECT, skipBrowserRedirect: true },
+      token: credential.identityToken,
     })
     if (error) return { error: mapAuthError(error.message) }
-    if (!data.url) return { error: 'Could not start Apple sign-in' }
-    const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
-    if (result.type !== 'success') return { error: null }
-    const params = new URL(result.url)
-    const accessToken = params.searchParams.get('access_token')
-    const refreshToken = params.searchParams.get('refresh_token')
-    if (accessToken && refreshToken) {
-      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-    }
     return { error: null }
   } catch (e: unknown) {
-    return { error: mapAuthError(e instanceof Error ? e.message : String(e)) }
+    const msg = e instanceof Error ? e.message : String(e)
+    // User cancelled the native sheet — not an error worth showing
+    if (msg.includes('canceled') || msg.includes('cancelled') || msg.includes('ERR_CANCELED')) {
+      return { error: null }
+    }
+    return { error: mapAuthError(msg) }
   }
 }
 

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Vitalspan",
     "slug": "vitalspan",
+    "scheme": "vitalspan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +18,8 @@
       "entitlements": {
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.access": [],
-        "aps-environment": "production"
+        "aps-environment": "production",
+        "com.apple.developer.applesignin": ["Default"]
       },
       "infoPlist": {
         "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health.",
@@ -41,6 +43,7 @@
     ],
     "plugins": [
       "expo-font",
+      "expo-apple-authentication",
       [
         "@kingstinct/react-native-healthkit",
         {
