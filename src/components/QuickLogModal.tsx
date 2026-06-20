@@ -44,6 +44,7 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
   const [weightKg, setWeightKg] = useState('');
   const [duration, setDuration] = useState('30');
   const [notes, setNotes] = useState('');
+  const [dateMode, setDateMode] = useState<'today' | 'yesterday'>('today');
   const [userWeightKg, setUserWeightKg] = useState<number>(75);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
       setWeightKg('');
       setDuration('30');
       setNotes('');
+      setDateMode('today');
     }
   }, [exercise?.id]);
 
@@ -73,16 +75,19 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
   async function handleSave() {
     if (!exercise) return;
     const setsNum = Math.min(parseInt(sets) || 1, 20);
-    const repsNum = parseInt(repsPerSet) || 0;
-    const weightNum = parseFloat(weightKg) || undefined;
+    const repsNum = parseInt(repsPerSet.replace(',', '.')) || 0;
+    const weightNum = parseFloat(weightKg.replace(',', '.')) || undefined;
     const setsData: SetRecord[] = Array(setsNum).fill({ reps: repsNum, weightKg: weightNum });
     const durationNum = parseInt(duration) || 0;
+    const logDate = dateMode === 'yesterday'
+      ? (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })()
+      : new Date().toISOString().slice(0, 10);
     const entry: ExerciseLogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       category: exercise.category,
-      date: new Date().toISOString().slice(0, 10),
+      date: logDate,
       sets: isCardio ? undefined : setsNum,
       reps: isCardio ? undefined : parseInt(reps) || undefined,
       durationMin: durationNum > 0 ? durationNum : undefined,
@@ -111,6 +116,20 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
         <View style={s.sheetHandle} />
         <Text style={s.sheetTitle}>{exercise.name}</Text>
         <Text style={s.sheetCat}>{exercise.category} · {exercise.equipment}</Text>
+
+        <View style={s.dateRow}>
+          {(['today', 'yesterday'] as const).map(mode => (
+            <TouchableOpacity
+              key={mode}
+              style={[s.dateChip, dateMode === mode && s.dateChipActive]}
+              onPress={() => setDateMode(mode)}
+            >
+              <Text style={[s.dateChipTxt, dateMode === mode && s.dateChipTxtActive]}>
+                {mode === 'today' ? 'Today' : 'Yesterday'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={s.logFields}>
           {!isCardio && (
@@ -225,4 +244,9 @@ const s = StyleSheet.create({
   saveBtnTxt: { fontSize: Typography.sizes.base, fontWeight: '700', color: Colors.primaryBg },
   cancelBtn: { padding: Spacing.sm, alignItems: 'center' },
   cancelBtnTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  dateRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  dateChip: { flex: 1, paddingVertical: 8, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.borderLight, alignItems: 'center', backgroundColor: Colors.surface },
+  dateChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
+  dateChipTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
+  dateChipTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput,
+  StyleSheet, SafeAreaView, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -83,7 +83,7 @@ export default function BiomarkerEntryScreen() {
 
   useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
 
-  const rawVal = parseFloat(value);
+  const rawVal = parseFloat(value.replace(',', '.'));
   const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
   const isValidValue = !isNaN(rawVal) && rawVal > 0;
   const status = selected && isValidValue
@@ -182,6 +182,7 @@ export default function BiomarkerEntryScreen() {
         <View style={s.headerSpacer} />
       </View>
 
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         {selected !== null && FIRST_RUN_CONTENT_MAP[selected.id] !== undefined && (
           <BreathingCard style={s.explanationWrapper}>
@@ -305,6 +306,7 @@ export default function BiomarkerEntryScreen() {
         </TouchableOpacity>
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

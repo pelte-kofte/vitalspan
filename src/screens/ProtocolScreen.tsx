@@ -237,6 +237,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                 <View style={ms.handle} />
                 <Text style={ms.sheetTitle}>Add Supplement</Text>
 
+                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={ms.sheetScroll}>
                 <Text style={ms.fieldLabel}>Search database</Text>
                 <TextInput
                   style={ms.input}
@@ -316,6 +317,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                   onChangeText={setNotes}
                   multiline
                 />
+                </ScrollView>
 
                 <View style={ms.btnRow}>
                   <TouchableOpacity style={ms.cancelBtn} onPress={() => { resetForm(); onClose(); }}>
@@ -508,6 +510,134 @@ function EditMedicationSheet({ visible, medName, currentTiming, onClose, onSaveT
   );
 }
 
+// ── Add Medication Modal ──────────────────────────────────────────────────────
+interface AddMedicationModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onAdd: (name: string) => void;
+  existingMeds: string[];
+}
+
+function AddMedicationModal({ visible, onClose, onAdd, existingMeds }: AddMedicationModalProps) {
+  const [query, setQuery] = useState('');
+  const [name, setName] = useState('');
+  const [isPrescription, setIsPrescription] = useState(true);
+
+  const dbResults = useMemo(() => {
+    if (query.length < 2) return [];
+    const q = query.toLowerCase();
+    return MEDICATION_DATABASE.filter(m =>
+      m.genericName.toLowerCase().includes(q) ||
+      m.brandNames.some(b => b.toLowerCase().includes(q)),
+    ).slice(0, 6);
+  }, [query]);
+
+  function resetForm() {
+    setQuery('');
+    setName('');
+    setIsPrescription(true);
+  }
+
+  function handleAdd() {
+    const finalName = name.trim() || query.trim();
+    if (!finalName) {
+      Alert.alert('Name required', 'Please enter a medication name.');
+      return;
+    }
+    if (existingMeds.some(m => m.toLowerCase() === finalName.toLowerCase())) {
+      Alert.alert('Already added', `${finalName} is already in your medications.`);
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+    onAdd(finalName);
+    resetForm();
+    onClose();
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity
+        style={ms.overlay}
+        activeOpacity={1}
+        onPress={() => { Keyboard.dismiss(); onClose(); resetForm(); }}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={ms.sheet}>
+              <View style={ms.handle} />
+              <Text style={ms.sheetTitle}>Add Medication</Text>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={ms.sheetScroll}>
+                <Text style={ms.fieldLabel}>Search database</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="Search by name or brand (e.g. Metformin, Lipitor)…"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={query}
+                  onChangeText={t => { setQuery(t); if (!name) setName(t); }}
+                  autoCorrect={false}
+                />
+                {dbResults.length > 0 && (
+                  <View style={ms.dbResults}>
+                    {dbResults.map(m => (
+                      <TouchableOpacity
+                        key={m.genericName}
+                        style={ms.dbRow}
+                        onPress={() => { setName(m.genericName); setQuery(m.genericName); Keyboard.dismiss(); }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={ms.dbName}>{m.genericName}</Text>
+                          <Text style={ms.dbDesc}>{m.brandNames.join(', ')} · {m.drugClass}</Text>
+                        </View>
+                        {m.category !== 'other' && (
+                          <View style={[ms.gradeBadge, { backgroundColor: Colors.accentBg }]}>
+                            <Text style={[ms.gradeTxt, { color: Colors.accent }]}>Rx</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                {query.length >= 2 && dbResults.length === 0 && (
+                  <Text style={ms.notFound}>Not found — you can still add it manually below</Text>
+                )}
+
+                <Text style={ms.fieldLabel}>Medication name *</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="Generic name (e.g. lisinopril)"
+                  placeholderTextColor={Colors.onSurfaceMuted}
+                  value={name}
+                  onChangeText={setName}
+                />
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.md }}>
+                  <Text style={ms.fieldLabel}>Prescription medication</Text>
+                  <Switch
+                    value={isPrescription}
+                    onValueChange={setIsPrescription}
+                    trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                    thumbColor={isPrescription ? Colors.primary : Colors.onSurfaceMuted}
+                  />
+                </View>
+              </ScrollView>
+
+              <View style={ms.btnRow}>
+                <TouchableOpacity style={ms.cancelBtn} onPress={() => { resetForm(); onClose(); }}>
+                  <Text style={ms.cancelTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={ms.addBtn} onPress={handleAdd}>
+                  <Text style={ms.addBtnTxt}>Add Medication</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 // ── Add Supplement Sheet (recommended picker + custom entry point) ─────────────
 interface AddSupplementSheetProps {
   visible: boolean;
@@ -574,6 +704,7 @@ export default function ProtocolScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddMedModal, setShowAddMedModal] = useState(false);
   const [showRecommendedSheet, setShowRecommendedSheet] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState<ProtocolItem | null>(null);
@@ -924,11 +1055,20 @@ export default function ProtocolScreen() {
       {/* Phase 23: Reminders section */}
       <View style={s.remindersSection}>
         <Text style={s.sectionLabel}>Reminders</Text>
-        {(['morning', 'afternoon', 'evening', 'night'] as TimeSlot[]).map((slot, i) => (
+        {(['morning', 'afternoon', 'evening', 'night'] as TimeSlot[]).map((slot, i) => {
+          const slotItemCount =
+            visibleMeds.filter(m => protocol.medTimes[m] === slot).length +
+            protocol.supplements.filter(s => s.timing === slot).length;
+          return (
           <View key={slot} style={[s.reminderRow, i > 0 && s.reminderRowBorder]}>
-            <Text style={s.reminderSlotLabel}>
-              {slot.charAt(0).toUpperCase() + slot.slice(1)}
-            </Text>
+            <View>
+              <Text style={s.reminderSlotLabel}>
+                {slot.charAt(0).toUpperCase() + slot.slice(1)}
+              </Text>
+              <Text style={s.reminderSlotSub}>
+                {slotItemCount > 0 ? `${slotItemCount} item${slotItemCount !== 1 ? 's' : ''} scheduled` : 'No items scheduled'}
+              </Text>
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
               {notifPrefs[slot].enabled && (
                 <TouchableOpacity
@@ -950,7 +1090,8 @@ export default function ProtocolScreen() {
               />
             </View>
           </View>
-        ))}
+          );
+        })}
         {permDenied && (
           <Text style={s.permDeniedTxt}>
             Notifications are disabled — go to Settings › Notifications to enable.
@@ -962,6 +1103,7 @@ export default function ProtocolScreen() {
         <DateTimePicker
           mode="time"
           display="spinner"
+          themeVariant="dark"
           value={timeStringToDate(notifPrefs[activePickerSlot].time)}
           onChange={handleTimeChange}
         />
@@ -988,7 +1130,15 @@ export default function ProtocolScreen() {
         )}
 
         {/* ── Medications ───────────────────────────────────────── */}
-        <Text style={s.sectionLabel}>Medications</Text>
+        <View style={s.sectionHdrRow}>
+          <Text style={s.stackHdrTxt}>Medications</Text>
+          <TouchableOpacity
+            style={s.sectionAddBtn}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null); setShowAddMedModal(true); }}
+          >
+            <Text style={s.sectionAddTxt}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
         {visibleMeds.length === 0 ? (
           <View style={s.emptyCard}>
             <Text style={s.emptyTxt}>
@@ -1195,6 +1345,18 @@ export default function ProtocolScreen() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={cs => addManual({ name: cs.name, dose: cs.dose, timing: cs.timing })}
+      />
+      <AddMedicationModal
+        visible={showAddMedModal}
+        onClose={() => setShowAddMedModal(false)}
+        existingMeds={medications}
+        onAdd={async (medName) => {
+          const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
+          const prof = raw ? JSON.parse(raw) as { medications?: string[] } : {};
+          const updated = [...(prof.medications ?? []), medName];
+          await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify({ ...prof, medications: updated })).catch(console.error);
+          setProfile(p => p ? { ...p, medications: updated } : p);
+        }}
       />
       <EditSupplementSheet
         visible={editingSupplement !== null}
@@ -1420,6 +1582,11 @@ const s = StyleSheet.create({
     color: Colors.onSurface,
     fontWeight: '400',
   },
+  reminderSlotSub: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.onSurfaceMuted,
+    marginTop: 2,
+  },
   reminderTimeTxt: {
     fontSize: Typography.sizes.sm,
     color: Colors.primary,
@@ -1490,6 +1657,7 @@ const ms = StyleSheet.create({
   timingChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   timingTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontWeight: '500' },
   timingTxtActive: { color: Colors.primary },
+  sheetScroll: { maxHeight: 420 },
   btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.base },
   cancelBtn: {
     flex: 1, padding: Spacing.md, borderRadius: Radius.lg,

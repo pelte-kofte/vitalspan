@@ -41,7 +41,7 @@ export default function GuidedFirstRunScreen() {
   const [saving, setSaving] = useState(false);
 
   async function saveEntry(stepIndex: number): Promise<void> {
-    const parsed = parseFloat(inputValue);
+    const parsed = parseFloat(inputValue.replace(',', '.'));
     if (isNaN(parsed) || parsed <= 0) {
       setInputError('Enter a number to continue');
       return Promise.reject();

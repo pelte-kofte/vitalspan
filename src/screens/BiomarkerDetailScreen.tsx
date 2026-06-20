@@ -89,7 +89,7 @@ export default function BiomarkerDetailScreen() {
   }
 
   async function saveEdit(entryId: string) {
-    const parsed = parseFloat(editingValue);
+    const parsed = parseFloat(editingValue.replace(',', '.'));
     if (isNaN(parsed) || parsed <= 0) {
       Alert.alert('Invalid value', 'Enter a positive number.');
       return;

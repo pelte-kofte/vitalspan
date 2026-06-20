@@ -100,7 +100,7 @@ export default function ExerciseScreen() {
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [muscleMapOpen, setMuscleMapOpen] = useState(false);
   const [muscleMapView, setMuscleMapView] = useState<'front' | 'back'>('front');
-  const [activeTab, setActiveTab] = useState<'rutinim' | 'kesset'>('kesset');
+  const [activeTab, setActiveTab] = useState<'routine' | 'discover'>('discover');
   const [routine, setRoutine] = useState<string[]>([]);
   const [editingLog, setEditingLog] = useState<ExerciseLogEntry | null>(null);
   const [editSets, setEditSets] = useState('3');
@@ -117,7 +117,7 @@ export default function ExerciseScreen() {
       setExercises(exs);
       const parsedRoutine: string[] = rawRoutine ? JSON.parse(rawRoutine) : [];
       setRoutine(parsedRoutine);
-      setActiveTab(parsedRoutine.length > 0 ? 'rutinim' : 'kesset');
+      setActiveTab(parsedRoutine.length > 0 ? 'routine' : 'discover');
     }).catch(console.error);
   }, []);
 
@@ -168,8 +168,8 @@ export default function ExerciseScreen() {
   async function saveEditLog() {
     if (!editingLog) return;
     const setsNum = Math.min(parseInt(editSets) || 1, 20);
-    const repsNum = parseInt(editRepsPerSet) || 0;
-    const weightNum = parseFloat(editWeightKg) || undefined;
+    const repsNum = parseInt(editRepsPerSet.replace(',', '.')) || 0;
+    const weightNum = parseFloat(editWeightKg.replace(',', '.')) || undefined;
     const updated: ExerciseLogEntry = { ...editingLog, setsData: Array(setsNum).fill({ reps: repsNum, weightKg: weightNum }) };
     const newLogs = logs.map(l => l.id === editingLog.id ? updated : l);
     setLogs(newLogs);
@@ -228,19 +228,19 @@ export default function ExerciseScreen() {
         )}
       </View>
 
-      {/* Rutinim / Kesfet segmented control */}
+      {/* My Routine / Discover segmented control */}
       <View style={s.segmentedControl}>
         <TouchableOpacity
-          style={[s.segment, activeTab === 'rutinim' && s.segmentActive]}
-          onPress={() => { setActiveTab('rutinim'); Haptics.selectionAsync().catch(() => null); }}
+          style={[s.segment, activeTab === 'routine' && s.segmentActive]}
+          onPress={() => { setActiveTab('routine'); Haptics.selectionAsync().catch(() => null); }}
         >
-          <Text style={[s.segmentTxt, activeTab === 'rutinim' && s.segmentTxtActive]}>Rutinim</Text>
+          <Text style={[s.segmentTxt, activeTab === 'routine' && s.segmentTxtActive]}>My Routine</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.segment, activeTab === 'kesset' && s.segmentActive]}
-          onPress={() => { setActiveTab('kesset'); Haptics.selectionAsync().catch(() => null); }}
+          style={[s.segment, activeTab === 'discover' && s.segmentActive]}
+          onPress={() => { setActiveTab('discover'); Haptics.selectionAsync().catch(() => null); }}
         >
-          <Text style={[s.segmentTxt, activeTab === 'kesset' && s.segmentTxtActive]}>Keşfet</Text>
+          <Text style={[s.segmentTxt, activeTab === 'discover' && s.segmentTxtActive]}>Discover</Text>
         </TouchableOpacity>
       </View>
 
@@ -270,7 +270,7 @@ export default function ExerciseScreen() {
       </View>
 
       {/* Category tabs — Kesfet only */}
-      {activeTab === 'kesset' && (
+      {activeTab === 'discover' && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -298,7 +298,7 @@ export default function ExerciseScreen() {
       )}
 
       {/* Muscle map filter — Kesfet only */}
-      {activeTab === 'kesset' && (
+      {activeTab === 'discover' && (
         <>
           <TouchableOpacity
             style={s.muscleFilterToggle}
@@ -352,17 +352,17 @@ export default function ExerciseScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
-        {/* Rutinim tab: empty state or routine cards */}
-        {activeTab === 'rutinim' && routine.length === 0 && (
+        {/* My Routine tab: empty state or routine cards */}
+        {activeTab === 'routine' && routine.length === 0 && (
           <View style={s.emptyStateCard}>
             <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Build your routine</Text>
             <Text style={s.emptyStateBody}>
-              Add exercises from Keşfet to build your personal routine.
+              Add exercises from Discover to build your personal routine.
             </Text>
             <TouchableOpacity
               style={s.emptyStateCta}
-              onPress={() => { setActiveTab('kesset'); Haptics.selectionAsync().catch(() => null); }}
+              onPress={() => { setActiveTab('discover'); Haptics.selectionAsync().catch(() => null); }}
               activeOpacity={0.82}
             >
               <Text style={s.emptyStateCtaTxt}>Explore Exercises</Text>
@@ -370,7 +370,7 @@ export default function ExerciseScreen() {
           </View>
         )}
 
-        {activeTab === 'rutinim' && routine.length > 0 && (() => {
+        {activeTab === 'routine' && routine.length > 0 && (() => {
           const currentMonday = getMondayStr(new Date());
           const prevMonday = getMondayStr(new Date(new Date(currentMonday + 'T00:00:00').getTime() - 7 * 86400000));
           const routineExercises = routine.map(id => exercises.find(e => e.id === id)).filter((e): e is Exercise => e !== undefined);
@@ -411,7 +411,7 @@ export default function ExerciseScreen() {
         })()}
 
         {/* Motivating empty state — shown when no logs at all (Kesfet only) */}
-        {activeTab === 'kesset' && logs.length === 0 && (
+        {activeTab === 'discover' && logs.length === 0 && (
           <View style={s.emptyStateCard}>
             <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
@@ -486,7 +486,7 @@ export default function ExerciseScreen() {
         )}
 
         {/* Exercise library — Kesfet only */}
-        {activeTab === 'kesset' && exercises.length > 0 && (
+        {activeTab === 'discover' && exercises.length > 0 && (
           <>
             <Text style={s.sectionLabel}>
               {selectedMuscle
@@ -754,7 +754,7 @@ const s = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Rutinim/Kesfet segmented control
+  // My Routine/Discover segmented control
   segmentedControl: {
     flexDirection: 'row',
     gap: Spacing.xs,

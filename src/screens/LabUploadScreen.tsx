@@ -12,7 +12,7 @@ import { SearchIcon, SuccessCheckIcon, ClipboardIcon, CameraIcon } from '../comp
 import { parseLabPDF, ParsedBiomarker } from '../lib/labParser';
 import { StoredEntry } from './BiomarkerEntryScreen';
 
-type Phase = 'idle' | 'analyzing' | 'results' | 'noResults' | 'success';
+type Phase = 'idle' | 'analyzing' | 'results' | 'noResults' | 'noMatch' | 'success';
 
 interface ResultItem extends ParsedBiomarker { selected: boolean }
 
@@ -30,12 +30,13 @@ export default function LabUploadScreen() {
     try {
       const parsed = await parseLabPDF(uri);
       if (parsed.length === 0) {
-        setPhase('noResults');
+        setPhase('noMatch');
       } else {
         setItems(parsed.map(p => ({ ...p, selected: true })));
         setPhase('results');
       }
-    } catch {
+    } catch (e) {
+      console.error('[LabUpload] PDF parse failed:', e);
       setPhase('noResults');
     }
   }, []);
@@ -138,7 +139,7 @@ export default function LabUploadScreen() {
     </SafeAreaView>
   );
 
-  // ── No results ───────────────────────────────────────────────────────────
+  // ── No results (parse error / unreadable) ──────────────────────────────────
   if (phase === 'noResults') return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
@@ -150,7 +151,31 @@ export default function LabUploadScreen() {
         <SearchIcon color={Colors.brand} size={48} />
         <Text style={s.noResultTitle}>Couldn't read this PDF</Text>
         <Text style={s.noResultSub}>
-          This PDF may be a scanned image. Try logging your values manually or re-export your results as a text-based PDF.
+          This PDF appears to be a scanned image and can't be read as text. Re-export your lab results as a text-based PDF, or log your values manually.
+        </Text>
+        <TouchableOpacity style={s.primaryBtn} onPress={() => setPhase('idle')}>
+          <Text style={s.primaryBtnTxt}>Try another file</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.ghostBtn} onPress={() => nav.goBack()}>
+          <Text style={s.ghostBtnTxt}>Log manually instead</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+
+  // ── No match (readable but no biomarkers recognised) ───────────────────────
+  if (phase === 'noMatch') return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => setPhase('idle')}><Text style={s.close}>←</Text></TouchableOpacity>
+        <Text style={s.headerTitle}>Upload Lab Results</Text>
+        <View style={{ width: 28 }} />
+      </View>
+      <View style={s.centeredContent}>
+        <SearchIcon color={Colors.brand} size={48} />
+        <Text style={s.noResultTitle}>No biomarkers found</Text>
+        <Text style={s.noResultSub}>
+          The PDF was read successfully but no recognised lab values were found. Your report may use different terminology — try logging your values manually.
         </Text>
         <TouchableOpacity style={s.primaryBtn} onPress={() => setPhase('idle')}>
           <Text style={s.primaryBtnTxt}>Try another file</Text>

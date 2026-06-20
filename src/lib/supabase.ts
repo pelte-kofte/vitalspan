@@ -1,4 +1,5 @@
 import 'react-native-url-polyfill/auto'
+import * as WebBrowser from 'expo-web-browser'
 /**
  * Supabase client singleton for Vitalspan.
  *
@@ -235,6 +236,65 @@ export async function signOutUser(): Promise<{ error: string | null }> {
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)
     return { error: mapAuthError(message) }
+  }
+}
+
+// App URL scheme — must match scheme in app.json and Supabase redirect allowlist
+const APP_SCHEME = 'vitalspan'
+const OAUTH_REDIRECT = `${APP_SCHEME}://auth/callback`
+
+/**
+ * Opens a browser to sign in with Google via Supabase OAuth.
+ * Requires: Supabase Dashboard → Auth → Providers → Google enabled,
+ * and app.json "scheme": "vitalspan" set.
+ */
+export async function signInWithGoogle(): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: OAUTH_REDIRECT, skipBrowserRedirect: true },
+    })
+    if (error) return { error: mapAuthError(error.message) }
+    if (!data.url) return { error: 'Could not start Google sign-in' }
+    const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
+    if (result.type !== 'success') return { error: null }
+    const params = new URL(result.url)
+    const accessToken = params.searchParams.get('access_token')
+    const refreshToken = params.searchParams.get('refresh_token')
+    if (accessToken && refreshToken) {
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    }
+    return { error: null }
+  } catch (e: unknown) {
+    return { error: mapAuthError(e instanceof Error ? e.message : String(e)) }
+  }
+}
+
+/**
+ * Opens a browser to sign in with Apple via Supabase OAuth.
+ * Requires: Supabase Dashboard → Auth → Providers → Apple enabled,
+ * Apple Developer Console setup, and app.json "scheme": "vitalspan" set.
+ * Note: native Sign in with Apple requires expo-apple-authentication.
+ */
+export async function signInWithApple(): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: OAUTH_REDIRECT, skipBrowserRedirect: true },
+    })
+    if (error) return { error: mapAuthError(error.message) }
+    if (!data.url) return { error: 'Could not start Apple sign-in' }
+    const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
+    if (result.type !== 'success') return { error: null }
+    const params = new URL(result.url)
+    const accessToken = params.searchParams.get('access_token')
+    const refreshToken = params.searchParams.get('refresh_token')
+    if (accessToken && refreshToken) {
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    }
+    return { error: null }
+  } catch (e: unknown) {
+    return { error: mapAuthError(e instanceof Error ? e.message : String(e)) }
   }
 }
 

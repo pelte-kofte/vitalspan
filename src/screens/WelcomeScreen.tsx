@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   Dimensions, Animated, KeyboardAvoidingView, Platform,
-  TouchableWithoutFeedback,
+  TouchableWithoutFeedback, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import NeuralGrid from '../components/NeuralGrid';
 import SheetForm, { SheetFormField } from '../components/auth/SheetForm';
-import { signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase } from '../lib/supabase';
+import { signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase, signInWithApple, signInWithGoogle } from '../lib/supabase';
 import { migrateHistory } from '../lib/biomarkerWriteService';
 import { StoredEntry } from './BiomarkerEntryScreen';
 import { Colors, Spacing, Radius, Typography } from '../theme';
@@ -18,7 +18,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const { height: SCREEN_H } = Dimensions.get('window');
-const METRIC_LABELS = ['HRV', 'Glucose', 'BioAge'] as const;
 
 export default function WelcomeScreen() {
   const nav = useNavigation<Nav>();
@@ -29,17 +28,6 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(SCREEN_H)).current;
-  const metricValue = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(metricValue, { toValue: 1, duration: 3000, useNativeDriver: true }),
-        Animated.timing(metricValue, { toValue: 0, duration: 3000, useNativeDriver: true }),
-      ]),
-      { iterations: -1 },
-    ).start();
-  }, []);
 
   function openSheet(type: 'signup' | 'login') {
     setEmail(''); setPassword(''); setConfirmPassword(''); setError(null);
@@ -124,21 +112,33 @@ export default function WelcomeScreen() {
           <Text style={s.eyebrow}>LONGEVITY · SCIENCE</Text>
           <Text style={s.title}>Vitalspan</Text>
           <Text style={s.tagline}>Precision longevity tracking,{'\n'}built by a pharmacist.</Text>
-          <View style={s.metricRow}>
-            {METRIC_LABELS.map((label, i) => (
-              <Animated.View key={label} style={[s.metricOrb, { opacity: metricValue.interpolate({ inputRange: [0, 1], outputRange: [0.3 + i * 0.1, 0.9] }) }]}>
-                <View style={s.orbCircle} />
-                <Text style={s.orbLabel}>{label}</Text>
-              </Animated.View>
-            ))}
-          </View>
+          <Text style={s.supportLine}>Track HRV, glucose, biological age, biomarkers and more.</Text>
         </View>
         <View style={s.cta}>
+          <TouchableOpacity style={s.btnApple} onPress={async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+            const { error } = await signInWithApple();
+            if (error) { Alert.alert('Sign in failed', error); }
+          }}>
+            <Text style={s.btnAppleTxt}> Sign in with Apple</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.btnGoogle} onPress={async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+            const { error } = await signInWithGoogle();
+            if (error) { Alert.alert('Sign in failed', error); }
+          }}>
+            <Text style={s.btnGoogleTxt}>G  Sign in with Google</Text>
+          </TouchableOpacity>
+          <View style={s.dividerRow}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerTxt}>or</Text>
+            <View style={s.dividerLine} />
+          </View>
           <TouchableOpacity style={s.btnPrimary} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); openSheet('signup'); }}>
-            <Text style={s.btnPrimaryTxt}>Sign Up</Text>
+            <Text style={s.btnPrimaryTxt}>Sign Up with Email</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.btnSecondary} onPress={() => openSheet('login')}>
-            <Text style={s.btnSecondaryTxt}>Log In</Text>
+            <Text style={s.btnSecondaryTxt}>Log In with Email</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleGuest}>
             <Text style={s.ghost}>Continue as guest</Text>
@@ -184,16 +184,20 @@ const s = StyleSheet.create({
   eyebrow: { fontSize: Typography.sizes.captionSmall, fontWeight: '600', color: Colors.dark.textMuted, letterSpacing: Typography.letterSpacing.widest },
   title: { fontFamily: Typography.serif, fontSize: 44, color: Colors.dark.text, marginTop: Spacing.sm },
   tagline: { fontSize: Typography.sizes.body, color: Colors.dark.textMuted, textAlign: 'center', marginTop: Spacing.sm },
-  metricRow: { flexDirection: 'row', gap: Spacing.xl, marginTop: Spacing.lg },
-  metricOrb: { alignItems: 'center', gap: Spacing.xs },
-  orbCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.viz.bioGreenDim, borderWidth: 1, borderColor: Colors.viz.bioGreen },
-  orbLabel: { fontSize: Typography.sizes.captionSmall, color: Colors.dark.textMuted },
+  supportLine: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.textMuted, textAlign: 'center', marginTop: Spacing.md, opacity: 0.7 },
   cta: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.xxl },
   btnPrimary: { backgroundColor: Colors.brand, borderRadius: Radius.full, paddingVertical: 16, alignItems: 'center' },
   btnPrimaryTxt: { color: Colors.dark.text, fontSize: Typography.sizes.body, fontWeight: '600' },
   btnSecondary: { borderWidth: 1, borderColor: Colors.dark.cardBorder, borderRadius: Radius.full, paddingVertical: 16, alignItems: 'center' },
   btnSecondaryTxt: { color: Colors.dark.text, fontSize: Typography.sizes.body, fontWeight: '600' },
   ghost: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, textAlign: 'center', paddingVertical: Spacing.sm },
+  btnApple: { backgroundColor: '#000000', borderRadius: Radius.full, paddingVertical: 16, alignItems: 'center' },
+  btnAppleTxt: { color: '#FFFFFF', fontSize: Typography.sizes.body, fontWeight: '600' },
+  btnGoogle: { backgroundColor: '#FFFFFF', borderRadius: Radius.full, paddingVertical: 16, alignItems: 'center', borderWidth: 1, borderColor: Colors.dark.cardBorder },
+  btnGoogleTxt: { color: '#1A1A18', fontSize: Typography.sizes.body, fontWeight: '600' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  dividerLine: { flex: 1, height: 0.5, backgroundColor: Colors.dark.cardBorder },
+  dividerTxt: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.textMuted },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheetKav: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   sheet: { backgroundColor: Colors.surface, borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, padding: Spacing.xl, paddingBottom: Spacing.xxl },

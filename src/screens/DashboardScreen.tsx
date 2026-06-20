@@ -709,15 +709,20 @@ const s = StyleSheet.create({
   weeklyCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.dark.cardBg,
+    backgroundColor: Colors.bgCard,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.dark.cardBorder,
+    borderColor: Colors.border,
     padding: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   weeklyLabel: {
     fontSize: Typography.sizes.xs, fontWeight: '600',
-    color: Colors.dark.textMuted,
+    color: Colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginBottom: Spacing.sm,
   },
@@ -725,15 +730,15 @@ const s = StyleSheet.create({
   weeklyStat: { flex: 1, alignItems: 'center' },
   weeklyStatVal: {
     fontSize: Typography.sizes.xl, fontWeight: '600',
-    color: Colors.dark.text, lineHeight: 26,
+    color: Colors.textPrimary, lineHeight: 26,
   },
   weeklyStatLbl: {
     fontSize: Typography.sizes.xs,
-    color: Colors.dark.textMuted, marginTop: 2,
+    color: Colors.textMuted, marginTop: 2,
   },
   weeklyDivider: {
     width: 0.5, height: 32,
-    backgroundColor: Colors.dark.cardBorder,
+    backgroundColor: Colors.border,
   },
   // Email verification banner (D-12)
   verificationBanner: {
