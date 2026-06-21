@@ -68,7 +68,11 @@ export default function App() {
     void (async () => {
       try {
         const prefs = await loadNotificationPrefs();
-        await rescheduleAll(prefs);
+        const protocolRaw = await AsyncStorage.getItem('@vitalspan_protocol').catch(() => null);
+        const protocol = protocolRaw
+          ? (JSON.parse(protocolRaw) as { supplements?: Array<{ id: string; name: string; reminderEnabled?: boolean; reminderSlot?: import('./src/types/protocol').TimeSlot }>; medReminders?: Record<string, { enabled: boolean; slot: import('./src/types/protocol').TimeSlot }> })
+          : undefined;
+        await rescheduleAll(prefs, protocol);
       } catch {
         // non-blocking — silently ignore notification reschedule errors
       }

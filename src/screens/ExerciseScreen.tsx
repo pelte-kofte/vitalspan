@@ -77,6 +77,28 @@ function getTrendColor(badge: '↑' | '–' | '↓' | null): string {
   return 'transparent';
 }
 
+function formatDateHeader(dateStr: string, todayStr: string): string {
+  const yest = new Date();
+  yest.setDate(yest.getDate() - 1);
+  const yesterdayStr = yest.toISOString().slice(0, 10);
+  if (dateStr === todayStr) return 'Today';
+  if (dateStr === yesterdayStr) return 'Yesterday';
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+  });
+}
+
+function groupLogsByDate(logList: ExerciseLogEntry[]): Array<{ dateStr: string; entries: ExerciseLogEntry[] }> {
+  const map: Record<string, ExerciseLogEntry[]> = {};
+  for (const log of logList) {
+    if (!map[log.date]) map[log.date] = [];
+    map[log.date].push(log);
+  }
+  return Object.keys(map)
+    .sort((a, b) => b.localeCompare(a))
+    .map(dateStr => ({ dateStr, entries: map[dateStr] }));
+}
+
 function getLastSessionSummary(logs: ExerciseLogEntry[], exerciseId: string): string | null {
   const recent = logs.filter(l => l.exerciseId === exerciseId).sort((a, b) => b.loggedAt.localeCompare(a.loggedAt))[0];
   if (!recent) return null;
@@ -449,41 +471,41 @@ export default function ExerciseScreen() {
           </>
         )}
 
-        {/* This Week section */}
-        {thisWeekLogs.length > 0 && (
-          <>
-            <Text style={s.sectionLabel}>This Week</Text>
+        {/* This Week — grouped by individual day */}
+        {thisWeekLogs.length > 0 && groupLogsByDate(thisWeekLogs).map(({ dateStr, entries }) => (
+          <React.Fragment key={dateStr}>
+            <Text style={s.sectionLabel}>{formatDateHeader(dateStr, todayStr)}</Text>
             <View style={s.card}>
-              {thisWeekLogs.map((log, i) => (
+              {entries.map((log, i) => (
                 <SwipeableLogRow
                   key={log.id}
                   log={log}
                   onDelete={deleteLog}
                   onEdit={openEditSheet}
-                  showBorder={i < thisWeekLogs.length - 1}
+                  showBorder={i < entries.length - 1}
                 />
               ))}
             </View>
-          </>
-        )}
+          </React.Fragment>
+        ))}
 
-        {/* History section */}
-        {historyLogs.length > 0 && (
-          <>
-            <Text style={s.sectionLabel}>History</Text>
+        {/* History — grouped by individual day */}
+        {historyLogs.length > 0 && groupLogsByDate(historyLogs).map(({ dateStr, entries }) => (
+          <React.Fragment key={dateStr}>
+            <Text style={s.sectionLabel}>{formatDateHeader(dateStr, todayStr)}</Text>
             <View style={s.card}>
-              {historyLogs.map((log, i) => (
+              {entries.map((log, i) => (
                 <SwipeableLogRow
                   key={log.id}
                   log={log}
                   onDelete={deleteLog}
                   onEdit={openEditSheet}
-                  showBorder={i < historyLogs.length - 1}
+                  showBorder={i < entries.length - 1}
                 />
               ))}
             </View>
-          </>
-        )}
+          </React.Fragment>
+        ))}
 
         {/* Exercise library — Kesfet only */}
         {activeTab === 'discover' && exercises.length > 0 && (

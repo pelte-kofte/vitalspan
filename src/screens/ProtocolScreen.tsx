@@ -5,13 +5,12 @@ import {
   Modal, TextInput, Alert,
   KeyboardAvoidingView, Keyboard, Platform, Switch,
 } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import {
   NotificationPrefs,
   DEFAULT_PREFS,
   NOTIFICATION_PREFS_KEY,
-  scheduleSlot,
-  cancelSlot,
+  scheduleItemReminder,
+  cancelItemReminder,
   ensurePermission,
 } from '../lib/notifications';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
@@ -340,19 +339,23 @@ interface EditSupplementSheetProps {
   visible: boolean;
   item: ProtocolItem | null;
   onClose: () => void;
-  onSave: (updates: { personalDose?: string; timing?: TimeSlot }) => void;
+  onSave: (updates: { personalDose?: string; timing?: TimeSlot; reminderEnabled?: boolean; reminderSlot?: TimeSlot }) => void;
 }
 
 function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementSheetProps) {
   const [personalDose, setPersonalDose] = useState('');
   const [timing, setTiming] = useState<TimeSlot | undefined>(undefined);
   const [notes, setNotes] = useState('');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderSlot, setReminderSlot] = useState<TimeSlot | undefined>(undefined);
 
   useEffect(() => {
     if (item) {
       setPersonalDose(item.personalDose ?? item.dose);
       setTiming(item.timing);
       setNotes('');
+      setReminderEnabled(item.reminderEnabled ?? false);
+      setReminderSlot(item.reminderSlot ?? item.timing);
     }
   }, [item]);
 
@@ -364,6 +367,8 @@ function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementS
     onSave({
       personalDose: personalDose.trim() || undefined,
       timing,
+      reminderEnabled,
+      reminderSlot: reminderEnabled ? reminderSlot : undefined,
     });
   }
 
@@ -418,6 +423,35 @@ function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementS
                 </>
               )}
 
+              <Text style={ms.fieldLabel}>Reminder</Text>
+              <View style={ms.reminderToggleRow}>
+                <Text style={ms.reminderToggleLbl}>Remind me daily</Text>
+                <Switch
+                  value={reminderEnabled}
+                  onValueChange={setReminderEnabled}
+                  trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                  thumbColor={reminderEnabled ? Colors.primary : Colors.onSurfaceMuted}
+                />
+              </View>
+              {reminderEnabled && (
+                <>
+                  <Text style={[ms.fieldLabel, { marginTop: Spacing.sm }]}>Remind me at</Text>
+                  <View style={ms.timingRow}>
+                    {TIME_SLOTS.map(slot => (
+                      <TouchableOpacity
+                        key={slot.key}
+                        style={[ms.timingChip, reminderSlot === slot.key && ms.timingChipActive]}
+                        onPress={() => setReminderSlot(s => s === slot.key ? undefined : slot.key)}
+                      >
+                        <Text style={[ms.timingTxt, reminderSlot === slot.key && ms.timingTxtActive]}>
+                          {slot.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
               <View style={ms.btnRow}>
                 <TouchableOpacity style={ms.cancelBtn} onPress={handleClose}>
                   <Text style={ms.cancelTxt}>Cancel</Text>
@@ -439,17 +473,23 @@ interface EditMedicationSheetProps {
   visible: boolean;
   medName: string | null;
   currentTiming: TimeSlot | undefined;
+  currentReminderEnabled: boolean;
+  currentReminderSlot: TimeSlot | undefined;
   onClose: () => void;
-  onSaveTiming: (time: TimeSlot | undefined) => void;
+  onSave: (timing: TimeSlot | undefined, reminderEnabled: boolean, reminderSlot: TimeSlot | undefined) => void;
   onHide: () => void;
 }
 
-function EditMedicationSheet({ visible, medName, currentTiming, onClose, onSaveTiming, onHide }: EditMedicationSheetProps) {
+function EditMedicationSheet({ visible, medName, currentTiming, currentReminderEnabled, currentReminderSlot, onClose, onSave, onHide }: EditMedicationSheetProps) {
   const [selectedTiming, setSelectedTiming] = useState<TimeSlot | undefined>(undefined);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderSlot, setReminderSlot] = useState<TimeSlot | undefined>(undefined);
 
   useEffect(() => {
     setSelectedTiming(currentTiming);
-  }, [currentTiming, medName]);
+    setReminderEnabled(currentReminderEnabled);
+    setReminderSlot(currentReminderSlot ?? currentTiming);
+  }, [currentTiming, currentReminderEnabled, currentReminderSlot, medName]);
 
   function handleHide() {
     Alert.alert(
@@ -490,6 +530,35 @@ function EditMedicationSheet({ visible, medName, currentTiming, onClose, onSaveT
                 ))}
               </View>
 
+              <Text style={ms.fieldLabel}>Reminder</Text>
+              <View style={ms.reminderToggleRow}>
+                <Text style={ms.reminderToggleLbl}>Remind me daily</Text>
+                <Switch
+                  value={reminderEnabled}
+                  onValueChange={setReminderEnabled}
+                  trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
+                  thumbColor={reminderEnabled ? Colors.primary : Colors.onSurfaceMuted}
+                />
+              </View>
+              {reminderEnabled && (
+                <>
+                  <Text style={[ms.fieldLabel, { marginTop: Spacing.sm }]}>Remind me at</Text>
+                  <View style={ms.timingRow}>
+                    {TIME_SLOTS.map(slot => (
+                      <TouchableOpacity
+                        key={slot.key}
+                        style={[ms.timingChip, reminderSlot === slot.key && ms.timingChipActive]}
+                        onPress={() => setReminderSlot(s => s === slot.key ? undefined : slot.key)}
+                      >
+                        <Text style={[ms.timingTxt, reminderSlot === slot.key && ms.timingTxtActive]}>
+                          {slot.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
               <TouchableOpacity style={ms.destructiveBtn} onPress={handleHide}>
                 <Text style={ms.destructiveTxt}>Remove from view</Text>
               </TouchableOpacity>
@@ -498,8 +567,8 @@ function EditMedicationSheet({ visible, medName, currentTiming, onClose, onSaveT
                 <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
                   <Text style={ms.cancelTxt}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={ms.addBtn} onPress={() => onSaveTiming(selectedTiming)}>
-                  <Text style={ms.addBtnTxt}>Save Timing</Text>
+                <TouchableOpacity style={ms.addBtn} onPress={() => onSave(selectedTiming, reminderEnabled, reminderEnabled ? reminderSlot : undefined)}>
+                  <Text style={ms.addBtnTxt}>Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -711,8 +780,6 @@ export default function ProtocolScreen() {
   const [editingMed, setEditingMed] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [permDenied, setPermDenied] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [activePickerSlot, setActivePickerSlot] = useState<TimeSlot | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(NOTIFICATION_PREFS_KEY)
@@ -824,15 +891,27 @@ export default function ProtocolScreen() {
     persist({ ...protocol, taken, takenDate: today });
   }
 
-  // Medication timing is now set from EditMedicationSheet only
-  function setMedTimeFromSheet(med: string, time: TimeSlot | undefined) {
+  // Medication timing + reminder is now set from EditMedicationSheet only
+  async function setMedFromSheet(
+    med: string,
+    time: TimeSlot | undefined,
+    reminderEnabled: boolean,
+    reminderSlot: TimeSlot | undefined,
+  ) {
     const newTimes = { ...protocol.medTimes };
     if (time === undefined) {
       delete newTimes[med];
     } else {
       newTimes[med] = time;
     }
-    persist({ ...protocol, medTimes: newTimes });
+    const newMedReminders = { ...(protocol.medReminders ?? {}) };
+    if (!reminderEnabled) {
+      delete newMedReminders[med];
+    } else if (reminderSlot) {
+      newMedReminders[med] = { enabled: true, slot: reminderSlot };
+    }
+    await persist({ ...protocol, medTimes: newTimes, medReminders: newMedReminders });
+    await applyItemReminder(`med_${med}`, med, reminderEnabled, reminderSlot);
   }
 
   function hideMedication(name: string) {
@@ -887,12 +966,20 @@ export default function ProtocolScreen() {
     ]);
   }
 
-  // Update a supplement item's personalDose/timing
-  function updateSupplementItem(id: string, updates: Partial<Pick<ProtocolItem, 'personalDose' | 'timing'>>) {
+  // Update a supplement item's personalDose/timing/reminder settings
+  async function updateSupplementItem(
+    id: string,
+    updates: Partial<Pick<ProtocolItem, 'personalDose' | 'timing' | 'reminderEnabled' | 'reminderSlot'>>,
+  ) {
     const supplements = protocol.supplements.map(s =>
       s.id === id ? { ...s, ...updates } : s,
     );
-    persist({ ...protocol, supplements });
+    await persist({ ...protocol, supplements });
+    // Apply or cancel the notification for this specific item
+    const item = supplements.find(s => s.id === id);
+    if (item && 'reminderEnabled' in updates) {
+      await applyItemReminder(id, item.name, item.reminderEnabled ?? false, item.reminderSlot);
+    }
   }
 
   // Toggle for library section: add or remove by name
@@ -905,48 +992,23 @@ export default function ProtocolScreen() {
     }
   }
 
-  // Phase 23: Notification handlers
-  function timeStringToDate(time: string): Date {
-    const [h, m] = time.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d;
-  }
-
-  async function handleSlotToggle(slot: TimeSlot, value: boolean): Promise<void> {
-    Haptics.selectionAsync().catch(() => null);
-    if (value) {
-      const granted = await ensurePermission();
-      if (!granted) { setPermDenied(true); return; }
+  // Per-item reminder toggle handler — called from EditSupplementSheet/EditMedicationSheet save.
+  async function applyItemReminder(
+    id: string,
+    name: string,
+    enabled: boolean,
+    slot: TimeSlot | undefined,
+  ): Promise<void> {
+    if (!enabled) {
+      await cancelItemReminder(id).catch(() => null);
+      setPermDenied(false);
+      return;
     }
+    if (!slot) return; // no slot chosen yet — don't schedule
+    const granted = await ensurePermission();
+    if (!granted) { setPermDenied(true); return; }
     setPermDenied(false);
-    const next: NotificationPrefs = { ...notifPrefs, [slot]: { ...notifPrefs[slot], enabled: value } };
-    setNotifPrefs(next);
-    await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(next)).catch(() => null);
-    if (value) {
-      await scheduleSlot(slot, next[slot].time).catch(() => null);
-    } else {
-      await cancelSlot(slot).catch(() => null);
-    }
-  }
-
-  function handleTimeChange(event: DateTimePickerEvent, date?: Date): void {
-    setShowTimePicker(false);
-    if (event.type !== 'set' || !date || !activePickerSlot) return;
-    Haptics.selectionAsync().catch(() => null);
-    const hh = String(date.getHours()).padStart(2, '0');
-    const mm = String(date.getMinutes()).padStart(2, '0');
-    const newTime = `${hh}:${mm}`;
-    const next: NotificationPrefs = {
-      ...notifPrefs,
-      [activePickerSlot]: { ...notifPrefs[activePickerSlot], time: newTime },
-    };
-    setNotifPrefs(next);
-    AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(next)).catch(() => null);
-    if (next[activePickerSlot].enabled) {
-      scheduleSlot(activePickerSlot, newTime).catch(() => null);
-    }
-    setActivePickerSlot(null);
+    await scheduleItemReminder(id, slot, name, notifPrefs).catch(() => null);
   }
 
   // Visible medications (excludes hidden)
@@ -1052,61 +1114,10 @@ export default function ProtocolScreen() {
         ) : null}
       </View>
 
-      {/* Phase 23: Reminders section */}
-      <View style={s.remindersSection}>
-        <Text style={s.sectionLabel}>Reminders</Text>
-        {(['morning', 'afternoon', 'evening', 'night'] as TimeSlot[]).map((slot, i) => {
-          const slotItemCount =
-            visibleMeds.filter(m => protocol.medTimes[m] === slot).length +
-            protocol.supplements.filter(s => s.timing === slot).length;
-          return (
-          <View key={slot} style={[s.reminderRow, i > 0 && s.reminderRowBorder]}>
-            <View>
-              <Text style={s.reminderSlotLabel}>
-                {slot.charAt(0).toUpperCase() + slot.slice(1)}
-              </Text>
-              <Text style={s.reminderSlotSub}>
-                {slotItemCount > 0 ? `${slotItemCount} item${slotItemCount !== 1 ? 's' : ''} scheduled` : 'No items scheduled'}
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-              {notifPrefs[slot].enabled && (
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => null);
-                    setActivePickerSlot(slot);
-                    setShowTimePicker(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={s.reminderTimeTxt}>{notifPrefs[slot].time}</Text>
-                </TouchableOpacity>
-              )}
-              <Switch
-                value={notifPrefs[slot].enabled}
-                onValueChange={value => { void handleSlotToggle(slot, value); }}
-                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
-                thumbColor={notifPrefs[slot].enabled ? Colors.primary : Colors.onSurfaceMuted}
-              />
-            </View>
-          </View>
-          );
-        })}
-        {permDenied && (
-          <Text style={s.permDeniedTxt}>
-            Notifications are disabled — go to Settings › Notifications to enable.
-          </Text>
-        )}
-      </View>
-
-      {showTimePicker && activePickerSlot && (
-        <DateTimePicker
-          mode="time"
-          display="spinner"
-          themeVariant="dark"
-          value={timeStringToDate(notifPrefs[activePickerSlot].time)}
-          onChange={handleTimeChange}
-        />
+      {permDenied && (
+        <Text style={s.permDeniedTxt}>
+          Notifications are disabled — go to Settings › Notifications to enable.
+        </Text>
       )}
 
       <ScrollView
@@ -1364,7 +1375,7 @@ export default function ProtocolScreen() {
         onClose={() => setEditingSupplement(null)}
         onSave={updates => {
           if (editingSupplement) {
-            updateSupplementItem(editingSupplement.id, updates);
+            void updateSupplementItem(editingSupplement.id, updates);
           }
           setEditingSupplement(null);
         }}
@@ -1373,9 +1384,11 @@ export default function ProtocolScreen() {
         visible={editingMed !== null}
         medName={editingMed}
         currentTiming={editingMed ? protocol.medTimes[editingMed] : undefined}
+        currentReminderEnabled={editingMed ? (protocol.medReminders?.[editingMed]?.enabled ?? false) : false}
+        currentReminderSlot={editingMed ? protocol.medReminders?.[editingMed]?.slot : undefined}
         onClose={() => setEditingMed(null)}
-        onSaveTiming={t => {
-          if (editingMed) setMedTimeFromSheet(editingMed, t);
+        onSave={(t, remEnabled, remSlot) => {
+          if (editingMed) void setMedFromSheet(editingMed, t, remEnabled, remSlot);
           setEditingMed(null);
         }}
         onHide={() => {
@@ -1562,42 +1575,6 @@ const s = StyleSheet.create({
   // ── Library divider ──────────────────────────────────────────
   libDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
 
-  // Phase 23: Reminders section
-  remindersSection: {
-    paddingBottom: Spacing.sm,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-  },
-  reminderRowBorder: {
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.borderLight,
-  },
-  reminderSlotLabel: {
-    fontSize: Typography.sizes.base,
-    color: Colors.onSurface,
-    fontWeight: '400',
-  },
-  reminderSlotSub: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.onSurfaceMuted,
-    marginTop: 2,
-  },
-  reminderTimeTxt: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.primary,
-    fontWeight: '600',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: Radius.full,
-    borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
-  },
   permDeniedTxt: {
     fontSize: Typography.sizes.xs,
     color: Colors.onSurfaceMuted,
@@ -1657,6 +1634,16 @@ const ms = StyleSheet.create({
   timingChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
   timingTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontWeight: '500' },
   timingTxtActive: { color: Colors.primary },
+  reminderToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  reminderToggleLbl: {
+    fontSize: Typography.sizes.base,
+    color: Colors.onSurface,
+  },
   sheetScroll: { maxHeight: 420 },
   btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.base },
   cancelBtn: {

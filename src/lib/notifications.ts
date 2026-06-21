@@ -118,17 +118,74 @@ export async function cancelSlot(slot: TimeSlot): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(`vitalspan-${slot}`);
 }
 
+// ─── Per-item scheduling ──────────────────────────────────────────────────────
+
+const SLOT_DEFAULT_TIMES: Record<TimeSlot, string> = {
+  morning:   '08:00',
+  afternoon: '13:00',
+  evening:   '18:00',
+  night:     '21:00',
+};
+
 /**
- * Cancel all scheduled notifications, then reschedule all enabled slots.
- * Used by App.tsx on every launch to keep notifications fresh after EAS
- * updates (D-04). Uses cancel-all first to prevent accumulation (Pitfall 3).
+ * Schedule a daily reminder for a single protocol item or medication.
+ *
+ * @param id    - Stable identifier string; will be prefixed with `vitalspan-item-`
+ * @param slot  - Which slot time to fire at
+ * @param name  - Display name used in the notification body
+ * @param prefs - NotificationPrefs, used to resolve the slot's configured clock time
  */
-export async function rescheduleAll(prefs: NotificationPrefs): Promise<void> {
+export async function scheduleItemReminder(
+  id: string,
+  slot: TimeSlot,
+  name: string,
+  prefs: NotificationPrefs,
+): Promise<void> {
+  const time = prefs[slot]?.time ?? SLOT_DEFAULT_TIMES[slot];
+  const [hour, minute] = time.split(':').map(Number);
+  await Notifications.scheduleNotificationAsync({
+    identifier: `vitalspan-item-${id}`,
+    content: {
+      title: 'Vitalspan Reminder',
+      body: `Time to take ${name}.`,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    },
+  });
+}
+
+/**
+ * Cancel the per-item reminder for a given id.
+ */
+export async function cancelItemReminder(id: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(`vitalspan-item-${id}`);
+}
+
+/**
+ * Cancel all scheduled notifications, then reschedule all per-item reminders
+ * from the current protocol state. Called by App.tsx on every launch to keep
+ * notifications fresh after EAS updates (D-04).
+ */
+export async function rescheduleAll(
+  prefs: NotificationPrefs,
+  protocol?: {
+    supplements?: Array<{ id: string; name: string; reminderEnabled?: boolean; reminderSlot?: TimeSlot }>;
+    medReminders?: Record<string, { enabled: boolean; slot: TimeSlot }>;
+  },
+): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
-  const slots: TimeSlot[] = ['morning', 'afternoon', 'evening', 'night'];
-  for (const slot of slots) {
-    if (prefs[slot].enabled) {
-      await scheduleSlot(slot, prefs[slot].time);
+  for (const item of protocol?.supplements ?? []) {
+    if (item.reminderEnabled && item.reminderSlot) {
+      await scheduleItemReminder(item.id, item.reminderSlot, item.name, prefs).catch(() => null);
+    }
+  }
+  for (const [medName, config] of Object.entries(protocol?.medReminders ?? {})) {
+    if (config.enabled) {
+      await scheduleItemReminder(`med_${medName}`, config.slot, medName, prefs).catch(() => null);
     }
   }
 }

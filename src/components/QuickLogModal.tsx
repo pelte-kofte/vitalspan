@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -112,6 +113,10 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView
+        style={s.kavContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={s.sheet}>
         <View style={s.sheetHandle} />
         <Text style={s.sheetTitle}>{exercise.name}</Text>
@@ -178,6 +183,7 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
           <Text style={s.cancelBtnTxt}>Cancel</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -187,11 +193,13 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  sheet: {
+  kavContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: Radius.xxl,
     borderTopRightRadius: Radius.xxl,

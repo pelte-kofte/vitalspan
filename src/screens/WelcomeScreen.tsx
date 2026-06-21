@@ -51,6 +51,7 @@ export default function WelcomeScreen() {
       if (currentUser?.is_anonymous) {
         result = await convertAnonymousToEmail(email, password);
         if (!result.error) {
+          // Successful conversion: migrate local history to the new named account.
           const linked = await AsyncStorage.getItem('@vitalspan_identity_linked');
           if (linked !== 'true') {
             const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
@@ -58,6 +59,12 @@ export default function WelcomeScreen() {
             await migrateHistory(entries);
             await AsyncStorage.setItem('@vitalspan_identity_linked', 'true');
           }
+        } else {
+          // convertAnonymousToEmail failed (e.g. anonymous auth disabled in Supabase,
+          // or the anonymous session expired). Fall back to a direct signUp so the
+          // user can still create an account — their local data is preserved in
+          // AsyncStorage regardless.
+          result = await signUpWithEmail(email, password);
         }
       } else {
         result = await signUpWithEmail(email, password);

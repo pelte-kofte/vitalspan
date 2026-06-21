@@ -37,6 +37,10 @@ export interface ProtocolItem {
   source: 'db' | 'manual';
   /** ISO 8601 timestamp of when the item was added to the protocol */
   addedAt: string;
+  /** Per-item reminder on/off toggle */
+  reminderEnabled?: boolean;
+  /** Which daily time slot fires this item's reminder (maps to NotificationPrefs slot time) */
+  reminderSlot?: TimeSlot;
 }
 
 // ─── ProtocolState (D-03) ─────────────────────────────────────────────────────
@@ -62,6 +66,8 @@ export interface ProtocolState {
   bestStreak?: number;
   /** ISO date (YYYY-MM-DD) of the last day all items were taken. '' when never completed. */
   lastCompleteDate?: string;
+  /** Per-medication reminder config keyed by medication name. Optional — absent on legacy data. */
+  medReminders?: Record<string, { enabled: boolean; slot: TimeSlot }>;
 }
 
 // ─── CustomSupplement (migration detection only — D-04, D-05) ─────────────────

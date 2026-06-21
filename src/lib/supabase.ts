@@ -95,12 +95,20 @@ export async function initSupabaseSession(): Promise<void> {
  * bodies to the user (mitigates T-14-03 information disclosure).
  */
 export function mapAuthError(message: string): string {
+  // Log the raw error so it always appears in Metro/device logs for diagnosis.
+  console.error('[Auth] Raw error:', message)
   const lower = message.toLowerCase()
   if (lower.includes('invalid login credentials') || lower.includes('wrong password')) {
     return 'Incorrect password'
   }
   if (lower.includes('user not found') || lower.includes('no user found')) {
     return 'No account found with that email'
+  }
+  if (lower.includes('user already registered') || lower.includes('already exists') || lower.includes('already been registered')) {
+    return 'An account with that email already exists — try logging in instead'
+  }
+  if (lower.includes('over_email_send_rate_limit') || lower.includes('email rate limit') || lower.includes('email link')) {
+    return 'Too many sign-up attempts — please wait a few minutes and try again'
   }
   if (
     lower.includes('network request failed') ||
@@ -112,8 +120,17 @@ export function mapAuthError(message: string): string {
   if (lower.includes('rate limit') || lower.includes('too many')) {
     return 'Too many attempts — please wait a few minutes'
   }
+  if (lower.includes('auth session missing') || lower.includes('session missing') || lower.includes('no session found')) {
+    return 'Session expired — please try again'
+  }
   if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
     return 'Please verify your email first'
+  }
+  if (lower.includes('provider') && (lower.includes('not enabled') || lower.includes('not supported') || lower.includes('invalid'))) {
+    return 'This sign-in method is not configured — please use email'
+  }
+  if (lower.includes('invalid') && (lower.includes('email') || lower.includes('format'))) {
+    return 'Please enter a valid email address'
   }
   return 'Something went wrong — try again'
 }
@@ -259,9 +276,20 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
     if (!data.url) return { error: 'Could not start Google sign-in' }
     const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
     if (result.type !== 'success') return { error: null }
-    const params = new URL(result.url)
-    const accessToken = params.searchParams.get('access_token')
-    const refreshToken = params.searchParams.get('refresh_token')
+    const returnedUrl = new URL(result.url)
+    // supabase-js v2 defaults to PKCE flow: the callback contains a `code`
+    // query param that must be exchanged for a session.
+    const code = returnedUrl.searchParams.get('code')
+    if (code) {
+      const { error: sessErr } = await supabase.auth.exchangeCodeForSession(code)
+      if (sessErr) return { error: mapAuthError(sessErr.message) }
+      return { error: null }
+    }
+    // Implicit-flow fallback: tokens arrive in the URL hash fragment.
+    const hash = returnedUrl.hash.startsWith('#') ? returnedUrl.hash.slice(1) : returnedUrl.hash
+    const hashParams = new URLSearchParams(hash)
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
     if (accessToken && refreshToken) {
       await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
     }

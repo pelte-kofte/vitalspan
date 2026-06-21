@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, SafeAreaView,
   TouchableOpacity, TextInput, Alert, RefreshControl,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -174,6 +175,11 @@ export default function ProfileScreen() {
             <Text style={s.editSave}>Save</Text>
           </TouchableOpacity>
         </View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <Text style={s.sectionLabel}>Personal</Text>
@@ -246,6 +252,7 @@ export default function ProfileScreen() {
 
           <View style={{ height: 32 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }

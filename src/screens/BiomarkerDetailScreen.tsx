@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
-  TextInput, Alert, Dimensions,
+  TextInput, Alert, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
@@ -176,6 +176,10 @@ export default function BiomarkerDetailScreen() {
       : Colors.status.criticalText;
 
     return (
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <SafeAreaView style={s.safe}>
         <View style={s.detailHeader}>
           <TouchableOpacity onPress={() => setSelectedId(null)}>
@@ -424,6 +428,7 @@ export default function BiomarkerDetailScreen() {
           <View style={{ height: 32 }} />
         </ScrollView>
       </SafeAreaView>
+      </KeyboardAvoidingView>
     );
   }
 

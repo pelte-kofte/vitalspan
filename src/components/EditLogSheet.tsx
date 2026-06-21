@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Modal, View, Text, TouchableOpacity, StyleSheet, TextInput,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { ExerciseLogEntry } from '../data/exercises';
@@ -43,6 +44,10 @@ export default function EditLogSheet({
       onRequestClose={onClose}
     >
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView
+        style={s.kavContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={s.sheet}>
         <View style={s.sheetHandle} />
         <Text style={s.sheetTitle}>Edit Log</Text>
@@ -96,6 +101,7 @@ export default function EditLogSheet({
           <Text style={s.cancelBtnTxt}>Cancel</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -105,11 +111,13 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  sheet: {
+  kavContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: Radius.xxl,
     borderTopRightRadius: Radius.xxl,
