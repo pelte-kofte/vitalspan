@@ -326,8 +326,14 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
       ],
     })
     if (!credential.identityToken) {
+      console.error('[Apple Auth] signInAsync succeeded but identityToken is null')
       return { error: 'Apple sign-in did not return an identity token' }
     }
+    // signInWithIdToken validates the token's `aud` claim against the Client IDs
+    // configured in Supabase Dashboard → Auth → Providers → Apple.
+    // Native iOS tokens carry the Bundle ID (com.vitalspan.app) as `aud` — NOT
+    // the Service ID (com.vitalspan.app.signin) used by the web OAuth flow.
+    // Both must be listed (comma-separated) in Supabase's "Client IDs" field.
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,
@@ -335,6 +341,7 @@ export async function signInWithApple(): Promise<{ error: string | null }> {
     if (error) return { error: mapAuthError(error.message) }
     return { error: null }
   } catch (e: unknown) {
+    console.error('[Apple Auth] Exception:', e)
     const msg = e instanceof Error ? e.message : String(e)
     // User cancelled the native sheet — not an error worth showing
     if (msg.includes('canceled') || msg.includes('cancelled') || msg.includes('ERR_CANCELED')) {
