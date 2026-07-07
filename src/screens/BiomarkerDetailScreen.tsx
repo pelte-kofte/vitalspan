@@ -26,9 +26,9 @@ const CHART_HEIGHT = 160;
 const CHART_TOP_PAD = 16;
 const CHART_BOTTOM_PAD = 32;
 // rgba helpers — chart-kit color callbacks require rgba functions, not hex tokens
-// values mirror Colors.primary and Colors.onSurfaceMuted from theme/index.ts
-const PRIMARY_RGBA = (opacity: number): string => `rgba(45, 106, 79, ${opacity})`;
-const SURFACE_MUTED_RGBA = (opacity: number): string => `rgba(107, 107, 100, ${opacity})`;
+// values mirror Colors.viz.bioGreen and Colors.dark.textMuted from theme/index.ts
+const PRIMARY_RGBA = (opacity: number): string => `rgba(74, 222, 128, ${opacity})`;
+const SURFACE_MUTED_RGBA = (opacity: number): string => `rgba(232, 245, 238, ${opacity})`;
 
 const CATEGORIES = [
   { key: 'cardio',        label: 'Cardiovascular' },
@@ -80,7 +80,7 @@ export default function BiomarkerDetailScreen() {
     useCallback(() => { void loadData(); }, [loadData])
   );
 
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('light'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -165,15 +165,15 @@ export default function BiomarkerDetailScreen() {
     });
 
     const insightBg = status === 'optimal'
-      ? Colors.status.optimalBg
+      ? Colors.dark.statusOptimalBg
       : status === 'suboptimal'
-      ? Colors.status.reviewBg
-      : Colors.status.criticalBg;
+      ? Colors.dark.statusWarnBg
+      : Colors.dark.statusCritBg;
     const insightTextColor = status === 'optimal'
-      ? Colors.status.optimalText
+      ? Colors.viz.bioGreen
       : status === 'suboptimal'
-      ? Colors.status.reviewText
-      : Colors.status.criticalText;
+      ? Colors.viz.amber
+      : Colors.viz.coral;
 
     return (
       <KeyboardAvoidingView
@@ -190,7 +190,7 @@ export default function BiomarkerDetailScreen() {
               style={s.uploadBtn}
               onPress={() => nav.navigate('LabUpload')}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.onSurface} size={16} /><Text style={s.uploadBtnTxt}>Upload</Text></View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.dark.text} size={16} /><Text style={s.uploadBtnTxt}>Upload</Text></View>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.addBtnSmall}
@@ -208,7 +208,7 @@ export default function BiomarkerDetailScreen() {
           style={s.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.viz.bioGreen} />
           }
         >
           <View style={s.detailHero}>
@@ -297,7 +297,7 @@ export default function BiomarkerDetailScreen() {
                     y={yTop}
                     width={chartWidth}
                     height={Math.max(yBot - yTop, 0)}
-                    fill={Colors.status.optimalBg}
+                    fill={Colors.viz.bioGreen}
                     fillOpacity={0.15}
                   />
                 </Svg>
@@ -307,14 +307,14 @@ export default function BiomarkerDetailScreen() {
                   width={chartWidth}
                   height={CHART_HEIGHT}
                   chartConfig={{
-                    backgroundColor: Colors.surface,
-                    backgroundGradientFrom: Colors.surface,
-                    backgroundGradientTo: Colors.surface,
+                    backgroundColor: Colors.dark.cardBg,
+                    backgroundGradientFrom: '#0C1410',
+                    backgroundGradientTo: '#0F1C14',
                     decimalPlaces: 1,
                     color: PRIMARY_RGBA,
                     labelColor: SURFACE_MUTED_RGBA,
-                    propsForDots: { r: '3', strokeWidth: '1', stroke: Colors.primary },
-                    propsForBackgroundLines: { stroke: Colors.borderLight },
+                    propsForDots: { r: '3', strokeWidth: '1', stroke: Colors.viz.bioGreen },
+                    propsForBackgroundLines: { stroke: Colors.dark.border },
                   }}
                   bezier
                   withShadow={false}
@@ -445,7 +445,7 @@ export default function BiomarkerDetailScreen() {
             style={s.uploadBtn}
             onPress={() => nav.navigate('LabUpload')}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.onSurface} size={16} /><Text style={s.uploadBtnTxt}>Upload labs</Text></View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><ClipboardIcon color={Colors.dark.text} size={16} /><Text style={s.uploadBtnTxt}>Upload labs</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.addBtn}
@@ -460,12 +460,12 @@ export default function BiomarkerDetailScreen() {
         style={s.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.viz.bioGreen} />
         }
       >
         {entries.length === 0 && (
           <View style={s.emptyTabCard}>
-            <ChartBarIcon color={Colors.onSurfaceMuted} size={32} />
+            <ChartBarIcon color={Colors.dark.textMuted} size={32} />
             <Text style={s.emptyTabHeading}>No biomarkers tracked yet</Text>
             <Text style={s.emptyTabBody}>
               Start with your most recent lab results. Three values unlock your biological age score.
@@ -534,116 +534,116 @@ export default function BiomarkerDetailScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
-  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.surface },
-  heading: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
-  headingSub: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
+  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.dark.bg },
+  heading: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
+  headingSub: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  uploadBtn: { backgroundColor: Colors.surface, borderRadius: Radius.full, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1, borderWidth: 1, borderColor: Colors.borderLight },
-  uploadBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
-  addBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
-  addBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
-  catLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  uploadBtn: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  uploadBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, fontWeight: '500' },
+  addBtn: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
+  addBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.bg, fontWeight: '600' },
+  catLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
     overflow: 'hidden',
     padding: Spacing.md,
   },
   listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, gap: Spacing.sm },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border },
   nameGroup: { flex: 1 },
-  bmName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
-  bmTarget: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  bmName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
+  bmTarget: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   valGroup: { alignItems: 'flex-end', marginRight: Spacing.sm },
-  bmVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface },
-  bmUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
-  noBmData: { fontSize: Typography.sizes.lg, color: Colors.onSurfaceMuted, marginRight: Spacing.sm },
+  bmVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text },
+  bmUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  noBmData: { fontSize: Typography.sizes.lg, color: Colors.dark.textMuted, marginRight: Spacing.sm },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
-  badgeGood: { backgroundColor: Colors.status.optimalBg },
-  badgeWarn: { backgroundColor: Colors.status.reviewBg },
+  badgeGood: { backgroundColor: Colors.dark.statusOptimalBg },
+  badgeWarn: { backgroundColor: Colors.dark.statusWarnBg },
   badgeTxt: { fontSize: 10, fontWeight: '600' },
-  badgeTxtGood: { color: Colors.status.optimalText },
-  badgeTxtWarn: { color: Colors.status.reviewText },
+  badgeTxtGood: { color: Colors.viz.bioGreen },
+  badgeTxtWarn: { color: Colors.viz.amber },
   badgeLog: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full, /* intentional — no Spacing.* equivalent */
-    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight,
+    backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
   },
-  badgeLogTxt: { fontSize: 10, fontWeight: '500', color: Colors.primaryLight },
-  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.surface },
-  back: { fontSize: Typography.sizes.base, color: Colors.primaryLight },
-  addBtnSmall: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
-  addBtnSmallTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryBg, fontWeight: '600' },
+  badgeLogTxt: { fontSize: 10, fontWeight: '500', color: Colors.dark.textMuted },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.base, paddingTop: Spacing.md, backgroundColor: Colors.dark.bg },
+  back: { fontSize: Typography.sizes.base, color: Colors.dark.ctaPrimary },
+  addBtnSmall: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1 },
+  addBtnSmallTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.bg, fontWeight: '600' },
   detailHero: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: Spacing.base, paddingBottom: Spacing.md },
   detailHeroLeft: { flex: 1 },
-  detailName: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
-  detailCat: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
+  detailName: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
+  detailCat: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, marginTop: 2 },
   detailValGroup: { alignItems: 'flex-end' },
-  detailVal: { fontSize: 44, fontWeight: '300', color: Colors.onSurface }, /* intentional — hero display size, no Typography.sizes match */
-  detailUnit: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
-  noData: { fontSize: Typography.sizes.md, color: Colors.onSurfaceMuted, marginTop: Spacing.sm },
+  detailVal: { fontSize: 44, fontWeight: '300', color: Colors.dark.text }, /* intentional — hero display size, no Typography.sizes match */
+  detailUnit: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
+  noData: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, marginTop: Spacing.sm },
   metaRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.base, flexWrap: 'wrap' },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5 },
-  statusOpt: { backgroundColor: Colors.status.optimalBg, borderColor: Colors.status.optimalBorder },
-  statusSub: { backgroundColor: Colors.status.reviewBg, borderColor: Colors.status.reviewBorder },
-  statusOut: { backgroundColor: Colors.status.criticalBg, borderColor: Colors.status.criticalBorder },
+  statusOpt: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  statusSub: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
+  statusOut: { backgroundColor: Colors.dark.statusCritBg, borderColor: Colors.dark.statusCritBorder },
   statusTxt: { fontSize: Typography.sizes.xs, fontWeight: '600' },
-  statusTxtOpt: { color: Colors.status.optimalText },
-  statusTxtSub: { color: Colors.status.reviewText },
-  statusTxtOut: { color: Colors.status.criticalText },
-  targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surface },
-  targetTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
-  insightCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  statusTxtOpt: { color: Colors.viz.bioGreen },
+  statusTxtSub: { color: Colors.viz.amber },
+  statusTxtOut: { color: Colors.viz.coral },
+  targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg },
+  targetTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  insightCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base },
   insightTxt: { fontSize: Typography.sizes.sm, lineHeight: 20 },
-  sectionLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
+  sectionLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base },
   histRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm },
   histLeft: { flex: 1 },
-  histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
-  histSource: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  histDate: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
+  histSource: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   histRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  histVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface },
-  histUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '400' },
-  editPencilBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.borderLight },
-  editPencilTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  histVal: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text },
+  histUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, fontWeight: '400' },
+  editPencilBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.dark.cardBg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  editPencilTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
   editRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }, /* intentional — no Spacing.* equivalent for gap: 6 */
-  editInput: { backgroundColor: Colors.surfaceElevated, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, fontSize: 16, fontWeight: '600', color: Colors.onSurface, borderWidth: 1, borderColor: Colors.primaryBorder, minWidth: 72, textAlign: 'right' },
-  editUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
-  editSaveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 5 }, /* intentional — no Spacing.* equivalent for paddingVertical: 5 */
-  editSaveTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
-  editCancelBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.borderLight },
-  editCancelTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  editInput: { backgroundColor: Colors.dark.inputBg, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, fontSize: 16, fontWeight: '600', color: Colors.dark.text, borderWidth: 1, borderColor: Colors.dark.accentBorder, minWidth: 72, textAlign: 'right' },
+  editUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  editSaveBtn: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 5 }, /* intentional — no Spacing.* equivalent for paddingVertical: 5 */
+  editSaveTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.bg, fontWeight: '600' },
+  editCancelBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.dark.cardBg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  editCancelTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   emptyHistRow: { paddingVertical: Spacing.sm, gap: Spacing.sm },
-  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
-  logCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start' },
-  logCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22 },
+  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
+  logCta: { backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.dark.accentBorder, alignSelf: 'flex-start' },
+  logCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.ctaPrimary, fontWeight: '500' },
+  bodyTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted, lineHeight: 22 },
   citationRow: {
     marginTop: Spacing.md, paddingTop: Spacing.sm,
-    borderTopWidth: 0.5, borderTopColor: Colors.borderLight,
+    borderTopWidth: 0.5, borderTopColor: Colors.dark.border,
   },
   citationTxt: {
-    fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic', lineHeight: 15,
+    fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, fontStyle: 'italic', lineHeight: 15,
   },
-  emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, ...Elevation.sm, padding: Spacing.xl, alignItems: 'center' },
-  emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, textAlign: 'center', marginBottom: Spacing.sm },
-  emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
-  emptyTabCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
-  emptyTabCtaTxt: { color: Colors.surface, fontSize: Typography.sizes.base, fontWeight: '600' },
+  emptyTabCard: { marginHorizontal: Spacing.base, marginTop: Spacing.base, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, padding: Spacing.xl, alignItems: 'center' },
+  emptyTabHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text, textAlign: 'center', marginBottom: Spacing.sm },
+  emptyTabBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.dark.textMuted, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
+  emptyTabCta: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
+  emptyTabCtaTxt: { color: Colors.dark.bg, fontSize: Typography.sizes.base, fontWeight: '600' },
 
-  // Phase 22: Segmented control — copied from ExerciseScreen.tsx styles
   segmentedControl: {
     flexDirection: 'row',
     gap: Spacing.xs,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.full,
     padding: 3, /* intentional — no Spacing.* equivalent, matches ExerciseScreen */
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
   },
   segment: {
     flex: 1,
@@ -651,11 +651,10 @@ const s = StyleSheet.create({
     borderRadius: Radius.full,
     alignItems: 'center',
   },
-  segmentActive: { backgroundColor: Colors.primary },
-  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurfaceMuted },
-  segmentTxtActive: { color: Colors.primaryBg },
+  segmentActive: { backgroundColor: Colors.dark.ctaPrimary },
+  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.dark.textMuted },
+  segmentTxtActive: { color: Colors.dark.bg },
 
-  // Phase 22: Chart placeholder
   chartPlaceholder: {
     marginHorizontal: Spacing.base,
     paddingVertical: Spacing.xl,
@@ -663,38 +662,37 @@ const s = StyleSheet.create({
   },
   chartPlaceholderTxt: {
     fontSize: Typography.sizes.sm,
-    color: Colors.onSurfaceMuted,
+    color: Colors.dark.textMuted,
     fontStyle: 'italic',
     textAlign: 'center',
   },
 
-  // Phase 22: Upgrade banner
   upgradeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.dark.accentBg,
     borderRadius: Radius.lg,
     borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
+    borderColor: Colors.dark.accentBorder,
     padding: Spacing.md,
   },
   upgradeBannerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.xs },
   upgradeBannerIcon: { fontSize: Typography.sizes.base },
   upgradeBannerTxt: {
     fontSize: Typography.sizes.xs,
-    color: Colors.status.optimalText,
+    color: Colors.viz.bioGreen,
     flex: 1,
     lineHeight: 18,
   },
   upgradeCta: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     marginLeft: Spacing.sm,
   },
-  upgradeCtaTxt: { fontSize: Typography.sizes.xs, fontWeight: '700', color: Colors.primaryBg },
+  upgradeCtaTxt: { fontSize: Typography.sizes.xs, fontWeight: '700', color: Colors.dark.bg },
 });

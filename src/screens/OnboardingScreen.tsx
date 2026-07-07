@@ -146,13 +146,13 @@ export default function OnboardingScreen() {
                 style={[s.optionCard, goal === i && s.optionCardSel]}
                 onPress={() => { setGoal(i); Haptics.selectionAsync().catch(() => null); }}>
                 <View style={[s.optionIcon, goal === i && s.optionIconSel]}>
-                  {React.createElement(GOAL_ICONS[i], { color: goal === i ? Colors.brand : Colors.onSurfaceMuted, size: 18 })}
+                  {React.createElement(GOAL_ICONS[i], { color: goal === i ? Colors.dark.ctaPrimary : Colors.dark.textMuted, size: 18 })}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.optionTitle}>{g.title}</Text>
                   <Text style={s.optionDesc}>{g.desc}</Text>
                 </View>
-                {goal === i && <CheckmarkIcon color={Colors.brand} size={18} />}
+                {goal === i && <CheckmarkIcon color={Colors.dark.ctaPrimary} size={18} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -194,7 +194,7 @@ export default function OnboardingScreen() {
               <TouchableOpacity key={opt}
                 style={[s.sexBtn, sex === opt && s.sexBtnSel]}
                 onPress={() => { setSex(opt); Haptics.selectionAsync().catch(() => null); }}>
-                <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.primary }]}>
+                <Text style={[s.sexBtnTxt, sex === opt && { color: Colors.dark.ctaPrimary }]}>
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -227,7 +227,7 @@ export default function OnboardingScreen() {
               <TouchableOpacity key={c}
                 style={[s.condBtn, conditions.includes(c) && s.condBtnSel]}
                 onPress={() => { toggleCondition(c); Haptics.selectionAsync().catch(() => null); }}>
-                <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
+                <Text style={[s.condBtnTxt, conditions.includes(c) && { color: Colors.dark.ctaPrimary }]}>{c}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -298,51 +298,51 @@ export default function OnboardingScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
   content: { padding: Spacing.base, paddingTop: Spacing.md },
   progressRow: { flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.base, paddingTop: Spacing.base, paddingBottom: Spacing.sm },
   progressSeg: { flex: 1, height: 3, borderRadius: 2 },
-  progressDone: { backgroundColor: Colors.primary },
-  progressActive: { backgroundColor: Colors.primary, opacity: 0.5 },
-  progressPending: { backgroundColor: Colors.border },
-  back: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginBottom: Spacing.base },
-  stepLabel: { fontSize: Typography.sizes.xs, color: Colors.primaryLight, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '300', color: Colors.textPrimary, lineHeight: 34, marginBottom: 8 },
-  sub: { fontSize: Typography.sizes.base, color: Colors.textSecondary, lineHeight: 22, marginBottom: Spacing.lg },
-  nameInput: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, fontSize: 20, color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.border, marginTop: 8 },
+  progressDone: { backgroundColor: Colors.viz.bioGreen },
+  progressActive: { backgroundColor: Colors.viz.bioGreen, opacity: 0.5 },
+  progressPending: { backgroundColor: Colors.dark.border },
+  back: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, marginBottom: Spacing.base },
+  stepLabel: { fontSize: Typography.sizes.xs, color: Colors.viz.bioGreen, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '300', color: Colors.dark.text, lineHeight: 34, marginBottom: 8 },
+  sub: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted, lineHeight: 22, marginBottom: Spacing.lg },
+  nameInput: { backgroundColor: Colors.dark.inputBg, borderRadius: Radius.lg, padding: Spacing.base, fontSize: 20, color: Colors.dark.text, borderWidth: 1, borderColor: Colors.dark.inputBorder, marginTop: 8 },
   optionList: { gap: 10 },
-  optionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  optionCardSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder, borderLeftWidth: 3, borderLeftColor: Colors.primary },
-  optionIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' },
-  optionIconSel: { backgroundColor: Colors.primaryBorder },
-  optionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textPrimary },
-  optionDesc: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  fieldLabel: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: 8, marginTop: Spacing.base },
-  ageCard: { backgroundColor: Colors.bgCard, borderRadius: Radius.lg, padding: Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: Colors.border },
-  ageBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.border },
-  ageBtnTxt: { fontSize: 22, color: Colors.textPrimary },
-  ageNum: { fontSize: 36, fontWeight: '300', color: Colors.primary },
-  ageUnit: { fontSize: Typography.sizes.base, color: Colors.textMuted },
+  optionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  optionCardSel: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder, borderLeftWidth: 3, borderLeftColor: Colors.dark.ctaPrimary },
+  optionIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: Colors.dark.cardBg, alignItems: 'center', justifyContent: 'center' },
+  optionIconSel: { backgroundColor: Colors.dark.accentBorder },
+  optionTitle: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.dark.text },
+  optionDesc: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
+  fieldLabel: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.dark.textMuted, marginBottom: 8, marginTop: Spacing.base },
+  ageCard: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.lg, padding: Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  ageBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.dark.inputBg, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.dark.border },
+  ageBtnTxt: { fontSize: 22, color: Colors.dark.text },
+  ageNum: { fontSize: 36, fontWeight: '300', color: Colors.viz.bioGreen },
+  ageUnit: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
   sexRow: { flexDirection: 'row', gap: 10 },
-  sexBtn: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
-  sexBtnSel: { borderColor: Colors.primaryLight, backgroundColor: Colors.primaryBg },
-  sexBtnTxt: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.textSecondary },
+  sexBtn: { flex: 1, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  sexBtnSel: { borderColor: Colors.dark.accentBorder, backgroundColor: Colors.dark.accentBg },
+  sexBtnTxt: { fontSize: Typography.sizes.md, fontWeight: '500', color: Colors.dark.textMuted },
   condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  condBtn: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.border },
-  condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.textPrimary },
+  condBtn: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  condBtnSel: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },
+  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.dark.text },
   medTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
-  medTag: { backgroundColor: Colors.primaryBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.primaryBorder },
-  medTagTxt: { fontSize: Typography.sizes.sm, color: Colors.primaryDark },
+  medTag: { backgroundColor: Colors.dark.accentBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.dark.accentBorder },
+  medTagTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.ctaPrimary },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.base },
-  quickChip: { backgroundColor: Colors.bgCard, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border },
-  quickChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  privacyNote: { backgroundColor: Colors.bgCard, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted, lineHeight: 18 },
+  quickChip: { backgroundColor: Colors.dark.cardBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.dark.border },
+  quickChipTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  privacyNote: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.dark.border },
+  privacyTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18 },
   cta: { padding: Spacing.base, paddingBottom: Spacing.xl, gap: 8 },
-  btnMain: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: 15, alignItems: 'center' },
+  btnMain: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.full, paddingVertical: 16, alignItems: 'center' },
   btnMainDisabled: { opacity: 0.5 },
-  btnMainTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
-  btnSkip: { color: Colors.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
+  btnMainTxt: { color: Colors.dark.bg, fontSize: Typography.sizes.md, fontWeight: '600' },
+  btnSkip: { color: Colors.dark.textMuted, fontSize: Typography.sizes.sm, textAlign: 'center', padding: 4 },
 });

@@ -44,7 +44,8 @@ export default function App() {
         } else {
           setInitialRoute('Welcome');
         }
-      } catch {
+      } catch (error) {
+        console.error('[App] Boot error:', error);
         setInitialRoute('Welcome');
       }
       // Fire-and-forget: cache pruning + data migration (non-blocking)
@@ -73,8 +74,8 @@ export default function App() {
           ? (JSON.parse(protocolRaw) as { supplements?: Array<{ id: string; name: string; reminderEnabled?: boolean; reminderSlot?: import('./src/types/protocol').TimeSlot }>; medReminders?: Record<string, { enabled: boolean; slot: import('./src/types/protocol').TimeSlot }> })
           : undefined;
         await rescheduleAll(prefs, protocol);
-      } catch {
-        // non-blocking — silently ignore notification reschedule errors
+      } catch (error) {
+        console.error('[App] Notification reschedule failed:', error);
       }
     })();
   }, []);

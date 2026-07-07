@@ -66,15 +66,15 @@ function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: 'rgba(0, 0, 0, 0.06)',
+          backgroundColor: Colors.dark.bg,
+          borderTopColor: Colors.dark.cardBorder,
           borderTopWidth: 0.5,
           paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
           height: Math.max(insets.bottom, 0) + 56,
         },
-        tabBarActiveTintColor: Colors.brand,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: Colors.dark.ctaPrimary,
+        tabBarInactiveTintColor: Colors.dark.textMuted,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',

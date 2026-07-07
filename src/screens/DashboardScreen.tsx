@@ -14,13 +14,15 @@ import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry } from './BiomarkerEntryScreen';
-import NeuralGrid from '../components/NeuralGrid';
 import BreathingCard from '../components/BreathingCard';
 import FutureSelf from '../components/FutureSelf';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
-import { loadHealthData, deriveHealthState, HealthData } from '../lib/healthkit';
+import { loadHealthData, HealthData } from '../lib/healthkit';
 import { ExerciseLogEntry } from '../data/exercises';
 import { usePremiumContext } from '../context/PremiumContext';
+import { assembleAdvisorContext } from '../lib/advisorContext';
+import { computeProactiveInsight, ProactiveInsight, InsightAction } from '../lib/insightEngine';
+import ProactiveInsightBanner from '../components/ProactiveInsightBanner';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -50,6 +52,8 @@ export default function DashboardScreen() {
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
   const [addedSupplements, setAddedSupplements] = useState<string[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [proactiveInsight, setProactiveInsight] = useState<ProactiveInsight | null>(null);
+  const [dismissedInsights, setDismissedInsights] = useState<Record<string, string>>({});
   const [showVerificationBanner, setShowVerificationBanner] = useState(false);
   const [showVerifiedToast, setShowVerifiedToast] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -134,7 +138,7 @@ export default function DashboardScreen() {
             if (!notified) {
               await AsyncStorage.setItem('@vitalspan_email_verified_notified', 'true').catch(() => null);
               setShowVerifiedToast(true);
-              // Auto-dismiss toast after 3 seconds — store ID for cleanup
+              if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
               toastTimerRef.current = setTimeout(() => setShowVerifiedToast(false), 3000);
             }
           }
@@ -214,6 +218,40 @@ export default function DashboardScreen() {
     );
   }, [phenoResult?.biologicalAge, profile]);
 
+  // Recompute the proactive insight banner on every tab focus.
+  // Times out silently after 2s so the banner never blocks screen rendering.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const timer = setTimeout(() => { cancelled = true; }, 2000);
+
+      async function loadInsight() {
+        try {
+          const [dismissedRaw, lastReportRaw, ctx] = await Promise.all([
+            AsyncStorage.getItem('@vitalspan_dismissed_insights'),
+            AsyncStorage.getItem('@vitalspan_last_report_ts'),
+            assembleAdvisorContext(),
+          ]);
+          if (cancelled) return;
+          clearTimeout(timer);
+          const dismissed: Record<string, string> = dismissedRaw
+            ? (JSON.parse(dismissedRaw) as Record<string, string>)
+            : {};
+          setDismissedInsights(dismissed);
+          setProactiveInsight(computeProactiveInsight(ctx, dismissed, lastReportRaw));
+        } catch (error) {
+          console.error('[Dashboard] Proactive insight assembly failed:', error);
+        }
+      }
+
+      loadInsight();
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }, []),
+  );
+
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning,';
@@ -242,6 +280,39 @@ export default function DashboardScreen() {
     return optimal.length / logged.length;
   }, [entryMap]);
 
+  async function handleInsightDismiss(insightId: string) {
+    const today = new Date().toISOString().slice(0, 10);
+    const updated = { ...dismissedInsights, [insightId]: today };
+    setDismissedInsights(updated);
+    setProactiveInsight(null);
+    await AsyncStorage.setItem('@vitalspan_dismissed_insights', JSON.stringify(updated)).catch(() => null);
+  }
+
+  function handleInsightNavigate(action: InsightAction) {
+    if (action.type !== 'navigate') return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    switch (action.screen) {
+      case 'AIAdvisor':
+        nav.navigate('AIAdvisor');
+        break;
+      case 'BiomarkerDetail': {
+        const biomarkerId = typeof action.params?.biomarkerId === 'string'
+          ? action.params.biomarkerId
+          : undefined;
+        nav.navigate('BiomarkerDetail', { biomarkerId });
+        break;
+      }
+      case 'Protocol':
+        nav.getParent()?.navigate('Protocol');
+        break;
+      case 'Biomarkers':
+        nav.getParent()?.navigate('Biomarkers');
+        break;
+      default:
+        break;
+    }
+  }
+
   const medications = profile?.medications ?? [];
   const takenCount = medications.filter(m => takenItems.has(m)).length;
 
@@ -249,10 +320,6 @@ export default function DashboardScreen() {
   const chronoAge = profile?.age ?? null;
   const yearsDiff = (bioAge != null && chronoAge != null) ? chronoAge - bioAge : 0;
   const missingForPhenoAge = phenoResult?.missingBiomarkers ?? [];
-
-  // Reactive neural background
-  const healthState = useMemo(() => deriveHealthState(healthData), [healthData]);
-  const neuralTone = healthState === 'stressed' ? 'alert' : healthState === 'good' ? 'vital' : 'calm';
 
   // Weekly movement summary (Mon–Sun current week)
   const weeklyMovement = useMemo(() => {
@@ -275,7 +342,6 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.screenContainer}>
-        <NeuralGrid intensity="low" tone={neuralTone} />
 
         {/* Email verification banner (D-12) — amber, dismissable per-session */}
         {showVerificationBanner && !bannerDismissed && (
@@ -308,7 +374,7 @@ export default function DashboardScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={Colors.primary}
+              tintColor={Colors.viz.bioGreen}
             />
           }
         >
@@ -321,9 +387,18 @@ export default function DashboardScreen() {
               style={s.notifBtn}
               onPress={() => nav.navigate('Settings')}
             >
-              <BellIcon color={Colors.onSurface} size={20} />
+              <BellIcon color={Colors.dark.text} size={20} />
             </TouchableOpacity>
           </View>
+
+          {/* Proactive insight banner — surfaces highest-priority health signal */}
+          {proactiveInsight !== null && (
+            <ProactiveInsightBanner
+              insight={proactiveInsight}
+              onDismiss={handleInsightDismiss}
+              onNavigate={handleInsightNavigate}
+            />
+          )}
 
           {/* Bio age card */}
           <BreathingCard style={s.bioCardWrapper} glowColor={Colors.primaryDark}>
@@ -418,7 +493,7 @@ export default function DashboardScreen() {
 
           {entries.length === 0 ? (
             <View style={s.emptyStateCard}>
-              <DnaHelixIcon color={Colors.onSurfaceMuted} size={40} />
+              <DnaHelixIcon color={Colors.dark.textMuted} size={40} />
               <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
               <Text style={s.emptyStateBody}>
                 Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to unlock your Longevity Score and biological age projection.
@@ -438,8 +513,8 @@ export default function DashboardScreen() {
                 const hasData = latest !== null;
                 const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
                 const gradColors = (hasData
-                  ? (isOptimal ? Gradients.cardGood : Gradients.cardWarn)
-                  : Gradients.cardNone) as [string, string];
+                  ? (isOptimal ? Gradients.darkCardGood : Gradients.darkCardWarn)
+                  : Gradients.darkCardNone) as [string, string];
                 return (
                   <LinearGradient
                     key={bm.id}
@@ -448,14 +523,14 @@ export default function DashboardScreen() {
                     end={{ x: 0.6, y: 1 }}
                     style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
                   >
-                    <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.status.optimalText : Colors.status.reviewText) : Colors.textMuted }]}>{bm.name}</Text>
-                    <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.status.optimal : Colors.status.review) : Colors.textMuted }]}>
+                    <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.viz.bioGreen : Colors.viz.amber) : Colors.dark.textMuted }]}>{bm.name}</Text>
+                    <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.viz.bioGreen : Colors.viz.amber) : Colors.dark.textMuted }]}>
                       {hasData ? String(latest.value) : '·'}
                     </Text>
                     <Text style={s.bmUnit}>{bm.unit}</Text>
                     {hasData ? (
                       <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                        <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.status.optimalText : Colors.status.reviewText }]}>
+                        <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.viz.bioGreen : Colors.viz.amber }]}>
                           {isOptimal ? 'Optimal' : 'Review'}
                         </Text>
                       </View>
@@ -480,7 +555,7 @@ export default function DashboardScreen() {
               nav.navigate('LabUpload');
             }}
           >
-            <ClipboardIcon color={Colors.onSurface} size={20} />
+            <ClipboardIcon color={Colors.dark.text} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Upload lab results</Text>
               <Text style={s.uploadCardSub}>Import biomarkers from your PDF</Text>
@@ -503,7 +578,7 @@ export default function DashboardScreen() {
                   nav.getParent()?.navigate('Exercise');
                 }}
               >
-                <RunnerIcon color={Colors.onSurface} size={20} />
+                <RunnerIcon color={Colors.dark.text} size={20} />
                 <View style={s.uploadCardBody}>
                   <Text style={s.uploadCardTitle}>Movement today</Text>
                   {hasData ? (
@@ -563,7 +638,7 @@ export default function DashboardScreen() {
               isPremium ? nav.navigate('Articles') : nav.navigate('Paywall');
             }}
           >
-            <ClipboardIcon color={Colors.onSurface} size={20} />
+            <ClipboardIcon color={Colors.dark.text} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>Longevity Research</Text>
               <Text style={s.uploadCardSub}>Personalised PubMed articles for your biomarker profile</Text>
@@ -581,7 +656,7 @@ export default function DashboardScreen() {
               isPremium ? nav.navigate('AIAdvisor') : nav.navigate('Paywall');
             }}
           >
-            <DnaHelixIcon color={Colors.onSurface} size={20} />
+            <DnaHelixIcon color={Colors.dark.text} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>AI Advisor</Text>
               <Text style={s.uploadCardSub}>Personalised longevity insights powered by AI</Text>
@@ -616,7 +691,7 @@ export default function DashboardScreen() {
                   >
                     <View style={[s.protoDot, taken ? s.protoDotTaken : s.protoDotPending]} />
                     <Text style={s.protoName}>{med}</Text>
-                    <Text style={[s.protoTime, taken && { color: Colors.primaryLight }]}>
+                    <Text style={[s.protoTime, taken && { color: Colors.viz.bioGreen }]}>
                       {taken ? 'Taken ✓' : '—'}
                     </Text>
                   </TouchableOpacity>
@@ -633,96 +708,91 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   screenContainer: { flex: 1 },
   scroll: { flex: 1 },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: Spacing.base, paddingTop: Spacing.md },
-  greetSmall: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
-  greetName: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginTop: 2 },
-  notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  greetSmall: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  greetName: { fontSize: 22, fontWeight: '700', color: Colors.dark.text, marginTop: 2 },
+  notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, alignItems: 'center', justifyContent: 'center' },
   bioCardWrapper: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, marginBottom: Spacing.base },
   bioCardInner: { borderRadius: Radius.xl, padding: Spacing.base },
   bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
-  bioNum: { fontSize: 52, color: Colors.primaryBg, fontWeight: '300', lineHeight: 58 },
+  bioNum: { fontSize: 52, color: Colors.dark.text, fontWeight: '300', lineHeight: 58 },
   bioNumPlaceholder: { fontSize: 52, color: 'rgba(232,245,238,0.3)', fontWeight: '300', lineHeight: 58 },
   bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.75)', marginTop: 4 },
   bioConfidence: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.5)', marginTop: 4, fontStyle: 'italic' },
   bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(168,213,190,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBorder },
+  bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary },
   bioCtaBtn: { marginTop: Spacing.sm, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 6, alignSelf: 'flex-start' },
-  bioCtaTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
+  bioCtaTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.text, fontWeight: '600' },
   bioCardTapHint: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.45)', marginTop: Spacing.sm, letterSpacing: 0.3 },
-  alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
-  alertIcon: { width: 32, height: 32, backgroundColor: Colors.warningBorder, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder, borderWidth: 0.5, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
+  alertIcon: { width: 32, height: 32, backgroundColor: Colors.dark.statusWarnBg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   alertBody: { flex: 1 },
-  alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.warningTextDark, marginBottom: 2 },
-  alertTxt: { fontSize: Typography.sizes.xs, color: Colors.warningText, lineHeight: 16 },
+  alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.viz.amber, marginBottom: 2 },
+  alertTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 16 },
   sectionHdr: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: 11, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 },
-  sectionLink: { fontSize: Typography.sizes.sm, color: Colors.primaryLight },
-  sectionAddBtn: { backgroundColor: Colors.primary, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3 },
-  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primaryBg, fontWeight: '600' },
+  sectionTitle: { fontSize: 11, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 },
+  sectionLink: { fontSize: Typography.sizes.sm, color: Colors.viz.bioGreen },
+  sectionAddBtn: { backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 0.5, borderColor: Colors.dark.accentBorder },
+  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '600' },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
-  bmCard: { width: 120, borderRadius: Radius.xl, padding: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
-  bmCardWarning: { backgroundColor: Colors.status.reviewBg },
-  bmCardGood: { backgroundColor: Colors.status.optimalBg },
-  bmCardNone: { backgroundColor: Colors.bgCard },
+  bmCard: { width: 120, borderRadius: Radius.xl, padding: Spacing.md },
+  bmCardWarning: { borderWidth: 0.5, borderColor: Colors.dark.statusWarnBorder },
+  bmCardGood: { borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder },
+  bmCardNone: { borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
   bmName: { fontSize: Typography.sizes.xs, marginBottom: 4 },
   bmVal: { fontSize: 22, fontWeight: '500', lineHeight: 26 },
-  bmUnit: { fontSize: 10, color: Colors.textMuted, marginBottom: 6 },
+  bmUnit: { fontSize: 10, color: Colors.dark.textMuted, marginBottom: 6 },
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
-  bmBadgeWarn: { backgroundColor: Colors.status.reviewBorder },
-  bmBadgeGood: { backgroundColor: Colors.status.optimalBorder },
+  bmBadgeWarn: { backgroundColor: Colors.dark.statusWarnBg, borderWidth: 0.5, borderColor: Colors.dark.statusWarnBorder },
+  bmBadgeGood: { backgroundColor: Colors.dark.statusOptimalBg, borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   bmBadgeEmpty: {
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
-    backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.border,
+    backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.border,
     alignSelf: 'flex-start',
   },
-  bmBadgeEmptyTxt: { fontSize: 9, fontWeight: '500', color: Colors.primaryLight },
-  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, marginBottom: Spacing.base, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2, padding: Spacing.md },
+  bmBadgeEmptyTxt: { fontSize: 9, fontWeight: '500', color: Colors.dark.ctaPrimary },
+  protocolCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl, marginBottom: Spacing.base, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, padding: Spacing.md },
   protoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: Spacing.sm },
-  protoItemBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.border },
+  protoItemBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border },
   protoDot: { width: 10, height: 10, borderRadius: 5 },
-  protoDotTaken: { backgroundColor: Colors.primaryLight },
-  protoDotPending: { backgroundColor: Colors.border },
-  protoName: { flex: 1, fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.textPrimary },
-  protoTime: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  protoDotTaken: { backgroundColor: Colors.viz.bioGreen },
+  protoDotPending: { backgroundColor: Colors.dark.border },
+  protoName: { flex: 1, fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
+  protoTime: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   protoEmpty: { alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
-  protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.textMuted },
-  protoEmptyCta: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.primaryBorder },
-  protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
-  emptyStateCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base },
+  protoEmptyTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
+  protoEmptyCta: { backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.dark.accentBorder },
+  protoEmptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.ctaPrimary, fontWeight: '500' },
+  emptyStateCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base },
   emptyStateIconWrap: { marginBottom: Spacing.md },
-  emptyStateHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
-  emptyStateBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
-  emptyStateCta: { backgroundColor: Colors.primary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
-  emptyStateCtaTxt: { color: Colors.bgCard, fontSize: Typography.sizes.base, fontWeight: '600' },
-  uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
-  exerciseCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.bgCard, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
+  emptyStateHeading: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text, textAlign: 'center', marginBottom: Spacing.sm },
+  emptyStateBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.dark.textMuted, textAlign: 'center', lineHeight: 24, marginBottom: Spacing.lg },
+  emptyStateCta: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.xl, height: 48, paddingHorizontal: Spacing.base, justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch' },
+  emptyStateCtaTxt: { color: Colors.dark.bg, fontSize: Typography.sizes.base, fontWeight: '600' },
+  uploadCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
+  exerciseCard: { marginHorizontal: Spacing.base, marginBottom: Spacing.base, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
   uploadCardBody: { flex: 1 },
-  uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.textPrimary },
-  uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
-  uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.textMuted },
-  researchCard: { backgroundColor: Colors.primaryBg },
-  aiAdvisorCard: { backgroundColor: Colors.accentBg },
+  uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
+  uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
+  uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted },
+  researchCard: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  aiAdvisorCard: { backgroundColor: 'rgba(91,157,191,0.10)', borderColor: 'rgba(91,157,191,0.25)' },
   weeklyCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.border,
+    borderColor: Colors.dark.cardBorder,
     padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
   },
   weeklyLabel: {
     fontSize: Typography.sizes.xs, fontWeight: '600',
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginBottom: Spacing.sm,
   },
@@ -730,31 +800,31 @@ const s = StyleSheet.create({
   weeklyStat: { flex: 1, alignItems: 'center' },
   weeklyStatVal: {
     fontSize: Typography.sizes.xl, fontWeight: '600',
-    color: Colors.textPrimary, lineHeight: 26,
+    color: Colors.dark.text, lineHeight: 26,
   },
   weeklyStatLbl: {
     fontSize: Typography.sizes.xs,
-    color: Colors.textMuted, marginTop: 2,
+    color: Colors.dark.textMuted, marginTop: 2,
   },
   weeklyDivider: {
     width: 0.5, height: 32,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.dark.border,
   },
   // Email verification banner (D-12)
   verificationBanner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.warningBg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.warningBorder,
+    backgroundColor: Colors.dark.statusWarnBg,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.dark.statusWarnBorder,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
   },
   verificationBannerTxt: {
     flex: 1,
     fontSize: Typography.sizes.bodySmall,
-    color: Colors.warningText,
+    color: Colors.viz.amber,
   },
   verificationBannerActions: {
     flexDirection: 'row',
@@ -763,26 +833,28 @@ const s = StyleSheet.create({
   },
   verificationBannerResend: {
     fontSize: Typography.sizes.bodySmall,
-    color: Colors.warning,
+    color: Colors.viz.amber,
     fontWeight: '600',
   },
   verificationBannerDismiss: {
     fontSize: Typography.sizes.body,
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
   },
   // Verified toast (D-14)
   verifiedToast: {
     position: 'absolute',
     bottom: Spacing.xxl,
     alignSelf: 'center',
-    backgroundColor: Colors.semantic.success,
+    backgroundColor: Colors.dark.statusOptimalBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     zIndex: 100,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.statusOptimalBorder,
   },
   verifiedToastTxt: {
-    color: Colors.surface,
+    color: Colors.viz.bioGreen,
     fontSize: Typography.sizes.bodySmall,
     fontWeight: '600',
   },

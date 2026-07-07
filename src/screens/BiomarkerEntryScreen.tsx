@@ -81,7 +81,7 @@ export default function BiomarkerEntryScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('light'); return () => {}; }, []));
 
   const rawVal = parseFloat(value.replace(',', '.'));
   const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
@@ -146,7 +146,7 @@ export default function BiomarkerEntryScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Search biomarkers..."
-          placeholderTextColor={Colors.onSurfaceMuted}
+          placeholderTextColor={Colors.dark.textMuted}
           autoFocus
         />
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -200,7 +200,7 @@ export default function BiomarkerEntryScreen() {
             onChangeText={setValue}
             keyboardType="decimal-pad"
             placeholder="—"
-            placeholderTextColor={Colors.onSurfaceMuted}
+            placeholderTextColor={Colors.dark.textMuted}
             autoFocus
           />
           <Text style={s.valueUnit}>{inputUnit === 'native' ? selected.unit : (altUnit ?? selected.unit)}</Text>
@@ -269,7 +269,7 @@ export default function BiomarkerEntryScreen() {
             value={customDate}
             onChangeText={setCustomDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.onSurfaceMuted}
+            placeholderTextColor={Colors.dark.textMuted}
           />
         )}
 
@@ -292,7 +292,7 @@ export default function BiomarkerEntryScreen() {
           value={notes}
           onChangeText={setNotes}
           placeholder="Add a note..."
-          placeholderTextColor={Colors.onSurfaceMuted}
+          placeholderTextColor={Colors.dark.textMuted}
           multiline
           numberOfLines={3}
         />
@@ -312,53 +312,53 @@ export default function BiomarkerEntryScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.base, paddingTop: Spacing.md },
-  headerTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
-  cancel: { fontSize: Typography.sizes.base, color: Colors.primary, minWidth: 56 },
+  headerTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
+  cancel: { fontSize: Typography.sizes.base, color: Colors.dark.ctaPrimary, minWidth: 56 },
   headerSpacer: { minWidth: 56 },
-  searchInput: { marginHorizontal: Spacing.base, marginBottom: Spacing.sm, backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.onSurface, borderWidth: 0.5, borderColor: Colors.borderLight },
-  pickRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, backgroundColor: Colors.surface },
-  pickRowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
+  searchInput: { marginHorizontal: Spacing.base, marginBottom: Spacing.sm, backgroundColor: Colors.dark.inputBg, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.dark.text, borderWidth: 0.5, borderColor: Colors.dark.inputBorder },
+  pickRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, backgroundColor: Colors.dark.bg },
+  pickRowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border },
   pickInfo: { flex: 1 },
-  pickName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
-  pickUnit: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
-  catBadge: { backgroundColor: Colors.primaryBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 0.5, borderColor: Colors.primaryBorder },
-  catBadgeTxt: { fontSize: 10, color: Colors.primaryDark, fontWeight: '500' },
+  pickName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
+  pickUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
+  catBadge: { backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 0.5, borderColor: Colors.dark.accentBorder },
+  catBadgeTxt: { fontSize: 10, color: Colors.dark.ctaPrimary, fontWeight: '500' },
   content: { padding: Spacing.base },
-  valueCard: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.surface, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight, ...Elevation.sm, padding: Spacing.base, marginBottom: Spacing.md, gap: Spacing.sm },
-  valueInput: { flex: 1, fontSize: 44, fontWeight: '300', color: Colors.onSurface }, /* intentional — hero entry size, no Typography.sizes match */
-  valueUnit: { fontSize: Typography.sizes.md, color: Colors.onSurfaceMuted, paddingBottom: 10 }, /* intentional — no Spacing.* equivalent for paddingBottom: 10 */
+  valueCard: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, padding: Spacing.base, marginBottom: Spacing.md, gap: Spacing.sm },
+  valueInput: { flex: 1, fontSize: 44, fontWeight: '300', color: Colors.dark.text }, /* intentional — hero entry size, no Typography.sizes match */
+  valueUnit: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, paddingBottom: 10 }, /* intentional — no Spacing.* equivalent for paddingBottom: 10 */
   statusBadge: { alignSelf: 'flex-start', borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1, marginBottom: Spacing.base, borderWidth: 0.5 },
-  statusOpt: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  statusSub: { backgroundColor: Colors.warningBg, borderColor: Colors.warningBorder },
-  statusOut: { backgroundColor: Colors.dangerBg, borderColor: Colors.danger },
+  statusOpt: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  statusSub: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
+  statusOut: { backgroundColor: Colors.dark.statusCritBg, borderColor: Colors.dark.statusCritBorder },
   statusTxt: { fontSize: Typography.sizes.sm, fontWeight: '600' },
-  statusTxtOpt: { color: Colors.primaryDark },
-  statusTxtSub: { color: Colors.warningText },
-  statusTxtOut: { color: Colors.danger },
+  statusTxtOpt: { color: Colors.viz.bioGreen },
+  statusTxtSub: { color: Colors.viz.amber },
+  statusTxtOut: { color: Colors.viz.coral },
   section: { marginBottom: Spacing.base },
-  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '500', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: Spacing.sm, marginTop: Spacing.sm },
+  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm, marginTop: Spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surface }, /* intentional — no Spacing.* equivalent for paddingVertical: 6 */
-  chipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  chipTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
-  chipTxtActive: { color: Colors.primaryDark, fontWeight: '500' },
-  customDateInput: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.onSurface, borderWidth: 0.5, borderColor: Colors.borderLight, marginBottom: Spacing.md },
-  notesInput: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.onSurface, borderWidth: 0.5, borderColor: Colors.borderLight, minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.xl },
-  saveBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, padding: Spacing.base, alignItems: 'center' },
+  chip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg }, /* intentional — no Spacing.* equivalent for paddingVertical: 6 */
+  chipActive: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },
+  chipTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
+  chipTxtActive: { color: Colors.dark.ctaPrimary, fontWeight: '500' },
+  customDateInput: { backgroundColor: Colors.dark.inputBg, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.dark.text, borderWidth: 0.5, borderColor: Colors.dark.inputBorder, marginBottom: Spacing.md },
+  notesInput: { backgroundColor: Colors.dark.inputBg, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.dark.text, borderWidth: 0.5, borderColor: Colors.dark.inputBorder, minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.xl },
+  saveBtn: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.full, padding: Spacing.base, alignItems: 'center' },
   saveBtnDisabled: { opacity: 0.4 },
-  saveBtnTxt: { color: Colors.primaryBg, fontSize: Typography.sizes.md, fontWeight: '600' },
+  saveBtnTxt: { color: Colors.dark.bg, fontSize: Typography.sizes.md, fontWeight: '600' },
   unitConvertRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
-  unitConvertLabel: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
-  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surface },
-  unitChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
-  unitChipTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
-  convertedVal: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+  unitConvertLabel: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg },
+  unitChipActive: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },
+  unitChipTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  unitChipTxtActive: { color: Colors.dark.ctaPrimary, fontWeight: '600' },
+  convertedVal: { fontSize: Typography.sizes.xs, color: Colors.viz.bioGreen, fontWeight: '500' },
   explanationWrapper: { marginBottom: Spacing.md },
-  explanationInner: { backgroundColor: Colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.borderLight, padding: Spacing.base },
+  explanationInner: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, padding: Spacing.base },
   explanationIcon: { fontSize: 24, marginBottom: Spacing.sm }, /* intentional — no Typography.sizes match for 24; kept as-is */
-  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.sm },
-  explanationBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.textSecondary, lineHeight: 24 },
+  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text, marginBottom: Spacing.sm },
+  explanationBody: { fontSize: Typography.sizes.body, fontWeight: '400', color: Colors.dark.textMuted, lineHeight: 24 },
 });

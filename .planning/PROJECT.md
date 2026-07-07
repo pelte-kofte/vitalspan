@@ -1,5 +1,7 @@
 # Vitalspan
 
+> **UI Work Rule:** Every phase or task that involves UI, screens, or visual components MUST read [`DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md) at the project root before making any design decisions. All colors, spacing, elevation, typography, and component patterns are defined there. Do not use legacy light-mode tokens (`Colors.surface`, `Colors.bg`, `Colors.bgCard`, `Colors.primaryBg`, etc.) on any dark-system screen.
+
 ## What This Is
 
 Vitalspan is a longevity tracking iOS app built by a licensed pharmacist. It lets users track biomarkers, manage a supplement/medication protocol, log and plan workouts with progressive overload tracking, and monitor their biological age via the Levine PhenoAge formula. Users receive push reminders for their protocol, trend charts on their biomarker history, and a premium AI Longevity Advisor powered by Claude. The target audience is longevity-curious individuals who want clinically credible guidance without a clinical background.

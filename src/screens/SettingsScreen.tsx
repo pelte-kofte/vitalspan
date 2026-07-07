@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, Switch, Alert, Share,
@@ -12,19 +12,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
 import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, TrashIcon, ClipboardIcon, RefreshIcon, StarIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { STORAGE_KEYS } from '../lib/storageKeys';
+import { loadNotificationPrefs, saveNotificationPrefs, rescheduleAll, DEFAULT_PREFS, NotificationPrefs } from '../lib/notifications';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const ALL_STORAGE_KEYS = [
-  '@vitalspan_user_profile',
-  '@vitalspan_biomarkers',
-  '@vitalspan_protocol',
-  '@vitalspan_protocol_today',
-  '@vitalspan_health_data',
-  '@vitalspan_health_permissions',
-  '@vitalspan_first_run_complete',   // Phase 1: guided first-run completion flag
-  '@vitalspan_exercise_log',         // exercise history
-];
 
 // ── Row building blocks ──────────────────────────────────────────────────────
 interface RowProps {
@@ -62,12 +54,30 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [weeklyReport, setWeeklyReport] = useState(true);
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
+  const notifPrefsRef = useRef<NotificationPrefs | null>(null);
 
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle('dark');
+    void loadNotificationPrefs().then(prefs => {
+      notifPrefsRef.current = prefs;
+      setNotificationsEnabled(Object.values(prefs).some(s => s.enabled));
+    });
+    return () => {};
+  }, []));
 
   function handleToggleNotif(val: boolean) {
     Haptics.selectionAsync().catch(() => null);
     setNotificationsEnabled(val);
+    const base = notifPrefsRef.current ?? DEFAULT_PREFS;
+    const updated: NotificationPrefs = {
+      morning:   { ...base.morning,   enabled: val },
+      afternoon: { ...base.afternoon, enabled: val },
+      evening:   { ...base.evening,   enabled: val },
+      night:     { ...base.night,     enabled: val },
+    };
+    notifPrefsRef.current = updated;
+    saveNotificationPrefs(updated).catch(() => null);
+    rescheduleAll(updated).catch(() => null);
   }
 
   function handleToggleReport(val: boolean) {
@@ -108,7 +118,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await Promise.all(ALL_STORAGE_KEYS.map(k => AsyncStorage.removeItem(k)));
+              await AsyncStorage.multiRemove([...STORAGE_KEYS]);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
               nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
             } catch {
@@ -122,11 +132,9 @@ export default function SettingsScreen() {
 
   async function handleExportData() {
     try {
-      const entries = await Promise.all(
-        ALL_STORAGE_KEYS.map(async k => ({ key: k, value: await AsyncStorage.getItem(k) })),
-      );
+      const pairs = await AsyncStorage.multiGet([...STORAGE_KEYS]);
       const data: Record<string, unknown> = {};
-      for (const { key, value } of entries) {
+      for (const [key, value] of pairs) {
         data[key] = value ? JSON.parse(value) : null;
       }
       const json = JSON.stringify(data, null, 2);

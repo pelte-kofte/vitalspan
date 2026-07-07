@@ -71,9 +71,9 @@ function getTrendBadge(curr: number | null, prev: number | null): '↑' | '–' 
 }
 
 function getTrendColor(badge: '↑' | '–' | '↓' | null): string {
-  if (badge === '↑') return Colors.status.optimal;
-  if (badge === '↓') return Colors.status.critical;
-  if (badge === '–') return Colors.onSurfaceMuted;
+  if (badge === '↑') return Colors.viz.bioGreen;
+  if (badge === '↓') return Colors.viz.coral;
+  if (badge === '–') return Colors.dark.textMuted;
   return 'transparent';
 }
 
@@ -144,7 +144,7 @@ export default function ExerciseScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { void loadData(); }, [loadData]));
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('light'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -371,13 +371,13 @@ export default function ExerciseScreen() {
         style={s.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.viz.bioGreen} />
         }
       >
         {/* My Routine tab: empty state or routine cards */}
         {activeTab === 'routine' && routine.length === 0 && (
           <View style={s.emptyStateCard}>
-            <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
+            <RunnerIcon color={Colors.dark.textMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Build your routine</Text>
             <Text style={s.emptyStateBody}>
               Add exercises from Discover to build your personal routine.
@@ -435,7 +435,7 @@ export default function ExerciseScreen() {
         {/* Motivating empty state — shown when no logs at all (Kesfet only) */}
         {activeTab === 'discover' && logs.length === 0 && (
           <View style={s.emptyStateCard}>
-            <RunnerIcon color={Colors.onSurfaceMuted} size={48} />
+            <RunnerIcon color={Colors.dark.textMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
             <Text style={s.emptyStateBody}>
               Log your first workout to start tracking your movement. Consistency compounds — even a 20-minute walk counts.
@@ -552,7 +552,7 @@ export default function ExerciseScreen() {
                         disabled={routine.includes(ex.id)}
                         activeOpacity={0.75}
                       >
-                        <Text style={[s.addToRoutineTxt, routine.includes(ex.id) && { color: Colors.status.optimal }]}>
+                        <Text style={[s.addToRoutineTxt, routine.includes(ex.id) && { color: Colors.viz.bioGreen }]}>
                           {routine.includes(ex.id) ? '✓' : '+'}
                         </Text>
                       </TouchableOpacity>
@@ -591,7 +591,7 @@ export default function ExerciseScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -599,15 +599,17 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
   },
-  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
-  subtitle: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
+  subtitle: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   todayPill: {
-    backgroundColor: Colors.status.optimalBg,
+    backgroundColor: Colors.dark.statusOptimalBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.statusOptimalBorder,
   },
-  todayPillTxt: { fontSize: Typography.sizes.xs, color: Colors.status.optimalText, fontWeight: '600' },
+  todayPillTxt: { fontSize: Typography.sizes.xs, color: Colors.viz.bioGreen, fontWeight: '600' },
 
   tabsBar: { maxHeight: 44 },
   tabsScroll: { paddingHorizontal: Spacing.base, gap: 8, paddingBottom: 8 },
@@ -615,22 +617,22 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, /* intentional — no Spacing.* equivalent */
     paddingVertical: 7, /* intentional — no Spacing.* equivalent */
     borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.border,
   },
   tabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.dark.ctaPrimary,
+    borderColor: Colors.dark.ctaPrimary,
   },
-  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary, fontWeight: '500' },
-  tabTxtActive: { color: Colors.primaryBg, fontWeight: '600' },
+  tabTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, fontWeight: '500' },
+  tabTxtActive: { color: Colors.dark.bg, fontWeight: '600' },
 
   scroll: { flex: 1 },
   sectionLabel: {
     fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.onSurfaceMuted,
+    color: Colors.dark.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
@@ -639,16 +641,14 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
     overflow: 'hidden',
   },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
+  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border },
 
-  // Exercise row
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -656,27 +656,28 @@ const s = StyleSheet.create({
     gap: Spacing.sm,
   },
   exLeft: { flex: 1 },
-  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface, marginBottom: 4 },
+  exName: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text, marginBottom: 4 },
   exMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   equipChip: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.inputBg,
     borderRadius: Radius.sm,
     paddingHorizontal: 6, /* intentional — no Spacing.* equivalent */
     paddingVertical: 2, /* intentional — no Spacing.* equivalent */
+    borderWidth: 0.5,
+    borderColor: Colors.dark.border,
   },
-  equipChipTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted },
-  exTarget: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  equipChipTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted },
+  exTarget: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   exRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   logBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: Spacing.xs + 1,
   },
-  logBtnTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primaryBg },
-  chevron: { fontSize: 12, color: Colors.onSurfaceMuted, fontWeight: '600' },
+  logBtnTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.bg },
+  chevron: { fontSize: 12, color: Colors.dark.textMuted, fontWeight: '600' },
 
-  // Muscle map filter
   muscleFilterToggle: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -684,20 +685,20 @@ const s = StyleSheet.create({
     padding: Spacing.md,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
+    borderColor: Colors.dark.cardBorder,
   },
-  muscleFilterToggleTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.textSecondary },
-  muscleFilterChevron: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
+  muscleFilterToggleTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.dark.textMuted },
+  muscleFilterChevron: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   muscleFilterPanel: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
+    borderColor: Colors.dark.cardBorder,
     padding: Spacing.md,
     overflow: 'hidden',
   },
@@ -706,40 +707,36 @@ const s = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.accentBg,
+    backgroundColor: Colors.dark.accentBg,
     borderRadius: Radius.full,
     borderWidth: 0.5,
-    borderColor: Colors.accentBorder,
+    borderColor: Colors.dark.accentBorder,
   },
-  clearFilterTxt: { fontSize: Typography.sizes.xs, color: Colors.accent, fontWeight: '600' },
+  clearFilterTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '600' },
 
-  // Today's activity card
   activityCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
     padding: Spacing.md,
   },
-  activityLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
+  activityLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
   activityRow: { flexDirection: 'row', alignItems: 'center' },
   activityStat: { flex: 1, alignItems: 'center' },
-  activityStatVal: { fontSize: Typography.sizes.xl, fontWeight: '600', color: Colors.onSurface, lineHeight: 28 },
-  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
-  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.borderLight },
-  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted },
+  activityStatVal: { fontSize: Typography.sizes.xl, fontWeight: '600', color: Colors.dark.text, lineHeight: 28 },
+  activityStatLbl: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
+  activityDivider: { width: 0.5, height: 32, backgroundColor: Colors.dark.border },
+  activityEmpty: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
 
-  // Empty state
   emptyStateCard: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
     padding: Spacing.xl,
     alignItems: 'center',
     marginBottom: Spacing.base,
@@ -748,7 +745,7 @@ const s = StyleSheet.create({
   emptyStateHeadline: {
     fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.onSurface,
+    color: Colors.dark.text,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: Spacing.sm,
@@ -756,14 +753,14 @@ const s = StyleSheet.create({
   emptyStateBody: {
     fontSize: Typography.sizes.base,
     fontWeight: '400',
-    color: Colors.textSecondary,
+    color: Colors.dark.textMuted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   emptyStateCta: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
+    backgroundColor: Colors.dark.ctaPrimary,
+    borderRadius: Radius.full,
     minHeight: 44,
     alignSelf: 'stretch',
     justifyContent: 'center',
@@ -771,20 +768,21 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   emptyStateCtaTxt: {
-    color: Colors.surface,
+    color: Colors.dark.bg,
     fontSize: Typography.sizes.base,
     fontWeight: '600',
   },
 
-  // My Routine/Discover segmented control
   segmentedControl: {
     flexDirection: 'row',
     gap: Spacing.xs,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.full,
     padding: 3,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
   },
   segment: {
     flex: 1,
@@ -792,16 +790,14 @@ const s = StyleSheet.create({
     borderRadius: Radius.full,
     alignItems: 'center',
   },
-  segmentActive: { backgroundColor: Colors.primary },
-  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurfaceMuted },
-  segmentTxtActive: { color: Colors.primaryBg },
+  segmentActive: { backgroundColor: Colors.dark.ctaPrimary },
+  segmentTxt: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.dark.textMuted },
+  segmentTxtActive: { color: Colors.dark.bg },
 
-  // Drag handle
   dragHandle: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.md },
-  dragHandleTxt: { fontSize: Typography.sizes.lg, color: Colors.onSurfaceMuted },
+  dragHandleTxt: { fontSize: Typography.sizes.lg, color: Colors.dark.textMuted },
 
-  // Add-to-routine button
   addToRoutineBtn: { padding: Spacing.sm, minWidth: 28, alignItems: 'center' },
-  addToRoutineTxt: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.primary },
+  addToRoutineTxt: { fontSize: Typography.sizes.lg, fontWeight: '700', color: Colors.dark.ctaPrimary },
 
 });

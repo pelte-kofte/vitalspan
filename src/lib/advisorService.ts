@@ -81,8 +81,8 @@ export async function generateReport(context: AdvisorContext): Promise<ReportRes
     if (error) {
       return { data: null, error: mapInvokeError(error) };
     }
-    if (!data || typeof data !== 'object') {
-      return { data: null, error: { code: 'AI_ERROR', message: 'Invalid response from AI service' } };
+    if (!data || typeof data !== 'object' || !('scoreSummary' in data)) {
+      return { data: null, error: { code: 'AI_ERROR', message: 'Invalid report shape received from edge function' } };
     }
     return { data: data as LongevityReport, error: null };
   } catch (e: unknown) {
@@ -94,10 +94,11 @@ export async function generateReport(context: AdvisorContext): Promise<ReportRes
 export async function sendChatMessage(
   messages: ChatMessage[],
   reportSummary: string,
+  context?: AdvisorContext,
 ): Promise<ChatResult> {
   try {
     const { data, error } = await supabase.functions.invoke('ai-advisor', {
-      body: { action: 'chat', messages, reportSummary },
+      body: { action: 'chat', messages, reportSummary, context },
     });
     if (error) {
       return { data: null, error: mapInvokeError(error) };

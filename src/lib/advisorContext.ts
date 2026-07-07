@@ -10,7 +10,7 @@
  *     raw numeric values never included in the output.
  *   - No user name, no exact birthdate, no Supabase user ID, no device ID.
  *   - HealthKit fields excluded when isDemoMode:true (D-12).
- *   - Exercise frequency summarized as "Nx/week" for the last 7 calendar days (D-08).
+ *   - Exercise frequency calculated as unique workout DAYS in last 7 calendar days (D-08).
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,11 +27,13 @@ export type BiomarkerStatus = 'Optimal' | 'Suboptimal' | 'Critical';
 export interface AdvisorContext {
   ageBand: string;                   // e.g. "35–39" (D-11)
   biologicalAge: number | null;      // from computePhenoAge() (D-03)
+  phenoAgeInputCount: number;        // how many of 9 PhenoAge biomarkers were available
   sex: string;
   goal: string;
+  conditions: string[];              // user-reported medical conditions
   medications: string[];             // names only (D-09)
   supplements: string[];             // names only (D-09) — preserved for backward compat
-  /** Phase 22 PROT-05: richer per-supplement data with dose bucketing. Raw dose never included (pharmacist-liability). */
+  /** Phase 22 PROT-05: richer per-supplement data with dose bucketing. */
   supplementDetails?: Array<{
     name: string;
     timing?: string;
@@ -40,12 +42,22 @@ export interface AdvisorContext {
   biomarkers: Array<{
     name: string;
     status: BiomarkerStatus;
+    daysAgo?: number;                // how many days since this entry was logged
+    trend?: 'improving' | 'stable' | 'declining';  // based on status change from prior entry
+  }>;
+  adherenceRate: string;             // e.g. "72%" or "unknown"
+  timingConflicts: Array<{
+    item1: string;
+    item2: string;
+    slot: string;                    // TimeSlot or 'any' for pharmacodynamic conflicts
+    note: string;
   }>;
   healthDataAvailable: boolean;      // false when isDemoMode:true (D-12)
   hrv?: number;                      // omit if healthDataAvailable:false
   sleepScore?: number;               // omit if healthDataAvailable:false
   recovery?: number;                 // omit if healthDataAvailable:false
-  exerciseFrequency?: string;        // e.g. "3x/week" — omit if no logs in last 7 days (D-08)
+  glucose?: number;                  // mg/dL from HealthKit; omit if not available
+  exerciseFrequency?: string;        // e.g. "3x/week" — unique workout days, last 7 days (D-08)
 }
 
 // ── Internal types (not exported) ────────────────────────────────────────────
@@ -78,7 +90,7 @@ interface CustomSupplement {
 interface ProtocolState {
   supplements?: ProtocolItem[];
   addedSupplements?: string[];           // legacy — for backward compat during migration window
-  customSupplements?: CustomSupplement[];  // legacy — for backward compat
+  customSupplements?: CustomSupplement[]; // legacy — for backward compat
   medTimes: Record<string, string>;
   taken: string[];
   takenDate: string;
@@ -86,50 +98,32 @@ interface ProtocolState {
 }
 
 interface HealthData {
-  hrv: number | null;
-  sleepScore: number | null;
-  recovery: number | null;
-  isDemoMode: boolean;
+  hrv?: number | null;
+  sleepScore?: number | null;
+  recovery?: number | null;
+  glucose?: number | null;
+  isDemoMode?: boolean;
 }
 
 // ── Age bucketing (D-11) ─────────────────────────────────────────────────────
 
 function bucketAge(age: number): string {
   const lowerBound = Math.floor(age / 5) * 5;
-  const upperBound = lowerBound + 4;
-  return `${lowerBound}–${upperBound}`;
+  return `${lowerBound}–${lowerBound + 4}`;
 }
 
-// ── Biomarker status bucketing (D-10) ────────────────────────────────────────
-//
-// Rules:
-//   value >= optMin && value <= optMax          → 'Optimal'
-//   For biomarkers with optMin === 0 (lower-bound only):
-//     value <= optMax                            → 'Optimal'
-//     value <= optMax * 1.5                      → 'Suboptimal'
-//     otherwise                                  → 'Critical'
-//   For biomarkers with optMin > 0 (two-sided range):
-//     deviation < 40% above optMax OR below optMin → 'Suboptimal'
-//     greater deviation                           → 'Critical'
+// ── Biomarker status bucketing (D-10) ─────────────────────────────────────────
 
 function bucketBiomarkerStatus(value: number, optMin: number, optMax: number): BiomarkerStatus {
   if (optMin === 0) {
-    // One-sided range — only upper bound matters
     if (value <= optMax) return 'Optimal';
     if (value <= optMax * 1.5) return 'Suboptimal';
     return 'Critical';
   }
-
-  // Two-sided range
   if (value >= optMin && value <= optMax) return 'Optimal';
-
-  // Check deviation magnitude
   const aboveOptMax = value > optMax ? (value - optMax) / optMax : 0;
   const belowOptMin = value < optMin ? (optMin - value) / optMin : 0;
-  const deviation = Math.max(aboveOptMax, belowOptMin);
-
-  if (deviation < 0.4) return 'Suboptimal';
-  return 'Critical';
+  return Math.max(aboveOptMax, belowOptMin) < 0.4 ? 'Suboptimal' : 'Critical';
 }
 
 // ── Safe AsyncStorage reader ──────────────────────────────────────────────────
@@ -144,11 +138,187 @@ async function safeGetItem<T>(key: string): Promise<T | null> {
   }
 }
 
+// ── Timing conflict constants ─────────────────────────────────────────────────
+//
+// Only interactions with strong pharmacokinetic or pharmacodynamic evidence are listed.
+// Source basis: standard pharmacy references (Stockley's Drug Interactions,
+// clinical pharmacokinetics literature, and pharmacist practice guidelines).
+
+/** Same-slot supplement–supplement absorption conflicts. */
+const ABSORPTION_CONFLICT_RULES: Array<{ a: string; b: string; note: string }> = [
+  { a: 'calcium', b: 'iron', note: 'Calcium inhibits non-heme iron absorption — separate by 2 hours' },
+  { a: 'calcium', b: 'zinc', note: 'Calcium competes with zinc for intestinal absorption — separate by 1–2 hours' },
+  { a: 'calcium', b: 'magnesium', note: 'High-dose calcium and magnesium compete for the same transporter — consider splitting doses' },
+  { a: 'zinc', b: 'copper', note: 'Zinc induces metallothionein and blocks copper absorption — separate by 2 hours' },
+  { a: 'zinc', b: 'iron', note: 'Zinc and non-heme iron compete for divalent metal transporter — separate by 2 hours' },
+  { a: 'magnesium', b: 'iron', note: 'Magnesium may reduce iron absorption when co-administered at high doses' },
+];
+
+/** Same-slot supplement–medication absorption conflicts. */
+const SUPP_MED_ABSORPTION_RULES: Array<{ supp: string; med: string; note: string }> = [
+  { supp: 'calcium', med: 'levothyroxine', note: 'Calcium significantly reduces levothyroxine absorption — separate by at least 4 hours' },
+  { supp: 'calcium', med: 'synthroid', note: 'Calcium significantly reduces levothyroxine absorption — separate by at least 4 hours' },
+  { supp: 'iron', med: 'levothyroxine', note: 'Iron forms an insoluble complex with levothyroxine, reducing absorption — separate by at least 4 hours' },
+  { supp: 'iron', med: 'synthroid', note: 'Iron forms an insoluble complex with levothyroxine, reducing absorption — separate by at least 4 hours' },
+  { supp: 'magnesium', med: 'levothyroxine', note: 'Magnesium may reduce levothyroxine absorption — separate by 2 hours' },
+  { supp: 'calcium', med: 'ciprofloxacin', note: 'Calcium chelates fluoroquinolones, reducing antibiotic absorption — separate by 2 hours' },
+  { supp: 'iron', med: 'ciprofloxacin', note: 'Iron chelates fluoroquinolones, reducing antibiotic absorption — separate by 2 hours' },
+  { supp: 'magnesium', med: 'ciprofloxacin', note: 'Magnesium chelates fluoroquinolones, reducing antibiotic absorption — separate by 2 hours' },
+];
+
+/** Pharmacodynamic conflicts — flagged regardless of time slot (slot: 'any'). */
+const CRITICAL_DRUG_CONFLICTS: Array<{ supp: string; medPatterns: string[]; note: string }> = [
+  {
+    supp: 'vitamin k',
+    medPatterns: ['warfarin', 'coumadin', 'rivaroxaban', 'xarelto', 'apixaban', 'eliquis', 'dabigatran', 'pradaxa', 'acenocoumarol'],
+    note: 'Vitamin K directly antagonizes anticoagulants — discuss with prescribing doctor immediately',
+  },
+  {
+    supp: 'berberine',
+    medPatterns: ['metformin', 'glipizide', 'glyburide', 'glimepiride', 'sitagliptin', 'empagliflozin', 'insulin'],
+    note: 'Berberine has additive glucose-lowering effects — risk of hypoglycemia; discuss with prescribing doctor',
+  },
+  {
+    supp: "st. john",
+    medPatterns: ['sertraline', 'fluoxetine', 'paroxetine', 'escitalopram', 'citalopram', 'venlafaxine', 'duloxetine', 'bupropion'],
+    note: "St. John's Wort induces CYP3A4 — may reduce effectiveness of many medications; discuss with prescribing doctor",
+  },
+  {
+    supp: 'coq10',
+    medPatterns: ['warfarin', 'coumadin'],
+    note: 'CoQ10 may reduce anticoagulant effectiveness — monitor INR; discuss with prescribing doctor',
+  },
+  {
+    supp: 'fish oil',
+    medPatterns: ['warfarin', 'coumadin', 'clopidogrel'],
+    note: 'High-dose omega-3 (fish oil) may enhance anticoagulant/antiplatelet effects — discuss with prescribing doctor',
+  },
+  {
+    supp: 'omega',
+    medPatterns: ['warfarin', 'coumadin', 'clopidogrel'],
+    note: 'High-dose omega-3 may enhance anticoagulant effects — discuss with prescribing doctor',
+  },
+];
+
+// ── Timing conflict builder ────────────────────────────────────────────────────
+
+function buildTimingConflicts(
+  supplements: ProtocolItem[],
+  medications: string[],
+  medTimes: Record<string, string>,
+  hiddenMeds: string[],
+): AdvisorContext['timingConflicts'] {
+  const conflicts: AdvisorContext['timingConflicts'] = [];
+  const seen = new Set<string>();
+  const hiddenMedSet = new Set(hiddenMeds.map(m => m.toLowerCase()));
+  const visibleMeds = medications.filter(m => !hiddenMedSet.has(m.toLowerCase()));
+
+  function addConflict(item1: string, item2: string, slot: string, note: string): void {
+    const key = [item1, item2].map(s => s.toLowerCase()).sort().join('|||');
+    if (!seen.has(key)) {
+      seen.add(key);
+      conflicts.push({ item1, item2, slot, note });
+    }
+  }
+
+  // ── 1. SUPPLEMENT_DATABASE separateFromMeds (same slot only) ──────────────
+  for (const supp of supplements) {
+    if (!supp.timing) continue;
+    const dbEntry = SUPPLEMENT_DATABASE.find(
+      db => db.name.toLowerCase() === supp.name.toLowerCase(),
+    );
+    if (!dbEntry) continue;
+    for (const sep of dbEntry.separateFromMeds) {
+      const matchingMed = visibleMeds.find(m => {
+        const mNorm = m.toLowerCase();
+        const drugNorm = sep.drug.toLowerCase();
+        return mNorm.includes(drugNorm) || drugNorm.includes(mNorm.split(' ')[0]);
+      });
+      if (!matchingMed) continue;
+      const medSlot = medTimes[matchingMed];
+      if (medSlot === supp.timing) {
+        const note = sep.hours > 0
+          ? `${supp.name} and ${matchingMed}: ${sep.reason} — separate by ${sep.hours}h`
+          : `${supp.name} and ${matchingMed}: ${sep.reason}`;
+        addConflict(supp.name, matchingMed, supp.timing, note);
+      }
+    }
+  }
+
+  // ── 2. SUPPLEMENT_DATABASE avoidWith (supplement–supplement, same slot) ───
+  for (const supp of supplements) {
+    if (!supp.timing) continue;
+    const dbEntry = SUPPLEMENT_DATABASE.find(
+      db => db.name.toLowerCase() === supp.name.toLowerCase(),
+    );
+    if (!dbEntry || dbEntry.avoidWith.length === 0) continue;
+    for (const avoidName of dbEntry.avoidWith) {
+      const other = supplements.find(
+        s => s.id !== supp.id &&
+             s.timing === supp.timing &&
+             s.name.toLowerCase().includes(avoidName.toLowerCase()),
+      );
+      if (other) {
+        addConflict(supp.name, other.name, supp.timing,
+          `${supp.name} and ${other.name} should not be taken at the same time — consider separating by 2+ hours`);
+      }
+    }
+  }
+
+  // ── 3. Hardcoded absorption rules (supplement–supplement, same slot) ──────
+  const suppsBySlot = new Map<string, ProtocolItem[]>();
+  for (const s of supplements) {
+    if (!s.timing) continue;
+    const arr = suppsBySlot.get(s.timing) ?? [];
+    arr.push(s);
+    suppsBySlot.set(s.timing, arr);
+  }
+  for (const [slot, items] of suppsBySlot) {
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const nameA = items[i].name.toLowerCase();
+        const nameB = items[j].name.toLowerCase();
+        for (const rule of ABSORPTION_CONFLICT_RULES) {
+          if ((nameA.includes(rule.a) && nameB.includes(rule.b)) ||
+              (nameB.includes(rule.a) && nameA.includes(rule.b))) {
+            addConflict(items[i].name, items[j].name, slot, rule.note);
+          }
+        }
+      }
+    }
+  }
+
+  // ── 4. Supplement–medication absorption conflicts (same slot) ─────────────
+  for (const rule of SUPP_MED_ABSORPTION_RULES) {
+    const suppMatch = supplements.find(s => s.timing && s.name.toLowerCase().includes(rule.supp));
+    if (!suppMatch?.timing) continue;
+    const medMatch = visibleMeds.find(m => m.toLowerCase().includes(rule.med));
+    if (!medMatch) continue;
+    if (medTimes[medMatch] === suppMatch.timing) {
+      addConflict(suppMatch.name, medMatch, suppMatch.timing, rule.note);
+    }
+  }
+
+  // ── 5. Critical pharmacodynamic conflicts (any slot) ─────────────────────
+  for (const rule of CRITICAL_DRUG_CONFLICTS) {
+    const suppMatch = supplements.find(s => s.name.toLowerCase().includes(rule.supp));
+    if (!suppMatch) continue;
+    for (const pat of rule.medPatterns) {
+      const medMatch = visibleMeds.find(m => m.toLowerCase().includes(pat));
+      if (medMatch) {
+        addConflict(suppMatch.name, medMatch, 'any', rule.note);
+        break;
+      }
+    }
+  }
+
+  return conflicts;
+}
+
 // ── Main assembler ────────────────────────────────────────────────────────────
 
 export async function assembleAdvisorContext(): Promise<AdvisorContext> {
   try {
-    // Read all five AsyncStorage keys in parallel (established pattern from hooks)
     const [
       userProfile,
       storedEntries,
@@ -167,63 +337,85 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     const age = userProfile?.age ?? 0;
     const ageBand = age > 0 ? bucketAge(age) : '0–4';
 
-    // ── Latest entry per biomarker type ───────────────────────────────────
-    const latestEntries = new Map<string, StoredEntry>();
+    // ── Entry lists per biomarker (sorted DESC by date) ───────────────────
+    // Build full history per biomarker so we can compute trend (latest vs. prior)
+    const entryLists = new Map<string, StoredEntry[]>();
     if (storedEntries && Array.isArray(storedEntries)) {
       for (const entry of storedEntries) {
-        const existing = latestEntries.get(entry.biomarkerId);
-        if (!existing || entry.date > existing.date) {
-          latestEntries.set(entry.biomarkerId, entry);
-        }
+        const arr = entryLists.get(entry.biomarkerId) ?? [];
+        arr.push(entry);
+        entryLists.set(entry.biomarkerId, arr);
+      }
+      for (const arr of entryLists.values()) {
+        arr.sort((a, b) => b.date.localeCompare(a.date));
       }
     }
 
-    // ── Biomarker status mapping (D-10) — name + status only, no raw values ─
-    const biomarkerStatusList: Array<{ name: string; status: BiomarkerStatus }> = [];
+    // ── Biomarker status + daysAgo + trend ────────────────────────────────
+    const STATUS_RANK: Record<BiomarkerStatus, number> = { Optimal: 2, Suboptimal: 1, Critical: 0 };
+    const nowMs = Date.now();
+
+    const biomarkerStatusList: AdvisorContext['biomarkers'] = [];
     for (const biomarker of BIOMARKERS) {
-      const entry = latestEntries.get(biomarker.id);
-      if (entry !== undefined) {
-        const status = bucketBiomarkerStatus(entry.value, biomarker.optMin, biomarker.optMax);
-        biomarkerStatusList.push({ name: biomarker.name, status });
+      const entries = entryLists.get(biomarker.id);
+      if (!entries || entries.length === 0) continue;
+
+      const latest = entries[0];
+      const prev = entries[1];  // undefined if only one entry
+
+      const status = bucketBiomarkerStatus(latest.value, biomarker.optMin, biomarker.optMax);
+      const daysAgo = Math.floor((nowMs - new Date(latest.date).getTime()) / 86_400_000);
+
+      let trend: 'improving' | 'stable' | 'declining' | undefined;
+      if (prev !== undefined) {
+        const prevStatus = bucketBiomarkerStatus(prev.value, biomarker.optMin, biomarker.optMax);
+        const latestRank = STATUS_RANK[status];
+        const prevRank = STATUS_RANK[prevStatus];
+        trend = latestRank > prevRank ? 'improving' : latestRank < prevRank ? 'declining' : 'stable';
       }
+
+      biomarkerStatusList.push({
+        name: biomarker.name,
+        status,
+        daysAgo,
+        ...(trend !== undefined ? { trend } : {}),
+      });
     }
 
     // ── PhenoAge calculation ───────────────────────────────────────────────
     const phenoInputs: PhenoAgeInputs = { age };
     for (const [biomarkerId, phenoKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
-      const entry = latestEntries.get(biomarkerId);
-      if (entry !== undefined) {
-        phenoInputs[phenoKey] = entry.value;
+      const entries = entryLists.get(biomarkerId);
+      if (entries && entries.length > 0) {
+        phenoInputs[phenoKey] = entries[0].value;
       }
     }
     const phenoResult = computePhenoAge(phenoInputs);
     const biologicalAge = phenoResult.biologicalAge;
+    const phenoAgeInputCount = phenoResult.totalRequired - phenoResult.missingCount;
 
-    // ── Supplements — new schema: read from supplements[]; backward compat fallback ─
-    // Phase 22 PROT-05: build supplementDetails (name + timing + doseBucket) first,
-    // then derive the backward-compat supplements: string[] from it.
+    // ── Supplement details (new schema + legacy fallback) ─────────────────
     // Raw personalDose string is NEVER placed in the output (pharmacist-liability, D-07/T-22-06).
     type DoseBucket = 'high' | 'standard' | 'low';
     interface SupplementDetail { name: string; timing?: string; doseBucket?: DoseBucket; }
 
-    const supplementDetails: SupplementDetail[] = protocolState?.supplements
-      ? protocolState.supplements.map((item: ProtocolItem): SupplementDetail => {
+    const supplementList: ProtocolItem[] = protocolState?.supplements ?? [];
+
+    const supplementDetails: SupplementDetail[] = supplementList.length > 0
+      ? supplementList.map((item: ProtocolItem): SupplementDetail => {
           const dbEntry = SUPPLEMENT_DATABASE.find(
-            db => db.name.toLowerCase() === item.name.toLowerCase()
+            db => db.name.toLowerCase() === item.name.toLowerCase(),
           );
           let doseBucket: DoseBucket | undefined;
           if (!item.personalDose) {
-            // No personal override — using DB default, bucket as standard
             doseBucket = 'standard';
           } else if (dbEntry?.defaultDose) {
             const personal = parseFloat(item.personalDose);
             const standard = parseFloat(dbEntry.defaultDose);
-            // Guard: only compute ratio when both values are valid numbers (T-22-07 — never emit NaN)
             if (!isNaN(personal) && !isNaN(standard) && standard > 0) {
               const ratio = personal / standard;
               doseBucket = ratio >= 1.25 ? 'high' : ratio <= 0.75 ? 'low' : 'standard';
             }
-            // else: non-numeric units (e.g. "as directed") — doseBucket stays undefined → omitted from output
           }
           return {
             name: item.name,
@@ -232,32 +424,56 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
           };
         })
       : [
-          // Legacy fallback: addedSupplements + customSupplements (no dose data available)
           ...(protocolState?.addedSupplements ?? []).map(name => ({ name })),
           ...(protocolState?.customSupplements ?? []).map(s => ({ name: s.name })),
         ];
 
-    // Backward-compat: keep supplements: string[] for any consumer expecting the old shape
     const supplements = Array.from(new Set(supplementDetails.map(s => s.name)));
 
-    // ── Medications — names only (D-09) ───────────────────────────────────
+    // ── Medications (names only, D-09) ────────────────────────────────────
     const medications = userProfile?.medications ?? [];
+
+    // ── Adherence rate ─────────────────────────────────────────────────────
+    // Uses today's taken array if takenDate === today. Falls back to "unknown".
+    let adherenceRate = 'unknown';
+    if (protocolState) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const hiddenMedSet = new Set((protocolState.hiddenMeds ?? []).map(m => m.toLowerCase()));
+      const visibleSupps = supplementList.length;
+      const visibleMeds = medications.filter(m => !hiddenMedSet.has(m.toLowerCase())).length;
+      const totalVisible = visibleSupps + visibleMeds;
+      if (totalVisible > 0 && protocolState.takenDate === todayStr) {
+        const pct = Math.round((protocolState.taken.length / totalVisible) * 100);
+        adherenceRate = `${pct}%`;
+      }
+    }
+
+    // ── Timing conflicts ───────────────────────────────────────────────────
+    const timingConflicts = buildTimingConflicts(
+      supplementList,
+      medications,
+      protocolState?.medTimes ?? {},
+      protocolState?.hiddenMeds ?? [],
+    );
 
     // ── Health data (D-12) ────────────────────────────────────────────────
     const isDemoMode = healthData?.isDemoMode === true;
     const healthDataAvailable = !isDemoMode && healthData !== null;
 
-    // ── Exercise frequency (D-08) ─────────────────────────────────────────
+    // ── Exercise frequency — unique workout DAYS in last 7 calendar days ──
+    // Fix: count unique dates (workout days), not log entry count (D-08).
     let exerciseFrequency: string | undefined;
     if (exerciseLog && Array.isArray(exerciseLog) && exerciseLog.length > 0) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 7);
-      const cutoffISO = cutoff.toISOString();
-      const recentCount = exerciseLog.filter(
-        (entry) => entry.loggedAt >= cutoffISO,
-      ).length;
-      if (recentCount > 0) {
-        exerciseFrequency = `${recentCount}x/week`;
+      const cutoffDateStr = cutoff.toISOString().slice(0, 10);
+      const uniqueWorkoutDays = new Set(
+        exerciseLog
+          .filter(entry => entry.date >= cutoffDateStr)
+          .map(entry => entry.date),
+      );
+      if (uniqueWorkoutDays.size > 0) {
+        exerciseFrequency = `${uniqueWorkoutDays.size}x/week`;
       }
     }
 
@@ -265,29 +481,27 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     const context: AdvisorContext = {
       ageBand,
       biologicalAge,
+      phenoAgeInputCount,
       sex: userProfile?.sex ?? '',
       goal: userProfile?.goal ?? '',
+      conditions: userProfile?.conditions ?? [],
       medications,
       supplements,
       supplementDetails,
       biomarkers: biomarkerStatusList,
+      adherenceRate,
+      timingConflicts,
       healthDataAvailable,
     };
 
     // Include HealthKit fields only when real data is available (D-12)
     if (healthDataAvailable && healthData !== null) {
-      if (healthData.hrv !== null && healthData.hrv !== undefined) {
-        context.hrv = healthData.hrv;
-      }
-      if (healthData.sleepScore !== null && healthData.sleepScore !== undefined) {
-        context.sleepScore = healthData.sleepScore;
-      }
-      if (healthData.recovery !== null && healthData.recovery !== undefined) {
-        context.recovery = healthData.recovery;
-      }
+      if (healthData.hrv != null) context.hrv = healthData.hrv;
+      if (healthData.sleepScore != null) context.sleepScore = healthData.sleepScore;
+      if (healthData.recovery != null) context.recovery = healthData.recovery;
+      if (healthData.glucose != null) context.glucose = healthData.glucose;
     }
 
-    // Include exerciseFrequency only when entries exist in the last 7 days (D-08)
     if (exerciseFrequency !== undefined) {
       context.exerciseFrequency = exerciseFrequency;
     }
@@ -298,12 +512,16 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     return {
       ageBand: '0–4',
       biologicalAge: null,
+      phenoAgeInputCount: 0,
       sex: '',
       goal: '',
+      conditions: [],
       medications: [],
       supplements: [],
       supplementDetails: [],
       biomarkers: [],
+      adherenceRate: 'unknown',
+      timingConflicts: [],
       healthDataAvailable: false,
     };
   }

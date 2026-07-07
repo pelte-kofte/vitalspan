@@ -241,7 +241,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                 <TextInput
                   style={ms.input}
                   placeholder="Search Berberine, Quercetin, NMN…"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={query}
                   onChangeText={t => { setQuery(t); setSelectedDb(null); }}
                   autoCorrect={false}
@@ -277,7 +277,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                 <TextInput
                   style={ms.input}
                   placeholder="Supplement name"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={name}
                   onChangeText={setName}
                   editable={!selectedDb}
@@ -287,7 +287,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                 <TextInput
                   style={ms.input}
                   placeholder="e.g. 500mg, 2 capsules"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={dose}
                   onChangeText={setDose}
                 />
@@ -311,7 +311,7 @@ function AddCustomSupplementModal({ visible, onClose, onAdd }: AddModalProps) {
                 <TextInput
                   style={[ms.input, ms.notesInput]}
                   placeholder="Any notes, interactions, reminders…"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={notes}
                   onChangeText={setNotes}
                   multiline
@@ -389,7 +389,7 @@ function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementS
               <TextInput
                 style={ms.input}
                 placeholder="e.g. 500mg, 2 capsules"
-                placeholderTextColor={Colors.onSurfaceMuted}
+                placeholderTextColor={Colors.dark.textMuted}
                 value={personalDose}
                 onChangeText={setPersonalDose}
               />
@@ -415,7 +415,7 @@ function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementS
                   <TextInput
                     style={[ms.input, ms.notesInput]}
                     placeholder="Any notes, interactions, reminders…"
-                    placeholderTextColor={Colors.onSurfaceMuted}
+                    placeholderTextColor={Colors.dark.textMuted}
                     value={notes}
                     onChangeText={setNotes}
                     multiline
@@ -429,8 +429,8 @@ function EditSupplementSheet({ visible, item, onClose, onSave }: EditSupplementS
                 <Switch
                   value={reminderEnabled}
                   onValueChange={setReminderEnabled}
-                  trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
-                  thumbColor={reminderEnabled ? Colors.primary : Colors.onSurfaceMuted}
+                  trackColor={{ false: Colors.dark.border, true: Colors.dark.accentBorder }}
+                  thumbColor={reminderEnabled ? Colors.dark.ctaPrimary : Colors.dark.textMuted}
                 />
               </View>
               {reminderEnabled && (
@@ -536,8 +536,8 @@ function EditMedicationSheet({ visible, medName, currentTiming, currentReminderE
                 <Switch
                   value={reminderEnabled}
                   onValueChange={setReminderEnabled}
-                  trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
-                  thumbColor={reminderEnabled ? Colors.primary : Colors.onSurfaceMuted}
+                  trackColor={{ false: Colors.dark.border, true: Colors.dark.accentBorder }}
+                  thumbColor={reminderEnabled ? Colors.dark.ctaPrimary : Colors.dark.textMuted}
                 />
               </View>
               {reminderEnabled && (
@@ -641,7 +641,7 @@ function AddMedicationModal({ visible, onClose, onAdd, existingMeds }: AddMedica
                 <TextInput
                   style={ms.input}
                   placeholder="Search by name or brand (e.g. Metformin, Lipitor)…"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={query}
                   onChangeText={t => { setQuery(t); if (!name) setName(t); }}
                   autoCorrect={false}
@@ -675,7 +675,7 @@ function AddMedicationModal({ visible, onClose, onAdd, existingMeds }: AddMedica
                 <TextInput
                   style={ms.input}
                   placeholder="Generic name (e.g. lisinopril)"
-                  placeholderTextColor={Colors.onSurfaceMuted}
+                  placeholderTextColor={Colors.dark.textMuted}
                   value={name}
                   onChangeText={setName}
                 />
@@ -736,16 +736,16 @@ function AddSupplementSheet({ visible, onClose, goal, addedSupplements, onToggle
               return (
                 <TouchableOpacity
                   key={supp.name}
-                  style={[ms.dbRow, isAdded && { backgroundColor: Colors.primaryBg }, i === allRecommended.length - 1 && { borderBottomWidth: 0 }]}
+                  style={[ms.dbRow, isAdded && { backgroundColor: Colors.dark.accentBg }, i === allRecommended.length - 1 && { borderBottomWidth: 0 }]}
                   onPress={() => { Haptics.selectionAsync().catch(() => null); onToggle(supp.name); }}
                   activeOpacity={0.7}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[ms.dbName, isAdded && { color: Colors.primary }]}>{supp.name}</Text>
+                    <Text style={[ms.dbName, isAdded && { color: Colors.dark.ctaPrimary }]}>{supp.name}</Text>
                     <Text style={ms.dbDesc}>{supp.dose}</Text>
                   </View>
-                  <View style={[ms.gradeBadge, { backgroundColor: isAdded ? Colors.primaryBg : Colors.surfaceElevated, minWidth: 28, alignItems: 'center' }]}>
-                    <Text style={[ms.gradeTxt, { color: isAdded ? Colors.primary : Colors.onSurfaceMuted }]}>
+                  <View style={[ms.gradeBadge, { backgroundColor: isAdded ? Colors.dark.accentBg : Colors.dark.cardBg, minWidth: 28, alignItems: 'center' }]}>
+                    <Text style={[ms.gradeTxt, { color: isAdded ? Colors.dark.ctaPrimary : Colors.dark.textMuted }]}>
                       {isAdded ? '✓' : '+'}
                     </Text>
                   </View>
@@ -1237,9 +1237,9 @@ export default function ProtocolScreen() {
             (protocol.taken.includes(item.id) || protocol.taken.includes(doseId(item.name, 0)));
           const dbInfo = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === item.name.toLowerCase());
           const evidence = (dbInfo?.evidenceGrade ?? 'C') as 'A' | 'B' | 'C';
-          const gradeBg = ({ A: Colors.primaryBg, B: Colors.warningBg, C: Colors.surfaceElevated } as const)[evidence];
-          const gradeBdr = ({ A: Colors.primaryBorder, B: Colors.warningBorder, C: Colors.borderLight } as const)[evidence];
-          const gradeClr = ({ A: Colors.primary, B: Colors.warning, C: Colors.onSurfaceMuted } as const)[evidence];
+          const gradeBg = ({ A: Colors.dark.statusOptimalBg, B: Colors.dark.statusWarnBg, C: Colors.dark.cardBg } as const)[evidence];
+          const gradeBdr = ({ A: Colors.dark.statusOptimalBorder, B: Colors.dark.statusWarnBorder, C: Colors.dark.border } as const)[evidence];
+          const gradeClr = ({ A: Colors.viz.bioGreen, B: Colors.viz.amber, C: Colors.dark.textMuted } as const)[evidence];
           const timingLabel = item.timing ? TIME_SLOTS.find(t => t.key === item.timing)?.label : null;
 
           return (
@@ -1401,7 +1401,7 @@ export default function ProtocolScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
 
   // ── Header ──────────────────────────────────────────────────
@@ -1409,14 +1409,14 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     padding: Spacing.base, paddingTop: Spacing.md,
   },
-  heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.onSurface },
-  date: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, marginTop: 2 },
+  heading: { fontSize: Typography.sizes.xxl, fontWeight: '300', color: Colors.dark.text },
+  date: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, marginTop: 2 },
   progressPill: {
-    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    backgroundColor: Colors.dark.statusOptimalBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
-    borderWidth: 0.5, borderColor: Colors.primaryBorder,
+    borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder,
   },
-  progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.primary },
+  progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.viz.bioGreen },
   // Phase 22 streak row styles
   streakRow: {
     flexDirection: 'row',
@@ -1426,14 +1426,14 @@ const s = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   streakTxt: { fontSize: Typography.sizes.xs, fontWeight: '600' },
-  streakActive: { color: Colors.status.optimalText },
-  streakMuted: { color: Colors.onSurfaceMuted },
-  streakBest: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted },
-  streakHint: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontStyle: 'italic' },
+  streakActive: { color: Colors.viz.bioGreen },
+  streakMuted: { color: Colors.dark.textMuted },
+  streakBest: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  streakHint: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, fontStyle: 'italic' },
 
   // ── Section labels ───────────────────────────────────────────
   sectionLabel: {
-    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
@@ -1442,37 +1442,37 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base, marginTop: Spacing.base, marginBottom: Spacing.sm,
   },
   stackHdrTxt: {
-    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.5,
   },
   sectionAddBtn: {
-    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: 4,
-    borderWidth: 0.5, borderColor: Colors.primaryBorder,
+    borderWidth: 0.5, borderColor: Colors.dark.accentBorder,
   },
-  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '600' },
+  sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '600' },
 
   // ── Item card ────────────────────────────────────────────────
   itemCard: {
     marginHorizontal: Spacing.base, marginBottom: 10,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight,
-    ...Elevation.sm, padding: Spacing.md, overflow: 'hidden',
+    backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
+    padding: Spacing.md, overflow: 'hidden',
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   cardBody: { flex: 1 },
-  cardName: { fontSize: 15, fontWeight: '600', color: Colors.onSurface },
-  cardNameDone: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
-  cardSub: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  cardName: { fontSize: 15, fontWeight: '600', color: Colors.dark.text },
+  cardNameDone: { color: Colors.dark.textMuted, textDecorationLine: 'line-through' },
+  cardSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
 
   // ── Check circle ─────────────────────────────────────────────
   checkCircle: {
     width: 22, height: 22, borderRadius: 11,
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: Colors.dark.border,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  checkCircleOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  checkMark: { fontSize: 11, color: Colors.surface, fontWeight: '700' },
+  checkCircleOn: { backgroundColor: Colors.dark.ctaPrimary, borderColor: Colors.dark.ctaPrimary },
+  checkMark: { fontSize: 11, color: Colors.dark.bg, fontWeight: '700' },
   checkPlaceholder: { width: 22, height: 22, flexShrink: 0 },
 
   // ── Grade + dose badges ──────────────────────────────────────
@@ -1483,101 +1483,101 @@ const s = StyleSheet.create({
   },
   gradeBadgeTxt: { fontSize: 10, fontWeight: '700' },
   doseBadge: {
-    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.sm,
-    borderWidth: 0.5, borderColor: Colors.borderLight, paddingHorizontal: 7, paddingVertical: 3,
+    backgroundColor: Colors.dark.inputBg, borderRadius: Radius.sm,
+    borderWidth: 0.5, borderColor: Colors.dark.border, paddingHorizontal: 7, paddingVertical: 3,
   },
-  doseBadgeTxt: { fontSize: 11, color: Colors.onSurface, fontWeight: '500' },
+  doseBadgeTxt: { fontSize: 11, color: Colors.dark.text, fontWeight: '500' },
 
   // ── Remove button ────────────────────────────────────────────
   removeBtn: {
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.inputBg,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 0.5, borderColor: Colors.borderLight,
+    borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  removeTxt: { fontSize: 10, color: Colors.onSurfaceMuted },
+  removeTxt: { fontSize: 10, color: Colors.dark.textMuted },
 
   // ── Info chips (best time, food timing, personal timing) ─────
   infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   infoChip: {
-    backgroundColor: Colors.surfaceElevated, borderRadius: 8,
-    borderWidth: 0.5, borderColor: Colors.borderLight, paddingHorizontal: 7, paddingVertical: 3,
+    backgroundColor: Colors.dark.cardBg, borderRadius: 8,
+    borderWidth: 0.5, borderColor: Colors.dark.border, paddingHorizontal: 7, paddingVertical: 3,
   },
-  infoChipTxt: { fontSize: 11, color: Colors.onSurfaceMuted, fontWeight: '500' },
+  infoChipTxt: { fontSize: 11, color: Colors.dark.textMuted, fontWeight: '500' },
 
   // ── Medication timing chip (read-only display) ───────────────
   timeChip: {
     paddingHorizontal: Spacing.sm, paddingVertical: 4,
-    borderRadius: Radius.sm, backgroundColor: Colors.surfaceElevated,
-    borderWidth: 0.5, borderColor: Colors.borderLight,
+    borderRadius: Radius.sm, backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  timeChipOn: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  timeChipTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
-  timeChipTxtOn: { color: Colors.primary },
+  timeChipOn: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },
+  timeChipTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, fontWeight: '500' },
+  timeChipTxtOn: { color: Colors.dark.ctaPrimary },
 
   // ── Conflict pill ────────────────────────────────────────────
   conflictPill: {
-    marginTop: 8, backgroundColor: Colors.warningBg,
-    borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Colors.warningBorder,
+    marginTop: 8, backgroundColor: Colors.dark.statusWarnBg,
+    borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Colors.dark.statusWarnBorder,
     paddingHorizontal: 10, paddingVertical: 6,
   },
-  conflictPillTxt: { fontSize: 11, color: Colors.warningText, fontWeight: '500' },
+  conflictPillTxt: { fontSize: 11, color: Colors.viz.amber, fontWeight: '500' },
 
   // ── Multi-dose rows ──────────────────────────────────────────
   multiDoseBlock: { marginTop: 10, gap: 4 },
   doseTrack: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 2 },
   checkSm: {
     width: 16, height: 16, borderRadius: 8,
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: Colors.dark.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  checkSmOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  checkSmTxt: { fontSize: 9, color: Colors.surface, fontWeight: '700' },
-  doseTrackTxt: { flex: 1, fontSize: 12, color: Colors.textSecondary },
-  doseTrackDone: { color: Colors.onSurfaceMuted, textDecorationLine: 'line-through' },
+  checkSmOn: { backgroundColor: Colors.dark.ctaPrimary, borderColor: Colors.dark.ctaPrimary },
+  checkSmTxt: { fontSize: 9, color: Colors.dark.bg, fontWeight: '700' },
+  doseTrackTxt: { flex: 1, fontSize: 12, color: Colors.dark.textMuted },
+  doseTrackDone: { color: Colors.dark.textMuted, textDecorationLine: 'line-through' },
 
   // ── Empty states ─────────────────────────────────────────────
   emptyCard: {
     marginHorizontal: Spacing.base, marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface, borderRadius: Radius.xl,
-    borderWidth: 0.5, borderColor: Colors.borderLight,
-    ...Elevation.sm, padding: Spacing.md, gap: Spacing.sm,
+    backgroundColor: Colors.dark.cardBg, borderRadius: Radius.xl,
+    borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
+    padding: Spacing.md, gap: Spacing.sm,
   },
-  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  emptyTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
   emptyCtaBtn: {
-    backgroundColor: Colors.primaryBg, borderRadius: Radius.full,
+    backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
-    borderWidth: 0.5, borderColor: Colors.primaryBorder, alignSelf: 'flex-start',
+    borderWidth: 0.5, borderColor: Colors.dark.accentBorder, alignSelf: 'flex-start',
   },
-  emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.primary, fontWeight: '500' },
+  emptyCtaTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.ctaPrimary, fontWeight: '500' },
 
   // ── Screen-level empty state ─────────────────────────────────
   emptyScreenCard: {
-    marginHorizontal: Spacing.base, backgroundColor: Colors.surface,
-    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.borderLight,
-    ...Elevation.sm, padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base, overflow: 'hidden',
+    marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
+    padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.base, overflow: 'hidden',
   },
   emptyScreenHeadline: {
-    fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface,
+    fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text,
     textAlign: 'center', marginBottom: Spacing.sm, marginTop: Spacing.md,
   },
   emptyScreenSubtext: {
-    fontSize: Typography.sizes.base, color: Colors.textSecondary,
+    fontSize: Typography.sizes.base, color: Colors.dark.textMuted,
     textAlign: 'center', lineHeight: 22, marginBottom: Spacing.lg,
   },
   emptyScreenCta: {
-    backgroundColor: Colors.primary, borderRadius: Radius.xl,
+    backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.xl,
     minHeight: 44, height: 44, justifyContent: 'center', alignItems: 'center',
     alignSelf: 'stretch', paddingHorizontal: Spacing.base,
   },
-  emptyScreenCtaTxt: { color: Colors.surface, fontSize: Typography.sizes.base, fontWeight: '600', textAlign: 'center' },
+  emptyScreenCtaTxt: { color: Colors.dark.bg, fontSize: Typography.sizes.base, fontWeight: '600', textAlign: 'center' },
 
   // ── Library divider ──────────────────────────────────────────
-  libDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
+  libDivider: { height: 1, backgroundColor: Colors.dark.border, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
 
   permDeniedTxt: {
     fontSize: Typography.sizes.xs,
-    color: Colors.onSurfaceMuted,
+    color: Colors.dark.textMuted,
     fontStyle: 'italic',
     paddingHorizontal: Spacing.base,
     paddingBottom: Spacing.sm,
@@ -1586,54 +1586,55 @@ const s = StyleSheet.create({
 
 // Modal styles
 const ms = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: Colors.dark.bgElevated, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: Spacing.base, paddingBottom: 40, maxHeight: '90%',
+    borderWidth: 0.5, borderColor: Colors.dark.borderStrong,
   },
   handle: {
-    width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.borderLight,
+    width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)',
     alignSelf: 'center', marginBottom: Spacing.base,
   },
-  sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurface, marginBottom: Spacing.base },
-  readOnlyName: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.onSurfaceMuted, marginBottom: Spacing.base },
-  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm }, /* intentional — no Spacing.* equivalent for marginBottom: 6 */
-  required: { color: Colors.danger },
+  sheetTitle: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.text, marginBottom: Spacing.base },
+  readOnlyName: { fontSize: Typography.sizes.h3, fontWeight: '600', color: Colors.dark.textMuted, marginBottom: Spacing.base },
+  fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, marginTop: Spacing.sm }, /* intentional — no Spacing.* equivalent for marginBottom: 6 */
+  required: { color: Colors.viz.coral },
   input: {
-    backgroundColor: Colors.surfaceElevated, borderRadius: Radius.md,
+    backgroundColor: Colors.dark.inputBg, borderRadius: Radius.md,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
-    fontSize: Typography.sizes.base, color: Colors.onSurface,
-    borderWidth: 1, borderColor: Colors.borderLight,
+    fontSize: Typography.sizes.base, color: Colors.dark.text,
+    borderWidth: 1, borderColor: Colors.dark.inputBorder,
   },
   notesInput: { height: 72, textAlignVertical: 'top' },
   dbResults: {
-    marginTop: Spacing.xs, backgroundColor: Colors.surface,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.borderLight,
+    marginTop: Spacing.xs, backgroundColor: Colors.dark.bgElevated,
+    borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.dark.borderStrong,
   },
   dbRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    padding: Spacing.sm, borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight,
+    padding: Spacing.sm, borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border,
   },
-  dbName: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.onSurface },
-  dbDesc: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 },
+  dbName: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.dark.text },
+  dbDesc: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   gradeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm }, /* intentional — no Spacing.* equivalent */
   gradeTxt: { fontSize: Typography.sizes.xs, fontWeight: '700' },
-  notFound: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
+  notFound: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
   selectedBadge: {
-    backgroundColor: Colors.primaryBg, borderRadius: Radius.md,
+    backgroundColor: Colors.dark.accentBg, borderRadius: Radius.md,
     padding: Spacing.sm, marginTop: Spacing.sm,
-    borderWidth: 0.5, borderColor: Colors.primaryBorder,
+    borderWidth: 0.5, borderColor: Colors.dark.accentBorder,
   },
-  selectedTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+  selectedTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '500' },
   timingRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
   timingChip: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, backgroundColor: Colors.surfaceElevated,
-    borderWidth: 1, borderColor: Colors.borderLight,
+    borderRadius: Radius.full, backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  timingChipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  timingTxt: { fontSize: Typography.sizes.sm, color: Colors.onSurfaceMuted, fontWeight: '500' },
-  timingTxtActive: { color: Colors.primary },
+  timingChipActive: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },
+  timingTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted, fontWeight: '500' },
+  timingTxtActive: { color: Colors.dark.ctaPrimary },
   reminderToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1642,22 +1643,22 @@ const ms = StyleSheet.create({
   },
   reminderToggleLbl: {
     fontSize: Typography.sizes.base,
-    color: Colors.onSurface,
+    color: Colors.dark.text,
   },
   sheetScroll: { maxHeight: 420 },
   btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.base },
   cancelBtn: {
     flex: 1, padding: Spacing.md, borderRadius: Radius.lg,
-    backgroundColor: Colors.surfaceElevated, alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.borderLight,
+    backgroundColor: Colors.dark.cardBg, alignItems: 'center',
+    borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  cancelTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, fontWeight: '500' },
-  addBtn: { flex: 1, padding: Spacing.md, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignItems: 'center' },
-  addBtnTxt: { fontSize: Typography.sizes.base, color: Colors.primaryBg, fontWeight: '600' },
+  cancelTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted, fontWeight: '500' },
+  addBtn: { flex: 1, padding: Spacing.md, borderRadius: Radius.lg, backgroundColor: Colors.dark.ctaPrimary, alignItems: 'center' },
+  addBtnTxt: { fontSize: Typography.sizes.base, color: Colors.dark.bg, fontWeight: '600' },
   destructiveBtn: {
     padding: Spacing.md, borderRadius: Radius.lg,
-    backgroundColor: Colors.dangerBg, alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.danger, marginTop: Spacing.base,
+    backgroundColor: Colors.dark.statusCritBg, alignItems: 'center',
+    borderWidth: 0.5, borderColor: Colors.dark.statusCritBorder, marginTop: Spacing.base,
   },
-  destructiveTxt: { fontSize: Typography.sizes.base, color: Colors.danger, fontWeight: '500' },
+  destructiveTxt: { fontSize: Typography.sizes.base, color: Colors.viz.coral, fontWeight: '500' },
 });

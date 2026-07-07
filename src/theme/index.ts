@@ -72,10 +72,23 @@ export const Colors = {
     graphite: '#1A1C1B',
     warmBlack: '#110F0A',
     border: 'rgba(255,255,255,0.08)',
+    borderStrong: 'rgba(255,255,255,0.12)',
     text: '#E8F5EE',
     textMuted: 'rgba(232,245,238,0.5)',
-    cardBg: 'rgba(255,255,255,0.06)',
-    cardBorder: 'rgba(255,255,255,0.12)',
+    cardBg: 'rgba(255,255,255,0.04)',
+    cardBorder: 'rgba(255,255,255,0.08)',
+    inputBg: 'rgba(255,255,255,0.06)',
+    inputBorder: 'rgba(255,255,255,0.12)',
+    ctaPrimary: '#52B788',
+    accentBg: 'rgba(82,183,136,0.12)',
+    accentBorder: 'rgba(82,183,136,0.3)',
+    // Status tints for dark surfaces
+    statusOptimalBg: 'rgba(74,222,128,0.12)',
+    statusOptimalBorder: 'rgba(74,222,128,0.3)',
+    statusWarnBg: 'rgba(245,158,11,0.12)',
+    statusWarnBorder: 'rgba(245,158,11,0.3)',
+    statusCritBg: 'rgba(248,113,113,0.12)',
+    statusCritBorder: 'rgba(248,113,113,0.3)',
   },
 
   // Data visualisation accents
@@ -174,9 +187,15 @@ export const Gradients = {
   longevity: ['#001A14', '#0D2B22', '#1C3B2A'] as const,
   darkSurface: ['#0C0F0D', '#141916'] as const,
   neural: ['#050E0B', '#0F2018'] as const,
+  appBg: ['#080D09', '#0C1410', '#0F1C14'] as const,
+  // Light card gradients (legacy — kept for reference)
   cardGood: ['#E8F5EE', '#D4EDE2'] as const,
   cardWarn: ['#FDF3E3', '#F5E4CC'] as const,
   cardNone: ['#FFFFFF', '#F8F6F2'] as const,
+  // Dark card gradients — use on dark-background screens
+  darkCardGood: ['rgba(74,222,128,0.08)', 'rgba(74,222,128,0.04)'] as const,
+  darkCardWarn: ['rgba(245,158,11,0.08)', 'rgba(245,158,11,0.04)'] as const,
+  darkCardNone: ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.02)'] as const,
 } as const;
 
 // Motion constants

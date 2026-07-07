@@ -48,7 +48,8 @@ export async function loadNotificationPrefs(): Promise<NotificationPrefs> {
   try {
     const raw = await AsyncStorage.getItem(NOTIFICATION_PREFS_KEY);
     return raw ? (JSON.parse(raw) as NotificationPrefs) : DEFAULT_PREFS;
-  } catch {
+  } catch (e) {
+    console.error('[notifications] loadNotificationPrefs failed:', e);
     return DEFAULT_PREFS;
   }
 }
@@ -60,8 +61,8 @@ export async function loadNotificationPrefs(): Promise<NotificationPrefs> {
 export async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
   try {
     await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(prefs));
-  } catch {
-    // swallow
+  } catch (e) {
+    console.error('[notifications] saveNotificationPrefs failed:', e);
   }
 }
 
@@ -78,7 +79,8 @@ export async function ensurePermission(): Promise<boolean> {
     if (existing === 'granted') return true;
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
-  } catch {
+  } catch (e) {
+    console.error('[notifications] ensurePermission failed:', e);
     return false;
   }
 }

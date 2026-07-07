@@ -33,7 +33,7 @@ export default function LandingScreen() {
   }
 
   return (
-    <LinearGradient colors={[Colors.bgShade, Colors.bg]} style={s.gradient}>
+    <LinearGradient colors={['#080D09', '#0C1410', '#0F1C14']} style={s.gradient}>
       <SafeAreaView style={s.safe}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={s.inner}>
 
@@ -93,7 +93,7 @@ const s = StyleSheet.create({
   eyebrow: {
     fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.primaryLight,
+    color: Colors.dark.textMuted,
     letterSpacing: 3,
     textTransform: 'uppercase',
   },
@@ -101,12 +101,12 @@ const s = StyleSheet.create({
     fontFamily: Typography.serif,
     fontSize: Typography.sizes.display1,
     fontWeight: '400',
-    color: Colors.textPrimary,
+    color: Colors.dark.text,
     letterSpacing: -0.5,
   },
   tagline: {
     fontSize: Typography.sizes.base,
-    color: Colors.textSecondary,
+    color: Colors.dark.textMuted,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -116,45 +116,40 @@ const s = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.viz.bioGreen,
   },
-  featureTxt: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
+  featureTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
   cta: { gap: Spacing.md },
   btnPrimary: {
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    paddingVertical: 15,
+    backgroundColor: Colors.dark.ctaPrimary,
+    borderRadius: Radius.full,
+    paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
   },
   btnPrimaryTxt: {
-    color: Colors.primaryBg,
+    color: Colors.dark.bg,
     fontSize: Typography.sizes.md,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
   ghost: {
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
     fontSize: Typography.sizes.sm,
     textAlign: 'center',
     paddingVertical: Spacing.xs,
   },
   footer: { padding: Spacing.base, alignItems: 'center' },
   footerBadge: {
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.xs,
     borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
+    borderColor: Colors.dark.accentBorder,
   },
   footerTxt: {
     fontSize: Typography.sizes.xs,
-    color: Colors.primary,
+    color: Colors.dark.ctaPrimary,
     fontWeight: '500',
   },
 });

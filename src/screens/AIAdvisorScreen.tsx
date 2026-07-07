@@ -6,13 +6,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import NeuralGrid from '../components/NeuralGrid';
 import ScoreSummaryCard from '../components/advisor/ScoreSummaryCard';
 import ReportCard, { ReportItem } from '../components/advisor/ReportCard';
 import ChatThread from '../components/advisor/ChatThread';
-import { assembleAdvisorContext } from '../lib/advisorContext';
+import { assembleAdvisorContext, AdvisorContext } from '../lib/advisorContext';
 import { generateReport, sendChatMessage, LongevityReport, ChatMessage } from '../lib/advisorService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,6 +20,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function AIAdvisorScreen(): React.JSX.Element {
   const nav = useNavigation<Nav>();
   const [report, setReport] = useState<LongevityReport | null>(null);
+  const [advisorCtx, setAdvisorCtx] = useState<AdvisorContext | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,10 +35,13 @@ export default function AIAdvisorScreen(): React.JSX.Element {
 
   async function handleGenerate() {
     setIsLoading(true); setGenerationError(null);
-    const context = await assembleAdvisorContext();
-    const result = await generateReport(context);
+    const ctx = await assembleAdvisorContext();
+    setAdvisorCtx(ctx);
+    const result = await generateReport(ctx);
     if (result.error) { setGenerationError(result.error.message); setIsLoading(false); return; }
-    setReport(result.data); setIsLoading(false);
+    setReport(result.data);
+    AsyncStorage.setItem('@vitalspan_last_report_ts', new Date().toISOString()).catch(() => null);
+    setIsLoading(false);
   }
 
   async function handleSendChat() {
@@ -45,7 +49,9 @@ export default function AIAdvisorScreen(): React.JSX.Element {
     const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() };
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages); setChatInput(''); setIsChatLoading(true);
-    const result = await sendChatMessage(nextMessages, reportSummary);
+    const freshCtx = await assembleAdvisorContext();
+    setAdvisorCtx(freshCtx);
+    const result = await sendChatMessage(nextMessages, reportSummary, freshCtx);
     const reply = result.error
       ? 'Sorry, something went wrong. Please try again.'
       : result.data!;
@@ -76,9 +82,12 @@ export default function AIAdvisorScreen(): React.JSX.Element {
             : <View style={s.spacer} />}
         </View>
 
+        <Text style={s.disclaimer}>
+          For informational purposes only. Not medical advice. Consult your doctor for medical decisions.
+        </Text>
+
         {isLoading && (
           <View style={s.fullScreen}>
-            <NeuralGrid intensity="high" tone="vital" animate />
             <View style={s.centered}>
               <Text style={s.loadingText}>Analyzing your health snapshot…</Text>
               <ActivityIndicator color={Colors.dark.text} size="large" />
@@ -88,7 +97,6 @@ export default function AIAdvisorScreen(): React.JSX.Element {
 
         {!isLoading && !report && (
           <View style={s.fullScreen}>
-            <NeuralGrid intensity="low" tone="vital" />
             <View style={s.centered}>
               <Text style={s.heroText}>Your AI Longevity Advisor</Text>
               <Text style={s.heroSub}>Get a personalised report based on your health snapshot</Text>
@@ -158,4 +166,12 @@ const s = StyleSheet.create({
   chatRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.dark.border, backgroundColor: '#080D09', padding: Spacing.sm },
   input: { flex: 1, color: Colors.dark.text, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, marginRight: Spacing.sm, fontSize: Typography.sizes.base },
   sendBtn: { color: Colors.dark.text, fontSize: Typography.sizes.xl },
+  disclaimer: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.dark.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.xs,
+    opacity: 0.55,
+  },
 });
