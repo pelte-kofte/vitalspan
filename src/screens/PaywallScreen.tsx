@@ -5,11 +5,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { adapty } from 'react-native-adapty';
 import type { AdaptyPaywallProduct } from 'react-native-adapty';
-import { activationPromise } from '../lib/adapty';
+import { activationPromise, retryActivation, getLastActivationError } from '../lib/adapty';
 import { usePremiumContext } from '../context/PremiumContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import PaywallHero from '../components/PaywallHero';
+import PaywallBenefits from '../components/PaywallBenefits';
 import PaywallPriceCard from '../components/PaywallPriceCard';
+import { Colors } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,25 +23,52 @@ export default function PaywallScreen() {
 
   const [products, setProducts] = useState<AdaptyPaywallProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
-  // Fetch paywall and products from Adapty
-  useEffect(() => {
-    (async () => {
-      try {
+  // Fetch paywall and products from Adapty. `forceReactivate` re-runs
+  // adapty.activate() first — used when the initial background activation
+  // (kicked off at app boot, see lib/adapty.ts) already failed, so opening
+  // the paywall gives the SDK another chance instead of reusing a dead
+  // activationPromise forever.
+  const loadPaywall = React.useCallback(async (forceReactivate: boolean) => {
+    setLoadingProducts(true);
+    setLoadError(false);
+    try {
+      if (forceReactivate) {
+        console.log('[Paywall] retrying Adapty activation before paywall fetch');
+        await retryActivation();
+      } else {
         await activationPromise;
-        const paywall = await adapty.getPaywall(PLACEMENT_ID, 'en');
-        // Required for Adapty analytics funnel tracking — do not remove (RESEARCH.md anti-pattern)
-        await adapty.logShowPaywall(paywall);
-        const prods = await adapty.getPaywallProducts(paywall);
-        setProducts(prods);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn('[Adapty] paywall fetch failed:', msg);
-      } finally {
-        setLoadingProducts(false);
       }
-    })();
+      console.log('[Paywall] fetching paywall', PLACEMENT_ID);
+      const paywall = await adapty.getPaywall(PLACEMENT_ID, 'en');
+      // Required for Adapty analytics funnel tracking — do not remove (RESEARCH.md anti-pattern)
+      await adapty.logShowPaywall(paywall);
+      console.log('[Paywall] fetching products for paywall', PLACEMENT_ID);
+      const prods = await adapty.getPaywallProducts(paywall);
+      if (prods.length === 0) {
+        console.error('[Paywall] getPaywallProducts returned 0 products for', PLACEMENT_ID);
+        setLoadError(true);
+      } else {
+        console.log(`[Paywall] loaded ${prods.length} products`);
+        setProducts(prods);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[Adapty] paywall/product fetch failed:', msg, err);
+      setLoadError(true);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  // Fetch paywall and products from Adapty on mount. If the background
+  // activation kicked off at app boot already failed, retry it now — the
+  // user opening the paywall is a strong signal it's worth spending the time.
+  useEffect(() => {
+    loadPaywall(getLastActivationError() !== null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const annual = products.find(p => p.vendorProductId.includes('annual'));
@@ -92,10 +121,13 @@ export default function PaywallScreen() {
   return (
     <View style={s.container}>
       <PaywallHero onClose={() => nav.goBack()} />
+      <PaywallBenefits />
       <PaywallPriceCard
         annualPrice={annual?.price?.localizedString}
         monthlyPrice={monthly?.price?.localizedString}
         loadingProducts={loadingProducts}
+        loadError={loadError}
+        onRetry={() => loadPaywall(true)}
         purchasing={purchasing}
         onSubscribeAnnual={() => { if (annual) handlePurchase(annual); }}
         onSubscribeMonthly={() => { if (monthly) handlePurchase(monthly); }}
@@ -106,5 +138,5 @@ export default function PaywallScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: Colors.dark.bg },
 });

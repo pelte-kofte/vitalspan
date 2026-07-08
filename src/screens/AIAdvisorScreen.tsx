@@ -14,6 +14,8 @@ import ReportCard, { ReportItem } from '../components/advisor/ReportCard';
 import ChatThread from '../components/advisor/ChatThread';
 import { assembleAdvisorContext, AdvisorContext } from '../lib/advisorContext';
 import { generateReport, sendChatMessage, LongevityReport, ChatMessage } from '../lib/advisorService';
+import { MicroscopeIcon } from '../components/DesignSystemIcons';
+import AnimatedPressable from '../components/AnimatedPressable';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -98,11 +100,14 @@ export default function AIAdvisorScreen(): React.JSX.Element {
         {!isLoading && !report && (
           <View style={s.fullScreen}>
             <View style={s.centered}>
+              <View style={s.heroIconChip}>
+                <MicroscopeIcon color={Colors.dark.textMuted} size={30} />
+              </View>
               <Text style={s.heroText}>Your AI Longevity Advisor</Text>
               <Text style={s.heroSub}>Get a personalised report based on your health snapshot</Text>
-              <TouchableOpacity style={s.ctaBtn} onPress={handleGenerate}>
+              <AnimatedPressable style={s.ctaBtn} onPress={handleGenerate} accessibilityLabel="Generate my report">
                 <Text style={s.ctaBtnText}>Generate My Report</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
               {generationError ? <Text style={s.errorText}>{generationError}</Text> : null}
             </View>
           </View>
@@ -156,6 +161,13 @@ const s = StyleSheet.create({
   fullScreen: { flex: 1, position: 'relative' },
   centered: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
   loadingText: { color: Colors.dark.text, fontSize: Typography.sizes.md, textAlign: 'center', marginBottom: Spacing.base },
+  heroIconChip: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
   heroText: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text, textAlign: 'center', marginBottom: Spacing.sm },
   heroSub: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted, textAlign: 'center', marginBottom: Spacing.xl },
   ctaBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, alignSelf: 'center' },

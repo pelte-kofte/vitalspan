@@ -12,7 +12,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import { LineChart } from 'react-native-chart-kit';
 import Svg, { Rect } from 'react-native-svg';
 import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { ClipboardIcon, ChartBarIcon } from '../components/DesignSystemIcons';
+import { ClipboardIcon, ChartBarIcon, LockIcon } from '../components/DesignSystemIcons';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -333,7 +333,7 @@ export default function BiomarkerDetailScreen() {
               activeOpacity={0.8}
             >
               <View style={s.upgradeBannerLeft}>
-                <Text style={s.upgradeBannerIcon}>{'🔒'}</Text>
+                <LockIcon color={Colors.dark.textMuted} size={16} />
                 <Text style={s.upgradeBannerTxt}>{hiddenCount} entries hidden — upgrade to see your full history.</Text>
               </View>
               <View style={s.upgradeCta}>
@@ -468,7 +468,7 @@ export default function BiomarkerDetailScreen() {
             <ChartBarIcon color={Colors.dark.textMuted} size={32} />
             <Text style={s.emptyTabHeading}>No biomarkers tracked yet</Text>
             <Text style={s.emptyTabBody}>
-              Start with your most recent lab results. Three values unlock your biological age score.
+              Start with your most recent lab results. Three values reveal your biological age score.
             </Text>
             <TouchableOpacity
               activeOpacity={0.82}
@@ -585,7 +585,7 @@ const s = StyleSheet.create({
   detailValGroup: { alignItems: 'flex-end' },
   detailVal: { fontSize: 44, fontWeight: '300', color: Colors.dark.text }, /* intentional — hero display size, no Typography.sizes match */
   detailUnit: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
-  noData: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, marginTop: Spacing.sm },
+  noData: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, marginTop: Spacing.sm, fontStyle: 'italic' },
   metaRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.base, flexWrap: 'wrap' },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5 },
   statusOpt: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
@@ -680,7 +680,6 @@ const s = StyleSheet.create({
     padding: Spacing.md,
   },
   upgradeBannerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.xs },
-  upgradeBannerIcon: { fontSize: Typography.sizes.base },
   upgradeBannerTxt: {
     fontSize: Typography.sizes.xs,
     color: Colors.viz.bioGreen,

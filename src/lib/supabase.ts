@@ -261,6 +261,52 @@ export async function signOutUser(): Promise<{ error: string | null }> {
 const APP_SCHEME = 'vitalspan'
 const OAUTH_REDIRECT = `${APP_SCHEME}://auth/callback`
 
+// ── Retry helper (D-17) ──────────────────────────────────────────────────────
+//
+// WiFi→cellular handoffs during the OAuth round trip intermittently surface as
+// "Network request failed" from the Supabase client, or as Safari's own
+// "server can't be found" page inside the auth session (which we can't catch
+// as a JS error, but which resolves the WebBrowser promise with a non-success
+// result the user then has to dismiss). Retrying the steps we *can* catch,
+// with a brief backoff, gives the radio time to reassociate before we give up.
+
+function isNetworkError(message: string): boolean {
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('network request failed') ||
+    lower.includes('networkrequest') ||
+    lower.includes('fetch') ||
+    lower.includes('timed out') ||
+    lower.includes('timeout') ||
+    lower.includes('offline') ||
+    lower.includes('could not connect') ||
+    lower.includes('internet connection')
+  )
+}
+
+async function withNetworkRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 3,
+  baseDelayMs = 600,
+): Promise<T> {
+  let lastErr: unknown
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn()
+    } catch (err: unknown) {
+      lastErr = err
+      const message = err instanceof Error ? err.message : String(err)
+      // Always log the raw underlying error, even when we're about to retry —
+      // this is what makes a "3rd try succeeded" flow debuggable later.
+      console.error(`[Auth] ${label} failed (attempt ${attempt}/${attempts}):`, message, err)
+      if (attempt === attempts || !isNetworkError(message)) throw err
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * 2 ** (attempt - 1)))
+    }
+  }
+  throw lastErr
+}
+
 /**
  * Opens a browser to sign in with Google via Supabase OAuth.
  * Requires: Supabase Dashboard → Auth → Providers → Google enabled,
@@ -268,11 +314,18 @@ const OAUTH_REDIRECT = `${APP_SCHEME}://auth/callback`
  */
 export async function signInWithGoogle(): Promise<{ error: string | null }> {
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: OAUTH_REDIRECT, skipBrowserRedirect: true },
+    const { data, error } = await withNetworkRetry('signInWithOAuth', async () => {
+      const res = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: OAUTH_REDIRECT, skipBrowserRedirect: true },
+      })
+      if (res.error && isNetworkError(res.error.message)) throw new Error(res.error.message)
+      return res
     })
-    if (error) return { error: mapAuthError(error.message) }
+    if (error) {
+      console.error('[Auth] signInWithOAuth returned an error:', error.message)
+      return { error: mapAuthError(error.message) }
+    }
     if (!data.url) return { error: 'Could not start Google sign-in' }
     const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
     if (result.type !== 'success') return { error: null }
@@ -281,8 +334,21 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
     // query param that must be exchanged for a session.
     const code = returnedUrl.searchParams.get('code')
     if (code) {
-      const { error: sessErr } = await supabase.auth.exchangeCodeForSession(code)
-      if (sessErr) return { error: mapAuthError(sessErr.message) }
+      try {
+        const { error: sessErr } = await withNetworkRetry('exchangeCodeForSession', async () => {
+          const res = await supabase.auth.exchangeCodeForSession(code)
+          if (res.error && isNetworkError(res.error.message)) throw new Error(res.error.message)
+          return res
+        })
+        if (sessErr) {
+          console.error('[Auth] exchangeCodeForSession returned an error:', sessErr.message)
+          return { error: mapAuthError(sessErr.message) }
+        }
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e)
+        console.error('[Auth] exchangeCodeForSession failed after retries:', message, e)
+        return { error: mapAuthError(message) }
+      }
       return { error: null }
     }
     // Implicit-flow fallback: tokens arrive in the URL hash fragment.
@@ -295,7 +361,9 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
     }
     return { error: null }
   } catch (e: unknown) {
-    return { error: mapAuthError(e instanceof Error ? e.message : String(e)) }
+    const message = e instanceof Error ? e.message : String(e)
+    console.error('[Auth] signInWithGoogle failed:', message, e)
+    return { error: mapAuthError(message) }
   }
 }
 

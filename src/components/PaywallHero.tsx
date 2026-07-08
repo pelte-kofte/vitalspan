@@ -122,8 +122,8 @@ export default function PaywallHero({ onClose }: Props) {
             </Animated.View>
 
             <Animated.View style={[s.heroTextArea, sphereInnerStyle]}>
-              <Text style={s.heroHeadline}>{'Your longevity,\nunlocked.'}</Text>
-              <Text style={s.heroSubline}>Science-backed tracking, personalized to you.</Text>
+              <Text style={s.heroHeadline}>Know your biological age.</Text>
+              <Text style={s.heroSubline}>Built by a pharmacist. Grounded in published evidence — no hype.</Text>
             </Animated.View>
           </Animated.View>
         </View>

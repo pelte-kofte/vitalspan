@@ -10,8 +10,10 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { Colors, Spacing, Radius, Typography } from '../theme';
 import { PersonIcon, GearIcon, InfoIcon } from '../components/DesignSystemIcons';
+import AnimatedPressable from '../components/AnimatedPressable';
+import StaggerIn from '../components/StaggerIn';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
 import { signOutUser, supabase } from '../lib/supabase';
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { void loadProfile(); }, [loadProfile]));
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('light'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -142,20 +144,22 @@ export default function ProfileScreen() {
         <View style={s.topBar}>
           <Text style={s.screenTitle}>Profile</Text>
         </View>
+        <StaggerIn index={0}>
         <View style={s.emptyStateCard}>
-          <PersonIcon color={Colors.onSurfaceMuted} size={40} />
+          <PersonIcon color={Colors.dark.textMuted} size={40} />
           <Text style={s.emptyStateHeadline}>Your health story starts here.</Text>
           <Text style={s.emptyStateBody}>
             Complete your profile so Vitalspan can personalise your biomarker targets and flag relevant drug interactions.
           </Text>
-          <TouchableOpacity
+          <AnimatedPressable
             style={s.emptyStateCta}
             onPress={() => nav.navigate('Onboarding')}
-            activeOpacity={0.82}
+            accessibilityLabel="Complete onboarding"
           >
             <Text style={s.emptyStateCtaTxt}>Complete Onboarding</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
+        </StaggerIn>
       </SafeAreaView>
     );
   }
@@ -191,7 +195,7 @@ export default function ProfileScreen() {
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Your name"
-                placeholderTextColor={Colors.onSurfaceMuted}
+                placeholderTextColor={Colors.dark.textMuted}
               />
             </View>
             <View style={[s.inputRow, s.rowBorder]}>
@@ -238,7 +242,7 @@ export default function ProfileScreen() {
                 style={[s.condBtn, editConditions.includes(c) && s.condBtnSel]}
                 onPress={() => toggleCondition(c)}
               >
-                <Text style={[s.condBtnTxt, editConditions.includes(c) && { color: Colors.primaryDark }]}>{c}</Text>
+                <Text style={[s.condBtnTxt, editConditions.includes(c) && { color: Colors.viz.bioGreen }]}>{c}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -270,7 +274,7 @@ export default function ProfileScreen() {
             style={s.settingsBtn}
             onPress={() => nav.navigate('Settings')}
           >
-            <GearIcon color={Colors.onSurface} size={20} />
+            <GearIcon color={Colors.dark.text} size={20} />
           </TouchableOpacity>
         </View>
       </View>
@@ -279,7 +283,7 @@ export default function ProfileScreen() {
         style={s.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.dark.ctaPrimary} />
         }
       >
         {/* Guest mode card — visible when user is anonymous (D-10) */}
@@ -291,9 +295,13 @@ export default function ProfileScreen() {
               <Text style={s.guestBenefit}>Cloud backup for peace of mind</Text>
               <Text style={s.guestBenefit}>Access your data on a new device</Text>
             </View>
-            <TouchableOpacity style={s.guestCta} onPress={() => (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] })}>
+            <AnimatedPressable
+              style={s.guestCta}
+              onPress={() => (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] })}
+              accessibilityLabel="Create account"
+            >
               <Text style={s.guestCtaTxt}>Create Account</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
         )}
 
@@ -324,13 +332,13 @@ export default function ProfileScreen() {
           {profile.biologicalAge != null ? (
             <View style={[s.row, s.rowBorder]}>
               <Text style={s.rowLabel}>Biological age</Text>
-              <Text style={[s.rowValue, { color: Colors.primary }]}>{profile.biologicalAge}</Text>
+              <Text style={[s.rowValue, { color: Colors.dark.ctaPrimary }]}>{profile.biologicalAge}</Text>
             </View>
           ) : (
             <View style={[s.row, s.rowBorder]}>
               <Text style={s.rowLabel}>Biological age</Text>
               <TouchableOpacity onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}>
-                <Text style={[s.rowValue, { color: Colors.primary }]}>
+                <Text style={[s.rowValue, { color: Colors.dark.ctaPrimary }]}>
                   Log 9 PhenoAge biomarkers to compute
                 </Text>
               </TouchableOpacity>
@@ -377,16 +385,17 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Settings shortcut */}
-        <TouchableOpacity style={s.settingsCard} onPress={() => nav.navigate('Settings')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}><GearIcon color={Colors.onSurface} size={18} /><Text style={s.settingsCardTxt}>Settings</Text></View>
-          <Text style={s.settingsCardArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={s.aboutCard} onPress={() => nav.navigate('About')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}><InfoIcon color={Colors.onSurface} size={18} /><Text style={s.settingsCardTxt}>About Vitalspan</Text></View>
-          <Text style={s.settingsCardArrow}>→</Text>
-        </TouchableOpacity>
+        {/* Settings / About — grouped inset card, matching SettingsScreen's row pattern */}
+        <View style={s.settingsCard}>
+          <TouchableOpacity style={s.navRow} onPress={() => nav.navigate('Settings')}>
+            <View style={s.navRowLeft}><GearIcon color={Colors.dark.text} size={18} /><Text style={s.settingsCardTxt}>Settings</Text></View>
+            <Text style={s.settingsCardArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.navRow, s.navRowBorder]} onPress={() => nav.navigate('About')}>
+            <View style={s.navRowLeft}><InfoIcon color={Colors.dark.text} size={18} /><Text style={s.settingsCardTxt}>About Vitalspan</Text></View>
+            <Text style={s.settingsCardArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Logout button — visible for authenticated (non-anonymous) users (D-08, D-09) */}
         {isAnonymous === false && (
@@ -410,8 +419,8 @@ export default function ProfileScreen() {
               );
             }}
           >
-            <Text style={[s.settingsCardTxt, { color: Colors.danger }]}>Disconnect Apple Health</Text>
-            <Text style={[s.settingsCardArrow, { color: Colors.danger }]}>→</Text>
+            <Text style={[s.settingsCardTxt, { color: Colors.viz.coral }]}>Disconnect Apple Health</Text>
+            <Text style={[s.settingsCardArrow, { color: Colors.viz.coral }]}>›</Text>
           </TouchableOpacity>
         )}
 
@@ -422,7 +431,7 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
   topBar: {
     flexDirection: 'row',
@@ -430,112 +439,99 @@ const s = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.base,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.bg,
   },
-  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface },
+  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   editBtn: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 1,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
+    borderColor: Colors.dark.cardBorder,
   },
-  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.textSecondary },
+  editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.dark.textMuted },
   settingsBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   hero: { alignItems: 'center', padding: Spacing.xl, paddingBottom: Spacing.base },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.dark.accentBg,
     borderWidth: 1,
-    borderColor: Colors.primaryBorder,
+    borderColor: Colors.dark.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
-  avatarTxt: { fontSize: 28, color: Colors.primary, fontWeight: '500' },
-  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.onSurface, marginBottom: Spacing.sm },
+  avatarTxt: { fontSize: 28, color: Colors.dark.ctaPrimary, fontWeight: '500' },
+  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text, marginBottom: Spacing.sm },
   agePill: {
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.dark.accentBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderWidth: 0.5,
-    borderColor: Colors.primaryBorder,
+    borderColor: Colors.dark.accentBorder,
   },
-  agePillTxt: { fontSize: Typography.sizes.xs, color: Colors.primary, fontWeight: '500' },
+  agePillTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '500' },
   sectionLabel: {
     fontSize: Typography.sizes.xs,
     fontWeight: '600',
-    color: Colors.onSurfaceMuted,
+    color: Colors.dark.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: Typography.letterSpacing.wider,
     paddingHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
     marginTop: Spacing.base,
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
-  rowLabel: { fontSize: Typography.sizes.base, color: Colors.textSecondary },
-  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.dark.cardBorder },
+  rowLabel: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
+  rowValue: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
   tagRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md },
-  medDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primaryLight },
-  tagTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
+  medDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.viz.bioGreen },
+  tagTxt: { fontSize: Typography.sizes.base, color: Colors.dark.text },
   emptyRow: { padding: Spacing.md },
-  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
+  emptyRowTxt: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
   settingsCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
   },
-  aboutCard: {
-    marginHorizontal: Spacing.base,
-    marginTop: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
+  navRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     padding: Spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
   },
+  navRowLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  navRowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.dark.cardBorder },
   disconnectCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
   },
-  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
-  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.onSurfaceMuted },
+  settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.dark.text },
+  settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted },
 
   // Edit mode
   editHeader: {
@@ -545,53 +541,54 @@ const s = StyleSheet.create({
     padding: Spacing.base,
     paddingTop: Spacing.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.borderLight,
-    backgroundColor: Colors.surface,
+    borderBottomColor: Colors.dark.cardBorder,
+    backgroundColor: Colors.dark.bg,
   },
-  editCancel: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted },
-  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
-  editSave: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
+  editCancel: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted },
+  editTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
+  editSave: { fontSize: Typography.sizes.base, color: Colors.dark.ctaPrimary, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
-  inputLabel: { fontSize: Typography.sizes.base, color: Colors.onSurfaceMuted, width: 64 },
-  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.onSurface },
+  inputLabel: { fontSize: Typography.sizes.base, color: Colors.dark.textMuted, width: 64 },
+  textInput: { flex: 1, fontSize: Typography.sizes.base, color: Colors.dark.text },
   ageRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: Spacing.md },
-  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceElevated, borderWidth: 0.5, borderColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center' },
-  ageBtnTxt: { fontSize: Typography.sizes.h3, color: Colors.onSurface },
-  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.onSurface, minWidth: 32, textAlign: 'center' },
+  ageBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.dark.bgElevated, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, alignItems: 'center', justifyContent: 'center' },
+  ageBtnTxt: { fontSize: Typography.sizes.h3, color: Colors.dark.text },
+  ageVal: { fontSize: Typography.sizes.lg, fontWeight: '500', color: Colors.dark.text, minWidth: 32, textAlign: 'center' },
   sexRow: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
-  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.borderLight, backgroundColor: Colors.surfaceElevated },
-  sexBtnActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.textSecondary },
-  sexBtnTxtActive: { color: Colors.primaryDark, fontWeight: '600' },
+  sexBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, backgroundColor: Colors.dark.bgElevated },
+  sexBtnActive: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  sexBtnTxt: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
+  sexBtnTxtActive: { color: Colors.viz.bioGreen, fontWeight: '600' },
   condGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
-  condBtn: { backgroundColor: Colors.surface, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.borderLight }, /* intentional — no Spacing.* equivalent for 14 and 10 */
-  condBtnSel: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryBorder },
-  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.onSurface },
+  condBtn: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.dark.cardBorder }, /* intentional — no Spacing.* equivalent for 14 and 10 */
+  condBtnSel: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  condBtnTxt: { fontSize: Typography.sizes.base, color: Colors.dark.text },
   editNote: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.base,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
+    borderColor: Colors.dark.cardBorder,
   },
-  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 18 },
+  editNoteTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18 },
 
-  // Guest mode card (D-10)
+  // Guest mode card (D-10) — informational nudge, not a warning: uses the
+  // brand accent tint rather than status-warn tokens (this isn't an error).
   guestCard: {
-    backgroundColor: Colors.warningBg,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.base,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.warningBorder,
+    borderColor: Colors.dark.accentBorder,
   },
   guestHeadline: {
     fontSize: Typography.sizes.body,
     fontWeight: '600',
-    color: Colors.warningTextDark,
+    color: Colors.dark.text,
     marginBottom: Spacing.sm,
   },
   guestBenefits: {
@@ -600,16 +597,16 @@ const s = StyleSheet.create({
   },
   guestBenefit: {
     fontSize: Typography.sizes.bodySmall,
-    color: Colors.warning,
+    color: Colors.dark.textMuted,
   },
   guestCta: {
-    backgroundColor: Colors.brand,
+    backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.full,
     paddingVertical: Spacing.sm,
     alignItems: 'center' as const,
   },
   guestCtaTxt: {
-    color: Colors.surface,
+    color: Colors.dark.bg,
     fontSize: Typography.sizes.body,
     fontWeight: '600',
   },
@@ -621,7 +618,7 @@ const s = StyleSheet.create({
   },
   logoutTxt: {
     fontSize: Typography.sizes.body,
-    color: Colors.semantic.danger,
+    color: Colors.viz.coral,
     fontWeight: '500',
   },
 
@@ -629,11 +626,10 @@ const s = StyleSheet.create({
   emptyStateCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.xl,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl,
     borderWidth: 0.5,
-    borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderColor: Colors.dark.cardBorder,
     padding: Spacing.xl,
     alignItems: 'center',
     overflow: 'hidden',
@@ -641,7 +637,7 @@ const s = StyleSheet.create({
   emptyStateHeadline: {
     fontSize: Typography.sizes.h3,
     fontWeight: '600',
-    color: Colors.onSurface,
+    color: Colors.dark.text,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: Spacing.sm,
@@ -649,13 +645,13 @@ const s = StyleSheet.create({
   emptyStateBody: {
     fontSize: Typography.sizes.base,
     fontWeight: '400',
-    color: Colors.textSecondary,
+    color: Colors.dark.textMuted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   emptyStateCta: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.xl,
     minHeight: 44,
     alignSelf: 'stretch',
@@ -664,7 +660,7 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
   },
   emptyStateCtaTxt: {
-    color: Colors.surface,
+    color: Colors.dark.bg,
     fontSize: Typography.sizes.base,
     fontWeight: '600',
   },

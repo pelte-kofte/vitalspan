@@ -97,6 +97,27 @@ All sizes live in `Typography.sizes.*`, spacing in `Typography.letterSpacing.*`.
 | Caption / label | `caption` (12) | 400–600 | Timestamps, metadata |
 | Micro | `captionSmall` (11) | 400–600 | Units, badge text |
 
+### Weights & Line Heights
+
+`Typography.weights.*` and `Typography.lineHeights.*` formalize the Type Hierarchy table above — pair the size role with the matching weight/line-height token instead of hardcoding raw `fontWeight`/`lineHeight` values:
+
+| Token | Value | Pair with |
+|---|---|---|
+| `Typography.weights.displayHero` | `'200'` | `sizes.display2` (sphere number) |
+| `Typography.weights.title` | `'300'` | `sizes.h1` |
+| `Typography.weights.headline` | `'400'` (use `'500'` for emphasis) | `sizes.h2` |
+| `Typography.weights.subheadline` | `'600'` | `sizes.h3` |
+| `Typography.weights.body` | `'400'` | `sizes.body` |
+| `Typography.weights.label` | `'600'` | eyebrow labels, badges |
+
+| Token | Value |
+|---|---|
+| `Typography.lineHeights.display1/2/3` | 60 / 50 / 42 |
+| `Typography.lineHeights.h1/h2/h3` | 34 / 28 / 24 |
+| `Typography.lineHeights.body` | 21 |
+| `Typography.lineHeights.bodySmall` | 18 |
+| `Typography.lineHeights.caption` / `captionSmall` | 16 / 14 |
+
 ### Eyebrow Label Convention
 
 Section headers like "BIOMARKERS", "BIO AGE", "TODAY'S PROTOCOL", "YOUR STACK" use:
@@ -147,6 +168,27 @@ The only exception is status indicators (check circles) where the filled circle 
 
 **Do not add NeuralGrid to any other screen.** It will feel templated and lose its distinctiveness. All other screens use `Colors.dark.bg` or `Gradients.appBg` as plain dark backgrounds.
 
+(Premium Polish pass note: `FutureSelf.tsx` previously rendered a low-opacity `NeuralGrid` overlay behind its card content on the Dashboard — a violation of this rule. Removed; the card now uses a plain dark card background like every other Dashboard card.)
+
+### Motion System
+
+`Motion.*` (in `src/theme/index.ts`) holds the micro-interaction constants — do not hardcode press-scale, spring, or entrance timing values inline:
+
+| Token | Value | Usage |
+|---|---|---|
+| `Motion.pressScale` | `0.97` | Scale target for button/card press feedback |
+| `Motion.pressSpring` | `{ damping: 16, stiffness: 260 }` | Spring config for the press-release bounce-back |
+| `Motion.entranceDuration` | `220` | Card/list-item fade+slide-in duration — no overshoot |
+| `Motion.entranceStagger` | `50` | ms delay added per list index when staggering entrance |
+| `Motion.entranceOffset` | `10` | px the entrance animation slides up from |
+
+**Shared components — use these instead of hand-rolling animations:**
+
+- **`AnimatedPressable`** (`src/components/AnimatedPressable.tsx`) — drop-in `TouchableOpacity` replacement for primary/secondary CTAs. Scales to `Motion.pressScale` on press with a spring back, fires a light (or `medium`) haptic via `expo-haptics`. Runs on the UI thread (Reanimated worklets) — never blocks JS.
+- **`StaggerIn`** (`src/components/StaggerIn.tsx`) — wraps a card/list-item with a fade + slide-up mount animation via Reanimated's `FadeInUp`, staggered by an `index` prop (`index * Motion.entranceStagger` delay). Used for the cascading on-mount reveal on Dashboard, Protocol, and Exercise.
+- **`Skeleton.tsx`** (`SkeletonPulse`, `SkeletonBlock`, `SkeletonCard`) — generalized loading-shimmer primitives (an opacity-pulse `Animated.Value` looped 0.3↔0.6, plus placeholder blocks tinted `Colors.dark.bgElevated`). Compose a screen-specific skeleton around these rather than duplicating the animation loop (see `ArticleSkeletonLoader.tsx`, or the `DashboardSkeleton`/`ProtocolSkeleton`/`ExerciseSkeleton` components local to those screens). Every data-driven screen should gate its first paint on a `initialLoading` flag (set once via a `hasLoadedOnceRef`, so the skeleton only shows on cold mount — never on a tab-focus refetch) rather than flashing an empty/placeholder state.
+- **`BioAgeSpherePreview`** (`src/components/BioAgeSpherePreview.tsx`) — a small (default 64px), non-canonical riff on the BioAge sphere motif for compact contexts: the Dashboard's empty BioAge card and the boot loading screen (`BootLoadingScreen.tsx`). Takes a `dimmed` prop for the "not enough data yet" state. This does **not** replace or import from `LongevityScoreScreen.tsx`, which remains the one full canonical sphere instance (orbit rings, data orbs, entrance/pulse animation) — see the Constellation/NeuralGrid Motif Rule below for why duplicating that complexity elsewhere is deliberately avoided.
+
 ### On-Brand Checklist
 
 Before shipping any new screen or component, verify all of the following:
@@ -159,6 +201,22 @@ Before shipping any new screen or component, verify all of the following:
 - [ ] **Contrast sufficient**: all body text passes WCAG AA (4.5:1) on its card background — use the rgba glass values, not a darker solid that kills contrast
 
 ---
+
+## Editorial Rules (De-Slop Pass)
+
+> Added by the "De-Slop" edit pass. Oura is the north star: quiet surfaces, typography-led hierarchy, one hero per screen. These rules are permanent — every future screen or component must be checked against them, not just the two screens named below.
+
+1. **One hero per screen.** Every screen has exactly one visually dominant element. Everything else is subordinate — smaller, dimmer, tighter. If two elements are competing for attention (e.g. BioAge card and Future Self card), shrink the secondary one until there's no contest.
+
+2. **No decorative gradients.** Gradients are banned everywhere except the BioAge sphere itself (`LongevityScoreScreen`, `PaywallHero`, `BioAgeSpherePreview` — the sphere motif family). Cards are flat dark surfaces (`Colors.dark.cardBg` / `bgElevated`) differentiated by a 1px hairline border (`Colors.dark.cardBorder`, white at 6–8% opacity) — no glows, no colored card backgrounds. Status/severity is carried by border color, icon color, and text color — never by tinting the whole card fill.
+
+3. **One CTA per card.** A card may have exactly one action. Don't pair a full-card `onPress` with a second inline button doing something else, and don't duplicate the same action as both a button and a text link.
+
+4. **Copy is human and specific.** Brand voice is a calm pharmacist: precise, warm, unhurried. Banned words anywhere in user-facing copy: "unlock" / "unlocked", "journey", "supercharge", "elevate" (as a verb/marketing flourish — clinical "elevated biomarker" is fine), "seamless", "empower", "personalized to you" as filler, "science-backed" as filler. No exclamation marks in UI copy. No emoji in UI chrome (icons, badges, buttons) — emoji are fine only in genuinely conversational contexts, never as a icon replacement. Microcopy states quantities and actions concretely ("Log 9 biomarkers", not "Complete your profile to unlock insights").
+
+5. **Numbers are the decoration.** This is a data product — big, beautiful numerals (tabular figures, generous size, light weight) do the visual work that gradients used to do. The single largest piece of text in the app is the unlocked biological-age numeral on the Dashboard (`Typography.sizes.heroNumeral`, 68pt, weight 200).
+
+6. **Exactly two corner radii app-wide.** `Radius.card` (12) for cards, inputs, chips, badges. `Radius.sheet` (24) for bottom sheets, modals, and large pill-shaped CTAs. `Radius.full` (999) remains separate — it's a computed stadium/circle shape (height ÷ 2), not a fixed radius value, and is still used for true pills and circular buttons. The old `sm`/`md`/`lg`/`xl`/`xxl` names in `src/theme/index.ts` are kept as aliases so existing call sites don't need a rename, but they now all resolve to one of these two numbers (see the Corner Radius table above, which is superseded by this rule).
 
 ## Anti-Patterns (Never Do These)
 
@@ -188,3 +246,8 @@ Before shipping any new screen or component, verify all of the following:
 | BiomarkerDetailScreen | `Colors.dark.bg` | ✗ | Detail + chart, dark |
 | ExerciseScreen | `Colors.dark.bg` | ✗ | Exercise list, dark |
 | AIAdvisorScreen | `Gradients.appBg` | ✗ | AI chat, dark gradient |
+| PaywallScreen | `Colors.dark.bg` + `Gradients` hero | ✓ medium/vital (in `PaywallHero`) | Dark hero + dark elevated price sheet (`Colors.dark.bgElevated`) — previously a white `Colors.surface` bottom sheet, converted for consistency |
+| ProfileScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
+| SettingsScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
+
+**Not yet converted:** `AboutScreen.tsx` still uses the legacy light `Colors.surface`/`Colors.onSurface` token set — out of scope for the Premium Polish pass (not named in the brief); convert it next using ProfileScreen/SettingsScreen as the reference pattern.

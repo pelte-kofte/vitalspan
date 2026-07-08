@@ -5,17 +5,19 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, resendVerificationEmail } from '../lib/supabase';
-import { Colors, Spacing, Radius, Typography, Gradients } from '../theme';
+import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '../components/DesignSystemIcons';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StoredEntry } from './BiomarkerEntryScreen';
-import BreathingCard from '../components/BreathingCard';
 import FutureSelf from '../components/FutureSelf';
+import BioAgeSpherePreview from '../components/BioAgeSpherePreview';
+import AnimatedPressable from '../components/AnimatedPressable';
+import StaggerIn from '../components/StaggerIn';
+import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
 import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
 import { loadHealthData, HealthData } from '../lib/healthkit';
 import { ExerciseLogEntry } from '../data/exercises';
@@ -41,6 +43,35 @@ interface UserProfile {
   conditions: string[];
 }
 
+/** Cold-mount loading shape — mirrors the topbar/bio-card/carousel/protocol layout below. */
+function DashboardSkeleton() {
+  return (
+    <View style={{ flex: 1 }}>
+      <SkeletonPulse style={{ paddingTop: Spacing.md, gap: Spacing.base }}>
+        <View style={{ paddingHorizontal: Spacing.base, flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ gap: 6 }}>
+            <SkeletonBlock w={90} h={12} />
+            <SkeletonBlock w={140} h={22} />
+          </View>
+          <SkeletonBlock w={38} h={38} radius={19} />
+        </View>
+        <View style={{ paddingHorizontal: Spacing.base }}>
+          <SkeletonBlock w="100%" h={168} radius={Radius.xl} />
+        </View>
+        <View style={{ paddingHorizontal: Spacing.base, gap: 6 }}>
+          <SkeletonBlock w={110} h={16} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base }}>
+          {[0, 1, 2].map(i => <SkeletonBlock key={i} w={110} h={120} radius={Radius.lg} />)}
+        </View>
+        <View style={{ paddingHorizontal: Spacing.base }}>
+          <SkeletonBlock w="100%" h={140} radius={Radius.xl} />
+        </View>
+      </SkeletonPulse>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const nav = useNavigation<Nav>();
   const { isPremium } = usePremiumContext();
@@ -51,6 +82,9 @@ export default function DashboardScreen() {
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLogEntry[]>([]);
   const [addedSupplements, setAddedSupplements] = useState<string[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const hasLoadedOnceRef = useRef(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState<ProactiveInsight | null>(null);
   const [dismissedInsights, setDismissedInsights] = useState<Record<string, string>>({});
@@ -117,11 +151,12 @@ export default function DashboardScreen() {
       }
 
       if (protocolFullRaw) {
-        const pt: { addedSupplements?: string[]; customSupplements?: { name: string }[] } = JSON.parse(protocolFullRaw);
+        const pt: { addedSupplements?: string[]; customSupplements?: { name: string }[]; currentStreak?: number } = JSON.parse(protocolFullRaw);
         setAddedSupplements([
           ...(pt.addedSupplements ?? []),
           ...(pt.customSupplements ?? []).map(cs => cs.name),
         ]);
+        setCurrentStreak(pt.currentStreak ?? 0);
       }
 
       // Email verification banner check (D-12, D-14) — reuses currentUser from above
@@ -147,6 +182,13 @@ export default function DashboardScreen() {
     } catch (e) {
       console.error('[loadData] parse error', e);
       Alert.alert('Data error', 'Some saved data could not be read. If this persists, use Settings → Clear all data to reset.');
+    } finally {
+      // Skeleton only ever shows on the true cold mount — not on every
+      // tab-focus refetch, which would flash it on every tab switch.
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        setInitialLoading(false);
+      }
     }
   }, []);
 
@@ -259,6 +301,22 @@ export default function DashboardScreen() {
     return 'Good evening,';
   }, []);
 
+  // Daily context line under the greeting — reuses the real Phase 22 streak
+  // counter (ProtocolScreen persists @vitalspan_protocol.currentStreak) and
+  // today's remaining protocol items, rather than inventing a new tracker.
+  const dashboardContext = useMemo(() => {
+    const totalDue = (profile?.medications.length ?? 0) + addedSupplements.length;
+    const remaining = Math.max(0, totalDue - takenItems.size);
+    const streakPart = currentStreak > 0 ? `Day ${currentStreak}` : null;
+    const duePart = totalDue === 0
+      ? null
+      : remaining === 0
+        ? 'All done for today'
+        : `${remaining} ${remaining === 1 ? 'item' : 'items'} due today`;
+    if (streakPart && duePart) return `${streakPart} · ${duePart}`;
+    return streakPart ?? duePart;
+  }, [profile, addedSupplements, takenItems, currentStreak]);
+
   const hasKnownInteractions = useMemo(() => {
     if (!profile || profile.medications.length === 0 || addedSupplements.length === 0) return false;
     const suppLower = addedSupplements.map(s => s.toLowerCase());
@@ -363,10 +421,11 @@ export default function DashboardScreen() {
         {/* Verified toast (D-14) — one-time, auto-dismiss after 3s */}
         {showVerifiedToast && (
           <View style={s.verifiedToast} pointerEvents="none">
-            <Text style={s.verifiedToastTxt}>Account verified!</Text>
+            <Text style={s.verifiedToastTxt}>Account verified</Text>
           </View>
         )}
 
+        {initialLoading ? <DashboardSkeleton /> : (
         <ScrollView
           style={s.scroll}
           showsVerticalScrollIndicator={false}
@@ -382,6 +441,7 @@ export default function DashboardScreen() {
             <View>
               <Text style={s.greetSmall}>{greeting}</Text>
               <Text style={s.greetName}>{profile?.name ?? 'there'}</Text>
+              {dashboardContext && <Text style={s.greetContext}>{dashboardContext}</Text>}
             </View>
             <TouchableOpacity
               style={s.notifBtn}
@@ -400,8 +460,10 @@ export default function DashboardScreen() {
             />
           )}
 
-          {/* Bio age card */}
-          <BreathingCard style={s.bioCardWrapper} glowColor={Colors.primaryDark}>
+          {/* Bio age card — single hero of the dashboard: flat surface, hairline border,
+              no gradient. The whole card is tappable; a chevron top-right is the only hint. */}
+          <StaggerIn index={0}>
+          <View style={s.bioCardWrapper}>
             <TouchableOpacity
               activeOpacity={0.88}
               onPress={() => {
@@ -409,54 +471,45 @@ export default function DashboardScreen() {
                 nav.navigate('LongevityScore');
               }}
             >
-              <LinearGradient
-                colors={['#0A1628', Colors.primaryDark, Colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.bioCardInner}
-              >
-                <Text style={s.bioLabel}>YOUR BIOLOGICAL AGE</Text>
+              <View style={[s.bioCardInner, bioAge == null && s.bioCardInnerCompact]}>
+                <Text style={s.bioChevron}>›</Text>
+                <Text style={s.bioLabel}>Biological age</Text>
                 {bioAge != null ? (
                   <>
                     <Text style={s.bioNum}>{bioAge}</Text>
                     <Text style={s.bioSub}>
-                      Chronological: {chronoAge}
-                      {yearsDiff > 0 ? ` · You're ${yearsDiff} years younger` : ''}
+                      Chronological {chronoAge}
+                      {yearsDiff > 0 ? ` · ${yearsDiff} years younger` : ''}
                     </Text>
-                    {yearsDiff > 0 && (
-                      <View style={s.bioPill}>
-                        <Text style={s.bioPillTxt}>↓ improving</Text>
-                      </View>
-                    )}
                   </>
                 ) : (
-                  <>
-                    <Text style={s.bioNumPlaceholder}>—</Text>
-                    <Text style={s.bioSub}>
-                      {missingForPhenoAge.length > 0
-                        ? `Need: ${missingForPhenoAge.slice(0, 2).join(', ')}${missingForPhenoAge.length > 2 ? ` +${missingForPhenoAge.length - 2} more` : ''}`
-                        : 'Log the 9 PhenoAge biomarkers to unlock'}
+                  <View style={s.bioEmptyState}>
+                    <BioAgeSpherePreview size={48} dimmed />
+                    <Text style={s.bioEmptyHeadline}>
+                      Log 9 biomarkers to see your biological age
                     </Text>
-                    <TouchableOpacity
+                    <AnimatedPressable
                       style={s.bioCtaBtn}
                       onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
+                      accessibilityLabel="Log biomarkers"
                     >
-                      <Text style={s.bioCtaTxt}>+ Log biomarkers →</Text>
-                    </TouchableOpacity>
-                  </>
+                      <Text style={s.bioCtaTxt}>Log biomarkers</Text>
+                    </AnimatedPressable>
+                  </View>
                 )}
-                <Text style={s.bioCardTapHint}>Tap to view longevity score →</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
-          </BreathingCard>
+          </View>
+          </StaggerIn>
 
+          <StaggerIn index={1}>
           <FutureSelf
             biologicalAge={bioAge ?? undefined}
             chronologicalAge={profile?.age}
             optimality={biomarkerOptimality}
-            loggedBiomarkerIds={Array.from(entryMap.keys())}
-            onBiomarkerPress={(id) => nav.navigate('BiomarkerEntry', { biomarkerId: id })}
+            onViewBiomarkers={() => nav.getParent()?.navigate('Biomarkers')}
           />
+          </StaggerIn>
 
           {hasKnownInteractions && (
             <TouchableOpacity
@@ -466,18 +519,17 @@ export default function DashboardScreen() {
                 nav.navigate('InteractionChecker');
               }}
             >
-              <View style={s.alertIcon}>
-                <WarningIcon color={Colors.semantic.warning} size={14} />
-              </View>
+              <WarningIcon color={Colors.viz.amber} size={20} />
               <View style={s.alertBody}>
                 <Text style={s.alertTitle}>Interaction check recommended</Text>
                 <Text style={s.alertTxt}>
-                  One or more of your medications has known supplement interactions. Tap to review.
+                  A medication and supplement in your protocol have a known interaction.
                 </Text>
               </View>
             </TouchableOpacity>
           )}
 
+          <StaggerIn index={2}>
           <View style={s.sectionHdr}>
             <Text style={s.sectionTitle}>Biomarkers</Text>
             <TouchableOpacity
@@ -490,37 +542,34 @@ export default function DashboardScreen() {
               <Text style={s.sectionAddTxt}>+ Log</Text>
             </TouchableOpacity>
           </View>
+          </StaggerIn>
 
           {entries.length === 0 ? (
+            <StaggerIn index={3}>
             <View style={s.emptyStateCard}>
               <DnaHelixIcon color={Colors.dark.textMuted} size={40} />
               <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
               <Text style={s.emptyStateBody}>
-                Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to unlock your Longevity Score and biological age projection.
+                Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to see your Longevity Score and biological age.
               </Text>
-              <TouchableOpacity
-                activeOpacity={0.82}
+              <AnimatedPressable
                 style={s.emptyStateCta}
                 onPress={() => nav.navigate('GuidedFirstRun')}
+                accessibilityLabel="Log your first biomarkers"
               >
                 <Text style={s.emptyStateCtaTxt}>Log Your First Biomarkers</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
+            </StaggerIn>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bmScroll}>
-              {BIOMARKERS.slice(0, 5).map((bm) => {
+              {BIOMARKERS.slice(0, 5).map((bm, idx) => {
                 const latest = entryMap.get(bm.id) ?? null;
                 const hasData = latest !== null;
                 const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
-                const gradColors = (hasData
-                  ? (isOptimal ? Gradients.darkCardGood : Gradients.darkCardWarn)
-                  : Gradients.darkCardNone) as [string, string];
                 return (
-                  <LinearGradient
-                    key={bm.id}
-                    colors={gradColors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0.6, y: 1 }}
+                  <StaggerIn key={bm.id} index={idx}>
+                  <View
                     style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
                   >
                     <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.viz.bioGreen : Colors.viz.amber) : Colors.dark.textMuted }]}>{bm.name}</Text>
@@ -539,10 +588,11 @@ export default function DashboardScreen() {
                         style={s.bmBadgeEmpty}
                         onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: bm.id })}
                       >
-                        <Text style={s.bmBadgeEmptyTxt}>+ Log first reading</Text>
+                        <Text style={s.bmBadgeEmptyTxt}>Log first reading</Text>
                       </TouchableOpacity>
                     )}
-                  </LinearGradient>
+                  </View>
+                  </StaggerIn>
                 );
               })}
             </ScrollView>
@@ -630,7 +680,7 @@ export default function DashboardScreen() {
 
           {/* Longevity Research — now gated per PAY-05 */}
           <TouchableOpacity
-            style={[s.uploadCard, s.researchCard]}
+            style={s.uploadCard}
             activeOpacity={0.82}
             accessibilityRole="button"
             onPress={() => {
@@ -648,7 +698,7 @@ export default function DashboardScreen() {
 
           {/* AI Advisor — new, per D-04 and AI-06 */}
           <TouchableOpacity
-            style={[s.uploadCard, s.aiAdvisorCard]}
+            style={s.uploadCard}
             activeOpacity={0.82}
             accessibilityRole="button"
             onPress={() => {
@@ -659,7 +709,7 @@ export default function DashboardScreen() {
             <DnaHelixIcon color={Colors.dark.text} size={20} />
             <View style={s.uploadCardBody}>
               <Text style={s.uploadCardTitle}>AI Advisor</Text>
-              <Text style={s.uploadCardSub}>Personalised longevity insights powered by AI</Text>
+              <Text style={s.uploadCardSub}>Ask about your biomarkers and protocol</Text>
             </View>
             <Text style={s.uploadCardArrow}>→</Text>
           </TouchableOpacity>
@@ -702,6 +752,7 @@ export default function DashboardScreen() {
 
           <View style={{ height: 32 }} />
         </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -713,22 +764,25 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: Spacing.base, paddingTop: Spacing.md },
   greetSmall: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
-  greetName: { fontSize: 22, fontWeight: '700', color: Colors.dark.text, marginTop: 2 },
+  greetName: { fontSize: Typography.sizes.h2, fontWeight: Typography.weights.subheadline, color: Colors.dark.text, marginTop: 2 },
+  greetContext: { fontSize: Typography.sizes.caption, color: Colors.dark.textMuted, marginTop: 3, letterSpacing: 0.2 },
   notifBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder, alignItems: 'center', justifyContent: 'center' },
-  bioCardWrapper: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, marginBottom: Spacing.base },
-  bioCardInner: { borderRadius: Radius.xl, padding: Spacing.base },
-  bioLabel: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.7)', letterSpacing: 0.8, marginBottom: 6 },
-  bioNum: { fontSize: 52, color: Colors.dark.text, fontWeight: '300', lineHeight: 58 },
-  bioNumPlaceholder: { fontSize: 52, color: 'rgba(232,245,238,0.3)', fontWeight: '300', lineHeight: 58 },
-  bioSub: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.75)', marginTop: 4 },
-  bioConfidence: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.5)', marginTop: 4, fontStyle: 'italic' },
-  bioPill: { position: 'absolute', top: Spacing.base, right: Spacing.base, backgroundColor: 'rgba(168,213,190,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  bioPillTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary },
-  bioCtaBtn: { marginTop: Spacing.sm, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 6, alignSelf: 'flex-start' },
-  bioCtaTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.text, fontWeight: '600' },
-  bioCardTapHint: { fontSize: Typography.sizes.xs, color: 'rgba(232,245,238,0.45)', marginTop: Spacing.sm, letterSpacing: 0.3 },
-  alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder, borderWidth: 0.5, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
-  alertIcon: { width: 32, height: 32, backgroundColor: Colors.dark.statusWarnBg, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  bioCardWrapper: {
+    marginHorizontal: Spacing.base, borderRadius: Radius.card, marginBottom: Spacing.base,
+    backgroundColor: Colors.dark.bgElevated, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
+    overflow: 'hidden',
+  },
+  bioCardInner: { borderRadius: Radius.card, padding: Spacing.base, position: 'relative' },
+  bioCardInnerCompact: { paddingVertical: Spacing.md },
+  bioChevron: { position: 'absolute', top: Spacing.base, right: Spacing.base, fontSize: 20, color: Colors.dark.textMuted },
+  bioLabel: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, letterSpacing: Typography.letterSpacing.widest, marginBottom: 6, fontWeight: Typography.weights.label, textTransform: 'uppercase' },
+  bioNum: { fontSize: Typography.sizes.heroNumeral, color: Colors.dark.text, fontWeight: Typography.weights.displayHero, lineHeight: 74, fontVariant: ['tabular-nums'] },
+  bioSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 4 },
+  bioEmptyState: { alignItems: 'flex-start', gap: 6, paddingVertical: Spacing.xs },
+  bioEmptyHeadline: { fontSize: Typography.sizes.body, fontWeight: Typography.weights.headline, color: Colors.dark.text, marginTop: Spacing.sm, lineHeight: Typography.lineHeights.body },
+  bioCtaBtn: { marginTop: Spacing.sm, backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.full, paddingHorizontal: Spacing.base, paddingVertical: 10, alignSelf: 'flex-start' },
+  bioCtaTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.bg, fontWeight: '600' },
+  alertCard: { marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg, borderColor: Colors.dark.statusWarnBorder, borderWidth: 0.5, borderRadius: Radius.card, padding: Spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: Spacing.base },
   alertBody: { flex: 1 },
   alertTitle: { fontSize: Typography.sizes.sm, fontWeight: '600', color: Colors.viz.amber, marginBottom: 2 },
   alertTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 16 },
@@ -738,7 +792,7 @@ const s = StyleSheet.create({
   sectionAddBtn: { backgroundColor: Colors.dark.accentBg, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 0.5, borderColor: Colors.dark.accentBorder },
   sectionAddTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.ctaPrimary, fontWeight: '600' },
   bmScroll: { paddingHorizontal: Spacing.base, gap: 10, paddingBottom: Spacing.base },
-  bmCard: { width: 120, borderRadius: Radius.xl, padding: Spacing.md },
+  bmCard: { width: 120, borderRadius: Radius.card, padding: Spacing.md, backgroundColor: Colors.dark.cardBg },
   bmCardWarning: { borderWidth: 0.5, borderColor: Colors.dark.statusWarnBorder },
   bmCardGood: { borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder },
   bmCardNone: { borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
@@ -779,8 +833,6 @@ const s = StyleSheet.create({
   uploadCardTitle: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
   uploadCardSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   uploadCardArrow: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted },
-  researchCard: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
-  aiAdvisorCard: { backgroundColor: 'rgba(91,157,191,0.10)', borderColor: 'rgba(91,157,191,0.25)' },
   weeklyCard: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.sm,

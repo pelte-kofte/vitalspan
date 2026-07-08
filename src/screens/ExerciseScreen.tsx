@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl, Alert,
@@ -21,8 +21,28 @@ import MuscleMapView, { muscleMatches, MUSCLE_REGIONS } from '../components/Musc
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RoutineCard from '../components/RoutineCard';
 import EditLogSheet from '../components/EditLogSheet';
+import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
+import StaggerIn from '../components/StaggerIn';
+import AnimatedPressable from '../components/AnimatedPressable';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+/** Cold-mount loading shape — mirrors the exercise row list below. */
+function ExerciseSkeleton() {
+  return (
+    <SkeletonPulse style={{ paddingTop: Spacing.base, paddingHorizontal: Spacing.base, gap: Spacing.sm }}>
+      {[0, 1, 2, 3].map(i => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 12 }}>
+          <SkeletonBlock w={44} h={44} radius={Radius.md} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <SkeletonBlock w="60%" h={14} />
+            <SkeletonBlock w="40%" h={11} />
+          </View>
+        </View>
+      ))}
+    </SkeletonPulse>
+  );
+}
 
 const EQUIPMENT_SHORT: Record<string, string> = {
   'body weight':    'BW',
@@ -128,6 +148,8 @@ export default function ExerciseScreen() {
   const [editSets, setEditSets] = useState('3');
   const [editRepsPerSet, setEditRepsPerSet] = useState('10');
   const [editWeightKg, setEditWeightKg] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
+  const hasLoadedOnceRef = useRef(false);
 
   const loadData = useCallback(() => {
     return Promise.all([
@@ -140,7 +162,12 @@ export default function ExerciseScreen() {
       const parsedRoutine: string[] = rawRoutine ? JSON.parse(rawRoutine) : [];
       setRoutine(parsedRoutine);
       setActiveTab(parsedRoutine.length > 0 ? 'routine' : 'discover');
-    }).catch(console.error);
+    }).catch(console.error).finally(() => {
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        setInitialLoading(false);
+      }
+    });
   }, []);
 
   useFocusEffect(useCallback(() => { void loadData(); }, [loadData]));
@@ -367,6 +394,7 @@ export default function ExerciseScreen() {
         </>
       )}
 
+      {initialLoading ? <ExerciseSkeleton /> : (
       <ScrollView
         style={s.scroll}
         showsVerticalScrollIndicator={false}
@@ -376,20 +404,22 @@ export default function ExerciseScreen() {
       >
         {/* My Routine tab: empty state or routine cards */}
         {activeTab === 'routine' && routine.length === 0 && (
+          <StaggerIn index={0}>
           <View style={s.emptyStateCard}>
             <RunnerIcon color={Colors.dark.textMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Build your routine</Text>
             <Text style={s.emptyStateBody}>
               Add exercises from Discover to build your personal routine.
             </Text>
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.emptyStateCta}
-              onPress={() => { setActiveTab('discover'); Haptics.selectionAsync().catch(() => null); }}
-              activeOpacity={0.82}
+              onPress={() => setActiveTab('discover')}
+              accessibilityLabel="Explore exercises"
             >
               <Text style={s.emptyStateCtaTxt}>Explore Exercises</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
+          </StaggerIn>
         )}
 
         {activeTab === 'routine' && routine.length > 0 && (() => {
@@ -434,23 +464,22 @@ export default function ExerciseScreen() {
 
         {/* Motivating empty state — shown when no logs at all (Kesfet only) */}
         {activeTab === 'discover' && logs.length === 0 && (
+          <StaggerIn index={0}>
           <View style={s.emptyStateCard}>
             <RunnerIcon color={Colors.dark.textMuted} size={48} />
             <Text style={s.emptyStateHeadline}>Move daily. Live longer.</Text>
             <Text style={s.emptyStateBody}>
               Log your first workout to start tracking your movement. Consistency compounds — even a 20-minute walk counts.
             </Text>
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.emptyStateCta}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-                setLogModal(exercises[0] ?? null);
-              }}
-              activeOpacity={0.82}
+              onPress={() => setLogModal(exercises[0] ?? null)}
+              accessibilityLabel="Log a workout"
             >
               <Text style={s.emptyStateCtaTxt}>Log a Workout</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
+          </StaggerIn>
         )}
 
         {/* Today section */}
@@ -567,6 +596,7 @@ export default function ExerciseScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+      )}
 
       <EditLogSheet
         editingLog={editingLog}

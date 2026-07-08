@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, RefreshControl,
@@ -26,6 +26,9 @@ import { SUPPLEMENT_DATABASE, SupplementInfo } from '../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../data/medications';
 import SupplementLibrarySection from '../components/SupplementLibrarySection';
 import { PillIcon } from '../components/DesignSystemIcons';
+import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
+import StaggerIn from '../components/StaggerIn';
+import AnimatedPressable from '../components/AnimatedPressable';
 import {
   ProtocolItem,
   ProtocolState,
@@ -767,6 +770,32 @@ function AddSupplementSheet({ visible, onClose, goal, addedSupplements, onToggle
   );
 }
 
+/** Cold-mount loading shape — mirrors the med/supplement row list below. */
+function ProtocolSkeleton() {
+  return (
+    <SkeletonPulse style={{ paddingTop: Spacing.base, gap: Spacing.md }}>
+      <View style={{ paddingHorizontal: Spacing.base, gap: 10 }}>
+        <SkeletonBlock w={120} h={14} />
+        {[0, 1, 2].map(i => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 10 }}>
+            <SkeletonBlock w={20} h={20} radius={10} />
+            <SkeletonBlock w="60%" h={14} />
+          </View>
+        ))}
+      </View>
+      <View style={{ paddingHorizontal: Spacing.base, gap: 10, marginTop: Spacing.md }}>
+        <SkeletonBlock w={90} h={14} />
+        {[0, 1, 2, 3].map(i => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 10 }}>
+            <SkeletonBlock w={20} h={20} radius={10} />
+            <SkeletonBlock w="70%" h={14} />
+          </View>
+        ))}
+      </View>
+    </SkeletonPulse>
+  );
+}
+
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProtocolScreen() {
   const nav = useNavigation<Nav>();
@@ -780,6 +809,8 @@ export default function ProtocolScreen() {
   const [editingMed, setEditingMed] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
   const [permDenied, setPermDenied] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const hasLoadedOnceRef = useRef(false);
 
   useEffect(() => {
     AsyncStorage.getItem(NOTIFICATION_PREFS_KEY)
@@ -860,6 +891,11 @@ export default function ProtocolScreen() {
       }
     } catch (e) {
       console.error('ProtocolScreen loadData failed:', e);
+    } finally {
+      if (!hasLoadedOnceRef.current) {
+        hasLoadedOnceRef.current = true;
+        setInitialLoading(false);
+      }
     }
   }, []);
 
@@ -1105,12 +1141,12 @@ export default function ProtocolScreen() {
       {/* Phase 22: Streak stat row */}
       <View style={s.streakRow}>
         <Text style={[s.streakTxt, (protocol.currentStreak ?? 0) > 0 ? s.streakActive : s.streakMuted]}>
-          {'🔥'} {protocol.currentStreak ?? 0}-day streak
+          {protocol.currentStreak ?? 0}-day streak
         </Text>
         {(protocol.bestStreak ?? 0) > 0 ? (
           <Text style={s.streakBest}>Best: {protocol.bestStreak} days</Text>
         ) : (protocol.currentStreak ?? 0) === 0 ? (
-          <Text style={s.streakHint}>Start your streak today!</Text>
+          <Text style={s.streakHint}>Start your streak today</Text>
         ) : null}
       </View>
 
@@ -1120,6 +1156,7 @@ export default function ProtocolScreen() {
         </Text>
       )}
 
+      {initialLoading ? <ProtocolSkeleton /> : (
       <ScrollView
         style={s.scroll}
         showsVerticalScrollIndicator={false}
@@ -1128,16 +1165,22 @@ export default function ProtocolScreen() {
         }
       >
         {totalItems === 0 && (
+          <StaggerIn index={0}>
           <View style={s.emptyScreenCard}>
-            <PillIcon color={Colors.onSurfaceMuted} size={40} />
+            <PillIcon color={Colors.dark.textMuted} size={40} />
             <Text style={s.emptyScreenHeadline}>Build your longevity stack.</Text>
             <Text style={s.emptyScreenSubtext}>
               Add your medications and pharmacist-curated supplements to track your daily protocol and check for interactions.
             </Text>
-            <TouchableOpacity style={s.emptyScreenCta} onPress={() => setShowRecommendedSheet(true)} activeOpacity={0.8}>
+            <AnimatedPressable
+              style={s.emptyScreenCta}
+              onPress={() => setShowRecommendedSheet(true)}
+              accessibilityLabel="Get started building your protocol"
+            >
               <Text style={s.emptyScreenCtaTxt}>Get Started</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
+          </StaggerIn>
         )}
 
         {/* ── Medications ───────────────────────────────────────── */}
@@ -1343,6 +1386,7 @@ export default function ProtocolScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+      )}
 
       <AddSupplementSheet
         visible={showRecommendedSheet}

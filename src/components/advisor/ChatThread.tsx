@@ -11,9 +11,11 @@ export interface ChatThreadProps {
 export default function ChatThread({ messages, isThinking }: ChatThreadProps) {
   if (messages.length === 0 && !isThinking) {
     return (
-      <Text style={s.emptyPrompt}>
-        Ask a follow-up question about your report…
-      </Text>
+      <View style={s.emptyCard}>
+        <Text style={s.emptyPrompt}>
+          Ask a follow-up question about your report…
+        </Text>
+      </View>
     );
   }
 
@@ -42,11 +44,17 @@ export default function ChatThread({ messages, isThinking }: ChatThreadProps) {
 }
 
 const s = StyleSheet.create({
+  emptyCard: {
+    backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+  },
   emptyPrompt: {
     color: Colors.dark.textMuted,
     fontSize: Typography.sizes.sm,
     textAlign: 'center',
-    padding: Spacing.lg,
   },
   bubble: {
     maxWidth: '80%',

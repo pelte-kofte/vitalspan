@@ -43,7 +43,8 @@ export interface AdvisorContext {
     name: string;
     status: BiomarkerStatus;
     daysAgo?: number;                // how many days since this entry was logged
-    trend?: 'improving' | 'stable' | 'declining';  // based on status change from prior entry
+    dataPointCount: number;          // real logged entries for this biomarker
+    trend?: 'improving' | 'stable' | 'declining';  // only set once dataPointCount >= MIN_TREND_DATA_POINTS
   }>;
   adherenceRate: string;             // e.g. "72%" or "unknown"
   timingConflicts: Array<{
@@ -352,6 +353,12 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     }
 
     // ── Biomarker status + daysAgo + trend ────────────────────────────────
+    // MIN_TREND_DATA_POINTS: a trend (especially "declining", which drives a
+    // user-facing warning insight) must never be inferred from a single new
+    // reading or a two-point blip — e.g. a lab PDF upload that back-fills two
+    // historical values at once for a brand-new account. Require at least 3
+    // real logged entries before trend is computed at all.
+    const MIN_TREND_DATA_POINTS = 3;
     const STATUS_RANK: Record<BiomarkerStatus, number> = { Optimal: 2, Suboptimal: 1, Critical: 0 };
     const nowMs = Date.now();
 
@@ -361,13 +368,13 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
       if (!entries || entries.length === 0) continue;
 
       const latest = entries[0];
-      const prev = entries[1];  // undefined if only one entry
+      const prev = entries[1];  // undefined if fewer than 2 entries
 
       const status = bucketBiomarkerStatus(latest.value, biomarker.optMin, biomarker.optMax);
       const daysAgo = Math.floor((nowMs - new Date(latest.date).getTime()) / 86_400_000);
 
       let trend: 'improving' | 'stable' | 'declining' | undefined;
-      if (prev !== undefined) {
+      if (prev !== undefined && entries.length >= MIN_TREND_DATA_POINTS) {
         const prevStatus = bucketBiomarkerStatus(prev.value, biomarker.optMin, biomarker.optMax);
         const latestRank = STATUS_RANK[status];
         const prevRank = STATUS_RANK[prevStatus];
@@ -378,6 +385,7 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
         name: biomarker.name,
         status,
         daysAgo,
+        dataPointCount: entries.length,
         ...(trend !== undefined ? { trend } : {}),
       });
     }

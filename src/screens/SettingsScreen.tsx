@@ -9,8 +9,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
-import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, TrashIcon, ClipboardIcon, RefreshIcon, StarIcon } from '../components/DesignSystemIcons';
+import { Colors, Spacing, Radius, Typography } from '../theme';
+import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, TrashIcon, ClipboardIcon, RefreshIcon, StarIcon, InfoIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { STORAGE_KEYS } from '../lib/storageKeys';
 import { loadNotificationPrefs, saveNotificationPrefs, rescheduleAll, DEFAULT_PREFS, NotificationPrefs } from '../lib/notifications';
@@ -57,7 +57,7 @@ export default function SettingsScreen() {
   const notifPrefsRef = useRef<NotificationPrefs | null>(null);
 
   useFocusEffect(useCallback(() => {
-    setStatusBarStyle('dark');
+    setStatusBarStyle('light');
     void loadNotificationPrefs().then(prefs => {
       notifPrefsRef.current = prefs;
       setNotificationsEnabled(Object.values(prefs).some(s => s.enabled));
@@ -181,28 +181,28 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <SettingsRow icon={<PersonIcon color={Colors.onSurface} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
-          <SettingsRow icon={<ShieldIcon color={Colors.onSurface} size={20} />} title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
+          <SettingsRow icon={<PersonIcon color={Colors.dark.text} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
         {/* Preferences */}
         <Text style={s.sectionLabel}>Preferences</Text>
         <View style={s.card}>
           <SettingsRow
-            icon={<BellIcon color={Colors.onSurface} size={20} />}
+            icon={<BellIcon color={Colors.dark.text} size={20} />}
             title="Daily reminders"
             subtitle="Protocol check-ins & biomarker logging"
             right={
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleToggleNotif}
-                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
-                thumbColor={notificationsEnabled ? Colors.primary : Colors.onSurfaceMuted}
+                trackColor={{ false: Colors.dark.cardBorder, true: Colors.dark.accentBorder }}
+                thumbColor={notificationsEnabled ? Colors.dark.ctaPrimary : Colors.dark.textMuted}
               />
             }
           />
           <SettingsRow
-            icon={<ChartBarIcon color={Colors.onSurface} size={20} />}
+            icon={<ChartBarIcon color={Colors.dark.text} size={20} />}
             title="Weekly report"
             subtitle="Biomarker trends & progress summary"
             topBorder
@@ -210,13 +210,13 @@ export default function SettingsScreen() {
               <Switch
                 value={weeklyReport}
                 onValueChange={handleToggleReport}
-                trackColor={{ false: Colors.borderLight, true: Colors.primaryBorder }}
-                thumbColor={weeklyReport ? Colors.primary : Colors.onSurfaceMuted}
+                trackColor={{ false: Colors.dark.cardBorder, true: Colors.dark.accentBorder }}
+                thumbColor={weeklyReport ? Colors.dark.ctaPrimary : Colors.dark.textMuted}
               />
             }
           />
           <SettingsRow
-            icon={<RulerIcon color={Colors.onSurface} size={20} />}
+            icon={<RulerIcon color={Colors.dark.text} size={20} />}
             title="Measurement system"
             subtitle={unitSystem === 'metric' ? 'Metric (kg, cm)' : 'Imperial (lbs, ft)'}
             topBorder
@@ -237,17 +237,17 @@ export default function SettingsScreen() {
         {/* Data */}
         <Text style={s.sectionLabel}>Data</Text>
         <View style={s.card}>
-          <SettingsRow icon={<ShareIcon color={Colors.onSurface} size={20} />} title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
-          <SettingsRow icon={<TrashIcon color={Colors.danger} size={20} />} title="Clear all data" danger onPress={handleClearData} topBorder />
+          <SettingsRow icon={<ShareIcon color={Colors.dark.text} size={20} />} title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
+          <SettingsRow icon={<TrashIcon color={Colors.viz.coral} size={20} />} title="Clear all data" danger onPress={handleClearData} topBorder />
         </View>
 
         {/* About */}
         <Text style={s.sectionLabel}>About</Text>
         <View style={s.card}>
-          <SettingsRow icon="ℹ" title="About Vitalspan" subtitle="Mission, citations, evidence grading" onPress={() => nav.navigate('About')} />
-          <SettingsRow icon={<ShieldIcon color={Colors.onSurface} size={20} />} title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
-          <SettingsRow icon={<ClipboardIcon color={Colors.onSurface} size={20} />} title="Terms of Use" topBorder onPress={() => {}} />
-          <SettingsRow icon={<StarIcon color={Colors.onSurface} size={20} />} title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
+          <SettingsRow icon={<InfoIcon color={Colors.dark.text} size={20} />} title="About Vitalspan" subtitle="Mission, citations, evidence grading" onPress={() => nav.navigate('About')} />
+          <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
+          <SettingsRow icon={<ClipboardIcon color={Colors.dark.text} size={20} />} title="Terms of Use" topBorder onPress={() => {}} />
+          <SettingsRow icon={<StarIcon color={Colors.dark.text} size={20} />} title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
         </View>
 
         {/* Debug (dev only) */}
@@ -255,7 +255,7 @@ export default function SettingsScreen() {
           <>
             <Text style={s.sectionLabel}>Developer</Text>
             <View style={s.card}>
-              <SettingsRow icon={<RefreshIcon color={Colors.onSurface} size={20} />} title="Reset onboarding" subtitle="Debug: clears onboarding flag" onPress={handleResetOnboarding} />
+              <SettingsRow icon={<RefreshIcon color={Colors.dark.text} size={20} />} title="Reset onboarding" subtitle="Debug: clears onboarding flag" onPress={handleResetOnboarding} />
             </View>
           </>
         )}
@@ -274,56 +274,55 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.surface },
+  safe: { flex: 1, backgroundColor: Colors.dark.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.bgElevated,
   },
   closeBtn: { paddingVertical: Spacing.xs },
-  closeTxt: { fontSize: Typography.sizes.base, color: Colors.primary, fontWeight: '600' },
-  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.onSurface },
+  closeTxt: { fontSize: Typography.sizes.base, color: Colors.dark.ctaPrimary, fontWeight: '600' },
+  title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
   scroll: { flex: 1 },
   sectionLabel: {
-    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.onSurfaceMuted,
-    textTransform: 'uppercase', letterSpacing: 1.5,
+    fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted,
+    textTransform: 'uppercase', letterSpacing: Typography.letterSpacing.wider,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   card: {
-    marginHorizontal: Spacing.base, backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.xl, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.borderLight,
-    ...Elevation.sm,
+    borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.borderLight },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.dark.cardBorder },
   rowIconWrap: {
     width: 32, height: 32, borderRadius: 8, /* intentional — no Radius.* equivalent for 8 */
-    backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center',
   },
   rowIcon: { fontSize: Typography.sizes.lg },
   rowBody: { flex: 1 },
-  rowTitle: { fontSize: Typography.sizes.base, color: Colors.onSurface, fontWeight: '400' },
-  rowDanger: { color: Colors.danger },
-  rowSub: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 }, /* intentional — no Spacing.* equivalent for marginTop: 2 */
-  rowArrow: { fontSize: Typography.sizes.h3, color: Colors.onSurfaceMuted, fontWeight: '300' },
+  rowTitle: { fontSize: Typography.sizes.base, color: Colors.dark.text, fontWeight: '400' },
+  rowDanger: { color: Colors.viz.coral },
+  rowSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 }, /* intentional — no Spacing.* equivalent for marginTop: 2 */
+  rowArrow: { fontSize: Typography.sizes.h3, color: Colors.dark.textMuted, fontWeight: '300' },
   unitToggle: {
-    flexDirection: 'row', backgroundColor: Colors.surfaceElevated,
+    flexDirection: 'row', backgroundColor: Colors.dark.bgElevated,
     borderRadius: Radius.md, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.borderLight,
+    borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
   },
   unitOpt: { paddingHorizontal: Spacing.sm + 2, paddingVertical: Spacing.xs + 1 },
-  unitOptActive: { backgroundColor: Colors.primary, borderRadius: Radius.md },
-  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, fontWeight: '500' },
-  unitOptTxtActive: { color: Colors.primaryBg },
+  unitOptActive: { backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.md },
+  unitOptTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, fontWeight: '500' },
+  unitOptTxtActive: { color: Colors.dark.bg },
   disclaimer: {
     marginHorizontal: Spacing.base, marginTop: Spacing.base,
-    backgroundColor: Colors.surface, borderRadius: Radius.md,
-    padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.primaryBorder,
+    backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md,
+    padding: Spacing.md, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
   },
-  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, lineHeight: 18 },
-  versionTxt: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: Spacing.sm, textAlign: 'center' },
+  disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18 },
+  versionTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
 });

@@ -42,6 +42,8 @@ export default function ProactiveInsightBanner({
   const isCritical = insight.priority === 'critical';
   const isWarning = insight.priority === 'warning';
 
+  // Color is functional (severity), never decorative — carried by the icon only.
+  // The card itself is always a flat surface with a hairline border.
   const accentColor = isCritical
     ? Colors.viz.coral
     : isWarning
@@ -50,38 +52,24 @@ export default function ProactiveInsightBanner({
 
   const IconComponent = isCritical ? WarningIcon : isWarning ? GoalChartIcon : InfoIcon;
 
-  const cardBackground = isCritical
-    ? Colors.dark.statusCritBg
-    : Colors.dark.cardBg;
-
-  const cardBorderWidth = isCritical ? 0 : 0.5;
-
   return (
     <Animated.View
       style={[
         s.card,
         {
-          backgroundColor: cardBackground,
-          borderWidth: cardBorderWidth,
           opacity,
           transform: [{ translateY }],
         },
       ]}
     >
-      {/* Left accent bar — color communicates severity */}
-      <View style={[s.accentBar, { backgroundColor: accentColor }]} />
-
       {/* Tappable content area — triggers navigation action */}
       <TouchableOpacity
         style={s.contentArea}
         onPress={handleNavigate}
         activeOpacity={insight.action.type === 'navigate' ? 0.7 : 1}
       >
-        <IconComponent color={accentColor} size={20} />
-        <View style={s.textBlock}>
-          <Text style={s.titleTxt} numberOfLines={1}>{insight.title}</Text>
-          <Text style={s.bodyTxt} numberOfLines={2}>{insight.body}</Text>
-        </View>
+        <IconComponent color={accentColor} size={16} />
+        <Text style={s.bodyTxt} numberOfLines={2}>{insight.body}</Text>
       </TouchableOpacity>
 
       {/* Dismiss button — 44×44 tap target per iOS HIG */}
@@ -102,15 +90,13 @@ const s = StyleSheet.create({
   card: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.base,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5,
     borderColor: Colors.dark.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-  },
-  accentBar: {
-    width: 3,
-    alignSelf: 'stretch',
   },
   contentArea: {
     flex: 1,
@@ -121,19 +107,11 @@ const s = StyleSheet.create({
     paddingLeft: Spacing.md,
     paddingRight: 48,
   },
-  textBlock: {
-    flex: 1,
-  },
-  titleTxt: {
-    fontSize: Typography.sizes.sm,
-    fontWeight: '600',
-    color: Colors.dark.text,
-    marginBottom: 2,
-  },
   bodyTxt: {
+    flex: 1,
     fontSize: Typography.sizes.xs,
     fontWeight: '400',
-    color: Colors.dark.textMuted,
+    color: Colors.dark.text,
     lineHeight: 15,
   },
   dismissBtn: {

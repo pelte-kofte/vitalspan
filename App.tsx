@@ -1,6 +1,5 @@
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,8 +9,8 @@ import { pruneExpiredCache } from './src/services/rxnav';
 import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
-import { Colors } from './src/theme';
-import { activationPromise, identifyAdaptyUser } from './src/lib/adapty';
+import BootLoadingScreen from './src/components/BootLoadingScreen';
+import { identifyAdaptyUser } from './src/lib/adapty';
 import { PremiumProvider } from './src/context/PremiumContext';
 import * as Notifications from 'expo-notifications';
 import { loadNotificationPrefs, rescheduleAll } from './src/lib/notifications';
@@ -30,9 +29,19 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      try {
+      // 10-second safety net: if any boot step hangs (e.g. SDK network call with
+      // no internal timeout), we fall through to the catch and show Welcome rather
+      // than leaving the user on the loading spinner forever.
+      const bootTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('[App] Boot timed out after 10s')), 10_000),
+      );
+
+      const boot = async () => {
         await initSupabaseSession();
-        await activationPromise;
+        // activationPromise (Adapty SDK init) is intentionally NOT awaited here.
+        // adapty.activate() can stall indefinitely on some network conditions and
+        // is not required for routing. identifyAdaptyUser() awaits it internally
+        // when called below; PremiumContext handles it for premium gating.
         const { data: { user } } = await supabase.auth.getUser();
         if (user && user.id) {
           identifyAdaptyUser(user.id).catch(() => null);
@@ -44,6 +53,10 @@ export default function App() {
         } else {
           setInitialRoute('Welcome');
         }
+      };
+
+      try {
+        await Promise.race([boot(), bootTimeout]);
       } catch (error) {
         console.error('[App] Boot error:', error);
         setInitialRoute('Welcome');
@@ -81,11 +94,7 @@ export default function App() {
   }, []);
 
   if (!initialRoute) {
-    return (
-      <View style={s.loading}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <BootLoadingScreen />;
   }
 
   return (
@@ -98,12 +107,3 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
-const s = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.bg,
-  },
-});

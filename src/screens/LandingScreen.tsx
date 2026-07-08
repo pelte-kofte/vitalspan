@@ -59,7 +59,7 @@ export default function LandingScreen() {
           {/* CTA */}
           <View style={s.cta}>
             <TouchableOpacity style={s.btnPrimary} onPress={() => nav.navigate('Onboarding')}>
-              <Text style={s.btnPrimaryTxt}>Begin your journey</Text>
+              <Text style={s.btnPrimaryTxt}>Get started</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleAlreadyHaveAccount}>

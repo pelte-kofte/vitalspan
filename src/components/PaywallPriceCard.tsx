@@ -4,17 +4,28 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, Radius } from '../theme';
+import { SkeletonBlock, SkeletonPulse } from './Skeleton';
+import AnimatedPressable from './AnimatedPressable';
 
 // Day markers: 1–7 are free trial days, Day 8 is first billed day (D-07)
 const DAYS = [1, 2, 3, 4, 5, 6, 7, 8];
+
+// Blinkist-style trial timeline legend — explains what happens at each
+// milestone instead of leaving the day-strip to speak for itself.
+const TIMELINE_STEPS = [
+  { day: 'Day 1', label: 'Full access starts today' },
+  { day: 'Day 5', label: 'Reminder before your trial ends' },
+  { day: 'Day 8', label: 'Trial ends — billing starts unless cancelled' },
+];
 
 interface Props {
   annualPrice: string | undefined;
   monthlyPrice: string | undefined;
   loadingProducts: boolean;
+  loadError?: boolean;
+  onRetry?: () => void;
   purchasing: boolean;
   onSubscribeAnnual: () => void;
   onSubscribeMonthly: () => void;
@@ -25,25 +36,55 @@ export default function PaywallPriceCard({
   annualPrice,
   monthlyPrice,
   loadingProducts,
+  loadError = false,
+  onRetry,
   purchasing,
   onSubscribeAnnual,
   onSubscribeMonthly,
   onRestore,
 }: Props) {
+  // Products failed to load — show an explicit retry state instead of
+  // leaving the CTA stuck on "…/yr" placeholders forever.
+  if (loadError && !loadingProducts) {
+    return (
+      <View style={s.card}>
+        <View style={s.handle} />
+        <Text style={s.errorTitle}>Couldn't load pricing</Text>
+        <Text style={s.errorBody}>
+          Check your connection and try again.
+        </Text>
+        <AnimatedPressable style={s.btnPrimary} onPress={onRetry} accessibilityLabel="Retry loading subscription pricing">
+          <Text style={s.btnPrimaryTxt}>Retry</Text>
+        </AnimatedPressable>
+        <TouchableOpacity
+          onPress={onRestore}
+          style={s.restoreBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Restore Purchases"
+        >
+          <Text style={s.restoreLink}>Restore Purchases</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={s.card}>
       <View style={s.handle} />
 
       {/* Annual primary CTA — D-06 */}
-      <TouchableOpacity
+      <AnimatedPressable
         style={[s.btnPrimary, purchasing && s.btnDisabled]}
         disabled={purchasing || loadingProducts}
         onPress={onSubscribeAnnual}
-        accessibilityRole="button"
-        accessibilityLabel={`Subscribe annually for ${annualPrice ?? '...'} per year with a 7-day free trial`}
+        haptic="medium"
+        accessibilityLabel={`Subscribe annually for ${annualPrice ?? 'loading price'} per year with a 7-day free trial`}
       >
         {loadingProducts ? (
-          <ActivityIndicator color={Colors.surface} />
+          <SkeletonPulse>
+            <SkeletonBlock w={190} h={16} radius={4} style={s.shimmerOnBrand} />
+            <SkeletonBlock w={120} h={11} radius={4} style={[s.shimmerOnBrand, { marginTop: 6 }]} />
+          </SkeletonPulse>
         ) : (
           <>
             <Text style={s.btnPrimaryTxt}>
@@ -52,18 +93,18 @@ export default function PaywallPriceCard({
             <Text style={s.btnSubTxt}>7-day free trial included</Text>
           </>
         )}
-      </TouchableOpacity>
+      </AnimatedPressable>
 
       {/* Monthly secondary link — D-06 */}
       <TouchableOpacity
         style={s.monthlyLink}
         onPress={onSubscribeMonthly}
-        disabled={purchasing}
+        disabled={purchasing || loadingProducts}
         accessibilityRole="button"
-        accessibilityLabel={`Or try monthly for ${monthlyPrice ?? '...'} per month`}
+        accessibilityLabel={`Or try monthly for ${monthlyPrice ?? 'loading price'} per month`}
       >
         <Text style={s.monthlyTxt}>
-          {`Or try monthly · ${monthlyPrice ?? '...'}/mo`}
+          {loadingProducts ? 'Loading monthly price…' : `Or try monthly · ${monthlyPrice ?? '...'}/mo`}
         </Text>
       </TouchableOpacity>
 
@@ -82,6 +123,16 @@ export default function PaywallPriceCard({
         {`7 days free, then ${annualPrice ?? '...'}/yr · Cancel anytime`}
       </Text>
 
+      {/* Trial timeline legend — what happens at each milestone */}
+      <View style={s.timelineLegend}>
+        {TIMELINE_STEPS.map(step => (
+          <View key={step.day} style={s.timelineLegendRow}>
+            <Text style={s.timelineLegendDay}>{step.day}</Text>
+            <Text style={s.timelineLegendLabel}>{step.label}</Text>
+          </View>
+        ))}
+      </View>
+
       {/* Restore Purchases — App Store requirement */}
       <TouchableOpacity
         onPress={onRestore}
@@ -97,9 +148,12 @@ export default function PaywallPriceCard({
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.bgElevated,
     borderTopLeftRadius: Radius.xxl,
     borderTopRightRadius: Radius.xxl,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.borderStrong,
+    borderBottomWidth: 0,
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
   },
@@ -107,12 +161,12 @@ const s = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.dark.borderStrong,
     alignSelf: 'center',
     marginBottom: Spacing.lg,
   },
   btnPrimary: {
-    backgroundColor: Colors.brand,
+    backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.full,
     paddingVertical: Spacing.base + 4,
     alignItems: 'center',
@@ -120,14 +174,17 @@ const s = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.7 },
   btnPrimaryTxt: {
-    color: Colors.dark.text,
+    color: Colors.dark.bg,
     fontSize: Typography.sizes.body,
     fontWeight: '600',
   },
   btnSubTxt: {
-    color: Colors.dark.textMuted,
+    color: 'rgba(12,15,13,0.65)',
     fontSize: Typography.sizes.xs,
     marginTop: 2,
+  },
+  shimmerOnBrand: {
+    backgroundColor: 'rgba(12,15,13,0.2)',
   },
   monthlyLink: {
     paddingVertical: Spacing.sm,
@@ -135,7 +192,7 @@ const s = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   monthlyTxt: {
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
     fontSize: Typography.sizes.bodySmall,
     textAlign: 'center',
   },
@@ -146,28 +203,59 @@ const s = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   dayMarker: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.sm,
+    width: 24,
+    height: 24,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.dark.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayFree: { backgroundColor: Colors.status.optimalBg },
-  dayBilled: { backgroundColor: Colors.bgShade },
-  dayNum: { fontSize: Typography.sizes.xs, fontWeight: '600' },
-  dayNumFree: { color: Colors.status.optimalText },
-  dayNumBilled: { color: Colors.textMuted },
+  dayFree: { opacity: 1 },
+  dayBilled: { opacity: 0.45 },
+  dayNum: { fontSize: Typography.sizes.captionSmall, fontWeight: '600', color: Colors.dark.textMuted },
+  dayNumFree: {},
+  dayNumBilled: {},
   timelineCaption: {
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
     fontSize: Typography.sizes.xs,
     textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  timelineLegend: {
+    gap: 6,
     marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
+  },
+  timelineLegendRow: { flexDirection: 'row', gap: Spacing.sm },
+  timelineLegendDay: {
+    fontSize: Typography.sizes.captionSmall,
+    fontWeight: '600',
+    color: Colors.dark.textMuted,
+    width: 42,
+  },
+  timelineLegendLabel: {
+    fontSize: Typography.sizes.captionSmall,
+    color: Colors.dark.textMuted,
+    flex: 1,
   },
   restoreBtn: { alignItems: 'center' },
   restoreLink: {
-    color: Colors.textMuted,
+    color: Colors.dark.textMuted,
     fontSize: Typography.sizes.xs,
     textAlign: 'center',
     paddingVertical: Spacing.sm,
+  },
+  errorTitle: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.h3,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  errorBody: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.sizes.bodySmall,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
   },
 });

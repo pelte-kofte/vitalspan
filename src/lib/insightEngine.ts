@@ -47,7 +47,7 @@ export function computeProactiveInsight(
       id: `interactionConflict:${first.item1}:${first.item2}`,
       priority: 'critical',
       title: 'Interaction Alert',
-      body: `${first.item1} + ${first.item2} may interact — review in AI Advisor`,
+      body: `Possible interaction: ${first.item1} + ${first.item2} — review in AI Advisor`,
       action: { type: 'navigate', screen: 'AIAdvisor' },
       generatedAt: now,
     };
@@ -56,9 +56,13 @@ export function computeProactiveInsight(
   // ── Priority 2 — warning: biomarker declining (trend computed vs. prior entry) ─
   // Sort by status severity (Critical > Suboptimal > Optimal), then by oldest daysAgo,
   // so the most urgent declining biomarker is surfaced when multiple are declining.
+  // MIN_DATA_POINTS_FOR_TREND: defense-in-depth guard, mirroring the one in
+  // advisorContext.ts — a declining-trend insight must never fire off a brand-new
+  // account, a single reading, or a two-point blip from a bulk lab-PDF import.
+  const MIN_DATA_POINTS_FOR_TREND = 3;
   const STATUS_SEVERITY: Record<string, number> = { Critical: 2, Suboptimal: 1, Optimal: 0 };
-  const decliningBiomarkers = context.biomarkers
-    .filter(b => b.trend === 'declining')
+  const decliningBiomarkers = (context.biomarkers ?? [])
+    .filter(b => b.trend === 'declining' && (b.dataPointCount ?? 0) >= MIN_DATA_POINTS_FOR_TREND)
     .sort((a, b) => {
       const sevDiff = (STATUS_SEVERITY[b.status] ?? 0) - (STATUS_SEVERITY[a.status] ?? 0);
       if (sevDiff !== 0) return sevDiff;
@@ -68,11 +72,12 @@ export function computeProactiveInsight(
     const id = `biomarkerDeclining:${declining.name}`;
     if (!wasDismissedToday(id, dismissedInsights)) {
       const bmData = BIOMARKERS.find(b => b.name === declining.name);
+      const readingCount = declining.dataPointCount ?? MIN_DATA_POINTS_FOR_TREND;
       return {
         id,
         priority: 'warning',
         title: `${declining.name} Trending Down`,
-        body: `Your ${declining.name} has declined over your last readings`,
+        body: `${declining.name} is trending down across your last ${readingCount} readings`,
         action: bmData
           ? { type: 'navigate', screen: 'BiomarkerDetail', params: { biomarkerId: bmData.id } }
           : { type: 'navigate', screen: 'Biomarkers' },
@@ -92,7 +97,7 @@ export function computeProactiveInsight(
           id,
           priority: 'warning',
           title: 'Low Protocol Adherence Today',
-          body: "You've taken less than half your scheduled items today — consistency drives results",
+          body: "You've taken less than half of today's scheduled items",
           action: { type: 'navigate', screen: 'Protocol' },
           generatedAt: now,
         };
@@ -131,7 +136,7 @@ export function computeProactiveInsight(
           id,
           priority: 'info',
           title: 'Longevity Report Outdated',
-          body: `Your last AI analysis was ${daysSince} days ago — regenerate for fresh insights`,
+          body: `Your last AI analysis was ${daysSince} days ago — worth running again`,
           action: { type: 'navigate', screen: 'AIAdvisor' },
           generatedAt: now,
         };

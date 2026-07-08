@@ -139,6 +139,7 @@ export const Typography = {
     hero: 44,
     // Semantic scale — use these for all screen typography
     // Display scale
+    heroNumeral: 68, // De-Slop editorial rule: the single largest numeral in the app (Dashboard bio age)
     display1: 56,
     display2: 44,
     display3: 36,
@@ -160,15 +161,46 @@ export const Typography = {
     wider: 1,
     widest: 3,
   },
+  // Named weights per DESIGN_SYSTEM.md "Type Hierarchy" table — pair with the
+  // matching size role below instead of hardcoding raw fontWeight strings.
+  weights: {
+    displayHero: '200' as const,   // BioAge sphere number
+    title: '300' as const,         // Screen-level titles
+    headline: '400' as const,      // Card headings — use '500' for emphasis
+    subheadline: '600' as const,   // Modal/sheet titles, card section headers
+    body: '400' as const,
+    label: '600' as const,         // Eyebrow labels, badges
+  },
+  // Line heights paired 1:1 with sizes.* of the same role name.
+  lineHeights: {
+    display1: 60,
+    display2: 50,
+    display3: 42,
+    h1: 34,
+    h2: 28,
+    h3: 24,
+    body: 21,
+    bodySmall: 18,
+    caption: 16,
+    captionSmall: 14,
+  },
 };
 
+// De-Slop editorial rule: exactly two corner-radius values app-wide.
+// `card` for cards/inputs/chips/badges, `sheet` for bottom sheets/modals/large
+// pill CTAs. `full` is a separate stadium/circle shape (height ÷ 2), not a
+// fixed radius. The legacy sm/md/lg/xl/xxl names are kept as aliases so
+// existing call sites don't need a rename — they all resolve to one of the
+// two values below now.
 export const Radius = {
-  sm: 10,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
+  card: 12,
+  sheet: 24,
   full: 999,
+  sm: 12,
+  md: 12,
+  lg: 12,
+  xl: 12,
+  xxl: 24,
 };
 
 export const Spacing = {
@@ -206,6 +238,13 @@ export const Motion = {
   breath: 4000,
   drift: 8000,
   orbit: 12000,
+  // Micro-interaction system (premium polish pass) — pair with
+  // components/motion.ts (AnimatedPressable, StaggerIn).
+  pressScale: 0.97,       // scale-down target for button/card press feedback
+  pressSpring: { damping: 16, stiffness: 260 } as const,
+  entranceDuration: 220,  // card/list-item fade+slide-in duration (no overshoot)
+  entranceStagger: 50,    // ms delay added per list index when staggering entrance
+  entranceOffset: 10,     // px the entrance animation slides up from
 } as const;
 
 // Elevation / shadow tokens
