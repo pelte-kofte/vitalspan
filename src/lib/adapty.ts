@@ -34,7 +34,7 @@ if (!ADAPTY_API_KEY) {
   // Log a masked prefix (never the full key) so EAS build logs can confirm
   // *which* key shipped in a given build without leaking the secret.
   console.log(
-    `[Adapty] Activating with key ${ADAPTY_API_KEY.slice(0, 6)}… (length ${ADAPTY_API_KEY.length})`,
+    `[Adapty] Activating with key ${ADAPTY_API_KEY.slice(0, 8)}… (length ${ADAPTY_API_KEY.length})`,
   )
 }
 

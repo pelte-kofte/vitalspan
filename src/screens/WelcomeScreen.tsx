@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   Dimensions, Animated, KeyboardAvoidingView, Platform,
@@ -28,6 +28,26 @@ export default function WelcomeScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(SCREEN_H)).current;
+
+  // Single source of truth for post-sign-in navigation. Email, Google, and
+  // Apple sign-in all end up calling a Supabase auth method that fires a
+  // SIGNED_IN event on this listener — so all three land here instead of each
+  // needing its own nav call. Anonymous sign-ins (guest, or the boot-time
+  // initSupabaseSession() call) are explicitly excluded: guest navigates
+  // itself in handleGuest, and must never be redirected by this effect.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const provider = session?.user?.app_metadata?.provider ?? 'none';
+      const anonymous = session?.user?.is_anonymous ?? 'n/a';
+      console.log(`[Auth] state change: ${event} (provider: ${provider}, anonymous: ${anonymous})`);
+      if (event === 'SIGNED_IN' && session?.user && !session.user.is_anonymous) {
+        const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
+        const profile = raw ? JSON.parse(raw) : {};
+        nav.reset({ index: 0, routes: [{ name: profile.onboardingComplete ? 'Main' : 'Onboarding' }] });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [nav]);
 
   function openSheet(type: 'signup' | 'login') {
     setEmail(''); setPassword(''); setConfirmPassword(''); setError(null);
@@ -85,9 +105,9 @@ export default function WelcomeScreen() {
     try {
       const result = await signInWithEmail(email, password);
       if (result.error) { setError(result.error); setLoading(false); return; }
-      const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
-      const profile = raw ? JSON.parse(raw) : {};
-      nav.reset({ index: 0, routes: [{ name: profile.onboardingComplete ? 'Main' : 'Onboarding' }] });
+      setLoading(false);
+      closeSheet();
+      // Navigation to Home is handled by the onAuthStateChange listener above.
     } catch (e: unknown) {
       setError(mapAuthError(e instanceof Error ? e.message : String(e)));
       setLoading(false);
@@ -95,6 +115,16 @@ export default function WelcomeScreen() {
   }
 
   async function handleGuest() {
+    // Boot-time initSupabaseSession() creates the anonymous session; this is a
+    // fallback for the known offline-first-launch case where that call can
+    // fail silently, so guest entry never proceeds with zero session.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const { error } = await supabase.auth.signInAnonymously();
+      console.log('[Auth] guest: no session found, created anonymous session', error ? `(failed: ${error.message})` : '(ok)');
+    } else {
+      console.log('[Auth] guest: continuing with existing session', session.user.is_anonymous ? '(anonymous)' : '(signed in)');
+    }
     const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
     const profile = raw ? JSON.parse(raw) : {};
     nav.reset({ index: 0, routes: [{ name: profile.onboardingComplete ? 'Main' : 'Onboarding' }] });
@@ -124,15 +154,19 @@ export default function WelcomeScreen() {
         <View style={s.cta}>
           <TouchableOpacity style={s.btnApple} onPress={async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+            console.log('[Auth] Apple sign-in tapped');
             const { error } = await signInWithApple();
             if (error) { Alert.alert('Sign in failed', error); }
+            // Navigation to Home on success is handled by the onAuthStateChange listener above.
           }}>
             <Text style={s.btnAppleTxt}> Sign in with Apple</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.btnGoogle} onPress={async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+            console.log('[Auth] Google sign-in tapped');
             const { error } = await signInWithGoogle();
             if (error) { Alert.alert('Sign in failed', error); }
+            // Navigation to Home on success is handled by the onAuthStateChange listener above.
           }}>
             <Text style={s.btnGoogleTxt}>G  Sign in with Google</Text>
           </TouchableOpacity>

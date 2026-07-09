@@ -159,9 +159,14 @@ export default function DashboardScreen() {
         setCurrentStreak(pt.currentStreak ?? 0);
       }
 
-      // Email verification banner check (D-12, D-14) — reuses currentUser from above
+      // Email verification banner check (D-12, D-14) — reuses currentUser from above.
+      // Gated to provider === 'email': OAuth users (Google/Apple) are always
+      // pre-confirmed by the provider, so without this gate the very first
+      // Dashboard load after an OAuth sign-in would fire the one-time
+      // "Account verified" toast — misleading, since the user never went
+      // through email verification at all.
       try {
-        if (currentUser && !currentUser.is_anonymous && currentUser.email) {
+        if (currentUser && !currentUser.is_anonymous && currentUser.email && currentUser.app_metadata?.provider === 'email') {
           setUserEmail(currentUser.email);
           if (!currentUser.email_confirmed_at) {
             // Not yet verified — show banner (if not dismissed this session)

@@ -46,13 +46,24 @@ export default function App() {
         if (user && user.id) {
           identifyAdaptyUser(user.id).catch(() => null);
         }
-        if (user && !user.is_anonymous) {
+        // Anonymous (guest) sessions are routed exactly like authenticated ones —
+        // a guest who finished onboarding must not be bounced back to Welcome on
+        // every relaunch. Welcome is reserved for the true no-session case; this
+        // runs once at boot and does not conflict with WelcomeScreen's
+        // onAuthStateChange listener, which only reacts to SIGNED_IN transitions
+        // after mount, not the INITIAL_SESSION event fired on mount.
+        let sessionKind: 'none' | 'anon' | 'auth' = 'none';
+        let onboardingComplete = false;
+        let route: 'Welcome' | 'Onboarding' | 'Main' = 'Welcome';
+        if (user) {
+          sessionKind = user.is_anonymous ? 'anon' : 'auth';
           const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
           const profile = profileRaw ? JSON.parse(profileRaw) : null;
-          setInitialRoute(profile?.onboardingComplete ? 'Main' : 'Onboarding');
-        } else {
-          setInitialRoute('Welcome');
+          onboardingComplete = !!profile?.onboardingComplete;
+          route = onboardingComplete ? 'Main' : 'Onboarding';
         }
+        console.log(`[Boot] session=${sessionKind} onboarding=${onboardingComplete} → route=${route}`);
+        setInitialRoute(route);
       };
 
       try {
