@@ -14,13 +14,32 @@
  * functions await this promise so callers do not need to coordinate SDK
  * readiness manually.
  *
+ * DOUBLE-ACTIVATION NOTE (#3005 activateOnceError, TestFlight build 10): the
+ * SDK-level adapty.activate() call is only ever invoked from startActivateCall()
+ * below, and startActivateCall() caches its promise in `activateCall` so it is
+ * physically impossible to invoke adapty.activate() a second time while a prior
+ * call is still in flight or has already succeeded. The bug that shipped in
+ * build 10 was: the boot-time timeout race gave up on a *slow* activate() call
+ * (still running in the background, not actually failed) and recorded it as a
+ * failure; PaywallScreen then saw that failure and called retryActivation(),
+ * which fired a genuinely new adapty.activate() call while the first one was
+ * still pending — the SDK's own "activate once" guard then rejected the second
+ * call with #3005. retryActivation() now only ever starts a new activate() call
+ * when the previous one is fully settled AND definitively failed; if it's still
+ * pending, retryActivation() re-awaits that same call instead. And if
+ * adapty.activate() itself ever rejects with #3005, that means the SDK is
+ * already active (from a call we lost track of) — it's treated as success, not
+ * failure.
+ *
  * NO AppState listener here — that belongs in PremiumContext.tsx so the
  * component lifecycle controls the subscription.
  */
 import { adapty } from 'react-native-adapty'
+import type { AdaptyError } from 'react-native-adapty'
 
 const ADAPTY_API_KEY = process.env.EXPO_PUBLIC_ADAPTY_API_KEY ?? ''
 const ACTIVATION_TIMEOUT_MS = 8_000
+const ADAPTY_ACTIVATE_ONCE_ERROR_CODE = 3005
 
 /** Single source of truth for the paywall placement id — PaywallScreen and the
  * Settings debug panel (Build 9 bug batch, issue 2) both read this. */
@@ -45,36 +64,73 @@ if (!ADAPTY_API_KEY) {
 /** Last activation failure, if any — inspectable by UI that wants to show a retry state. */
 let lastActivationError: string | null = null
 
+/** True if the current 'activated' state was reached by catching #3005 rather
+ * than a clean activate() success — surfaced separately so the debug panel
+ * can distinguish "activated normally" from "activated, but we lost track of
+ * that on our end first." Never reset back to false; once true it describes
+ * how activation ultimately succeeded for this app session. */
+let recoveredFromActivateOnceError = false
+
 export function getLastActivationError(): string | null {
   return lastActivationError
 }
 
-function runActivate(): Promise<void> {
+/** True whenever adapty.activate() has been called and settled (resolved or
+ * rejected) — used to distinguish "still pending" from "definitively failed"
+ * so retryActivation() knows when it's actually safe to call activate() again. */
+let activateSettled = false
+
+function isActivateOnceError(err: unknown): boolean {
+  const adaptyErr = err as Partial<AdaptyError>
+  return adaptyErr?.adaptyCode === ADAPTY_ACTIVATE_ONCE_ERROR_CODE
+}
+
+/**
+ * The single, real adapty.activate() call for the lifetime of the app.
+ * Cached in `activateCall` so this function can be invoked any number of
+ * times (module boot, retryActivation() while a call is already in flight)
+ * without ever triggering a second real SDK call — that's what produced the
+ * #3005 activateOnceError in build 10 (see file header).
+ *
+ * Only retryActivation() is allowed to clear `activateCall` back to null,
+ * and only once it has confirmed the previous attempt is fully settled and
+ * definitively failed (see retryActivation() below).
+ */
+let activateCall: Promise<void> | null = null
+
+function startActivateCall(): Promise<void> {
+  if (activateCall) return activateCall
   const startedAt = Date.now()
-  return (async () => {
+  activateCall = (async () => {
     try {
       if (!ADAPTY_API_KEY) {
         throw new Error('EXPO_PUBLIC_ADAPTY_API_KEY is empty — activate() would fail against Adapty')
       }
-      await Promise.race([
-        adapty.activate(ADAPTY_API_KEY),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`activate() exceeded ${ACTIVATION_TIMEOUT_MS}ms timeout`)),
-            ACTIVATION_TIMEOUT_MS,
-          ),
-        ),
-      ])
+      await adapty.activate(ADAPTY_API_KEY)
+      activateSettled = true
       lastActivationError = null
       console.log(`[Adapty] activate() succeeded in ${Date.now() - startedAt}ms`)
     } catch (err: unknown) {
+      activateSettled = true
+      if (isActivateOnceError(err)) {
+        // The SDK is already active from a call we lost track of (e.g. a
+        // previous attempt that our own boot-time timeout gave up on while it
+        // was still running in the background). That's success, not failure —
+        // never surface #3005 as an activation failure.
+        recoveredFromActivateOnceError = true
+        lastActivationError = null
+        console.warn('[Adapty] activate() returned #3005 activateOnceError — SDK already active, treating as success')
+        return
+      }
       const message = err instanceof Error ? err.message : String(err)
       lastActivationError = message
       // Full error object (not just .message) so EAS/Sentry logs capture SDK
       // error codes/domains that react-native-adapty attaches to the error.
       console.error('[Adapty] activate() failed:', message, err)
+      throw err
     }
   })()
+  return activateCall
 }
 
 /**
@@ -83,20 +139,71 @@ function runActivate(): Promise<void> {
  * await it during app startup if needed (it currently does not, by design —
  * see App.tsx boot()).
  *
+ * IMPORTANT: the timeout race only controls how long THIS promise waits — it
+ * never cancels or abandons the underlying adapty.activate() call, which
+ * keeps running via the cached `activateCall` and will still update
+ * lastActivationError / recoveredFromActivateOnceError whenever it truly
+ * settles. This is what makes it safe for retryActivation() to check "is the
+ * real call still pending?" instead of blindly firing a second activate().
+ *
  * Errors are caught and warned — the app continues without premium features.
  */
-export let activationPromise: Promise<void> = runActivate()
+export let activationPromise: Promise<void> = (async () => {
+  try {
+    await Promise.race([
+      startActivateCall(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`activate() exceeded ${ACTIVATION_TIMEOUT_MS}ms timeout`)),
+          ACTIVATION_TIMEOUT_MS,
+        ),
+      ),
+    ])
+  } catch {
+    // Either activate() itself failed/timed-out-for-real (activateSettled is
+    // true and lastActivationError is already set by startActivateCall), or
+    // our timeout won the race while the real call is still pending
+    // (activateSettled is still false) — record a distinct pending message so
+    // the debug panel doesn't misreport a real call as failed prematurely.
+    // startActivateCall()'s own handlers overwrite this once it truly settles.
+    if (!activateSettled) {
+      lastActivationError = `activate() exceeded ${ACTIVATION_TIMEOUT_MS}ms timeout (still pending in background)`
+    }
+  }
+})()
 
 /**
- * Re-runs adapty.activate() and replaces activationPromise so subsequent
- * awaiters (identifyAdaptyUser, fetchPremiumStatus, and any in-flight paywall
- * retry) pick up the new attempt. Used by the paywall's "Retry" action when
- * the initial background activation failed (e.g. missing key, no network at
- * cold boot).
+ * Ensures the Adapty SDK is (or becomes) active, without ever calling the
+ * real adapty.activate() more than once concurrently or after a success.
+ * Used by the paywall's "Retry" action when the initial background
+ * activation appeared to fail (e.g. missing key, no network at cold boot,
+ * or the boot-time timeout raced ahead of a slow-but-successful call).
+ *
+ * - If the real call is still pending, re-await it instead of starting a new
+ *   one — this is the fix for #3005: never let two adapty.activate() calls
+ *   be in flight at once.
+ * - If it already succeeded (cleanly or via #3005 recovery), no-op.
+ * - Only if it's fully settled AND definitively failed does this start a
+ *   fresh activate() call.
  */
 export function retryActivation(): Promise<void> {
-  console.log('[Adapty] retryActivation() called — re-running activate()')
-  activationPromise = runActivate()
+  if (activateCall && !activateSettled) {
+    console.log('[Adapty] retryActivation(): activate() already in flight — awaiting existing call instead of starting a new one')
+    // .catch() here (not on activateCall itself) preserves the "activationPromise
+    // never rejects" contract every caller below relies on, while leaving
+    // activateCall's own rejection intact for startActivateCall()'s internal bookkeeping.
+    activationPromise = activateCall.catch(() => undefined)
+    return activationPromise
+  }
+  if (activateSettled && lastActivationError === null) {
+    console.log('[Adapty] retryActivation(): SDK already active — no-op')
+    activationPromise = Promise.resolve()
+    return activationPromise
+  }
+  console.log('[Adapty] retryActivation(): previous attempt definitively failed — retrying activate()')
+  activateCall = null
+  activateSettled = false
+  activationPromise = startActivateCall().catch(() => undefined)
   return activationPromise
 }
 
@@ -144,7 +251,12 @@ export interface AdaptyDebugInfo {
   /** First 8 chars of the key, or null if absent — never the full key. */
   keyPrefix: string | null
   keyLength: number
-  activationStatus: 'activated' | 'failed'
+  // 'activated (recovered)' means adapty.activate() itself returned #3005
+  // activateOnceError at some point this session — the SDK was already
+  // active from a call we'd lost track of, not a failure. Kept distinct from
+  // plain 'activated' so a #3005 in the logs doesn't get misread as still
+  // broken next time someone checks this panel (#3005 bug, TestFlight build 10).
+  activationStatus: 'activated' | 'activated (recovered)' | 'failed'
   lastActivationError: string | null
   placementId: string
 }
@@ -165,7 +277,11 @@ export async function getAdaptyDebugInfo(): Promise<AdaptyDebugInfo> {
     keyPresent: ADAPTY_API_KEY.length > 0,
     keyPrefix: ADAPTY_API_KEY ? ADAPTY_API_KEY.slice(0, 8) : null,
     keyLength: ADAPTY_API_KEY.length,
-    activationStatus: lastActivationError === null ? 'activated' : 'failed',
+    activationStatus: lastActivationError !== null
+      ? 'failed'
+      : recoveredFromActivateOnceError
+        ? 'activated (recovered)'
+        : 'activated',
     lastActivationError,
     placementId: PLACEMENT_ID,
   }
