@@ -10,19 +10,11 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_ADAPTY_API_KEY": "$EXPO_PUBLIC_ADAPTY_API_KEY"
-      }
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "$EXPO_PUBLIC_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-        "EXPO_PUBLIC_ADAPTY_API_KEY": "$EXPO_PUBLIC_ADAPTY_API_KEY"
-      }
+      "environment": "production"
     }
   },
   "submit": {

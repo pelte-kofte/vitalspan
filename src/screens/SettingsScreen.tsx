@@ -293,7 +293,11 @@ export default function SettingsScreen() {
               <View style={s.debugRow}>
                 <Text style={s.debugLabel}>Key present</Text>
                 <Text style={s.debugValue}>
-                  {adaptyDebug.keyPresent ? `Yes (${adaptyDebug.keyPrefix}…, ${adaptyDebug.keyLength} chars)` : 'No'}
+                  {adaptyDebug.keyStatus === 'present'
+                    ? `Yes (${adaptyDebug.keyPrefix}…, ${adaptyDebug.keyLength} chars)`
+                    : adaptyDebug.keyStatus === 'placeholder'
+                      ? `Invalid placeholder (${adaptyDebug.keyPrefix}…, ${adaptyDebug.keyLength} chars)`
+                      : 'No'}
                 </Text>
               </View>
               <View style={[s.debugRow, s.rowBorder]}>

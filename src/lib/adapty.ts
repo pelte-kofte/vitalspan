@@ -45,13 +45,37 @@ const ADAPTY_ACTIVATE_ONCE_ERROR_CODE = 3005
  * Settings debug panel (Build 9 bug batch, issue 2) both read this. */
 export const PLACEMENT_ID = 'vitalspan_premium_paywall'
 
+function isLikelyUnresolvedEnvLiteral(value: string): boolean {
+  return value.startsWith('$EXPO_PUBLIC_') || value === 'EXPO_PUBLIC_ADAPTY_API_KEY'
+}
+
+function getKeyDiagnostics(): {
+  isMissing: boolean
+  isPlaceholder: boolean
+  maskedPrefix: string | null
+  length: number
+} {
+  return {
+    isMissing: ADAPTY_API_KEY.length === 0,
+    isPlaceholder: isLikelyUnresolvedEnvLiteral(ADAPTY_API_KEY),
+    maskedPrefix: ADAPTY_API_KEY ? ADAPTY_API_KEY.slice(0, 8) : null,
+    length: ADAPTY_API_KEY.length,
+  }
+}
+
 // Guard: missing key means all Adapty calls will fail silently at runtime.
 // Log clearly so EAS build logs surface the root cause.
-if (!ADAPTY_API_KEY) {
+const keyDiagnostics = getKeyDiagnostics()
+if (keyDiagnostics.isMissing) {
   console.error(
     '[Adapty] EXPO_PUBLIC_ADAPTY_API_KEY is missing. ' +
     'Add it to your .env file and EAS secrets: ' +
     'eas secret:create --scope project --name EXPO_PUBLIC_ADAPTY_API_KEY --value <key>',
+  )
+} else if (keyDiagnostics.isPlaceholder) {
+  console.error(
+    '[Adapty] EXPO_PUBLIC_ADAPTY_API_KEY looks unresolved. ' +
+    'The current build received a placeholder-like string instead of a real public SDK key.',
   )
 } else {
   // Log a masked prefix (never the full key) so EAS build logs can confirm
@@ -103,8 +127,13 @@ function startActivateCall(): Promise<void> {
   const startedAt = Date.now()
   activateCall = (async () => {
     try {
-      if (!ADAPTY_API_KEY) {
+      if (keyDiagnostics.isMissing) {
         throw new Error('EXPO_PUBLIC_ADAPTY_API_KEY is empty — activate() would fail against Adapty')
+      }
+      if (keyDiagnostics.isPlaceholder) {
+        throw new Error(
+          'EXPO_PUBLIC_ADAPTY_API_KEY looks unresolved — check EAS environment configuration for a literal $EXPO_PUBLIC_* value',
+        )
       }
       await adapty.activate(ADAPTY_API_KEY)
       activateSettled = true
@@ -248,6 +277,7 @@ export async function fetchPremiumStatus(): Promise<boolean> {
 
 export interface AdaptyDebugInfo {
   keyPresent: boolean
+  keyStatus: 'missing' | 'placeholder' | 'present'
   /** First 8 chars of the key, or null if absent — never the full key. */
   keyPrefix: string | null
   keyLength: number
@@ -274,9 +304,14 @@ export interface AdaptyDebugInfo {
 export async function getAdaptyDebugInfo(): Promise<AdaptyDebugInfo> {
   await activationPromise
   return {
-    keyPresent: ADAPTY_API_KEY.length > 0,
-    keyPrefix: ADAPTY_API_KEY ? ADAPTY_API_KEY.slice(0, 8) : null,
-    keyLength: ADAPTY_API_KEY.length,
+    keyPresent: !keyDiagnostics.isMissing && !keyDiagnostics.isPlaceholder,
+    keyStatus: keyDiagnostics.isMissing
+      ? 'missing'
+      : keyDiagnostics.isPlaceholder
+        ? 'placeholder'
+        : 'present',
+    keyPrefix: keyDiagnostics.maskedPrefix,
+    keyLength: keyDiagnostics.length,
     activationStatus: lastActivationError !== null
       ? 'failed'
       : recoveredFromActivateOnceError

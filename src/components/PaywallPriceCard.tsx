@@ -8,6 +8,7 @@ import {
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import { SkeletonBlock, SkeletonPulse } from './Skeleton';
 import AnimatedPressable from './AnimatedPressable';
+import type { PaywallPlanSummary } from '../lib/paywallProducts';
 
 // Day markers: 1–7 are free trial days, Day 8 is first billed day (D-07)
 const DAYS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -21,37 +22,45 @@ const TIMELINE_STEPS = [
 ];
 
 interface Props {
-  annualPrice: string | undefined;
-  monthlyPrice: string | undefined;
+  primaryPlan: PaywallPlanSummary | null;
+  secondaryPlan: PaywallPlanSummary | null;
   loadingProducts: boolean;
-  loadError?: boolean;
+  loadErrorTitle?: string;
+  loadErrorMessage?: string;
   onRetry?: () => void;
   purchasing: boolean;
-  onSubscribeAnnual: () => void;
-  onSubscribeMonthly: () => void;
+  onSubscribePrimary: () => void;
+  onSubscribeSecondary: () => void;
   onRestore: () => void;
 }
 
 export default function PaywallPriceCard({
-  annualPrice,
-  monthlyPrice,
+  primaryPlan,
+  secondaryPlan,
   loadingProducts,
-  loadError = false,
+  loadErrorTitle,
+  loadErrorMessage,
   onRetry,
   purchasing,
-  onSubscribeAnnual,
-  onSubscribeMonthly,
+  onSubscribePrimary,
+  onSubscribeSecondary,
   onRestore,
 }: Props) {
+  const hasFreeTrial = Boolean(
+    primaryPlan?.product.subscription?.offer?.phases?.some(
+      (phase) => phase.paymentMode === 'free_trial',
+    ),
+  );
+
   // Products failed to load — show an explicit retry state instead of
   // leaving the CTA stuck on "…/yr" placeholders forever.
-  if (loadError && !loadingProducts) {
+  if (loadErrorTitle && !loadingProducts) {
     return (
       <View style={s.card}>
         <View style={s.handle} />
-        <Text style={s.errorTitle}>Couldn't load pricing</Text>
+        <Text style={s.errorTitle}>{loadErrorTitle}</Text>
         <Text style={s.errorBody}>
-          Check your connection and try again.
+          {loadErrorMessage ?? 'Check your connection and try again.'}
         </Text>
         <AnimatedPressable style={s.btnPrimary} onPress={onRetry} accessibilityLabel="Retry loading subscription pricing">
           <Text style={s.btnPrimaryTxt}>Retry</Text>
@@ -75,10 +84,14 @@ export default function PaywallPriceCard({
       {/* Annual primary CTA — D-06 */}
       <AnimatedPressable
         style={[s.btnPrimary, purchasing && s.btnDisabled]}
-        disabled={purchasing || loadingProducts}
-        onPress={onSubscribeAnnual}
+        disabled={purchasing || loadingProducts || !primaryPlan}
+        onPress={onSubscribePrimary}
         haptic="medium"
-        accessibilityLabel={`Subscribe annually for ${annualPrice ?? 'loading price'} per year with a 7-day free trial`}
+        accessibilityLabel={
+          primaryPlan
+            ? `${primaryPlan.ctaLabel} for ${primaryPlan.product.price?.localizedString ?? 'the current App Store price'}`
+            : 'Loading subscription pricing'
+        }
       >
         {loadingProducts ? (
           <SkeletonPulse>
@@ -88,50 +101,66 @@ export default function PaywallPriceCard({
         ) : (
           <>
             <Text style={s.btnPrimaryTxt}>
-              {`Subscribe Annually · ${annualPrice ?? '...'}/yr`}
+              {primaryPlan
+                ? `${primaryPlan.ctaLabel} · ${primaryPlan.product.price?.localizedString ?? '...'}${primaryPlan.intervalSuffix}`
+                : 'Pricing unavailable'}
             </Text>
-            <Text style={s.btnSubTxt}>7-day free trial included</Text>
+            <Text style={s.btnSubTxt}>
+              {primaryPlan?.timelineCaption ?? 'Please retry to load subscription pricing'}
+            </Text>
           </>
         )}
       </AnimatedPressable>
 
       {/* Monthly secondary link — D-06 */}
-      <TouchableOpacity
-        style={s.monthlyLink}
-        onPress={onSubscribeMonthly}
-        disabled={purchasing || loadingProducts}
-        accessibilityRole="button"
-        accessibilityLabel={`Or try monthly for ${monthlyPrice ?? 'loading price'} per month`}
-      >
-        <Text style={s.monthlyTxt}>
-          {loadingProducts ? 'Loading monthly price…' : `Or try monthly · ${monthlyPrice ?? '...'}/mo`}
+      {secondaryPlan ? (
+        <TouchableOpacity
+          style={s.monthlyLink}
+          onPress={onSubscribeSecondary}
+          disabled={purchasing || loadingProducts}
+          accessibilityRole="button"
+          accessibilityLabel={`${secondaryPlan.ctaLabel} for ${secondaryPlan.product.price?.localizedString ?? 'the current App Store price'}`}
+        >
+          <Text style={s.monthlyTxt}>
+            {loadingProducts
+              ? 'Loading pricing…'
+              : `${secondaryPlan.ctaLabel} · ${secondaryPlan.product.price?.localizedString ?? '...'}${secondaryPlan.intervalSuffix}`}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {hasFreeTrial ? (
+        <>
+          {/* Day 1–7 free / Day 8 billed timeline — D-07 */}
+          <View style={s.timelineContainer}>
+            {DAYS.map(day => (
+              <View key={day} style={[s.dayMarker, day <= 7 ? s.dayFree : s.dayBilled]}>
+                <Text style={[s.dayNum, day <= 7 ? s.dayNumFree : s.dayNumBilled]}>
+                  {day}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={s.timelineCaption}>
+            {primaryPlan?.timelineCaption ?? 'Pricing provided by the App Store'}
+          </Text>
+
+          {/* Trial timeline legend — what happens at each milestone */}
+          <View style={s.timelineLegend}>
+            {TIMELINE_STEPS.map(step => (
+              <View key={step.day} style={s.timelineLegendRow}>
+                <Text style={s.timelineLegendDay}>{step.day}</Text>
+                <Text style={s.timelineLegendLabel}>{step.label}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : (
+        <Text style={s.timelineCaption}>
+          {primaryPlan?.timelineCaption ?? 'Pricing provided by the App Store'}
         </Text>
-      </TouchableOpacity>
-
-      {/* Day 1–7 free / Day 8 billed timeline — D-07 */}
-      <View style={s.timelineContainer}>
-        {DAYS.map(day => (
-          <View key={day} style={[s.dayMarker, day <= 7 ? s.dayFree : s.dayBilled]}>
-            <Text style={[s.dayNum, day <= 7 ? s.dayNumFree : s.dayNumBilled]}>
-              {day}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      <Text style={s.timelineCaption}>
-        {`7 days free, then ${annualPrice ?? '...'}/yr · Cancel anytime`}
-      </Text>
-
-      {/* Trial timeline legend — what happens at each milestone */}
-      <View style={s.timelineLegend}>
-        {TIMELINE_STEPS.map(step => (
-          <View key={step.day} style={s.timelineLegendRow}>
-            <Text style={s.timelineLegendDay}>{step.day}</Text>
-            <Text style={s.timelineLegendLabel}>{step.label}</Text>
-          </View>
-        ))}
-      </View>
+      )}
 
       {/* Restore Purchases — App Store requirement */}
       <TouchableOpacity
