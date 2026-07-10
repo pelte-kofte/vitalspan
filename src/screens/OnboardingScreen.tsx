@@ -12,6 +12,7 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon, CheckmarkIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import MedicationSearch from '../components/MedicationSearch';
+import { CONDITIONS } from '../constants/conditions';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -22,12 +23,6 @@ const GOALS = [
   { title: 'Optimize healthspan', desc: 'Stay sharp & energetic longer' },
   { title: 'Slow biological aging', desc: 'Reduce my biological age score' },
   { title: 'Track & understand', desc: 'Know my biomarkers deeply' },
-];
-
-const CONDITIONS = [
-  'Type 2 diabetes', 'Hypertension', 'Hypothyroidism',
-  'High cholesterol', 'Cardiovascular disease', 'Autoimmune condition',
-  'Kidney disease', 'Liver disease',
 ];
 
 const QUICK_MEDS = ['Metformin', 'Aspirin', 'Statin', 'Levothyroxine', 'Warfarin', 'Empagliflozin', 'Lisinopril', 'Dapagliflozin'];

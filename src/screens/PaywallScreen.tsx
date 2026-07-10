@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { adapty } from 'react-native-adapty';
 import type { AdaptyPaywallProduct } from 'react-native-adapty';
-import { activationPromise, retryActivation, getLastActivationError } from '../lib/adapty';
+import { activationPromise, retryActivation, getLastActivationError, PLACEMENT_ID } from '../lib/adapty';
 import { usePremiumContext } from '../context/PremiumContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import PaywallHero from '../components/PaywallHero';
@@ -14,8 +14,6 @@ import PaywallPriceCard from '../components/PaywallPriceCard';
 import { Colors } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const PLACEMENT_ID = 'vitalspan_premium_paywall';
 
 export default function PaywallScreen() {
   const nav = useNavigation<Nav>();

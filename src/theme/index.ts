@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const Colors = {
   // Primary greens
   primary: '#2D6A4F',
@@ -126,6 +128,10 @@ export const Colors = {
 
 export const Typography = {
   serif: 'serif',
+  // Editorial display serif — "The Vitalspan Brief" issue headlines ONLY.
+  // Every other screen stays SF (`sans`/system default). See DESIGN_SYSTEM.md
+  // "Editorial Display Serif" for the scope rule.
+  displaySerif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) as string,
   sans: 'System',
   sizes: {
     // Existing — do not remove

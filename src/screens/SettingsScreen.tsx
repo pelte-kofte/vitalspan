@@ -14,6 +14,8 @@ import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, T
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { STORAGE_KEYS } from '../lib/storageKeys';
 import { loadNotificationPrefs, saveNotificationPrefs, rescheduleAll, DEFAULT_PREFS, NotificationPrefs } from '../lib/notifications';
+import { signOutUser } from '../lib/supabase';
+import { getAdaptyDebugInfo, AdaptyDebugInfo } from '../lib/adapty';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,6 +58,21 @@ export default function SettingsScreen() {
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
   const notifPrefsRef = useRef<NotificationPrefs | null>(null);
 
+  // Hidden Adapty debug panel — tap the version number 5 times to reveal it.
+  // Works in TestFlight/production (unlike the __DEV__-gated section below),
+  // so pricing issues can be diagnosed on-device without a device log pull
+  // (Build 9 bug batch, issue 2).
+  const [versionTapCount, setVersionTapCount] = useState(0);
+  const [adaptyDebug, setAdaptyDebug] = useState<AdaptyDebugInfo | null>(null);
+  function handleVersionTap() {
+    const next = versionTapCount + 1;
+    setVersionTapCount(next);
+    if (next === 5) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+      getAdaptyDebugInfo().then(setAdaptyDebug).catch(() => null);
+    }
+  }
+
   useFocusEffect(useCallback(() => {
     setStatusBarStyle('light');
     void loadNotificationPrefs().then(prefs => {
@@ -93,12 +110,21 @@ export default function SettingsScreen() {
   function handleSignOut() {
     Alert.alert(
       'Sign out',
-      'This will return you to the landing screen. Your data stays on this device.',
+      'This will return you to the landing screen.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Sign out',
-          onPress: () => {
+          onPress: async () => {
+            // This row previously only navigated to Welcome without ever calling
+            // signOutUser() — the Supabase session stayed alive underneath, so the
+            // next app launch silently restored it. signOutUser() also clears all
+            // local app data now, so sign-out always starts fresh (see supabase.ts).
+            const { error } = await signOutUser();
+            if (error) {
+              Alert.alert('Sign out failed', error);
+              return;
+            }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => null);
             nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
           },
@@ -181,7 +207,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={s.sectionLabel}>Account</Text>
         <View style={s.card}>
-          <SettingsRow icon={<PersonIcon color={Colors.dark.text} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => { nav.goBack(); }} />
+          <SettingsRow icon={<PersonIcon color={Colors.dark.text} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => nav.navigate('Main', { screen: 'Profile' })} />
           <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
         </View>
 
@@ -260,11 +286,39 @@ export default function SettingsScreen() {
           </>
         )}
 
+        {adaptyDebug && (
+          <>
+            <Text style={s.sectionLabel}>Adapty Debug</Text>
+            <View style={s.card}>
+              <View style={s.debugRow}>
+                <Text style={s.debugLabel}>Key present</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.keyPresent ? `Yes (${adaptyDebug.keyPrefix}…, ${adaptyDebug.keyLength} chars)` : 'No'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Activation status</Text>
+                <Text style={s.debugValue}>{adaptyDebug.activationStatus}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Last activation error</Text>
+                <Text style={s.debugValue}>{adaptyDebug.lastActivationError ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Placement ID</Text>
+                <Text style={s.debugValue}>{adaptyDebug.placementId}</Text>
+              </View>
+            </View>
+          </>
+        )}
+
         <View style={s.disclaimer}>
           <Text style={s.disclaimerTxt}>
             ⚕ Vitalspan is built by a licensed pharmacist. Biomarker ranges are longevity-optimized and evidence-graded. Not a substitute for professional medical advice.
           </Text>
-          <Text style={s.versionTxt}>Version 0.1.0</Text>
+          <TouchableOpacity onPress={handleVersionTap} accessibilityRole="button" accessibilityLabel="Version">
+            <Text style={s.versionTxt}>Version 0.1.0</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 32 }} />
@@ -299,6 +353,12 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
   rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.dark.cardBorder },
+  debugRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
+  },
+  debugLabel: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.textMuted },
+  debugValue: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.text, flexShrink: 1, textAlign: 'right' },
   rowIconWrap: {
     width: 32, height: 32, borderRadius: 8, /* intentional — no Radius.* equivalent for 8 */
     backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center',

@@ -118,6 +118,12 @@ All sizes live in `Typography.sizes.*`, spacing in `Typography.letterSpacing.*`.
 | `Typography.lineHeights.bodySmall` | 18 |
 | `Typography.lineHeights.caption` / `captionSmall` | 16 / 14 |
 
+### Editorial Display Serif (Issue Headlines Only)
+
+`Typography.displaySerif` (`src/theme/index.ts`) — `Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' })`.
+
+This is the **one** display serif in the app, and it is scoped to exactly one use: the cover-story headline on "The Vitalspan Brief" front page (`ArticlesScreen.tsx` / `IssueHeroCard`). It is a distinct token from the generic `Typography.serif` (`'serif'`) already used on `WelcomeScreen`/`LandingScreen` hero titles — those stay as they are. Pair `displaySerif` with a heading size (`Typography.sizes.h1`/`display2`) and `Typography.weights.title` or lighter; never bold. Do **not** use `displaySerif` for brief-card titles, the pharmacist's note, article-reader titles, or any other screen — everything else in the app stays SF (system sans).
+
 ### Eyebrow Label Convention
 
 Section headers like "BIOMARKERS", "BIO AGE", "TODAY'S PROTOCOL", "YOUR STACK" use:
@@ -249,5 +255,7 @@ Before shipping any new screen or component, verify all of the following:
 | PaywallScreen | `Colors.dark.bg` + `Gradients` hero | ✓ medium/vital (in `PaywallHero`) | Dark hero + dark elevated price sheet (`Colors.dark.bgElevated`) — previously a white `Colors.surface` bottom sheet, converted for consistency |
 | ProfileScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
 | SettingsScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
+| ArticlesScreen ("The Vitalspan Brief") | `Colors.dark.bg` | ✗ | Weekly editorial front page — one serif hero (cover story), flat brief cards, pharmacist's note, past-issues archive. See Editorial Display Serif above |
+| ArticleDetailScreen | `Colors.dark.bg` | ✗ | Reading view — no hero gradient, ~70ch measure, tappable PMID citation footer |
 
 **Not yet converted:** `AboutScreen.tsx` still uses the legacy light `Colors.surface`/`Colors.onSurface` token set — out of scope for the Premium Polish pass (not named in the brief); convert it next using ProfileScreen/SettingsScreen as the reference pattern.

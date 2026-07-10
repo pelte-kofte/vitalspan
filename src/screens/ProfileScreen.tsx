@@ -17,6 +17,7 @@ import StaggerIn from '../components/StaggerIn';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
 import { signOutUser, supabase } from '../lib/supabase';
+import { CONDITIONS } from '../constants/conditions';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -33,12 +34,6 @@ interface UserProfile {
   biologicalAge?: number;
   onboardingComplete?: boolean;
 }
-
-const CONDITIONS = [
-  'Type 2 diabetes', 'Hypertension', 'Hypothyroidism',
-  'High cholesterol', 'Cardiovascular disease', 'Autoimmune condition',
-  'Kidney disease', 'Liver disease',
-];
 
 export default function ProfileScreen() {
   const nav = useNavigation<Nav>();
@@ -91,7 +86,7 @@ export default function ProfileScreen() {
       Alert.alert('Logout failed', error);
       return;
     }
-    // D-08: AsyncStorage NOT wiped — local data preserved for guest mode
+    // signOutUser() clears local AsyncStorage too — sign-out is always a fresh start.
     (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] });
   }
 

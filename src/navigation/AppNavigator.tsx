@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -18,6 +18,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import GuidedFirstRunScreen from '../screens/GuidedFirstRunScreen';
 import ArticlesScreen from '../screens/ArticlesScreen';
+import ArticleDetailScreen from '../screens/ArticleDetailScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
@@ -33,7 +34,9 @@ export type RootStackParamList = {
   SignUpConfirmation: { email: string };
   ForgotPassword: { email?: string };
   Onboarding: undefined;
-  Main: undefined;
+  // NavigatorScreenParams lets a root-level screen (e.g. Settings) jump straight
+  // to a specific tab: nav.navigate('Main', { screen: 'Profile' }).
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   BiomarkerDetail: { biomarkerId?: string };
   BiomarkerEntry: { biomarkerId?: string };
   InteractionChecker: undefined;
@@ -42,7 +45,8 @@ export type RootStackParamList = {
   GuidedFirstRun: undefined;
   Settings: undefined;
   About: undefined;
-  Articles: undefined;
+  Articles: { issueNumber?: number } | undefined;
+  ArticleDetail: { pmid: string };
   ExerciseDetail: { exerciseId: string };
   Paywall: undefined;
   AIAdvisor: undefined;
@@ -196,7 +200,17 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ presentation: 'modal' }}
+          options={{
+            // 'modal' (pageSheet) puts an interactive-dismiss pan gesture over
+            // the whole sheet, which on iOS steals taps in the top band of the
+            // content (right under the grab handle) instead of passing them to
+            // rows there — e.g. "Edit profile" — while rows further down are
+            // unaffected. SettingsScreen already has its own header with an
+            // explicit "Done" button, so 'card' (edge-swipe-back only) avoids
+            // the whole-content dismiss gesture without losing a close affordance.
+            presentation: 'card',
+            animation: 'slide_from_bottom',
+          }}
         />
         <Stack.Screen
           name="About"
@@ -206,6 +220,11 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="Articles"
           component={ArticlesScreen}
+          options={{ presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="ArticleDetail"
+          component={ArticleDetailScreen}
           options={{ presentation: 'card' }}
         />
         <Stack.Screen

@@ -3,6 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const REPORT_LIMIT = 5;
 const CHAT_LIMIT = 20;
+// Per-user daily cap on chat messages for which PubMed MCP search is enabled.
+// Independent of CHAT_LIMIT — beyond this, chat still answers from context,
+// just without literature search for that message (see PubMed search cap below).
+const CHAT_SEARCH_LIMIT = 20;
+const PUBMED_MCP_SERVER_NAME = "pubmed";
+const PUBMED_MCP_URL = "https://pubmed.mcp.claude.com/mcp";
+const MCP_BETA_HEADER = "mcp-client-2025-11-20";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +62,7 @@ serve(async (req) => {
     // Step 1: Read current usage count
     const { data: usageRow } = await serviceClient
       .from("ai_usage")
-      .select("report_count, chat_count")
+      .select("report_count, chat_count, search_count")
       .eq("user_id", userId)
       .eq("date", todayUTC)
       .maybeSingle();
@@ -64,6 +71,11 @@ serve(async (req) => {
     if (currentCount >= limit) {
       return corsResponse({ error: "You've reached your daily limit. Try again tomorrow." }, 429);
     }
+
+    // Search cap is independent of the chat cap above — it gates whether THIS
+    // message gets PubMed search capability, not whether it gets answered.
+    const currentSearchCount: number = usageRow?.search_count ?? 0;
+    const searchEnabled = action === "chat" && currentSearchCount < CHAT_SEARCH_LIMIT;
 
     // Step 2: Increment counter BEFORE calling Anthropic (D-13).
     // Rate limit increment: counter upserted BEFORE Anthropic call per D-13.
@@ -78,11 +90,18 @@ serve(async (req) => {
       action === "chat"
         ? (usageRow?.chat_count ?? 0) + 1
         : (usageRow?.chat_count ?? 0);
+    const newSearchCount = searchEnabled ? currentSearchCount + 1 : currentSearchCount;
 
     const { error: upsertError } = await serviceClient
       .from("ai_usage")
       .upsert(
-        { user_id: userId, date: todayUTC, report_count: newReportCount, chat_count: newChatCount },
+        {
+          user_id: userId,
+          date: todayUTC,
+          report_count: newReportCount,
+          chat_count: newChatCount,
+          search_count: newSearchCount,
+        },
         { onConflict: "user_id,date" }
       );
     if (upsertError) {
@@ -103,6 +122,10 @@ serve(async (req) => {
     let maxTokens: number;
 
     if (action === "report") {
+      // TODO: PubMed MCP search is intentionally NOT wired up for report generation yet.
+      // Reports are long (4096 tokens) and already latency-sensitive; adding live
+      // literature search here would make report latency unpredictable. Revisit once
+      // the chat rollout (below) is validated in production.
       model = "claude-sonnet-4-6";
       maxTokens = 4096;
       systemPrompt =
@@ -113,6 +136,7 @@ serve(async (req) => {
         "- Always consider the user's age band and sex when making assessments. A supplement recommendation appropriate for a 55-year-old may be inappropriate or premature for a 24-year-old. State age-relevance explicitly when it matters.\n" +
         "- When citing evidence for a supplement or intervention, state the direction of the evidence AND its quality: not just 'studies exist' but 'studies in postmenopausal women show X benefit' or 'animal studies suggest X but human evidence is limited.' Never imply stronger evidence than exists.\n" +
         "- If the user has conditions listed in their profile, factor these into every relevant assessment. A PCOS diagnosis changes the supplement landscape significantly compared to a healthy same-age user.\n" +
+        "- If 'Pregnancy / breastfeeding' is listed among conditions, be extra-conservative with every supplement assessment and recommendation: flag anything without well-established safety in pregnancy/lactation, avoid suggesting new supplements, and explicitly recommend the user consult their physician or pharmacist before starting, stopping, or continuing any supplement.\n" +
         "- If biomarker data is stale (daysAgo > 90), caveat your confidence: 'Based on data from X months ago — consider retesting.'\n" +
         "- If biologicalAge was computed from fewer than 5 of the 9 PhenoAge inputs (check phenoAgeInputCount), note this uncertainty explicitly in the scoreSummary trend field.\n" +
         "- If adherenceRate is below 60%, note that recommendations are only as effective as consistency — address compliance before adding new supplements.\n" +
@@ -157,9 +181,21 @@ serve(async (req) => {
         "- If the user asks about something outside your scope (e.g. 'should I change my Metformin dose?'), respond: 'That's a question for your prescribing doctor — I can only advise on supplements and their interactions with your medications.'\n\n" +
         "AGE AND SEX CONTEXT:\n" +
         "Always factor in the user's age band and sex. A 24-year-old asking about NMN is a different clinical picture than a 55-year-old asking the same question. State this relevance explicitly when it changes your answer.\n\n" +
+        "PREGNANCY / BREASTFEEDING:\n" +
+        "If 'Pregnancy / breastfeeding' is listed among the user's conditions, be extra-conservative with every supplement assessment: flag anything without well-established safety in pregnancy/lactation, avoid suggesting new supplements, and always recommend the user consult their physician or pharmacist before starting, stopping, or continuing any supplement.\n\n" +
         "WHEN EVIDENCE IS MIXED OR WEAK:\n" +
         "State what the evidence shows AND what it doesn't. If a user is considering stopping a medication based on something you said, proactively clarify: 'This information is not a reason to stop or change your [medication] — please discuss with your doctor.'\n\n" +
+        "LITERATURE SEARCH POLICY:\n" +
+        "- Search PubMed ONLY when the question involves: supplement–drug interactions, efficacy/safety evidence questions, dosing-evidence questions (evidence quality, not personalized dosing), or when the user explicitly asks for studies or sources.\n" +
+        "- Do NOT search for greetings, app questions, logging help, or anything answerable from the report summary or live user context already provided below.\n" +
+        "- Use at most 2 searches for this answer.\n" +
+        "- When you use search results: cite the first author, publication year, and PMID inline (e.g. 'Smith et al. 2022, PMID 12345678'). State the evidence direction AND its quality — say whether each cited study is an RCT, an observational study, or a review/meta-analysis. Prefer meta-analyses and RCTs, and prefer studies from the last 10 years. Explicitly note when evidence is weak, mixed, preliminary, or animal-only.\n" +
+        "- If no relevant results are found, say so plainly. Never fabricate a citation, author, year, or PMID.\n" +
+        "- Citations support education; they never justify prescribing advice.\n\n" +
         "DISCLAIMER: End every response with exactly one line: 'This is informational only and not a substitute for medical advice.'\n\n" +
+        (searchEnabled
+          ? ""
+          : "LITERATURE SEARCH: disabled for this message — the daily search limit has been reached. Answer using only the report summary and live user context below; do not claim to have searched literature.\n\n") +
         "REPORT SUMMARY:\n" +
         (reportSummary ?? "(no report generated yet)") +
         "\n\nLIVE USER CONTEXT:\n" +
@@ -168,27 +204,52 @@ serve(async (req) => {
       requestMessages = messages ?? [];
     }
 
-    // 35s timeout — returns a proper corsResponse before Supabase's ~40s gateway timeout
-    // kills the function and produces a generic 502 EDGE_FUNCTION_ERROR.
+    // Chat requests with search enabled get the PubMed MCP connector attached.
+    // Report generation never does (see TODO above).
+    const requestBody: Record<string, unknown> = {
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: requestMessages,
+    };
+    const anthropicHeaders: Record<string, string> = {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    };
+    if (searchEnabled) {
+      requestBody.mcp_servers = [
+        { type: "url", url: PUBMED_MCP_URL, name: PUBMED_MCP_SERVER_NAME },
+      ];
+      requestBody.tools = [
+        { type: "mcp_toolset", mcp_server_name: PUBMED_MCP_SERVER_NAME },
+      ];
+      anthropicHeaders["anthropic-beta"] = MCP_BETA_HEADER;
+    }
+
+    // Chat gets a tighter timeout than report: a search-enabled chat answer
+    // should stay conversational, and 25s leaves headroom before Supabase's
+    // ~40s gateway timeout even after retries. Report keeps its existing 35s.
+    const timeoutMs = action === "chat" ? 25_000 : 35_000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35_000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     let anthropicRes: Response;
     try {
       anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages: requestMessages }),
+        headers: anthropicHeaders,
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
     } catch (fetchErr) {
       const isTimeout = fetchErr instanceof Error && fetchErr.name === "AbortError";
       console.error("Anthropic fetch error:", isTimeout ? "timeout" : String(fetchErr));
-      return corsResponse({ error: isTimeout ? "AI service timed out — please try again" : "AI service unavailable" }, 502);
+      const timeoutMessage =
+        action === "chat"
+          ? "This is taking longer than usual — please try again."
+          : "AI service timed out — please try again";
+      return corsResponse({ error: isTimeout ? timeoutMessage : "AI service unavailable" }, 502);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -200,10 +261,14 @@ serve(async (req) => {
     }
 
     const claudeResponse = await anthropicRes.json();
-    const rawText: string = claudeResponse?.content?.[0]?.text ?? "";
     const stopReason: string = claudeResponse?.stop_reason ?? "";
+    const contentBlocks: Array<Record<string, unknown>> = Array.isArray(claudeResponse?.content)
+      ? claudeResponse.content
+      : [];
 
     if (action === "report") {
+      // Report never enables MCP, so the response is a single text block — unchanged.
+      const rawText: string = (contentBlocks[0]?.text as string | undefined) ?? "";
       // stop_reason "max_tokens" means Claude ran out of token budget mid-response.
       // The JSON will be truncated and unparseable — surface a clear error instead of
       // a generic parse failure so the client can show a meaningful message.
@@ -219,6 +284,19 @@ serve(async (req) => {
         return corsResponse({ error: "Invalid report structure from AI" }, 502);
       }
     } else {
+      // With MCP enabled, content is a mix of text / mcp_tool_use / mcp_tool_result
+      // blocks. Assemble the reply from text blocks BY TYPE (not position) — log
+      // tool use for observability, and never surface raw tool_result JSON to the user.
+      const textParts: string[] = [];
+      for (const block of contentBlocks) {
+        if (block.type === "text" && typeof block.text === "string") {
+          textParts.push(block.text);
+        } else if (block.type === "mcp_tool_use") {
+          console.log("MCP tool use:", block.name, JSON.stringify(block.input));
+        }
+        // mcp_tool_result (and any other non-text block) is intentionally not rendered.
+      }
+      const rawText = textParts.join("\n\n");
       return corsResponse({ message: rawText }, 200);
     }
   } catch (err) {

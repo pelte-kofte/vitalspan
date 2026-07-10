@@ -22,6 +22,10 @@ import { adapty } from 'react-native-adapty'
 const ADAPTY_API_KEY = process.env.EXPO_PUBLIC_ADAPTY_API_KEY ?? ''
 const ACTIVATION_TIMEOUT_MS = 8_000
 
+/** Single source of truth for the paywall placement id — PaywallScreen and the
+ * Settings debug panel (Build 9 bug batch, issue 2) both read this. */
+export const PLACEMENT_ID = 'vitalspan_premium_paywall'
+
 // Guard: missing key means all Adapty calls will fail silently at runtime.
 // Log clearly so EAS build logs surface the root cause.
 if (!ADAPTY_API_KEY) {
@@ -130,5 +134,39 @@ export async function fetchPremiumStatus(): Promise<boolean> {
     const message = err instanceof Error ? err.message : String(err)
     console.warn('[Adapty] getProfile() failed:', message, err)
     return false
+  }
+}
+
+// ─── Debug info (Build 9 bug batch, issue 2) ─────────────────────────────────
+
+export interface AdaptyDebugInfo {
+  keyPresent: boolean
+  /** First 8 chars of the key, or null if absent — never the full key. */
+  keyPrefix: string | null
+  keyLength: number
+  activationStatus: 'activated' | 'failed'
+  lastActivationError: string | null
+  placementId: string
+}
+
+/**
+ * Surfaces exactly what the startup "[Adapty] key present/absent + masked
+ * prefix" log line shows, plus current activation state — as structured data
+ * a hidden Settings debug row can render on-device. Removes the need to pull
+ * TestFlight device logs just to check whether the key made it into the build.
+ *
+ * Awaits activationPromise first, so the returned activationStatus always
+ * reflects the outcome of the most recent activate() attempt, not a
+ * still-pending one.
+ */
+export async function getAdaptyDebugInfo(): Promise<AdaptyDebugInfo> {
+  await activationPromise
+  return {
+    keyPresent: ADAPTY_API_KEY.length > 0,
+    keyPrefix: ADAPTY_API_KEY ? ADAPTY_API_KEY.slice(0, 8) : null,
+    keyLength: ADAPTY_API_KEY.length,
+    activationStatus: lastActivationError === null ? 'activated' : 'failed',
+    lastActivationError,
+    placementId: PLACEMENT_ID,
   }
 }

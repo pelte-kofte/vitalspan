@@ -9,15 +9,15 @@ import * as AppleAuthentication from 'expo-apple-authentication'
  * constructor that @supabase/supabase-js depends on in React Native. Moving or
  * removing that import will cause runtime errors on device/simulator.
  *
- * OFFLINE-START KNOWN LIMITATION: If the app opens with no network on the very
- * first launch, the anonymous sign-in in initSupabaseSession() will fail
- * silently (caught and warned). The session will be null until the next
- * successful call. Subsequent opens restore the persisted AsyncStorage session
- * without requiring network.
+ * SESSION CREATION: exactly one place in the app calls signInAnonymously() —
+ * WelcomeScreen's handleGuest(), on an explicit "Continue as guest" tap.
+ * initSupabaseSession() below only waits for a persisted session to restore;
+ * it must never create one (see its docstring).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
+import { STORAGE_KEYS } from './storageKeys'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
@@ -63,24 +63,23 @@ if (Platform.OS !== 'web' && !_appStateSubscription) {
 }
 
 /**
- * Initialise the Supabase session on app start.
+ * Waits for the Supabase client to finish restoring any persisted session
+ * from AsyncStorage before boot routing reads it.
  *
- * Checks for an existing persisted session first. Only calls
- * signInAnonymously() when no session is present, so a returning user's
- * session is never clobbered by a new anonymous sign-in.
+ * IMPORTANT: this must NEVER create a session. Anonymous (guest) sessions are
+ * created in exactly one place in the whole app — WelcomeScreen's
+ * handleGuest(), when the user explicitly taps "Continue as guest". This
+ * function used to call signInAnonymously() itself whenever no session was
+ * found, which meant every fresh install (and every post-sign-out relaunch)
+ * silently became a signed-in guest session before the user ever saw
+ * Welcome — boot routing then skipped straight to Onboarding/Main. Do not
+ * reintroduce a signInAnonymously() call here.
  *
  * Never throws — errors are absorbed and logged as warnings.
  */
 export async function initSupabaseSession(): Promise<void> {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      return
-    }
-    const { error } = await supabase.auth.signInAnonymously()
-    if (error) {
-      console.warn('[Supabase] Anonymous sign-in failed:', error.message)
-    }
+    await supabase.auth.getSession()
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.warn('[Supabase] initSupabaseSession error:', message)
@@ -236,10 +235,16 @@ export async function sendPasswordResetEmail(
 }
 
 /**
- * Signs out the current user by clearing the Supabase session token.
+ * Signs out the current user: clears the Supabase session token AND every
+ * locally stored app data key.
  *
- * Per D-08: does NOT touch AsyncStorage keys — local data is preserved
- * so the user retains their history when continuing as guest post-logout.
+ * This used to preserve AsyncStorage on sign-out (so a user continuing as
+ * guest kept their history) — but combined with initSupabaseSession() no
+ * longer auto-creating a session, a stale @vitalspan_user_profile with
+ * onboardingComplete:true was enough on its own to make a later guest session
+ * (or, before this fix, the old auto-created one) skip straight past
+ * Onboarding to Main, i.e. "sign out, relaunch, still signed in." Sign-out
+ * now always produces a genuinely fresh state.
  *
  * Returns { error: null } on success.
  * Returns { error } with a user-facing message on failure.
@@ -250,6 +255,7 @@ export async function signOutUser(): Promise<{ error: string | null }> {
     if (error) {
       return { error: mapAuthError(error.message) }
     }
+    await AsyncStorage.multiRemove([...STORAGE_KEYS]).catch(() => null)
     return { error: null }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)

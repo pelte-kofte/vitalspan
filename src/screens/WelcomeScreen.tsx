@@ -32,9 +32,9 @@ export default function WelcomeScreen() {
   // Single source of truth for post-sign-in navigation. Email, Google, and
   // Apple sign-in all end up calling a Supabase auth method that fires a
   // SIGNED_IN event on this listener — so all three land here instead of each
-  // needing its own nav call. Anonymous sign-ins (guest, or the boot-time
-  // initSupabaseSession() call) are explicitly excluded: guest navigates
-  // itself in handleGuest, and must never be redirected by this effect.
+  // needing its own nav call. Anonymous (guest) sign-ins are explicitly
+  // excluded: guest navigates itself in handleGuest, and must never be
+  // redirected by this effect.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const provider = session?.user?.app_metadata?.provider ?? 'none';
@@ -115,9 +115,9 @@ export default function WelcomeScreen() {
   }
 
   async function handleGuest() {
-    // Boot-time initSupabaseSession() creates the anonymous session; this is a
-    // fallback for the known offline-first-launch case where that call can
-    // fail silently, so guest entry never proceeds with zero session.
+    // This is the ONLY place in the app that creates an anonymous session —
+    // an explicit "Continue as guest" tap. initSupabaseSession() (boot) never
+    // creates one; it only restores an already-persisted session.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       const { error } = await supabase.auth.signInAnonymously();
