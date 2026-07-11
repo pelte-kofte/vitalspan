@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Constants from 'expo-constants';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +19,11 @@ import { signOutUser } from '../lib/supabase';
 import { getAdaptyDebugInfo, AdaptyDebugInfo } from '../lib/adapty';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const APP_VERSION = Constants.expoConfig?.version ?? '—';
+const APP_BUILD = Constants.expoConfig?.ios?.buildNumber
+  ?? Constants.nativeBuildVersion
+  ?? '—';
 
 
 // ── Row building blocks ──────────────────────────────────────────────────────
@@ -64,6 +70,12 @@ export default function SettingsScreen() {
   // (Build 9 bug batch, issue 2).
   const [versionTapCount, setVersionTapCount] = useState(0);
   const [adaptyDebug, setAdaptyDebug] = useState<AdaptyDebugInfo | null>(null);
+  const subscriptionMetadataJson = adaptyDebug
+    ? JSON.stringify(adaptyDebug.subscriptionMetadata, null, 2)
+    : null;
+  const localizedPricesJson = adaptyDebug
+    ? JSON.stringify(adaptyDebug.localizedPrices, null, 2)
+    : null;
   function handleVersionTap() {
     const next = versionTapCount + 1;
     setVersionTapCount(next);
@@ -291,7 +303,7 @@ export default function SettingsScreen() {
             <Text style={s.sectionLabel}>Adapty Debug</Text>
             <View style={s.card}>
               <View style={s.debugRow}>
-                <Text style={s.debugLabel}>Key present</Text>
+                <Text style={s.debugLabel}>Adapty key present</Text>
                 <Text style={s.debugValue}>
                   {adaptyDebug.keyStatus === 'present'
                     ? `Yes (${adaptyDebug.keyPrefix}…, ${adaptyDebug.keyLength} chars)`
@@ -312,6 +324,118 @@ export default function SettingsScreen() {
                 <Text style={s.debugLabel}>Placement ID</Text>
                 <Text style={s.debugValue}>{adaptyDebug.placementId}</Text>
               </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Failed stage</Text>
+                <Text style={s.debugValue}>{adaptyDebug.failedStage ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Error name</Text>
+                <Text style={s.debugValue}>{adaptyDebug.errorName ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Error code</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.errorCode !== null ? String(adaptyDebug.errorCode) : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Adapty error code</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.adaptyErrorCode !== null ? String(adaptyDebug.adaptyErrorCode) : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Error message</Text>
+                <Text style={s.debugValue}>{adaptyDebug.errorMessage ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Original error code</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.originalErrorCode !== null ? String(adaptyDebug.originalErrorCode) : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Original error message</Text>
+                <Text style={s.debugValue}>{adaptyDebug.originalErrorMessage ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Variation ID</Text>
+                <Text style={s.debugValue}>{adaptyDebug.variationId ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Revision</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.revision !== null ? String(adaptyDebug.revision) : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Product count</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.productCount !== null ? String(adaptyDebug.productCount) : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Product IDs</Text>
+                <Text style={s.debugValue}>
+                  {adaptyDebug.productIds.length > 0 ? adaptyDebug.productIds.join(', ') : 'None'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder, s.debugBlockRow]}>
+                <Text style={s.debugLabel}>Subscription metadata</Text>
+                <Text style={[s.debugValue, s.debugJson]} selectable>
+                  {subscriptionMetadataJson ?? '[]'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder, s.debugBlockRow]}>
+                <Text style={s.debugLabel}>Localized prices</Text>
+                <Text style={[s.debugValue, s.debugJson]} selectable>
+                  {localizedPricesJson ?? '[]'}
+                </Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Last updated</Text>
+                <Text style={s.debugValue}>{adaptyDebug.lastUpdatedAt ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Supabase URL present</Text>
+                <Text style={s.debugValue}>{adaptyDebug.runtimeChecks.supabaseUrlPresent ? 'Yes' : 'No'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Supabase anon present</Text>
+                <Text style={s.debugValue}>{adaptyDebug.runtimeChecks.supabaseAnonKeyPresent ? 'Yes' : 'No'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Placeholder detected</Text>
+                <Text style={s.debugValue}>{adaptyDebug.runtimeChecks.placeholderDetected ? 'Yes' : 'No'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Bundle ID</Text>
+                <Text style={s.debugValue}>{adaptyDebug.runtimeChecks.expectedBundleIdentifier}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>SDK version</Text>
+                <Text style={s.debugValue}>{adaptyDebug.runtimeChecks.sdkVersion}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Activation calls</Text>
+                <Text style={s.debugValue}>{String(adaptyDebug.runtimeChecks.activationCallCount)}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Last purchase stage</Text>
+                <Text style={s.debugValue}>{adaptyDebug.lastPurchaseStage ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Last purchase result</Text>
+                <Text style={s.debugValue}>{adaptyDebug.lastPurchaseResult ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Last restore result</Text>
+                <Text style={s.debugValue}>{adaptyDebug.lastRestoreResult ?? 'None'}</Text>
+              </View>
+              <View style={[s.debugRow, s.rowBorder]}>
+                <Text style={s.debugLabel}>Lifecycle timestamp</Text>
+                <Text style={s.debugValue}>{adaptyDebug.timestamp ?? 'None'}</Text>
+              </View>
             </View>
           </>
         )}
@@ -321,7 +445,8 @@ export default function SettingsScreen() {
             ⚕ Vitalspan is built by a licensed pharmacist. Biomarker ranges are longevity-optimized and evidence-graded. Not a substitute for professional medical advice.
           </Text>
           <TouchableOpacity onPress={handleVersionTap} accessibilityRole="button" accessibilityLabel="Version">
-            <Text style={s.versionTxt}>Version 0.1.0</Text>
+            <Text style={s.versionTxt}>Version {APP_VERSION}</Text>
+            <Text style={s.versionTxt}>Build {APP_BUILD}</Text>
           </TouchableOpacity>
         </View>
 
@@ -361,8 +486,16 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
   },
+  debugBlockRow: {
+    alignItems: 'flex-start',
+  },
   debugLabel: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.textMuted },
   debugValue: { fontSize: Typography.sizes.bodySmall, color: Colors.dark.text, flexShrink: 1, textAlign: 'right' },
+  debugJson: {
+    flex: 1,
+    textAlign: 'left',
+    fontFamily: 'Courier',
+  },
   rowIconWrap: {
     width: 32, height: 32, borderRadius: 8, /* intentional — no Radius.* equivalent for 8 */
     backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center',

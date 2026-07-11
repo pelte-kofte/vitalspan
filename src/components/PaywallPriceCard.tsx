@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import { SkeletonBlock, SkeletonPulse } from './Skeleton';
@@ -27,6 +28,8 @@ interface Props {
   loadingProducts: boolean;
   loadErrorTitle?: string;
   loadErrorMessage?: string;
+  loadErrorStage?: string | null;
+  loadErrorCode?: string | number | null;
   onRetry?: () => void;
   purchasing: boolean;
   onSubscribePrimary: () => void;
@@ -40,6 +43,8 @@ export default function PaywallPriceCard({
   loadingProducts,
   loadErrorTitle,
   loadErrorMessage,
+  loadErrorStage,
+  loadErrorCode,
   onRetry,
   purchasing,
   onSubscribePrimary,
@@ -62,6 +67,16 @@ export default function PaywallPriceCard({
         <Text style={s.errorBody}>
           {loadErrorMessage ?? 'Check your connection and try again.'}
         </Text>
+        {(loadErrorStage || loadErrorCode !== null && loadErrorCode !== undefined) ? (
+          <View style={s.errorMetaWrap}>
+            {loadErrorStage ? (
+              <Text style={s.errorMetaText}>Failed stage: {loadErrorStage}</Text>
+            ) : null}
+            {loadErrorCode !== null && loadErrorCode !== undefined ? (
+              <Text style={s.errorMetaText}>Error code: {String(loadErrorCode)}</Text>
+            ) : null}
+          </View>
+        ) : null}
         <AnimatedPressable style={s.btnPrimary} onPress={onRetry} accessibilityLabel="Retry loading subscription pricing">
           <Text style={s.btnPrimaryTxt}>Retry</Text>
         </AnimatedPressable>
@@ -94,10 +109,14 @@ export default function PaywallPriceCard({
         }
       >
         {loadingProducts ? (
-          <SkeletonPulse>
-            <SkeletonBlock w={190} h={16} radius={4} style={s.shimmerOnBrand} />
-            <SkeletonBlock w={120} h={11} radius={4} style={[s.shimmerOnBrand, { marginTop: 6 }]} />
-          </SkeletonPulse>
+          <View style={s.loadingWrap}>
+            <ActivityIndicator color={Colors.dark.bg} />
+            <SkeletonPulse>
+              <SkeletonBlock w={190} h={16} radius={4} style={s.shimmerOnBrand} />
+              <SkeletonBlock w={120} h={11} radius={4} style={[s.shimmerOnBrand, { marginTop: 6 }]} />
+            </SkeletonPulse>
+            <Text style={s.btnSubTxt}>Loading products…</Text>
+          </View>
         ) : (
           <>
             <Text style={s.btnPrimaryTxt}>
@@ -215,6 +234,10 @@ const s = StyleSheet.create({
   shimmerOnBrand: {
     backgroundColor: 'rgba(12,15,13,0.2)',
   },
+  loadingWrap: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   monthlyLink: {
     paddingVertical: Spacing.sm,
     alignItems: 'center',
@@ -223,6 +246,16 @@ const s = StyleSheet.create({
   monthlyTxt: {
     color: Colors.dark.textMuted,
     fontSize: Typography.sizes.bodySmall,
+    textAlign: 'center',
+  },
+  errorMetaWrap: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: 2,
+  },
+  errorMetaText: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.sizes.xs,
     textAlign: 'center',
   },
   timelineContainer: {

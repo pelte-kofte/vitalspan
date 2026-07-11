@@ -5,7 +5,18 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { adapty } from 'react-native-adapty';
 import type { AdaptyPaywallProduct } from 'react-native-adapty';
-import { activationPromise, retryActivation, getLastActivationError, PLACEMENT_ID } from '../lib/adapty';
+import {
+  activationPromise,
+  retryActivation,
+  getLastActivationError,
+  PLACEMENT_ID,
+  getCachedAdaptyDebugInfo,
+  getPaywallWithDiagnostics,
+  getPaywallProductsWithDiagnostics,
+  makePurchaseWithDiagnostics,
+  recordRestorePurchasesOutcome,
+  restorePurchasesWithDiagnostics,
+} from '../lib/adapty';
 import {
   classifyPaywallProducts,
   describePaywallProductsForLogs,
@@ -34,11 +45,17 @@ interface PaywallLoadErrorState {
   code: PaywallLoadErrorCode;
   title: string;
   message: string;
+  failedStage?: string | null;
+  safeErrorCode?: string | number | null;
 }
 
 function createLoadError(
   code: PaywallLoadErrorCode,
   message: string,
+  diagnostics?: {
+    failedStage?: string | null;
+    safeErrorCode?: string | number | null;
+  },
 ): PaywallLoadErrorState {
   switch (code) {
     case 'activation_failed':
@@ -46,48 +63,64 @@ function createLoadError(
         code,
         title: 'Couldn\'t load pricing',
         message: 'The purchase service is not ready yet. Please try again in a moment.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'missing_or_invalid_key':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'This build is missing valid purchase configuration. Please contact support or try a newer build.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'placement_not_found':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'The current paywall configuration could not be found. Please try again later.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'no_products':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'No purchase options were returned for this paywall. Please try again later.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'unclassified_products':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'Pricing options were returned, but this build could not match them safely.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'storekit_unavailable':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'The App Store did not return products for this device right now. Please try again.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     case 'network':
       return {
         code,
         title: 'Couldn\'t load pricing',
         message: 'Check your connection and try again.',
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
     default:
       return {
         code,
         title: 'Couldn\'t load pricing',
         message,
+        failedStage: diagnostics?.failedStage ?? null,
+        safeErrorCode: diagnostics?.safeErrorCode ?? null,
       };
   }
 }
@@ -146,17 +179,21 @@ export default function PaywallScreen() {
         throw new Error(activationError);
       }
       console.log('[Paywall] fetching paywall', PLACEMENT_ID);
-      const paywall = await adapty.getPaywall(PLACEMENT_ID, 'en');
+      const paywall = await getPaywallWithDiagnostics(PLACEMENT_ID, 'en');
       // Required for Adapty analytics funnel tracking — do not remove (RESEARCH.md anti-pattern)
       await adapty.logShowPaywall(paywall);
       console.log('[Paywall] fetching products for paywall', PLACEMENT_ID);
-      const prods = await adapty.getPaywallProducts(paywall);
+      const prods = await getPaywallProductsWithDiagnostics(paywall);
       console.log('[Paywall] product metadata', describePaywallProductsForLogs(prods));
       if (prods.length === 0) {
         console.error('[Paywall] getPaywallProducts returned 0 products for', PLACEMENT_ID);
         setPrimaryPlan(null);
         setSecondaryPlan(null);
-        setLoadError(createLoadError('no_products', 'No products returned.'));
+        const diagnostics = getCachedAdaptyDebugInfo();
+        setLoadError(createLoadError('no_products', 'No products returned.', {
+          failedStage: diagnostics.failedStage,
+          safeErrorCode: diagnostics.errorCode ?? diagnostics.adaptyErrorCode,
+        }));
       } else {
         console.log(`[Paywall] loaded ${prods.length} products`);
         const classified = classifyPaywallProducts(prods);
@@ -164,7 +201,11 @@ export default function PaywallScreen() {
           console.error('[Paywall] Unable to classify returned products for UI', describePaywallProductsForLogs(prods));
           setPrimaryPlan(null);
           setSecondaryPlan(null);
-          setLoadError(createLoadError('unclassified_products', 'Returned products could not be classified.'));
+          const diagnostics = getCachedAdaptyDebugInfo();
+          setLoadError(createLoadError('unclassified_products', 'Returned products could not be classified.', {
+            failedStage: diagnostics.failedStage,
+            safeErrorCode: diagnostics.errorCode ?? diagnostics.adaptyErrorCode,
+          }));
           return;
         }
         setPrimaryPlan(classified.primary);
@@ -178,7 +219,11 @@ export default function PaywallScreen() {
       console.error('[Adapty] paywall/product fetch failed:', msg, err);
       setPrimaryPlan(null);
       setSecondaryPlan(null);
-      setLoadError(createLoadError(categorizePaywallError(err), msg));
+      const diagnostics = getCachedAdaptyDebugInfo();
+      setLoadError(createLoadError(categorizePaywallError(err), msg, {
+        failedStage: diagnostics.failedStage,
+        safeErrorCode: diagnostics.errorCode ?? diagnostics.adaptyErrorCode,
+      }));
     } finally {
       setLoadingProducts(false);
     }
@@ -196,7 +241,7 @@ export default function PaywallScreen() {
     setPurchasing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     try {
-      const result = await adapty.makePurchase(product);
+      const result = await makePurchaseWithDiagnostics(product);
       switch (result.type) {
         case 'success':
           await refreshPremium();
@@ -224,13 +269,15 @@ export default function PaywallScreen() {
   async function handleRestore(): Promise<void> {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
     try {
-      const profile = await adapty.restorePurchases();
+      const profile = await restorePurchasesWithDiagnostics();
       const active = profile.accessLevels?.['premium']?.isActive ?? false;
       if (active) {
+        recordRestorePurchasesOutcome('active_subscription');
         await refreshPremium();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
         nav.goBack();
       } else {
+        recordRestorePurchasesOutcome('no_active_subscription');
         Alert.alert(
           'No subscription found',
           'No active subscription was found for your Apple ID.',
@@ -253,6 +300,8 @@ export default function PaywallScreen() {
         loadingProducts={loadingProducts}
         loadErrorTitle={loadError?.title}
         loadErrorMessage={loadError?.message}
+        loadErrorStage={loadError?.failedStage}
+        loadErrorCode={loadError?.safeErrorCode}
         onRetry={() => loadPaywall(true)}
         purchasing={purchasing}
         onSubscribePrimary={() => { if (primaryPlan) handlePurchase(primaryPlan.product); }}
