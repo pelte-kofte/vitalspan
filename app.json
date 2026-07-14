@@ -19,7 +19,10 @@
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.access": [],
         "aps-environment": "production",
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default",
+          "Default"
+        ]
       },
       "infoPlist": {
         "NSHealthUpdateUsageDescription": "Vitalspan writes workout and health data to Apple Health.",
@@ -53,7 +56,18 @@
       ],
       "react-native-adapty",
       "@react-native-community/datetimepicker",
-      ["expo-notifications", { "sounds": [] }]
-    ]
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4d42a8cb-bf83-4229-82a5-1b2273356a54"
+    }
   }
 }

@@ -1,21 +1,17 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import { SkeletonBlock, SkeletonPulse } from './Skeleton';
 import AnimatedPressable from './AnimatedPressable';
-import type { PaywallPlanSummary } from '../lib/paywallProducts';
+import PaywallPlanCard from './PaywallPlanCard';
+import PaywallLoadError from './PaywallLoadError';
+import {
+  computeAnnualSavingsPercent,
+  type PaywallPlanSummary,
+} from '../lib/paywallProducts';
 
-// Day markers: 1–7 are free trial days, Day 8 is first billed day (D-07)
-const DAYS = [1, 2, 3, 4, 5, 6, 7, 8];
-
-// Blinkist-style trial timeline legend — explains what happens at each
-// milestone instead of leaving the day-strip to speak for itself.
+// Compact trial timeline legend — what happens at each milestone. Shown only
+// when the selected plan actually carries a free trial.
 const TIMELINE_STEPS = [
   { day: 'Day 1', label: 'Full access starts today' },
   { day: 'Day 5', label: 'Reminder before your trial ends' },
@@ -25,6 +21,8 @@ const TIMELINE_STEPS = [
 interface Props {
   primaryPlan: PaywallPlanSummary | null;
   secondaryPlan: PaywallPlanSummary | null;
+  selectedVendorId: string | null;
+  onSelectPlan: (vendorProductId: string) => void;
   loadingProducts: boolean;
   loadErrorTitle?: string;
   loadErrorMessage?: string;
@@ -32,14 +30,20 @@ interface Props {
   loadErrorCode?: string | number | null;
   onRetry?: () => void;
   purchasing: boolean;
-  onSubscribePrimary: () => void;
-  onSubscribeSecondary: () => void;
+  onSubscribe: () => void;
   onRestore: () => void;
 }
 
+/**
+ * Price selection panel — the hero of the paywall. Two selectable plan cards
+ * (annual pre-selected upstream), one solid CTA whose label follows the
+ * selection, then the compact trial timeline and Restore Purchases.
+ */
 export default function PaywallPriceCard({
   primaryPlan,
   secondaryPlan,
+  selectedVendorId,
+  onSelectPlan,
   loadingProducts,
   loadErrorTitle,
   loadErrorMessage,
@@ -47,139 +51,87 @@ export default function PaywallPriceCard({
   loadErrorCode,
   onRetry,
   purchasing,
-  onSubscribePrimary,
-  onSubscribeSecondary,
+  onSubscribe,
   onRestore,
 }: Props) {
-  const hasFreeTrial = Boolean(
-    primaryPlan?.product.subscription?.offer?.phases?.some(
-      (phase) => phase.paymentMode === 'free_trial',
-    ),
-  );
-
-  // Products failed to load — show an explicit retry state instead of
-  // leaving the CTA stuck on "…/yr" placeholders forever.
   if (loadErrorTitle && !loadingProducts) {
     return (
-      <View style={s.card}>
-        <View style={s.handle} />
-        <Text style={s.errorTitle}>{loadErrorTitle}</Text>
-        <Text style={s.errorBody}>
-          {loadErrorMessage ?? 'Check your connection and try again.'}
-        </Text>
-        {(loadErrorStage || loadErrorCode !== null && loadErrorCode !== undefined) ? (
-          <View style={s.errorMetaWrap}>
-            {loadErrorStage ? (
-              <Text style={s.errorMetaText}>Failed stage: {loadErrorStage}</Text>
-            ) : null}
-            {loadErrorCode !== null && loadErrorCode !== undefined ? (
-              <Text style={s.errorMetaText}>Error code: {String(loadErrorCode)}</Text>
-            ) : null}
-          </View>
-        ) : null}
-        <AnimatedPressable style={s.btnPrimary} onPress={onRetry} accessibilityLabel="Retry loading subscription pricing">
-          <Text style={s.btnPrimaryTxt}>Retry</Text>
-        </AnimatedPressable>
-        <TouchableOpacity
-          onPress={onRestore}
-          style={s.restoreBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Restore Purchases"
-        >
-          <Text style={s.restoreLink}>Restore Purchases</Text>
-        </TouchableOpacity>
-      </View>
+      <PaywallLoadError
+        title={loadErrorTitle}
+        message={loadErrorMessage}
+        failedStage={loadErrorStage}
+        errorCode={loadErrorCode}
+        onRetry={onRetry}
+        onRestore={onRestore}
+      />
     );
   }
 
-  return (
-    <View style={s.card}>
-      <View style={s.handle} />
+  const plans = [primaryPlan, secondaryPlan].filter(
+    (plan): plan is PaywallPlanSummary => plan !== null,
+  );
+  const selectedPlan =
+    plans.find((plan) => plan.vendorProductId === selectedVendorId) ?? plans[0] ?? null;
 
-      {/* Annual primary CTA — D-06 */}
+  const annual = plans.find((plan) => plan.kind === 'annual') ?? null;
+  const monthly = plans.find((plan) => plan.kind === 'monthly') ?? null;
+  const savingsPercent = computeAnnualSavingsPercent(annual, monthly);
+
+  const ctaLabel = selectedPlan?.trial?.ctaLabel ?? 'Subscribe';
+
+  return (
+    <View>
+      {loadingProducts ? (
+        <SkeletonPulse>
+          <SkeletonBlock w="100%" h={84} radius={Radius.card} />
+          <SkeletonBlock w="100%" h={64} radius={Radius.card} style={s.skeletonGap} />
+        </SkeletonPulse>
+      ) : (
+        <View style={s.cards}>
+          {plans.map((plan) => (
+            <PaywallPlanCard
+              key={plan.vendorProductId}
+              plan={plan}
+              selected={plan.vendorProductId === selectedPlan?.vendorProductId}
+              disabled={purchasing}
+              badgeLabel={
+                plan.kind === 'annual' && savingsPercent !== null
+                  ? `Best value · Save ${savingsPercent}%`
+                  : null
+              }
+              onSelect={() => onSelectPlan(plan.vendorProductId)}
+            />
+          ))}
+        </View>
+      )}
+
       <AnimatedPressable
-        style={[s.btnPrimary, purchasing && s.btnDisabled]}
-        disabled={purchasing || loadingProducts || !primaryPlan}
-        onPress={onSubscribePrimary}
+        style={[s.btnPrimary, (purchasing || loadingProducts || !selectedPlan) && s.btnDisabled]}
+        disabled={purchasing || loadingProducts || !selectedPlan}
+        onPress={onSubscribe}
         haptic="medium"
         accessibilityLabel={
-          primaryPlan
-            ? `${primaryPlan.ctaLabel} for ${primaryPlan.product.price?.localizedString ?? 'the current App Store price'}`
+          selectedPlan
+            ? `${ctaLabel}, ${selectedPlan.title} plan, ${selectedPlan.product.price?.localizedString ?? 'the current App Store price'}${selectedPlan.intervalSuffix}`
             : 'Loading subscription pricing'
         }
       >
-        {loadingProducts ? (
-          <View style={s.loadingWrap}>
-            <ActivityIndicator color={Colors.dark.bg} />
-            <SkeletonPulse>
-              <SkeletonBlock w={190} h={16} radius={4} style={s.shimmerOnBrand} />
-              <SkeletonBlock w={120} h={11} radius={4} style={[s.shimmerOnBrand, { marginTop: 6 }]} />
-            </SkeletonPulse>
-            <Text style={s.btnSubTxt}>Loading products…</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={s.btnPrimaryTxt}>
-              {primaryPlan
-                ? `${primaryPlan.ctaLabel} · ${primaryPlan.product.price?.localizedString ?? '...'}${primaryPlan.intervalSuffix}`
-                : 'Pricing unavailable'}
-            </Text>
-            <Text style={s.btnSubTxt}>
-              {primaryPlan?.timelineCaption ?? 'Please retry to load subscription pricing'}
-            </Text>
-          </>
-        )}
-      </AnimatedPressable>
-
-      {/* Monthly secondary link — D-06 */}
-      {secondaryPlan ? (
-        <TouchableOpacity
-          style={s.monthlyLink}
-          onPress={onSubscribeSecondary}
-          disabled={purchasing || loadingProducts}
-          accessibilityRole="button"
-          accessibilityLabel={`${secondaryPlan.ctaLabel} for ${secondaryPlan.product.price?.localizedString ?? 'the current App Store price'}`}
-        >
-          <Text style={s.monthlyTxt}>
-            {loadingProducts
-              ? 'Loading pricing…'
-              : `${secondaryPlan.ctaLabel} · ${secondaryPlan.product.price?.localizedString ?? '...'}${secondaryPlan.intervalSuffix}`}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {hasFreeTrial ? (
-        <>
-          {/* Day 1–7 free / Day 8 billed timeline — D-07 */}
-          <View style={s.timelineContainer}>
-            {DAYS.map(day => (
-              <View key={day} style={[s.dayMarker, day <= 7 ? s.dayFree : s.dayBilled]}>
-                <Text style={[s.dayNum, day <= 7 ? s.dayNumFree : s.dayNumBilled]}>
-                  {day}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <Text style={s.timelineCaption}>
-            {primaryPlan?.timelineCaption ?? 'Pricing provided by the App Store'}
-          </Text>
-
-          {/* Trial timeline legend — what happens at each milestone */}
-          <View style={s.timelineLegend}>
-            {TIMELINE_STEPS.map(step => (
-              <View key={step.day} style={s.timelineLegendRow}>
-                <Text style={s.timelineLegendDay}>{step.day}</Text>
-                <Text style={s.timelineLegendLabel}>{step.label}</Text>
-              </View>
-            ))}
-          </View>
-        </>
-      ) : (
-        <Text style={s.timelineCaption}>
-          {primaryPlan?.timelineCaption ?? 'Pricing provided by the App Store'}
+        <Text style={s.btnPrimaryTxt}>
+          {loadingProducts ? 'Loading pricing…' : selectedPlan ? ctaLabel : 'Pricing unavailable'}
         </Text>
-      )}
+      </AnimatedPressable>
+      <Text style={s.cancelLine}>Cancel anytime in Settings.</Text>
+
+      {selectedPlan?.trial ? (
+        <View style={s.timelineLegend}>
+          {TIMELINE_STEPS.map((step) => (
+            <View key={step.day} style={s.timelineLegendRow}>
+              <Text style={s.timelineLegendDay}>{step.day}</Text>
+              <Text style={s.timelineLegendLabel}>{step.label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {/* Restore Purchases — App Store requirement */}
       <TouchableOpacity
@@ -195,103 +147,36 @@ export default function PaywallPriceCard({
 }
 
 const s = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.dark.bgElevated,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    borderWidth: 0.5,
-    borderColor: Colors.dark.borderStrong,
-    borderBottomWidth: 0,
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.dark.borderStrong,
-    alignSelf: 'center',
-    marginBottom: Spacing.lg,
-  },
+  cards: { gap: Spacing.md },
+  skeletonGap: { marginTop: Spacing.md },
   btnPrimary: {
     backgroundColor: Colors.dark.ctaPrimary,
     borderRadius: Radius.full,
-    paddingVertical: Spacing.base + 4,
+    paddingVertical: Spacing.base,
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.base,
   },
   btnDisabled: { opacity: 0.7 },
   btnPrimaryTxt: {
     color: Colors.dark.bg,
     fontSize: Typography.sizes.body,
-    fontWeight: '600',
+    fontWeight: Typography.weights.subheadline,
   },
-  btnSubTxt: {
-    color: 'rgba(12,15,13,0.65)',
-    fontSize: Typography.sizes.xs,
-    marginTop: 2,
-  },
-  shimmerOnBrand: {
-    backgroundColor: 'rgba(12,15,13,0.2)',
-  },
-  loadingWrap: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  monthlyLink: {
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  monthlyTxt: {
+  cancelLine: {
     color: Colors.dark.textMuted,
-    fontSize: Typography.sizes.bodySmall,
+    fontSize: Typography.sizes.caption,
     textAlign: 'center',
-  },
-  errorMetaWrap: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: 2,
-  },
-  errorMetaText: {
-    color: Colors.dark.textMuted,
-    fontSize: Typography.sizes.xs,
-    textAlign: 'center',
-  },
-  timelineContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-    marginBottom: Spacing.sm,
-  },
-  dayMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: Radius.card,
-    backgroundColor: Colors.dark.cardBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayFree: { opacity: 1 },
-  dayBilled: { opacity: 0.45 },
-  dayNum: { fontSize: Typography.sizes.captionSmall, fontWeight: '600', color: Colors.dark.textMuted },
-  dayNumFree: {},
-  dayNumBilled: {},
-  timelineCaption: {
-    color: Colors.dark.textMuted,
-    fontSize: Typography.sizes.xs,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
   },
   timelineLegend: {
     gap: 6,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.base,
     paddingHorizontal: Spacing.xs,
   },
   timelineLegendRow: { flexDirection: 'row', gap: Spacing.sm },
   timelineLegendDay: {
     fontSize: Typography.sizes.captionSmall,
-    fontWeight: '600',
+    fontWeight: Typography.weights.label,
     color: Colors.dark.textMuted,
     width: 42,
   },
@@ -300,24 +185,10 @@ const s = StyleSheet.create({
     color: Colors.dark.textMuted,
     flex: 1,
   },
-  restoreBtn: { alignItems: 'center' },
+  restoreBtn: { alignItems: 'center', marginTop: Spacing.md },
   restoreLink: {
     color: Colors.dark.textMuted,
     fontSize: Typography.sizes.xs,
-    textAlign: 'center',
     paddingVertical: Spacing.sm,
-  },
-  errorTitle: {
-    color: Colors.dark.text,
-    fontSize: Typography.sizes.h3,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  errorBody: {
-    color: Colors.dark.textMuted,
-    fontSize: Typography.sizes.bodySmall,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
   },
 });

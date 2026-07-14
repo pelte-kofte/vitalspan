@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
+import { Colors, Spacing, Typography, Radius } from '../theme';
 import { MicroscopeIcon, GoalDnaIcon, ShieldIcon, ClipboardIcon } from './DesignSystemIcons';
 
 const BENEFITS = [
@@ -34,13 +34,19 @@ export default function PaywallBenefits() {
 }
 
 const s = StyleSheet.create({
-  wrap: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  wrap: {
+    backgroundColor: Colors.dark.cardBg,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
+    borderRadius: Radius.card,
+    padding: Spacing.base,
+    gap: Spacing.md,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   label: { color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, fontWeight: '500' },
   credibility: {
     color: Colors.dark.textMuted,
     fontSize: Typography.sizes.caption,
-    textAlign: 'center',
     marginTop: Spacing.xs,
     fontStyle: 'italic',
   },

@@ -214,7 +214,7 @@ Before shipping any new screen or component, verify all of the following:
 
 1. **One hero per screen.** Every screen has exactly one visually dominant element. Everything else is subordinate — smaller, dimmer, tighter. If two elements are competing for attention (e.g. BioAge card and Future Self card), shrink the secondary one until there's no contest.
 
-2. **No decorative gradients.** Gradients are banned everywhere except the BioAge sphere itself (`LongevityScoreScreen`, `PaywallHero`, `BioAgeSpherePreview` — the sphere motif family). Cards are flat dark surfaces (`Colors.dark.cardBg` / `bgElevated`) differentiated by a 1px hairline border (`Colors.dark.cardBorder`, white at 6–8% opacity) — no glows, no colored card backgrounds. Status/severity is carried by border color, icon color, and text color — never by tinting the whole card fill.
+2. **No decorative gradients.** Gradients are banned everywhere except the BioAge sphere itself (`LongevityScoreScreen`, `BioAgeSpherePreview` — the sphere motif family; `PaywallHero` now renders `BioAgeSpherePreview` instead of its own gradient). Cards are flat dark surfaces (`Colors.dark.cardBg` / `bgElevated`) differentiated by a 1px hairline border (`Colors.dark.cardBorder`, white at 6–8% opacity) — no glows, no colored card backgrounds. Status/severity is carried by border color, icon color, and text color — never by tinting the whole card fill.
 
 3. **One CTA per card.** A card may have exactly one action. Don't pair a full-card `onPress` with a second inline button doing something else, and don't duplicate the same action as both a button and a text link.
 
@@ -252,7 +252,7 @@ Before shipping any new screen or component, verify all of the following:
 | BiomarkerDetailScreen | `Colors.dark.bg` | ✗ | Detail + chart, dark |
 | ExerciseScreen | `Colors.dark.bg` | ✗ | Exercise list, dark |
 | AIAdvisorScreen | `Gradients.appBg` | ✗ | AI chat, dark gradient |
-| PaywallScreen | `Colors.dark.bg` + `Gradients` hero | ✓ medium/vital (in `PaywallHero`) | Dark hero + dark elevated price sheet (`Colors.dark.bgElevated`) — previously a white `Colors.surface` bottom sheet, converted for consistency |
+| PaywallScreen | `Colors.dark.bg` | ✗ | Compact hero (128px `BioAgeSpherePreview`) + selectable plan cards as the screen's hero, single CTA below (conversion redesign). NeuralGrid and hero gradient removed per motif/editorial rules |
 | ProfileScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
 | SettingsScreen | `Colors.dark.bg` | ✗ | Converted from legacy `Colors.surface` light tokens (Premium Polish pass) |
 | ArticlesScreen ("The Vitalspan Brief") | `Colors.dark.bg` | ✗ | Weekly editorial front page — one serif hero (cover story), flat brief cards, pharmacist's note, past-issues archive. See Editorial Display Serif above |

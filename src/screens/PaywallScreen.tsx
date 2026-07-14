@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
@@ -27,7 +27,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import PaywallHero from '../components/PaywallHero';
 import PaywallBenefits from '../components/PaywallBenefits';
 import PaywallPriceCard from '../components/PaywallPriceCard';
-import { Colors } from '../theme';
+import { Colors, Spacing } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -155,6 +155,7 @@ export default function PaywallScreen() {
 
   const [primaryPlan, setPrimaryPlan] = useState<PaywallPlanSummary | null>(null);
   const [secondaryPlan, setSecondaryPlan] = useState<PaywallPlanSummary | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadError, setLoadError] = useState<PaywallLoadErrorState | null>(null);
   const [purchasing, setPurchasing] = useState(false);
@@ -210,6 +211,8 @@ export default function PaywallScreen() {
         }
         setPrimaryPlan(classified.primary);
         setSecondaryPlan(classified.secondary);
+        // Annual (primary) pre-selected — the default plan the CTA purchases
+        setSelectedVendorId(classified.primary.vendorProductId);
         if (classified.usedSingleProductFallback) {
           console.log('[Paywall] using single-product fallback for UI', classified.primary.vendorProductId);
         }
@@ -290,28 +293,56 @@ export default function PaywallScreen() {
     }
   }
 
+  const selectedPlan =
+    [primaryPlan, secondaryPlan].find(
+      (plan) => plan?.vendorProductId === selectedVendorId,
+    ) ?? primaryPlan;
+
   return (
     <View style={s.container}>
-      <PaywallHero onClose={() => nav.goBack()} />
-      <PaywallBenefits />
-      <PaywallPriceCard
-        primaryPlan={primaryPlan}
-        secondaryPlan={secondaryPlan}
-        loadingProducts={loadingProducts}
-        loadErrorTitle={loadError?.title}
-        loadErrorMessage={loadError?.message}
-        loadErrorStage={loadError?.failedStage}
-        loadErrorCode={loadError?.safeErrorCode}
-        onRetry={() => loadPaywall(true)}
-        purchasing={purchasing}
-        onSubscribePrimary={() => { if (primaryPlan) handlePurchase(primaryPlan.product); }}
-        onSubscribeSecondary={() => { if (secondaryPlan) handlePurchase(secondaryPlan.product); }}
-        onRestore={handleRestore}
-      />
+      <SafeAreaView style={s.safe}>
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <PaywallHero onClose={() => nav.goBack()} />
+          <View style={s.benefitsWrap}>
+            <PaywallBenefits />
+          </View>
+          <PaywallPriceCard
+            primaryPlan={primaryPlan}
+            secondaryPlan={secondaryPlan}
+            selectedVendorId={selectedVendorId}
+            onSelectPlan={(id) => {
+              console.log('[Paywall] plan selected', id);
+              setSelectedVendorId(id);
+            }}
+            loadingProducts={loadingProducts}
+            loadErrorTitle={loadError?.title}
+            loadErrorMessage={loadError?.message}
+            loadErrorStage={loadError?.failedStage}
+            loadErrorCode={loadError?.safeErrorCode}
+            onRetry={() => loadPaywall(true)}
+            purchasing={purchasing}
+            onSubscribe={() => { if (selectedPlan) handlePurchase(selectedPlan.product); }}
+            onRestore={handleRestore}
+          />
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark.bg },
+  safe: { flex: 1 },
+  scroll: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.xl,
+  },
+  benefitsWrap: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
 });

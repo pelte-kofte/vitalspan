@@ -9,6 +9,13 @@ export type PaywallPlanKind =
   | 'lifetime'
   | 'unknown'
 
+export interface PaywallTrialInfo {
+  /** Line shown on the plan card, e.g. "7-day free trial". */
+  cardLine: string
+  /** CTA label when this plan is selected, e.g. "Start 7-day free trial". */
+  ctaLabel: string
+}
+
 export interface PaywallPlanSummary {
   product: AdaptyPaywallProduct
   kind: PaywallPlanKind
@@ -19,6 +26,11 @@ export interface PaywallPlanSummary {
   hasLocalizedPrice: boolean
   vendorProductId: string
   periodLabel: string | null
+  /** Billing cadence copy, e.g. "Billed monthly" / "Billed annually". */
+  billedCaption: string
+  /** Per-month equivalent for multi-month plans, e.g. "$4.17/mo". Computed from price.amount. */
+  monthlyEquivalent: string | null
+  trial: PaywallTrialInfo | null
 }
 
 export interface ClassifiedPaywallProducts {
@@ -195,6 +207,100 @@ function getTrialCopy(product: AdaptyPaywallProduct): string | null {
   return `${phase.localizedSubscriptionPeriod} free trial included`
 }
 
+/**
+ * Billing cadence copy per plan kind. Monthly must read "Billed monthly" —
+ * never the annual plan's "Billed every 1 year" (previous copy bug: the
+ * period-label fallback produced the same line under both plans).
+ */
+export function getBilledCaption(kind: PaywallPlanKind, periodLabel: string | null): string {
+  switch (kind) {
+    case 'annual':
+      return 'Billed annually'
+    case 'monthly':
+      return 'Billed monthly'
+    case 'weekly':
+      return 'Billed weekly'
+    case 'quarterly':
+      return 'Billed every 3 months'
+    case 'semiannual':
+      return 'Billed every 6 months'
+    case 'lifetime':
+      return 'One-time purchase'
+    default:
+      return periodLabel
+        ? `Billed every ${periodLabel.toLowerCase()}`
+        : 'Pricing provided by the App Store'
+  }
+}
+
+const MONTHS_PER_PERIOD: Partial<Record<PaywallPlanKind, number>> = {
+  annual: 12,
+  semiannual: 6,
+  quarterly: 3,
+}
+
+/**
+ * "$4.17/mo" equivalent line for multi-month plans, derived from the real
+ * store price (price.amount / months) — never hardcoded. Null when the store
+ * did not return a numeric amount or a currency symbol.
+ */
+function getMonthlyEquivalent(product: AdaptyPaywallProduct, kind: PaywallPlanKind): string | null {
+  const months = MONTHS_PER_PERIOD[kind]
+  const price = product.price
+  if (!months || !price || typeof price.amount !== 'number' || price.amount <= 0) return null
+  if (!price.currencySymbol) return null
+  return `${price.currencySymbol}${(price.amount / months).toFixed(2)}/mo`
+}
+
+function getTrialInfo(product: AdaptyPaywallProduct): PaywallTrialInfo | null {
+  const phase = product.subscription?.offer?.phases?.find(
+    (item) => item.paymentMode === 'free_trial',
+  )
+  if (!phase) return null
+
+  const period = phase.subscriptionPeriod
+  let lengthLabel: string | null = null
+  if (period?.unit === 'day' && period.numberOfUnits > 0) {
+    lengthLabel = `${period.numberOfUnits}-day`
+  } else if (period?.unit === 'week' && period.numberOfUnits > 0) {
+    lengthLabel = `${period.numberOfUnits * 7}-day`
+  } else if (period?.unit === 'month' && period.numberOfUnits > 0) {
+    lengthLabel = `${period.numberOfUnits}-month`
+  }
+
+  if (lengthLabel) {
+    return {
+      cardLine: `${lengthLabel} free trial`,
+      ctaLabel: `Start ${lengthLabel} free trial`,
+    }
+  }
+  const localized = phase.localizedSubscriptionPeriod
+  return {
+    cardLine: localized ? `${localized} free trial` : 'Free trial included',
+    ctaLabel: 'Start free trial',
+  }
+}
+
+/**
+ * Percentage saved by paying annually vs 12× the monthly price, from the real
+ * price amounts. Null unless both plans have positive amounts in the same
+ * currency and the annual plan is actually cheaper.
+ */
+export function computeAnnualSavingsPercent(
+  annual: PaywallPlanSummary | null,
+  monthly: PaywallPlanSummary | null,
+): number | null {
+  if (!annual || !monthly || annual.kind !== 'annual' || monthly.kind !== 'monthly') return null
+  const a = annual.product.price
+  const m = monthly.product.price
+  if (!a || !m || typeof a.amount !== 'number' || typeof m.amount !== 'number') return null
+  if (a.amount <= 0 || m.amount <= 0) return null
+  if (a.currencyCode && m.currencyCode && a.currencyCode !== m.currencyCode) return null
+  const fullYear = m.amount * 12
+  if (a.amount >= fullYear) return null
+  return Math.round((1 - a.amount / fullYear) * 100)
+}
+
 function getTimelineCaption(product: AdaptyPaywallProduct, kind: PaywallPlanKind): string {
   const trialCopy = getTrialCopy(product)
   if (trialCopy) {
@@ -202,12 +308,7 @@ function getTimelineCaption(product: AdaptyPaywallProduct, kind: PaywallPlanKind
     return `${trialCopy}, then ${price}${getIntervalSuffix(kind)}`
   }
 
-  const periodLabel = getPeriodLabel(product, kind)
-  if (periodLabel) {
-    return `Billed every ${periodLabel.toLowerCase()}`
-  }
-
-  return 'Pricing provided by the App Store'
+  return getBilledCaption(kind, getPeriodLabel(product, kind))
 }
 
 export function summarizePaywallProduct(
@@ -215,6 +316,7 @@ export function summarizePaywallProduct(
 ): PaywallPlanSummary {
   const kind = inferPaywallPlanKind(product)
   const title = getTitle(kind, product)
+  const periodLabel = getPeriodLabel(product, kind)
   return {
     product,
     kind,
@@ -224,7 +326,10 @@ export function summarizePaywallProduct(
     timelineCaption: getTimelineCaption(product, kind),
     hasLocalizedPrice: Boolean(product.price?.localizedString),
     vendorProductId: product.vendorProductId,
-    periodLabel: getPeriodLabel(product, kind),
+    periodLabel,
+    billedCaption: getBilledCaption(kind, periodLabel),
+    monthlyEquivalent: getMonthlyEquivalent(product, kind),
+    trial: getTrialInfo(product),
   }
 }
 
