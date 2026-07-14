@@ -212,7 +212,7 @@ export default function AboutScreen() {
         <View style={s.disclaimer}>
           <Text style={s.disclaimerTitle}>Medical disclaimer</Text>
           <Text style={s.disclaimerTxt}>
-            Vitalspan is a wellness tracking tool, not a medical device. It does not diagnose, treat, or cure any condition. All content is for educational purposes only. Always consult a qualified healthcare provider before making changes to your medications or supplements.
+            Vitalspan is a wellness tracking tool, not a medical device. It does not diagnose, treat, or cure any condition. All content is for educational purposes only. Always consult a qualified healthcare provider before making changes to your medications or supplements. Research citations and abstracts are sourced from PubMed, a service of NCBI. NCBI does not endorse Vitalspan, and abstracts may be protected by publisher copyright.
           </Text>
           <TouchableOpacity
             style={s.privacyLink}

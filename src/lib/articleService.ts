@@ -1,5 +1,5 @@
 /**
- * articleService.ts — PubMed fetch + Supabase cache + out-of-range ranking.
+ * articleService.ts — legacy PubMed fetch + published-read ranking.
  * Pure functions only. No React imports. Follows Phase 8 service pattern.
  */
 import { supabase } from './supabase';
@@ -10,12 +10,20 @@ import { BIOMARKERS } from '../data/biomarkers';
 
 export interface Article {
   pmid: string;
+  doi?: string | null;
   title: string;
   journal: string;
   pub_date: string;
   abstract: string | null;
   biomarker_tags: string[];
   fetched_at: string;
+  source_url?: string | null;
+  study_type?: string | null;
+  limitations?: string | null;
+  evidence_label?: string | null;
+  topics?: string[];
+  issue_number?: number | null;
+  section?: 'cover' | 'brief' | 'note' | null;
 }
 
 interface StoredEntry { biomarkerId: string; value: number; date: string; unit: string }
@@ -134,9 +142,11 @@ function rankByOutOfRange(articles: Article[], entries: StoredEntry[]): Article[
   });
 }
 
-async function upsertAndReselect(fresh: Article[], entries: StoredEntry[]): Promise<Article[] | null> {
+async function reselectPublished(fresh: Article[], entries: StoredEntry[]): Promise<Article[] | null> {
+  // Editorial database writes moved to the service-role-only Brief pipeline.
+  // Keep the legacy refresh timestamp so dormant callers do not hammer NCBI,
+  // but never allow a mobile client to insert unreviewed research.
   if (fresh.length > 0) {
-    await supabase.from('articles').upsert(fresh, { onConflict: 'pmid' });
     await AsyncStorage.setItem(ARTICLES_KEY, new Date().toISOString());
   }
   const { data } = await supabase.from('articles').select('*');
@@ -162,7 +172,7 @@ export async function refreshArticlesIfStale(entries: StoredEntry[]): Promise<Ar
   try {
     const ts = await AsyncStorage.getItem(ARTICLES_KEY);
     if (ts && Date.now() - new Date(ts).getTime() < CACHE_TTL_MS) return null;
-    return await upsertAndReselect(await fetchAllBiomarkerArticles(), entries);
+    return await reselectPublished(await fetchAllBiomarkerArticles(), entries);
   } catch (e) {
     console.error('[articleService] refreshArticlesIfStale error', e);
     return null;
@@ -172,7 +182,7 @@ export async function refreshArticlesIfStale(entries: StoredEntry[]): Promise<Ar
 /** Force a full NCBI refresh regardless of cache age (pull-to-refresh). */
 export async function forceRefreshArticles(entries: StoredEntry[]): Promise<Article[] | null> {
   try {
-    return await upsertAndReselect(await fetchAllBiomarkerArticles(), entries);
+    return await reselectPublished(await fetchAllBiomarkerArticles(), entries);
   } catch (e) {
     console.error('[articleService] forceRefreshArticles error', e);
     return null;

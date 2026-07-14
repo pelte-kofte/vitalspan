@@ -2,12 +2,8 @@
 -- Layers an Issue concept on top of the existing shared `articles` cache table.
 -- No PII — issues and articles are both shared, public-read content.
 --
--- HOW TO RUN:
---   1. Run create_articles_table.sql FIRST if you haven't already — this file
---      alters that table and references it.
---   2. Open the Supabase SQL editor for your project.
---   3. Paste this entire file and click "Run".
---   4. Safe to re-run (IF NOT EXISTS / guarded-DO-block constraints below).
+-- LEGACY REFERENCE ONLY. New environments and production changes must use
+-- supabase/migrations. Editorial writes are service-role/admin-RPC only.
 
 CREATE TABLE IF NOT EXISTS issues (
   issue_number      int PRIMARY KEY,
@@ -26,17 +22,7 @@ CREATE POLICY "public read issues"
   FOR SELECT
   USING (true);
 
--- Policy 2 & 3: Issues are authored by hand (see CONTENT_GUIDE.md) from the same
--- Supabase client used to seed `articles` — mirror that table's write policies.
-CREATE POLICY "anon insert issues"
-  ON issues
-  FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "anon update issues"
-  ON issues
-  FOR UPDATE
-  USING (true);
+-- No client INSERT/UPDATE policy. Only the admin publishing RPC creates issues.
 
 -- Existing `articles` table gains issue membership + the article's role within
 -- the issue. Nullable: the auto-fetched biomarker feed (articleService.ts) still

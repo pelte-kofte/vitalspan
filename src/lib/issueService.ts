@@ -1,7 +1,7 @@
 /**
  * issueService.ts — "The Vitalspan Brief" weekly editorial reads.
- * Pure Supabase reads only — issues are hand-authored (see CONTENT_GUIDE.md),
- * not fetched live. Follows the same service pattern as articleService.ts.
+ * Pure Supabase reads only. Issues are published through the human-approved
+ * Brief pipeline documented in CONTENT_GUIDE.md, never fetched live here.
  */
 import { supabase } from './supabase';
 import { Article } from './articleService';
