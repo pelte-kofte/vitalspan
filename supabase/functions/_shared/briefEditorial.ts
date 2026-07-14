@@ -57,9 +57,27 @@ export interface EditorialItem {
   evidenceLabel: "High" | "Moderate" | "Preliminary" | "Limited";
 }
 
+export type ThemeConfidence = "high" | "medium" | "low";
+export type ThemeType =
+  | "scientific-tension"
+  | "decision-problem"
+  | "population-or-life-stage"
+  | "trade-off"
+  | "systems-relationship"
+  | "evidence-limitation"
+  | "no-unifying-theme";
+
+export interface EditorialThemeEvidence {
+  candidateId: string;
+  sourcePhrase: string;
+}
+
 export interface ValidatedEditorialIssue {
   editorialThesis: string;
+  themeConfidence: ThemeConfidence;
+  themeType: ThemeType;
   themeKeywords: string[];
+  themeEvidence: EditorialThemeEvidence[];
   issueTitle: string;
   pharmacistNote: string;
   items: EditorialItem[];
@@ -71,6 +89,7 @@ export interface EditorialIntelligenceValidationCheck {
     | "cover_theme_framing"
     | "issue_title"
     | "editors_letter"
+    | "headline_factuality"
     | "varied_openings"
     | "distinct_takeaways";
   passed: boolean;
@@ -81,11 +100,6 @@ export interface EditorialIntelligenceValidationResult {
   passed: boolean;
   groundedThemeCandidateIds: string[];
   checks: EditorialIntelligenceValidationCheck[];
-}
-
-export interface SharedThemeLanguage {
-  keyword: string;
-  sourceCandidateIds: string[];
 }
 
 export interface AnthropicEditorialRequest {
@@ -240,62 +254,27 @@ export function buildEditorialSourcePacket(rows: EditorialCandidateSource[]): Ed
   }));
 }
 
-const THEME_ANCHOR_EXCLUSIONS = new Set([
-  "abstract", "analysis", "associated", "authors", "conclusion", "data", "findings", "included", "method", "methods",
-  "patient", "patients", "reported", "research", "result", "results", "significant", "strategies", "study", "studies",
-  "trial", "trials", "using",
-]);
-
-const PREFERRED_THEME_ANCHORS = [
-  "uncertainty", "evidence", "risk", "context", "population", "clinical", "intervention", "randomized", "metabolic",
-  "weight", "safety", "benefits", "outcomes",
-];
-
-/** Extractive only: gives the model traceable language shared by the cover and at least two other packets. */
-export function buildSharedThemeLanguage(packets: EditorialSourcePacket[]): SharedThemeLanguage[] {
-  if (packets.length === 0) return [];
-  const wordsByPacket = packets.map((packet) =>
-    new Set(normalizedWords(`${packet.title} ${packet.abstract ?? ""}`).filter((word) => !THEME_ANCHOR_EXCLUSIONS.has(word)))
-  );
-  const coverWords = wordsByPacket[0];
-  const shared = [...coverWords].map((keyword) => ({
-    keyword,
-    sourceCandidateIds: packets
-      .filter((_packet, index) => wordsByPacket[index].has(keyword))
-      .map((packet) => packet.id),
-  })).filter((item) => item.sourceCandidateIds.length >= Math.min(3, packets.length));
-  return shared
-    .sort((left, right) => {
-      const leftPriority = PREFERRED_THEME_ANCHORS.indexOf(left.keyword);
-      const rightPriority = PREFERRED_THEME_ANCHORS.indexOf(right.keyword);
-      if (leftPriority >= 0 || rightPriority >= 0) {
-        if (leftPriority < 0) return 1;
-        if (rightPriority < 0) return -1;
-        if (leftPriority !== rightPriority) return leftPriority - rightPriority;
-      }
-      return right.sourceCandidateIds.length - left.sourceCandidateIds.length || left.keyword.localeCompare(right.keyword);
-    })
-    .slice(0, 16);
-}
-
 export const EDITORIAL_SYSTEM_PROMPT = [
   "You are the Editor-in-Chief of The Vitalspan Brief, a premium weekly longevity magazine for intelligent non-specialist readers. Write with the calm judgment, clarity, pacing, curiosity, and scientific restraint of an experienced science journalist; never imitate another publication's wording and never sound like an AI summary, PubMed abstract, news feed, or press release.",
   "Hard output budget: the complete JSON response must fit comfortably within 1,800 tokens. Brevity is a validation requirement; never spend the full allowance on any one article.",
-  "Use only the supplied PubMed sourcePackets. sharedThemeLanguage is an extractive index of words present in the listed source packets, not an additional factual source. Never add, infer, or alter facts, effect sizes, sample sizes, study designs, journals, identifiers, diagnoses, treatment instructions, clinical recommendations, or certainty not supported by the packet. Keep association distinct from causation, preserve uncertainty and every safety signal, and use conservative evidence labels: High, Moderate, Preliminary, or Limited.",
+  "Use only the supplied PubMed sourcePackets. Never add, infer, or alter facts, mechanisms, effect sizes, sample sizes, study designs, journals, identifiers, diagnoses, treatment instructions, clinical recommendations, or certainty not supported by a packet. Keep association distinct from causation, preserve uncertainty and every safety signal, and use conservative evidence labels: High, Moderate, Preliminary, or Limited.",
   "The first supplied candidate is the cover and every remaining candidate is an ordered brief. The selection and order are deterministic: do not choose a different cover, omit an item, add an item, or reorder anything.",
   "Apply an editorial lens to every item: establish why the question matters, state what actually happened, explain why the result is scientifically interesting, make the uncertainty visible, and identify what researchers or readers should watch next. Do not merely recite what the paper says.",
-  "Headlines should create intelligent curiosity without overstating the evidence and use no more than 10 words. Avoid paper-description formulas, clickbait, miracle language, and the words breakthrough, game changer, revolutionary, or rescue. Prefer qualified language such as may, suggests, or is linked with when the design requires it.",
+  "Headlines should create intelligent curiosity without overstating the evidence and use no more than 10 words. Use normal English title capitalization. Avoid paper-description formulas, clickbait, miracle language, and the words breakthrough, game changer, revolutionary, or rescue. Prefer qualified language such as may, suggests, or is linked with when the design requires it.",
+  "Headline factuality is strict: greater cognitive improvement versus a comparator is not automatically slowed cognitive decline; association is not causation; a review that examines outcomes does not prove effectiveness; and preliminary evidence must retain hedging. Do not force a theme word or phrase into any headline.",
   "Write summary as exactly three brief single-sentence paragraphs separated by blank lines inside the JSON string, using no more than 45 words total: first the context and why readers should care; second what the study found; third why the finding matters and what remains worth watching. Paraphrase the source rather than copying its abstract.",
   "Write takeaway as one memorable sentence of no more than 16 words that a reader could accurately recall tomorrow. It must not instruct the reader to start, stop, or change treatment.",
   "Write limitations plainly and specifically in no more than 18 words. Treat uncertainty as useful information. When detail is absent, say the supplied abstract lacks enough detail instead of inventing a limitation.",
-  "Before writing any reader-facing copy, identify one internal editorialThesis of no more than 30 words grounded only in the supplied titles and abstracts. It must connect at least three selected studies without forcing a connection, inventing a biological mechanism, or claiming that interventions share a pathway unless the packets explicitly support that claim. Keep uncertainty explicit.",
-  "Return exactly one themeKeywords entry for this draft: it must exactly equal sharedThemeLanguage[0].keyword and appear verbatim in the editorialThesis. If the shared language supports only an evidence, risk, uncertainty, context, or population theme, prefer that honest throughline over a forced biological connection. This array may support up to four entries in future, but do not add qualifiers now. These fields are internal draft metadata, not reader-facing copy.",
-  "Create a concise, memorable issueTitle derived from the editorialThesis. Never concatenate topic names, append a month or year, or use generic language such as 'What This Week's Research Shows' unless no stronger grounded theme exists.",
-  "The pharmacistNote field name is retained only for data compatibility; its content must be an Editor's Letter of exactly two short paragraphs, preferably about 100 words and no more than 170 words. Open with the week's central idea, connect the selected studies through one coherent scientific theme, explain why they belong together, mention no more than three studies explicitly and preferably mention only two, avoid a paper-by-paper recap, and end with the main uncertainty or question readers should carry forward. Keep it source-grounded and free of direct medical recommendations.",
-  "Frame the deterministic cover as the entry point into the larger editorialThesis, without calling it the most important study unless the packet supports that description. The cover is the first supplied candidate; never call another candidate the entry point. Use the first theme keyword verbatim in the cover headline, summary, or takeaway.",
+  "Before reader-facing copy, identify whether at least three packets support one specific editorial relationship. Valid themeType values represent a scientific tension, decision problem, population or life-stage concern, trade-off, systems relationship, or recurring evidence limitation. Simple shared-word frequency is not a theme.",
+  "The following generic words cannot serve as themeKeywords by themselves: risk, risks, health, study, studies, research, patient, patients, treatment, intervention, interventions, effect, effects, benefit, benefits, outcome, outcomes, clinical, disease, conditions, results, evidence, management, associated, association, improve, improvement. A specific phrase may contain one of them only when the other words make a defensible concept, such as a named trade-off or decision tension.",
+  "For a real theme, return a concise editorialThesis and one to four specific themeKeywords. Return themeEvidence from distinct packets, each with the unchanged candidateId and an exact 6-20 word sourcePhrase copied from that packet's title or abstract. Include the cover. Set themeConfidence high only for a clear specific relationship supported by at least four packets; set medium for a defensible tension supported by at least three.",
+  "If no meaningful theme connects three packets, do not force one: set themeConfidence low, themeType no-unifying-theme, themeKeywords and themeEvidence to empty arrays, state internally in editorialThesis that no high-confidence unifying theme was found, and use the restrained issueTitle 'Five Signals From This Week in Longevity Science'. A low-confidence theme must never produce an assertive thematic title.",
+  "For high or medium confidence, create a concise memorable issueTitle derived from the thesis. Never concatenate topic names or append a month or year.",
+  "The pharmacistNote field name is retained only for data compatibility; its content must be an Editor's Letter of exactly two short paragraphs, preferably about 100 words and no more than 170 words. Open with the week's central idea. For high or medium confidence, connect the selected studies through one coherent scientific theme and explain why they belong together. For low confidence, frame them as five distinct signals without pretending they share a stronger relationship; mention no more than three studies explicitly and preferably mention only two, avoid a paper-by-paper recap, and end with the main uncertainty or question readers should carry forward. Keep it source-grounded and free of direct medical recommendations.",
+  "For high or medium confidence, frame the deterministic cover as an entry point into the larger editorialThesis without calling it the most important study unless supported. Do this through framing, not by inserting a theme keyword into its headline. For low confidence, introduce it simply as the cover without pretending it unifies the issue.",
   "Preserve the supplied article order. Use transitions, varied first sentences, and different opening constructions so the issue reads as one sequence rather than five templated summaries. Do not begin every summary with 'A study', 'A review', 'A trial', or an equivalent formula, and do not repeat the same takeaway across articles.",
   "Maintain one recognizable Vitalspan voice across every topic and issue. Before returning, remove generic phrasing, simplify anything that can be simpler, check that the writing sounds human, and make every sentence earn its place.",
-  "Return exactly editorialThesis, themeKeywords, issueTitle, cover, briefs, and pharmacistNote. For the cover and every brief return candidateId, headline, summary, takeaway, limitations, and evidenceLabel. Return strict JSON only, with no markdown or prose outside the schema.",
+  "Return exactly editorialThesis, themeConfidence, themeType, themeKeywords, themeEvidence, issueTitle, cover, briefs, and pharmacistNote. For the cover and every brief return candidateId, headline, summary, takeaway, limitations, and evidenceLabel. Return strict JSON only, with no markdown or prose outside the schema.",
   "Final check before returning: thesis at most 30 words; every headline at most 10; every three-paragraph summary at most 45 total; every takeaway at most 16; every limitation at most 18; Editor's Letter exactly two paragraphs and at most 170. If any field is longer, rewrite it rather than returning it.",
 ].join(" ");
 
@@ -307,13 +286,7 @@ export function buildAnthropicEditorialRequest(
     model,
     max_tokens: EDITORIAL_MAX_TOKENS,
     system: EDITORIAL_SYSTEM_PROMPT,
-    messages: [{
-      role: "user",
-      content: JSON.stringify({
-        sourcePackets: packets,
-        sharedThemeLanguage: buildSharedThemeLanguage(packets),
-      }),
-    }],
+    messages: [{ role: "user", content: JSON.stringify({ sourcePackets: packets }) }],
     output_config: {
       format: {
         type: "json_schema",
@@ -435,6 +408,11 @@ interface RawEditorialArticle {
   evidenceLabel?: unknown;
 }
 
+interface RawEditorialThemeEvidence {
+  candidateId?: unknown;
+  sourcePhrase?: unknown;
+}
+
 function requiredEditorialText(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`AI omitted ${field}`);
   return value.trim();
@@ -447,6 +425,12 @@ const EDITORIAL_STOP_WORDS = new Set([
   "through", "to", "was", "we", "were", "what", "when", "where", "which", "while", "who", "why", "will", "with",
 ]);
 
+export const GENERIC_THEME_TERMS = new Set([
+  "risk", "risks", "health", "study", "studies", "research", "patient", "patients", "treatment", "intervention",
+  "interventions", "effect", "effects", "benefit", "benefits", "outcome", "outcomes", "clinical", "disease",
+  "conditions", "results", "evidence", "management", "associated", "association", "improve", "improvement",
+]);
+
 function normalizedWords(value: string): string[] {
   return value.toLocaleLowerCase("en-US")
     .normalize("NFKD")
@@ -455,10 +439,24 @@ function normalizedWords(value: string): string[] {
     ?.filter((word) => word.length > 2 && !EDITORIAL_STOP_WORDS.has(word)) ?? [];
 }
 
-function sourceSupportsKeyword(packet: EditorialSourcePacket, keyword: string): boolean {
-  const sourceWords = new Set(normalizedWords(`${packet.title} ${packet.abstract ?? ""}`));
-  const keywordWords = normalizedWords(keyword);
-  return keywordWords.length > 0 && keywordWords.every((word) => sourceWords.has(word));
+function meaningfulThemeKeyword(keyword: string): boolean {
+  const words = normalizedWords(keyword);
+  return words.length > 0 && words.some((word) => !GENERIC_THEME_TERMS.has(word));
+}
+
+function normalizedPhrase(value: string): string {
+  return value.toLocaleLowerCase("en-US")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function packetContainsPhrase(packet: EditorialSourcePacket, sourcePhrase: string): boolean {
+  const phraseWords = sourcePhrase.trim().match(/\S+/g)?.length ?? 0;
+  if (phraseWords < 6 || phraseWords > 20) return false;
+  return normalizedPhrase(`${packet.title} ${packet.abstract ?? ""}`).includes(normalizedPhrase(sourcePhrase));
 }
 
 function paragraphs(value: string): string[] {
@@ -494,6 +492,83 @@ function titleLooksLikeTopicList(title: string): boolean {
     || /\s(?:\||\/|·)\s/.test(title);
 }
 
+const LOWERCASE_TITLE_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "nor", "of", "on", "or", "over",
+  "per", "the", "to", "up", "via", "vs", "with", "without", "yet",
+]);
+
+function headlineUsesNormalTitleCapitalization(headline: string): boolean {
+  const words = headline.split(/\s+/).filter(Boolean);
+  return words.every((rawWord, index) => {
+    const word = rawWord.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9.'’-]+$/g, "");
+    if (!word || /[A-Z0-9]/.test(word) || !/^[a-z][a-z.'’-]*$/.test(word)) return true;
+    const normalized = word.replace(/[.'’]/g, "");
+    return index > 0 && index < words.length - 1 && LOWERCASE_TITLE_WORDS.has(normalized);
+  });
+}
+
+function reportedOutcomeText(packet: EditorialSourcePacket): string {
+  const abstract = packet.abstract ?? "";
+  const reported = abstract.split(/\n\s*\n/).filter((paragraph) =>
+    /^(?:results?|findings?|conclusions?|interpretation|synthesis of results):/i.test(paragraph.trim())
+  );
+  return reported.length > 0 ? reported.join(" ") : abstract;
+}
+
+function hasCausalHeadlineVerb(headline: string): boolean {
+  return /\b(?:cause[sd]?|cut[st]?|delay(?:s|ed)?|drive[sd]?|improve[sd]?|increase[sd]?|lower[sd]?|prevent[sd]?|protect[sd]?|raise[sd]?|reduce[sd]?|reverse[sd]?|slow[sd]?|stop[sp]?)\b/i.test(headline);
+}
+
+function headlineIsHedged(headline: string): boolean {
+  return /\b(?:associated|could|linked|may|might|suggests?)\b/i.test(headline);
+}
+
+function reviewReportsEffect(packet: EditorialSourcePacket): boolean {
+  return /\b(?:associated|difference|evidence is|found|improved|increased|lower|reduced|showed)\b/i.test(reportedOutcomeText(packet));
+}
+
+function headlineFactualityFailures(
+  issue: ValidatedEditorialIssue,
+  packets: EditorialSourcePacket[],
+): string[] {
+  const failures: string[] = [];
+  issue.items.forEach((item, index) => {
+    const packet = packets[index];
+    if (!packet) return;
+    const headline = item.headline;
+    const outcomeText = reportedOutcomeText(packet);
+    if (!headlineUsesNormalTitleCapitalization(headline)) {
+      failures.push(`${item.id}: headline is not in normal title capitalization`);
+    }
+    if (/(?:\b(?:slow|slows|slowed|slowing|delay|delays|delayed)\b.*\bcognitive decline\b|\bcognitive decline\b.*\b(?:slow|slows|slowed|slowing|delay|delays|delayed)\b)/i.test(headline)
+      && !/\b(?:slower|slowed|less|reduced|delay(?:ed|s)?)\b.{0,45}\bcognitive decline\b|\bcognitive decline\b.{0,45}\b(?:slower|slowed|less|reduced)\b/i.test(outcomeText)) {
+      failures.push(`${item.id}: greater cognitive improvement does not establish slowed cognitive decline`);
+    }
+    const sourceFramesAssociation = /\b(?:associated|association|linked)\b/i.test(outcomeText);
+    if ((packet.studyType === "observational-study" || sourceFramesAssociation)
+      && hasCausalHeadlineVerb(headline) && !headlineIsHedged(headline)) {
+      failures.push(`${item.id}: observational association is framed causally`);
+    }
+    if ((packet.studyType === "systematic-review" || packet.studyType === "meta-analysis")
+      && /\b(?:effective|helps?|proves?|works?)\b/i.test(headline)
+      && !reviewReportsEffect(packet)) {
+      failures.push(`${item.id}: a review that examines outcomes is framed as proving effectiveness`);
+    }
+    if ((item.evidenceLabel === "Preliminary" || item.evidenceLabel === "Limited")
+      && hasCausalHeadlineVerb(headline) && !headlineIsHedged(headline)) {
+      failures.push(`${item.id}: preliminary evidence is missing headline hedging`);
+    }
+    for (const keyword of issue.themeKeywords) {
+      if (normalizedWords(keyword).length < 2) continue;
+      if (normalizedPhrase(headline).includes(normalizedPhrase(keyword)) && !packetContainsPhrase(packet, keyword)) {
+        failures.push(`${item.id}: unsupported theme phrase was forced into the headline`);
+        break;
+      }
+    }
+  });
+  return failures;
+}
+
 function studyMentionCount(letter: string, packets: EditorialSourcePacket[]): number {
   const letterWords = new Set(normalizedWords(letter));
   return packets.filter((packet) => {
@@ -507,47 +582,46 @@ export function evaluateEditorialIntelligence(
   issue: ValidatedEditorialIssue,
   sourcePackets: EditorialSourcePacket[],
 ): EditorialIntelligenceValidationResult {
-  const keywordSupport = new Map<string, string[]>();
-  for (const keyword of issue.themeKeywords) {
-    keywordSupport.set(keyword, sourcePackets.filter((packet) => sourceSupportsKeyword(packet, keyword)).map((packet) => packet.id));
-  }
-  const groundedThemeCandidateIds = [...new Set([...keywordSupport.values()].flat())];
-  const requiredGroundedCount = Math.min(3, sourcePackets.length);
-  const sharedAnchorCandidateIds = keywordSupport.get(issue.themeKeywords[0] ?? "") ?? [];
-  const requiredAnchorLanguage = buildSharedThemeLanguage(sourcePackets)[0]?.keyword;
-  const firstKeyword = issue.themeKeywords[0] ?? "";
-  const thesisWords = new Set(normalizedWords(issue.editorialThesis));
-  const unreferencedKeywords = issue.themeKeywords.filter(
-    (keyword) => !normalizedWords(keyword).some((word) => thesisWords.has(word)),
-  );
-  const unsupportedKeywords = [...keywordSupport.entries()].filter(([, ids]) => ids.length === 0).map(([keyword]) => keyword);
-  const themeGrounded = sourcePackets.length === 0 || (
-    issue.themeKeywords.length >= 1
-    && issue.themeKeywords.length <= 4
-    && unsupportedKeywords.length === 0
-    && unreferencedKeywords.length === 0
-    && groundedThemeCandidateIds.length >= requiredGroundedCount
-    && sharedAnchorCandidateIds.length >= requiredGroundedCount
-    && normalizedWords(firstKeyword).length <= 2
-    && firstKeyword.toLocaleLowerCase("en-US") === requiredAnchorLanguage
-    && (sourcePackets.length === 0 || sharedAnchorCandidateIds.includes(sourcePackets[0]?.id))
-  );
-
-  const coverGrounded = sourcePackets.length === 0
-    || groundedThemeCandidateIds.includes(sourcePackets[0]?.id);
-  const coverText = issue.items[0]
-    ? `${issue.items[0].headline} ${issue.items[0].summary} ${issue.items[0].whyItMatters}`
-    : "";
-  const coverUsesTheme = sourcePackets.length === 0 || issue.themeKeywords.some((keyword) => {
-    const coverWords = new Set(normalizedWords(coverText));
-    return normalizedWords(keyword).some((word) => coverWords.has(word));
+  const packetsById = new Map(sourcePackets.map((packet) => [packet.id, packet]));
+  const invalidEvidence = issue.themeEvidence.filter((evidence) => {
+    const packet = packetsById.get(evidence.candidateId);
+    return !packet || !packetContainsPhrase(packet, evidence.sourcePhrase);
   });
+  const groundedThemeCandidateIds = [...new Set(
+    issue.themeEvidence
+      .filter((evidence) => !invalidEvidence.includes(evidence))
+      .map((evidence) => evidence.candidateId),
+  )];
+  const hasSpecificKeywords = issue.themeKeywords.length >= 1
+    && issue.themeKeywords.length <= 4
+    && issue.themeKeywords.every(meaningfulThemeKeyword);
+  const thesisWords = new Set(normalizedWords(issue.editorialThesis));
+  const keywordsUsedByThesis = issue.themeKeywords.every((keyword) =>
+    normalizedWords(keyword).every((word) => thesisWords.has(word))
+  );
+  const coverId = sourcePackets[0]?.id;
+  const coverGrounded = Boolean(coverId && groundedThemeCandidateIds.includes(coverId));
+  const realThemeType = issue.themeType !== "no-unifying-theme";
+  const confidenceGrounded = issue.themeConfidence === "high"
+    ? realThemeType && groundedThemeCandidateIds.length >= 4
+    : issue.themeConfidence === "medium"
+    ? realThemeType && groundedThemeCandidateIds.length >= 3
+    : issue.themeType === "no-unifying-theme"
+      && issue.themeKeywords.length === 0
+      && issue.themeEvidence.length === 0
+      && /no high-confidence unifying theme/i.test(issue.editorialThesis);
+  const themeGrounded = invalidEvidence.length === 0
+    && confidenceGrounded
+    && (issue.themeConfidence === "low" || (hasSpecificKeywords && keywordsUsedByThesis && coverGrounded));
 
   const genericTitle = /^(?:what|inside)\s+(?:this|the)\s+week(?:'s)?\s+(?:research|science)/i.test(issue.issueTitle)
     || /^(?:weekly|this week(?:'s)?)\s+(?:research|science)\s+(?:roundup|review|brief)/i.test(issue.issueTitle);
   const datedTitle = /\b(?:january|february|march|april|may|june|july|august|september|october|november|december|20\d{2})\b/i
     .test(issue.issueTitle);
-  const issueTitlePassed = !genericTitle && !datedTitle && !titleLooksLikeTopicList(issue.issueTitle);
+  const lowConfidenceTitlePassed = issue.themeConfidence !== "low"
+    || issue.issueTitle === "Five Signals From This Week in Longevity Science";
+  const issueTitlePassed = lowConfidenceTitlePassed
+    && (issue.themeConfidence === "low" || (!genericTitle && !datedTitle && !titleLooksLikeTopicList(issue.issueTitle)));
 
   const letterParagraphs = paragraphs(issue.pharmacistNote);
   const mentionedStudies = studyMentionCount(issue.pharmacistNote, sourcePackets);
@@ -557,6 +631,8 @@ export function evaluateEditorialIntelligence(
     && wordCount(issue.pharmacistNote) <= 170
     && mentionedStudies <= 3
     && !paperByPaperLanguage;
+
+  const headlineFailures = headlineFactualityFailures(issue, sourcePackets);
 
   const signatures = issue.items.map((item) => openingSignature(item.summary));
   const signatureCounts = new Map<string, number>();
@@ -581,15 +657,15 @@ export function evaluateEditorialIntelligence(
       name: "theme_grounding",
       passed: themeGrounded,
       detail: themeGrounded
-        ? `Shared anchor language traces to ${sharedAnchorCandidateIds.length} packets; the full theme traces to ${groundedThemeCandidateIds.length}.`
-        : `The first keyword must anchor ${requiredGroundedCount} packets including the cover; unsupported: ${unsupportedKeywords.join(", ") || "none"}; absent from thesis: ${unreferencedKeywords.join(", ") || "none"}.`,
+        ? `${issue.themeConfidence} confidence is supported by ${groundedThemeCandidateIds.length} exact source phrases.`
+        : `Theme confidence, type, keywords, or exact source evidence is invalid; untraceable evidence items: ${invalidEvidence.length}.`,
     },
     {
       name: "cover_theme_framing",
-      passed: coverGrounded && coverUsesTheme,
-      detail: coverGrounded && coverUsesTheme
-        ? "The deterministic cover is grounded in and framed through the issue theme."
-        : "The deterministic cover must support and explicitly introduce the issue theme.",
+      passed: issue.themeConfidence === "low" || coverGrounded,
+      detail: issue.themeConfidence === "low" || coverGrounded
+        ? "The deterministic cover is supported as the issue entry point without forced keyword insertion."
+        : "A high- or medium-confidence theme must include exact evidence from the deterministic cover.",
     },
     {
       name: "issue_title",
@@ -604,6 +680,13 @@ export function evaluateEditorialIntelligence(
       detail: editorsLetterPassed
         ? `Two paragraphs, ${wordCount(issue.pharmacistNote)} words, ${mentionedStudies} explicitly identifiable studies.`
         : `The Editor's Letter must be two paragraphs, at most 170 words, mention no more than 3 studies, and avoid a paper-by-paper recap.`,
+    },
+    {
+      name: "headline_factuality",
+      passed: headlineFailures.length === 0,
+      detail: headlineFailures.length === 0
+        ? "Headlines preserve source claim strength, hedging, and normal title capitalization."
+        : headlineFailures.join("; "),
     },
     {
       name: "varied_openings",
@@ -657,8 +740,24 @@ export function validateEditorial(
     });
   }
   if (cover.candidateId !== selectedIds[0]) throw new Error("AI changed the deterministic cover selection");
+  const allowedThemeConfidence = new Set<ThemeConfidence>(["high", "medium", "low"]);
+  if (typeof value.themeConfidence !== "string" || !allowedThemeConfidence.has(value.themeConfidence as ThemeConfidence)) {
+    throw new Error("AI returned an invalid themeConfidence");
+  }
+  const allowedThemeTypes = new Set<ThemeType>([
+    "scientific-tension",
+    "decision-problem",
+    "population-or-life-stage",
+    "trade-off",
+    "systems-relationship",
+    "evidence-limitation",
+    "no-unifying-theme",
+  ]);
+  if (typeof value.themeType !== "string" || !allowedThemeTypes.has(value.themeType as ThemeType)) {
+    throw new Error("AI returned an invalid themeType");
+  }
   const rawThemeKeywords = value.themeKeywords;
-  if (!Array.isArray(rawThemeKeywords) || rawThemeKeywords.length < 1 || rawThemeKeywords.length > 4) {
+  if (!Array.isArray(rawThemeKeywords) || rawThemeKeywords.length > 4) {
     throw new Error("AI returned an invalid themeKeywords list");
   }
   const themeKeywords = rawThemeKeywords.map((keyword, index) =>
@@ -667,9 +766,31 @@ export function validateEditorial(
   if (new Set(themeKeywords.map((keyword) => keyword.toLocaleLowerCase("en-US"))).size !== themeKeywords.length) {
     throw new Error("AI returned duplicate themeKeywords");
   }
+  const rawThemeEvidence = value.themeEvidence;
+  if (!Array.isArray(rawThemeEvidence) || rawThemeEvidence.length > selectedIds.length) {
+    throw new Error("AI returned an invalid themeEvidence list");
+  }
+  const themeEvidence = rawThemeEvidence.map((rawEvidence, index) => {
+    const evidence = rawEvidence && typeof rawEvidence === "object"
+      ? rawEvidence as RawEditorialThemeEvidence
+      : {};
+    if (typeof evidence.candidateId !== "string" || !selectedIds.includes(evidence.candidateId)) {
+      throw new Error(`AI returned an invalid themeEvidence candidateId at index ${index}`);
+    }
+    return {
+      candidateId: evidence.candidateId,
+      sourcePhrase: requiredEditorialText(evidence.sourcePhrase, `themeEvidence[${index}].sourcePhrase`).slice(0, 300),
+    };
+  });
+  if (new Set(themeEvidence.map((evidence) => evidence.candidateId)).size !== themeEvidence.length) {
+    throw new Error("AI returned duplicate themeEvidence candidateIds");
+  }
   const issue: ValidatedEditorialIssue = {
     editorialThesis: requiredEditorialText(value.editorialThesis, "editorialThesis").slice(0, 600),
+    themeConfidence: value.themeConfidence as ThemeConfidence,
+    themeType: value.themeType as ThemeType,
     themeKeywords,
+    themeEvidence,
     issueTitle: requiredEditorialText(value.issueTitle, "issueTitle").slice(0, 180),
     pharmacistNote: requiredEditorialText(value.pharmacistNote, "pharmacistNote").slice(0, 1_200),
     items: selectedIds.map((id) => byId.get(id)!),

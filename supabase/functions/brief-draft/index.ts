@@ -303,6 +303,7 @@ serve(async (req) => {
     stats.editorialIntelligence = {
       editorialThesis: editorialResult.issue.editorialThesis,
       themeKeywords: editorialResult.issue.themeKeywords,
+      themeConfidence: editorialResult.issue.themeConfidence,
     };
 
     for (const item of editorial) {

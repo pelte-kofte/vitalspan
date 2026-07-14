@@ -53,15 +53,44 @@ function editorialArticleSchema(): JsonSchema {
   };
 }
 
+function themeEvidenceSchema(): JsonSchema {
+  return {
+    type: "object",
+    properties: {
+      candidateId: { type: "string" },
+      sourcePhrase: { type: "string" },
+    },
+    required: ["candidateId", "sourcePhrase"],
+    additionalProperties: false,
+  };
+}
+
 /** Compact structured output; exact article counts and IDs are enforced after parsing. */
 export function buildEditorialSchema(): JsonSchema {
   return {
     type: "object",
     properties: {
       editorialThesis: { type: "string" },
+      themeConfidence: { type: "string", enum: ["high", "medium", "low"] },
+      themeType: {
+        type: "string",
+        enum: [
+          "scientific-tension",
+          "decision-problem",
+          "population-or-life-stage",
+          "trade-off",
+          "systems-relationship",
+          "evidence-limitation",
+          "no-unifying-theme",
+        ],
+      },
       themeKeywords: {
         type: "array",
         items: { type: "string" },
+      },
+      themeEvidence: {
+        type: "array",
+        items: themeEvidenceSchema(),
       },
       issueTitle: { type: "string" },
       cover: editorialArticleSchema(),
@@ -71,7 +100,17 @@ export function buildEditorialSchema(): JsonSchema {
       },
       pharmacistNote: { type: "string" },
     },
-    required: ["editorialThesis", "themeKeywords", "issueTitle", "cover", "briefs", "pharmacistNote"],
+    required: [
+      "editorialThesis",
+      "themeConfidence",
+      "themeType",
+      "themeKeywords",
+      "themeEvidence",
+      "issueTitle",
+      "cover",
+      "briefs",
+      "pharmacistNote",
+    ],
     additionalProperties: false,
   };
 }

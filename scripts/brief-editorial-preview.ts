@@ -4,9 +4,11 @@ import {
   type EditorialCandidateSource,
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
+  auditAnthropicRequestCompatibility,
   evaluateEditorialIntelligence,
   validateEditorial,
 } from "../supabase/functions/_shared/briefEditorial.ts";
+import { auditJsonSchema, buildEditorialSchema } from "../supabase/functions/_shared/briefSchema.ts";
 import {
   classifyStudyType,
   deriveSafetyFlags,
@@ -87,9 +89,9 @@ async function fetchPubMedCandidates(pmids: string[]): Promise<EditorialCandidat
   });
 }
 
-const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required for the local editorial preview");
-const pmids = Deno.args.length > 0 ? Deno.args : CURRENT_SELECTED_PMIDS;
+const validateOnly = Deno.args[0] === "--validate-only";
+const suppliedPmids = validateOnly ? Deno.args.slice(1) : Deno.args;
+const pmids = suppliedPmids.length > 0 ? suppliedPmids : CURRENT_SELECTED_PMIDS;
 if (pmids.length !== 5 || pmids.some((pmid) => !/^\d+$/.test(pmid))) {
   throw new Error("Supply exactly five numeric PMIDs, or omit arguments to use the current selected preview set");
 }
@@ -97,21 +99,38 @@ if (pmids.length !== 5 || pmids.some((pmid) => !/^\d+$/.test(pmid))) {
 const candidates = await fetchPubMedCandidates(pmids);
 const packets = buildEditorialSourcePacket(candidates);
 const request = buildAnthropicEditorialRequest(packets);
-const response = await fetch("https://api.anthropic.com/v1/messages", {
-  method: "POST",
-  headers: {
-    "x-api-key": apiKey,
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-  },
-  body: JSON.stringify(request),
-});
-if (!response.ok) throw new Error(`Anthropic preview failed with HTTP ${response.status}`);
-const envelope = await response.json() as { content?: Array<{ type?: string; text?: string }> };
-const text = envelope.content?.find((block) => block.type === "text")?.text;
-if (typeof text !== "string") throw new Error("Anthropic preview returned no editorial JSON");
-
-const raw = JSON.parse(text);
+const schemaAudit = auditJsonSchema(buildEditorialSchema());
+const requestAudit = auditAnthropicRequestCompatibility(request);
+const deterministicPreflight = {
+  fiveOrderedPackets: packets.length === 5 && packets.every((packet, index) => packet.pmid === pmids[index]),
+  completeSourceText: packets.every((packet) => Boolean(packet.title.trim() && packet.abstract?.trim())),
+  closedSchema: schemaAudit.everyObjectClosed && schemaAudit.unsupportedKeywords.length === 0,
+  compatibleRequest: !requestAudit.hasCitations && !requestAudit.hasAssistantPrefill,
+};
+if (Object.values(deterministicPreflight).some((passed) => !passed)) {
+  throw new Error(`Deterministic preview preflight failed: ${JSON.stringify(deterministicPreflight)}`);
+}
+let raw: unknown;
+if (validateOnly) {
+  raw = JSON.parse(await new Response(Deno.stdin.readable).text());
+} else {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required for the local editorial preview");
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) throw new Error(`Anthropic preview failed with HTTP ${response.status}`);
+  const envelope = await response.json() as { content?: Array<{ type?: string; text?: string }> };
+  const text = envelope.content?.find((block) => block.type === "text")?.text;
+  if (typeof text !== "string") throw new Error("Anthropic preview returned no editorial JSON");
+  raw = JSON.parse(text);
+}
 let validated;
 try {
   validated = validateEditorial(raw, packets.map((packet) => packet.id), packets);
@@ -126,12 +145,21 @@ try {
   Deno.exit(2);
 }
 const validation = evaluateEditorialIntelligence(validated, packets);
+const packetsById = new Map(packets.map((packet) => [packet.id, packet]));
 console.log(JSON.stringify({
   readOnly: true,
   productionSupabaseCalled: false,
+  anthropicCallCount: validateOnly ? 0 : 1,
+  deterministicPreflight,
   selectedPmids: pmids,
   editorialThesis: validated.editorialThesis,
+  themeConfidence: validated.themeConfidence,
+  themeType: validated.themeType,
   themeKeywords: validated.themeKeywords,
+  supportingSources: validated.themeEvidence.map((evidence) => ({
+    pmid: packetsById.get(evidence.candidateId)?.pmid,
+    sourcePhrase: evidence.sourcePhrase,
+  })),
   issueTitle: validated.issueTitle,
   editorsLetter: validated.pharmacistNote,
   coverHeadline: validated.items[0].headline,

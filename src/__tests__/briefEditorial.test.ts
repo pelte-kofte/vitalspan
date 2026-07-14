@@ -1,11 +1,11 @@
 import {
   type EditorialCandidateSource,
+  GENERIC_THEME_TERMS,
   MAX_ABSTRACT_CHARACTERS,
   auditAnthropicRequestCompatibility,
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
   buildMinimalStructuredOutputRequest,
-  buildSharedThemeLanguage,
   evaluateEditorialIntelligence,
   extractSafeAnthropicError,
   safeEditorialRequestMetrics,
@@ -101,19 +101,14 @@ describe('Brief editorial source packet', () => {
     }
   });
 
-  test('extracts only cover-inclusive language shared by at least three source packets', () => {
-    const packets = buildEditorialSourcePacket([
-      { ...editorialCandidate(1, 'Population risk differs by setting.'), title: 'Population risk in sleep research' },
-      { ...editorialCandidate(2, 'Risk estimates vary across the population.'), title: 'Dietary response' },
-      { ...editorialCandidate(3, 'This population has a distinct baseline risk.'), title: 'Exercise outcomes' },
-      { ...editorialCandidate(4, 'A separate biomarker signal.'), title: 'Biomarker analysis' },
-    ]);
-
-    expect(buildSharedThemeLanguage(packets)).toEqual(expect.arrayContaining([
-      { keyword: 'population', sourceCandidateIds: [packets[0].id, packets[1].id, packets[2].id] },
-      { keyword: 'risk', sourceCandidateIds: [packets[0].id, packets[1].id, packets[2].id] },
+  test('stoplists generic editorial and biomedical theme terms', () => {
+    expect(GENERIC_THEME_TERMS).toEqual(expect.objectContaining({ size: expect.any(Number) }));
+    expect([...GENERIC_THEME_TERMS]).toEqual(expect.arrayContaining([
+      'risk', 'risks', 'health', 'study', 'studies', 'research', 'patient', 'patients', 'treatment',
+      'intervention', 'interventions', 'effect', 'effects', 'benefit', 'benefits', 'outcome', 'outcomes',
+      'clinical', 'disease', 'conditions', 'results', 'evidence', 'management', 'associated', 'association',
+      'improve', 'improvement',
     ]));
-    expect(buildSharedThemeLanguage(packets).some((item) => item.keyword === 'biomarker')).toBe(false);
   });
 
   test('truncates abstracts deterministically while retaining key structured sections', () => {
@@ -157,7 +152,8 @@ describe('Brief editorial source packet', () => {
     const audit = auditJsonSchema(schema);
 
     expect(Object.keys(schema.properties as object)).toEqual([
-      'editorialThesis', 'themeKeywords', 'issueTitle', 'cover', 'briefs', 'pharmacistNote',
+      'editorialThesis', 'themeConfidence', 'themeType', 'themeKeywords', 'themeEvidence',
+      'issueTitle', 'cover', 'briefs', 'pharmacistNote',
     ]);
     const properties = schema.properties as Record<string, Record<string, unknown>>;
     const requiredArticleFields = [
@@ -193,11 +189,14 @@ describe('Brief editorial source packet', () => {
     expect(request.system).toContain('one memorable sentence');
     expect(request.system).toContain("content must be an Editor's Letter");
     expect(request.system).toContain('connect the selected studies through one coherent scientific theme');
-    expect(request.system).toContain('identify one internal editorialThesis');
-    expect(request.system).toContain('connect at least three selected studies');
+    expect(request.system).toContain('Simple shared-word frequency is not a theme');
+    expect(request.system).toContain('supported by at least three');
+    expect(request.system).toContain('themeConfidence high');
+    expect(request.system).toContain('greater cognitive improvement versus a comparator is not automatically slowed cognitive decline');
+    expect(request.system).toContain('Do not force a theme word or phrase into any headline');
     expect(request.system).toContain('mention no more than three studies explicitly');
     expect(request.system).toContain('no more than 170 words');
-    expect(request.system).toContain('Frame the deterministic cover as the entry point');
+    expect(request.system).toContain('frame the deterministic cover as an entry point');
     expect(request.system).toContain('varied first sentences');
     expect(request.system).toContain('make every sentence earn its place');
     expect(request.system).toContain('The first supplied candidate is the cover');
@@ -379,7 +378,14 @@ describe('Brief editorial response validation', () => {
   function issue(overrides: Record<string, unknown> = {}) {
     return {
       editorialThesis: 'Population context can shape how prevention findings should be interpreted, while uncertainty limits how broadly they travel.',
-      themeKeywords: ['population', 'context'],
+      themeConfidence: 'medium',
+      themeType: 'population-or-life-stage',
+      themeKeywords: ['population context'],
+      themeEvidence: [
+        { candidateId: 'one', sourcePhrase: 'Population context shaped the observed response to sleep timing in older adults.' },
+        { candidateId: 'two', sourcePhrase: 'The population response to dietary counseling varied by baseline metabolic status.' },
+        { candidateId: 'three', sourcePhrase: 'Exercise outcomes differed across the study population and remained uncertain in subgroups.' },
+      ],
       issueTitle: 'The Finding Is Not the Whole Story',
       cover: articles[0],
       briefs: articles.slice(1),
@@ -454,6 +460,11 @@ describe('Brief editorial response validation', () => {
       issue({
         editorialThesis: 'Telomere elongation through a shared mTOR pathway explains every selected result.',
         themeKeywords: ['telomere elongation', 'mTOR pathway'],
+        themeEvidence: [
+          { candidateId: 'one', sourcePhrase: 'Telomere elongation was driven through a shared mTOR pathway.' },
+          { candidateId: 'two', sourcePhrase: 'A shared mTOR pathway explained the reported dietary response.' },
+          { candidateId: 'three', sourcePhrase: 'The same pathway produced telomere elongation after exercise.' },
+        ],
       }),
       ['one', 'two', 'three', 'four', 'five'],
       sourcePackets,
@@ -470,5 +481,109 @@ describe('Brief editorial response validation', () => {
       ['one', 'two', 'three', 'four', 'five'],
       sourcePackets,
     )).toThrow('distinct_takeaways');
+  });
+
+  test('rejects a generic shared word as the editorial theme', () => {
+    expect(() => validateEditorial(
+      issue({
+        editorialThesis: 'Risk connects the selected papers.',
+        themeKeywords: ['risk'],
+      }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('theme_grounding');
+  });
+
+  test('enforces confidence from distinct exact source support', () => {
+    expect(() => validateEditorial(
+      issue({ themeConfidence: 'high' }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('theme_grounding');
+
+    const validated = validateEditorial(issue(), ['one', 'two', 'three', 'four', 'five'], sourcePackets);
+    expect(validated.themeConfidence).toBe('medium');
+    expect(validated.themeEvidence.map((evidence) => evidence.candidateId)).toEqual(['one', 'two', 'three']);
+  });
+
+  test('uses restrained fallback framing when no high-confidence theme exists', () => {
+    const fallback = issue({
+      editorialThesis: 'No high-confidence unifying theme was found across the five selected source packets.',
+      themeConfidence: 'low',
+      themeType: 'no-unifying-theme',
+      themeKeywords: [],
+      themeEvidence: [],
+      issueTitle: 'Five Signals From This Week in Longevity Science',
+    });
+    expect(validateEditorial(fallback, ['one', 'two', 'three', 'four', 'five'], sourcePackets).themeConfidence)
+      .toBe('low');
+    expect(() => validateEditorial(
+      { ...fallback, issueTitle: 'The Hidden Biology Connecting Everything' },
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('issue_title');
+  });
+
+  test('rejects slowed cognitive decline when the source reports greater cognitive improvement', () => {
+    const cognitivePackets = sourcePackets.map((packet) => packet.id === 'five' ? {
+      ...packet,
+      title: 'Multidomain lifestyle program and cognitive performance',
+      abstract: 'FINDINGS: The structured group showed greater cognitive improvement than flexible health advice over two years.',
+      studyType: 'randomized-controlled-trial' as const,
+    } : packet);
+    expect(() => validateEditorial(issue({
+      briefs: [...articles.slice(1, 4), {
+        ...articles[4],
+        headline: 'Structured Lifestyle Intervention Slows Cognitive Decline',
+        evidenceLabel: 'Moderate',
+      }],
+    }), ['one', 'two', 'three', 'four', 'five'], cognitivePackets)).toThrow('slowed cognitive decline');
+  });
+
+  test('rejects causation in a headline for an observational association', () => {
+    const observationalPackets = sourcePackets.map((packet) => packet.id === 'four' ? {
+      ...packet,
+      title: 'Social isolation and cognitive aging',
+      abstract: 'RESULTS: Social isolation was associated with cognitive aging in the observed cohort.',
+      studyType: 'observational-study' as const,
+    } : packet);
+    expect(() => validateEditorial(issue({
+      briefs: [...articles.slice(1, 3), {
+        ...articles[3],
+        headline: 'Social Isolation Causes Cognitive Aging',
+        evidenceLabel: 'Moderate',
+      }, articles[4]],
+    }), ['one', 'two', 'three', 'four', 'five'], observationalPackets)).toThrow('framed causally');
+  });
+
+  test('rejects a review headline that claims effectiveness without reported results', () => {
+    const reviewPackets = sourcePackets.map((packet) => packet.id === 'five' ? {
+      ...packet,
+      title: 'Physical activity for childhood obesity',
+      abstract: 'OBJECTIVES: To examine physical activity outcomes in children. METHODS: Eligible randomized trials were reviewed.',
+      studyType: 'systematic-review' as const,
+    } : packet);
+    expect(() => validateEditorial(issue({
+      briefs: [...articles.slice(1, 4), {
+        ...articles[4],
+        headline: 'Physical Activity Proves Effective for Childhood Obesity',
+        evidenceLabel: 'Moderate',
+      }],
+    }), ['one', 'two', 'three', 'four', 'five'], reviewPackets)).toThrow('proving effectiveness');
+  });
+
+  test('rejects incorrect headline capitalization', () => {
+    expect(() => validateEditorial(issue({
+      cover: { ...articles[0], headline: "A Probiotic May Soften a Diet's Hidden risk" },
+    }), ['one', 'two', 'three', 'four', 'five'], sourcePackets)).toThrow('title capitalization');
+  });
+
+  test('rejects an unsupported theme phrase forced into a headline', () => {
+    expect(() => validateEditorial(issue({
+      editorialThesis: 'Hidden preventive trade-offs shape how population context should guide interpretation.',
+      themeType: 'trade-off',
+      themeKeywords: ['hidden preventive trade-offs'],
+      cover: { ...articles[0], headline: 'Sleep Timing and Hidden Preventive Trade-Offs' },
+    }), ['one', 'two', 'three', 'four', 'five'], sourcePackets)).toThrow('forced into the headline');
   });
 });
