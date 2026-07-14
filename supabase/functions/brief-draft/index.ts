@@ -15,7 +15,7 @@ import {
 } from "../_shared/briefPipeline.ts";
 import {
   type EditorialCandidateSource,
-  type EditorialItem,
+  type ValidatedEditorialIssue,
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
   extractSafeAnthropicError,
@@ -71,11 +71,7 @@ function withCanonicalClassification(row: CandidateRow): CandidateRow {
 }
 
 interface EditorialResult {
-  issue: {
-    issueTitle: string;
-    pharmacistNote: string;
-    items: EditorialItem[];
-  };
+  issue: ValidatedEditorialIssue;
   usage: { input_tokens?: number; output_tokens?: number } | null;
 }
 
@@ -215,7 +211,7 @@ async function generateEditorial(rows: CandidateRow[], stats: SafeAnthropicStats
       const text = payload.content?.find((block) => block.type === "text")?.text;
       if (typeof text !== "string") throw new Error("Anthropic returned no editorial text");
       return {
-        issue: validateEditorial(JSON.parse(text), rows.map((row) => row.id)),
+        issue: validateEditorial(JSON.parse(text), rows.map((row) => row.id), sourcePackets),
         usage: payload.usage ?? null,
       };
     } catch (error) {
@@ -304,6 +300,10 @@ serve(async (req) => {
     const editorialResult = await generateEditorial(selectedRows, anthropicStats);
     const editorial = editorialResult.issue.items;
     stats.aiUsage = editorialResult.usage;
+    stats.editorialIntelligence = {
+      editorialThesis: editorialResult.issue.editorialThesis,
+      themeKeywords: editorialResult.issue.themeKeywords,
+    };
 
     for (const item of editorial) {
       const { error } = await runtime.supabase

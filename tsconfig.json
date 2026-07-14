@@ -8,5 +8,5 @@
       "@/*": ["src/*"]
     }
   },
-  "exclude": ["supabase/functions", "scripts/brief-preview.ts", "scripts/brief-anthropic-diagnostic.ts"]
+  "exclude": ["supabase/functions", "scripts/brief-preview.ts", "scripts/brief-anthropic-diagnostic.ts", "scripts/brief-editorial-preview.ts"]
 }

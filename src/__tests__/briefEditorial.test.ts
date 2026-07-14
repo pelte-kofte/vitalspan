@@ -5,6 +5,8 @@ import {
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
   buildMinimalStructuredOutputRequest,
+  buildSharedThemeLanguage,
+  evaluateEditorialIntelligence,
   extractSafeAnthropicError,
   safeEditorialRequestMetrics,
   truncateAbstract,
@@ -99,6 +101,21 @@ describe('Brief editorial source packet', () => {
     }
   });
 
+  test('extracts only cover-inclusive language shared by at least three source packets', () => {
+    const packets = buildEditorialSourcePacket([
+      { ...editorialCandidate(1, 'Population risk differs by setting.'), title: 'Population risk in sleep research' },
+      { ...editorialCandidate(2, 'Risk estimates vary across the population.'), title: 'Dietary response' },
+      { ...editorialCandidate(3, 'This population has a distinct baseline risk.'), title: 'Exercise outcomes' },
+      { ...editorialCandidate(4, 'A separate biomarker signal.'), title: 'Biomarker analysis' },
+    ]);
+
+    expect(buildSharedThemeLanguage(packets)).toEqual(expect.arrayContaining([
+      { keyword: 'population', sourceCandidateIds: [packets[0].id, packets[1].id, packets[2].id] },
+      { keyword: 'risk', sourceCandidateIds: [packets[0].id, packets[1].id, packets[2].id] },
+    ]));
+    expect(buildSharedThemeLanguage(packets).some((item) => item.keyword === 'biomarker')).toBe(false);
+  });
+
   test('truncates abstracts deterministically while retaining key structured sections', () => {
     const abstract = [
       `OBJECTIVE: ${'Objective detail '.repeat(80)}`,
@@ -140,7 +157,7 @@ describe('Brief editorial source packet', () => {
     const audit = auditJsonSchema(schema);
 
     expect(Object.keys(schema.properties as object)).toEqual([
-      'issueTitle', 'cover', 'briefs', 'pharmacistNote',
+      'editorialThesis', 'themeKeywords', 'issueTitle', 'cover', 'briefs', 'pharmacistNote',
     ]);
     const properties = schema.properties as Record<string, Record<string, unknown>>;
     const requiredArticleFields = [
@@ -164,6 +181,29 @@ describe('Brief editorial source packet', () => {
       hasCitations: false,
       hasAssistantPrefill: false,
     });
+  });
+
+  test('encodes the Vitalspan editorial voice without changing deterministic selection', () => {
+    const request = buildAnthropicEditorialRequest(
+      buildEditorialSourcePacket([editorialCandidate(1), editorialCandidate(2)]),
+    );
+
+    expect(request.system).toContain('Editor-in-Chief of The Vitalspan Brief');
+    expect(request.system).toContain('exactly three brief single-sentence paragraphs');
+    expect(request.system).toContain('one memorable sentence');
+    expect(request.system).toContain("content must be an Editor's Letter");
+    expect(request.system).toContain('connect the selected studies through one coherent scientific theme');
+    expect(request.system).toContain('identify one internal editorialThesis');
+    expect(request.system).toContain('connect at least three selected studies');
+    expect(request.system).toContain('mention no more than three studies explicitly');
+    expect(request.system).toContain('no more than 170 words');
+    expect(request.system).toContain('Frame the deterministic cover as the entry point');
+    expect(request.system).toContain('varied first sentences');
+    expect(request.system).toContain('make every sentence earn its place');
+    expect(request.system).toContain('The first supplied candidate is the cover');
+    expect(request.system).toContain('do not choose a different cover');
+    expect(request.system).toContain('Keep association distinct from causation');
+    expect(request.system).toContain('Return strict JSON only');
   });
 
   test('constructs the minimal diagnostic request with one closed required string', () => {
@@ -265,42 +305,170 @@ describe('Brief Anthropic retry policy', () => {
 });
 
 describe('Brief editorial response validation', () => {
-  const valid = {
-    candidateId: 'one',
-    headline: 'Headline',
-    summary: 'Summary',
-    takeaway: 'Why it matters',
-    limitations: 'Limitations',
-    evidenceLabel: 'Moderate',
-  };
+  const sourcePackets = buildEditorialSourcePacket([
+    {
+      ...editorialCandidate(1, 'Population context shaped the observed response to sleep timing in older adults.'),
+      id: 'one',
+      title: 'Sleep timing responses across an older adult population',
+    },
+    {
+      ...editorialCandidate(2, 'The population response to dietary counseling varied by baseline metabolic status.'),
+      id: 'two',
+      title: 'Baseline metabolic status and dietary response',
+    },
+    {
+      ...editorialCandidate(3, 'Exercise outcomes differed across the study population and remained uncertain in subgroups.'),
+      id: 'three',
+      title: 'Exercise outcomes across population subgroups',
+    },
+    {
+      ...editorialCandidate(4, 'An observational analysis linked social context with cognitive aging.'),
+      id: 'four',
+      title: 'Social context and cognitive aging',
+    },
+    {
+      ...editorialCandidate(5, 'A biomarker signal was preliminary and clinical certainty remains limited.'),
+      id: 'five',
+      title: 'A preliminary biomarker signal',
+    },
+  ]);
 
-  function issue(cover = valid, briefs: typeof valid[] = []) {
+  const articles = [
+    {
+      candidateId: 'one',
+      headline: 'Sleep Timing Depends on Who Is Sleeping',
+      summary: 'Population context gives this sleep question its stakes.\n\nThe reported response differed in older adults.\n\nThat variation makes the next comparison worth watching.',
+      takeaway: 'Sleep timing findings may depend on the population being studied.',
+      limitations: 'The supplied abstract leaves subgroup methods uncertain.',
+      evidenceLabel: 'Moderate',
+    },
+    {
+      candidateId: 'two',
+      headline: 'Baseline Metabolism Changes the Dietary Picture',
+      summary: 'For dietary counseling, baseline status may shape what follows.\n\nResponses varied with metabolic status.\n\nFuture trials need to test that variation directly.',
+      takeaway: 'Baseline metabolic status can change how a dietary result should be read.',
+      limitations: 'The supplied abstract does not establish causation.',
+      evidenceLabel: 'Moderate',
+    },
+    {
+      candidateId: 'three',
+      headline: 'Exercise Results Are Not One-Size-Fits-All',
+      summary: 'Exercise research often compresses a varied population into one average.\n\nThis report found different outcomes across subgroups.\n\nThe unresolved question is which differences will replicate.',
+      takeaway: 'Average exercise outcomes can conceal meaningful subgroup variation.',
+      limitations: 'Subgroup uncertainty remains explicit in the supplied abstract.',
+      evidenceLabel: 'Preliminary',
+    },
+    {
+      candidateId: 'four',
+      headline: 'Cognitive Aging Has a Social Setting',
+      summary: 'Beyond individual behavior sits a wider social context.\n\nThe observational analysis reported a link with cognitive aging.\n\nAssociation alone cannot show which factor leads.',
+      takeaway: 'Social context may matter without proving a causal route to cognitive aging.',
+      limitations: 'The observational design cannot establish causation.',
+      evidenceLabel: 'Limited',
+    },
+    {
+      candidateId: 'five',
+      headline: 'A Biomarker Signal Awaits Clinical Certainty',
+      summary: 'Promising biomarker signals can arrive before clinical certainty.\n\nThis result remained preliminary.\n\nReplication will determine whether the signal holds.',
+      takeaway: 'A preliminary biomarker signal is a reason to investigate, not a clinical conclusion.',
+      limitations: 'Clinical certainty remains limited.',
+      evidenceLabel: 'Preliminary',
+    },
+  ];
+
+  function issue(overrides: Record<string, unknown> = {}) {
     return {
-      issueTitle: 'Issue title',
-      cover,
-      briefs,
-      pharmacistNote: 'Pharmacist note',
+      editorialThesis: 'Population context can shape how prevention findings should be interpreted, while uncertainty limits how broadly they travel.',
+      themeKeywords: ['population', 'context'],
+      issueTitle: 'The Finding Is Not the Whole Story',
+      cover: articles[0],
+      briefs: articles.slice(1),
+      pharmacistNote: 'This week, the central idea is that a result never arrives without context. The selected research belongs together because each finding asks how far an average can travel across people, settings, or stages of evidence.\n\nThe useful question is not whether every signal points in one biological direction; the sources do not support that claim. It is how much uncertainty remains before a finding can be generalized—and what evidence would narrow it.',
+      ...overrides,
     };
   }
 
   test('keeps deterministic cover and selected-id order behavior', () => {
-    const second = { ...valid, candidateId: 'two', headline: 'Second' };
-    expect(validateEditorial(issue(valid, [second]), ['one', 'two']).items.map((item) => item.id))
-      .toEqual(['one', 'two']);
+    const validated = validateEditorial(issue(), ['one', 'two', 'three', 'four', 'five'], sourcePackets);
+    expect(validated.items.map((item) => item.id)).toEqual(['one', 'two', 'three', 'four', 'five']);
+    expect(validated.items[0].id).toBe('one');
   });
 
   test('still rejects wrong counts, duplicate ids, and omitted fields', () => {
-    expect(() => validateEditorial(issue(valid), ['one', 'two']))
+    expect(() => validateEditorial(issue({ briefs: articles.slice(1, 4) }), ['one', 'two', 'three', 'four', 'five'], sourcePackets))
       .toThrow('wrong article count');
-    expect(() => validateEditorial(issue(valid, [valid]), ['one', 'two']))
+    expect(() => validateEditorial(issue({ briefs: [articles[0], ...articles.slice(2)] }), ['one', 'two', 'three', 'four', 'five'], sourcePackets))
       .toThrow('invalid candidate id');
-    expect(() => validateEditorial(issue({ ...valid, summary: '' }), ['one']))
+    expect(() => validateEditorial(issue({ cover: { ...articles[0], summary: '' } }), ['one', 'two', 'three', 'four', 'five'], sourcePackets))
       .toThrow('AI omitted summary');
   });
 
   test('rejects an AI attempt to replace the deterministic cover', () => {
-    const second = { ...valid, candidateId: 'two' };
-    expect(() => validateEditorial(issue(second, [valid]), ['one', 'two']))
+    expect(() => validateEditorial(issue({
+      cover: articles[1],
+      briefs: [articles[0], ...articles.slice(2)],
+    }), ['one', 'two', 'three', 'four', 'five'], sourcePackets))
       .toThrow('deterministic cover');
+  });
+
+  test('accepts a coherent theme traceable to at least three selected studies', () => {
+    const validated = validateEditorial(issue(), ['one', 'two', 'three', 'four', 'five'], sourcePackets);
+    const result = evaluateEditorialIntelligence(validated, sourcePackets);
+
+    expect(result.passed).toBe(true);
+    expect(result.groundedThemeCandidateIds).toEqual(expect.arrayContaining(['one', 'two', 'three']));
+    expect(result.groundedThemeCandidateIds.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('rejects a topic-list issue title', () => {
+    expect(() => validateEditorial(
+      issue({ issueTitle: 'Sleep, Nutrition, Exercise, and Cognitive Aging' }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('issue_title');
+  });
+
+  test('rejects a paper-by-paper Editor\'s Letter', () => {
+    const recap = 'The first study covers sleep timing. The second study reviews dietary response. The third study considers exercise outcomes.\n\nAnother study follows cognitive aging, and a final study reports a biomarker signal. The question is which finding will replicate.';
+    expect(() => validateEditorial(
+      issue({ pharmacistNote: recap }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('editors_letter');
+  });
+
+  test('rejects repeated templated article openings', () => {
+    const templated = articles.map((article) => ({
+      ...article,
+      summary: `A study examined its selected question.\n\n${article.summary.split(/\n\n/)[1]}\n\n${article.summary.split(/\n\n/)[2]}`,
+    }));
+    expect(() => validateEditorial(
+      issue({ cover: templated[0], briefs: templated.slice(1) }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('varied_openings');
+  });
+
+  test('rejects an unsupported thematic linkage', () => {
+    expect(() => validateEditorial(
+      issue({
+        editorialThesis: 'Telomere elongation through a shared mTOR pathway explains every selected result.',
+        themeKeywords: ['telomere elongation', 'mTOR pathway'],
+      }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('theme_grounding');
+  });
+
+  test('rejects the same takeaway repeated across articles', () => {
+    const repeated = 'Population context means that uncertainty should temper every conclusion.';
+    expect(() => validateEditorial(
+      issue({
+        cover: { ...articles[0], takeaway: repeated },
+        briefs: [{ ...articles[1], takeaway: repeated }, ...articles.slice(2)],
+      }),
+      ['one', 'two', 'three', 'four', 'five'],
+      sourcePackets,
+    )).toThrow('distinct_takeaways');
   });
 });

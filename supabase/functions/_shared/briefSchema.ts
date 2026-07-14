@@ -58,6 +58,11 @@ export function buildEditorialSchema(): JsonSchema {
   return {
     type: "object",
     properties: {
+      editorialThesis: { type: "string" },
+      themeKeywords: {
+        type: "array",
+        items: { type: "string" },
+      },
       issueTitle: { type: "string" },
       cover: editorialArticleSchema(),
       briefs: {
@@ -66,7 +71,7 @@ export function buildEditorialSchema(): JsonSchema {
       },
       pharmacistNote: { type: "string" },
     },
-    required: ["issueTitle", "cover", "briefs", "pharmacistNote"],
+    required: ["editorialThesis", "themeKeywords", "issueTitle", "cover", "briefs", "pharmacistNote"],
     additionalProperties: false,
   };
 }

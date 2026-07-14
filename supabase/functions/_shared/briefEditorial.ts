@@ -58,9 +58,34 @@ export interface EditorialItem {
 }
 
 export interface ValidatedEditorialIssue {
+  editorialThesis: string;
+  themeKeywords: string[];
   issueTitle: string;
   pharmacistNote: string;
   items: EditorialItem[];
+}
+
+export interface EditorialIntelligenceValidationCheck {
+  name:
+    | "theme_grounding"
+    | "cover_theme_framing"
+    | "issue_title"
+    | "editors_letter"
+    | "varied_openings"
+    | "distinct_takeaways";
+  passed: boolean;
+  detail: string;
+}
+
+export interface EditorialIntelligenceValidationResult {
+  passed: boolean;
+  groundedThemeCandidateIds: string[];
+  checks: EditorialIntelligenceValidationCheck[];
+}
+
+export interface SharedThemeLanguage {
+  keyword: string;
+  sourceCandidateIds: string[];
 }
 
 export interface AnthropicEditorialRequest {
@@ -215,14 +240,63 @@ export function buildEditorialSourcePacket(rows: EditorialCandidateSource[]): Ed
   }));
 }
 
-const EDITORIAL_SYSTEM_PROMPT = [
-  "You draft The Vitalspan Brief for mandatory human pharmacist review.",
-  "Use only the supplied PubMed source packets. Never add or alter facts, effect sizes, sample sizes, designs, journals, identifiers, diagnoses, treatment instructions, or clinical recommendations.",
-  "Keep association distinct from causation. Preserve uncertainty and all safety signals. Evidence labels must be conservative and one of High, Moderate, Preliminary, or Limited.",
-  "The first supplied candidate is the cover and every remaining candidate is an ordered brief; do not change the selection or order.",
-  "Return exactly issueTitle, cover, briefs, and pharmacistNote. For the cover and every brief return candidateId, a restrained headline, a 2-3 sentence factual summary, a concise takeaway without reader instructions, concise limitations grounded in the packet, and an evidenceLabel.",
-  "Keep issueTitle concise. Keep pharmacistNote concise, grounded in the supplied sources, and free of direct medical recommendations.",
-  "When limitation detail is absent, say the supplied abstract does not provide enough detail. Return strict JSON only, with no markdown or prose outside the schema.",
+const THEME_ANCHOR_EXCLUSIONS = new Set([
+  "abstract", "analysis", "associated", "authors", "conclusion", "data", "findings", "included", "method", "methods",
+  "patient", "patients", "reported", "research", "result", "results", "significant", "strategies", "study", "studies",
+  "trial", "trials", "using",
+]);
+
+const PREFERRED_THEME_ANCHORS = [
+  "uncertainty", "evidence", "risk", "context", "population", "clinical", "intervention", "randomized", "metabolic",
+  "weight", "safety", "benefits", "outcomes",
+];
+
+/** Extractive only: gives the model traceable language shared by the cover and at least two other packets. */
+export function buildSharedThemeLanguage(packets: EditorialSourcePacket[]): SharedThemeLanguage[] {
+  if (packets.length === 0) return [];
+  const wordsByPacket = packets.map((packet) =>
+    new Set(normalizedWords(`${packet.title} ${packet.abstract ?? ""}`).filter((word) => !THEME_ANCHOR_EXCLUSIONS.has(word)))
+  );
+  const coverWords = wordsByPacket[0];
+  const shared = [...coverWords].map((keyword) => ({
+    keyword,
+    sourceCandidateIds: packets
+      .filter((_packet, index) => wordsByPacket[index].has(keyword))
+      .map((packet) => packet.id),
+  })).filter((item) => item.sourceCandidateIds.length >= Math.min(3, packets.length));
+  return shared
+    .sort((left, right) => {
+      const leftPriority = PREFERRED_THEME_ANCHORS.indexOf(left.keyword);
+      const rightPriority = PREFERRED_THEME_ANCHORS.indexOf(right.keyword);
+      if (leftPriority >= 0 || rightPriority >= 0) {
+        if (leftPriority < 0) return 1;
+        if (rightPriority < 0) return -1;
+        if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+      }
+      return right.sourceCandidateIds.length - left.sourceCandidateIds.length || left.keyword.localeCompare(right.keyword);
+    })
+    .slice(0, 16);
+}
+
+export const EDITORIAL_SYSTEM_PROMPT = [
+  "You are the Editor-in-Chief of The Vitalspan Brief, a premium weekly longevity magazine for intelligent non-specialist readers. Write with the calm judgment, clarity, pacing, curiosity, and scientific restraint of an experienced science journalist; never imitate another publication's wording and never sound like an AI summary, PubMed abstract, news feed, or press release.",
+  "Hard output budget: the complete JSON response must fit comfortably within 1,800 tokens. Brevity is a validation requirement; never spend the full allowance on any one article.",
+  "Use only the supplied PubMed sourcePackets. sharedThemeLanguage is an extractive index of words present in the listed source packets, not an additional factual source. Never add, infer, or alter facts, effect sizes, sample sizes, study designs, journals, identifiers, diagnoses, treatment instructions, clinical recommendations, or certainty not supported by the packet. Keep association distinct from causation, preserve uncertainty and every safety signal, and use conservative evidence labels: High, Moderate, Preliminary, or Limited.",
+  "The first supplied candidate is the cover and every remaining candidate is an ordered brief. The selection and order are deterministic: do not choose a different cover, omit an item, add an item, or reorder anything.",
+  "Apply an editorial lens to every item: establish why the question matters, state what actually happened, explain why the result is scientifically interesting, make the uncertainty visible, and identify what researchers or readers should watch next. Do not merely recite what the paper says.",
+  "Headlines should create intelligent curiosity without overstating the evidence and use no more than 10 words. Avoid paper-description formulas, clickbait, miracle language, and the words breakthrough, game changer, revolutionary, or rescue. Prefer qualified language such as may, suggests, or is linked with when the design requires it.",
+  "Write summary as exactly three brief single-sentence paragraphs separated by blank lines inside the JSON string, using no more than 45 words total: first the context and why readers should care; second what the study found; third why the finding matters and what remains worth watching. Paraphrase the source rather than copying its abstract.",
+  "Write takeaway as one memorable sentence of no more than 16 words that a reader could accurately recall tomorrow. It must not instruct the reader to start, stop, or change treatment.",
+  "Write limitations plainly and specifically in no more than 18 words. Treat uncertainty as useful information. When detail is absent, say the supplied abstract lacks enough detail instead of inventing a limitation.",
+  "Before writing any reader-facing copy, identify one internal editorialThesis of no more than 30 words grounded only in the supplied titles and abstracts. It must connect at least three selected studies without forcing a connection, inventing a biological mechanism, or claiming that interventions share a pathway unless the packets explicitly support that claim. Keep uncertainty explicit.",
+  "Return exactly one themeKeywords entry for this draft: it must exactly equal sharedThemeLanguage[0].keyword and appear verbatim in the editorialThesis. If the shared language supports only an evidence, risk, uncertainty, context, or population theme, prefer that honest throughline over a forced biological connection. This array may support up to four entries in future, but do not add qualifiers now. These fields are internal draft metadata, not reader-facing copy.",
+  "Create a concise, memorable issueTitle derived from the editorialThesis. Never concatenate topic names, append a month or year, or use generic language such as 'What This Week's Research Shows' unless no stronger grounded theme exists.",
+  "The pharmacistNote field name is retained only for data compatibility; its content must be an Editor's Letter of exactly two short paragraphs, preferably about 100 words and no more than 170 words. Open with the week's central idea, connect the selected studies through one coherent scientific theme, explain why they belong together, mention no more than three studies explicitly and preferably mention only two, avoid a paper-by-paper recap, and end with the main uncertainty or question readers should carry forward. Keep it source-grounded and free of direct medical recommendations.",
+  "Frame the deterministic cover as the entry point into the larger editorialThesis, without calling it the most important study unless the packet supports that description. The cover is the first supplied candidate; never call another candidate the entry point. Use the first theme keyword verbatim in the cover headline, summary, or takeaway.",
+  "Preserve the supplied article order. Use transitions, varied first sentences, and different opening constructions so the issue reads as one sequence rather than five templated summaries. Do not begin every summary with 'A study', 'A review', 'A trial', or an equivalent formula, and do not repeat the same takeaway across articles.",
+  "Maintain one recognizable Vitalspan voice across every topic and issue. Before returning, remove generic phrasing, simplify anything that can be simpler, check that the writing sounds human, and make every sentence earn its place.",
+  "Return exactly editorialThesis, themeKeywords, issueTitle, cover, briefs, and pharmacistNote. For the cover and every brief return candidateId, headline, summary, takeaway, limitations, and evidenceLabel. Return strict JSON only, with no markdown or prose outside the schema.",
+  "Final check before returning: thesis at most 30 words; every headline at most 10; every three-paragraph summary at most 45 total; every takeaway at most 16; every limitation at most 18; Editor's Letter exactly two paragraphs and at most 170. If any field is longer, rewrite it rather than returning it.",
 ].join(" ");
 
 export function buildAnthropicEditorialRequest(
@@ -233,7 +307,13 @@ export function buildAnthropicEditorialRequest(
     model,
     max_tokens: EDITORIAL_MAX_TOKENS,
     system: EDITORIAL_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: JSON.stringify(packets) }],
+    messages: [{
+      role: "user",
+      content: JSON.stringify({
+        sourcePackets: packets,
+        sharedThemeLanguage: buildSharedThemeLanguage(packets),
+      }),
+    }],
     output_config: {
       format: {
         type: "json_schema",
@@ -360,7 +440,198 @@ function requiredEditorialText(value: unknown, field: string): string {
   return value.trim();
 }
 
-export function validateEditorial(raw: unknown, selectedIds: string[]): ValidatedEditorialIssue {
+const EDITORIAL_STOP_WORDS = new Set([
+  "a", "an", "and", "are", "as", "at", "be", "been", "being", "but", "by", "can", "could", "do", "does",
+  "for", "from", "had", "has", "have", "how", "if", "in", "into", "is", "it", "its", "may", "more", "most",
+  "not", "of", "on", "or", "our", "should", "so", "than", "that", "the", "their", "these", "this", "those",
+  "through", "to", "was", "we", "were", "what", "when", "where", "which", "while", "who", "why", "will", "with",
+]);
+
+function normalizedWords(value: string): string[] {
+  return value.toLocaleLowerCase("en-US")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .match(/[a-z0-9]+/g)
+    ?.filter((word) => word.length > 2 && !EDITORIAL_STOP_WORDS.has(word)) ?? [];
+}
+
+function sourceSupportsKeyword(packet: EditorialSourcePacket, keyword: string): boolean {
+  const sourceWords = new Set(normalizedWords(`${packet.title} ${packet.abstract ?? ""}`));
+  const keywordWords = normalizedWords(keyword);
+  return keywordWords.length > 0 && keywordWords.every((word) => sourceWords.has(word));
+}
+
+function paragraphs(value: string): string[] {
+  return value.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+}
+
+function wordCount(value: string): number {
+  return value.trim().match(/\S+/g)?.length ?? 0;
+}
+
+function openingSignature(summary: string): string {
+  return normalizedWords(paragraphs(summary)[0] ?? summary).slice(0, 4).join(" ");
+}
+
+function isGenericStudyOpening(summary: string): boolean {
+  return /^(?:a|an|the|this|new)\s+(?:study|review|trial|analysis|paper|research|researchers?)\b/i
+    .test((paragraphs(summary)[0] ?? summary).trim());
+}
+
+function takeawaySimilarity(left: string, right: string): number {
+  const a = new Set(normalizedWords(left));
+  const b = new Set(normalizedWords(right));
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const word of a) if (b.has(word)) intersection += 1;
+  return intersection / Math.min(a.size, b.size);
+}
+
+function titleLooksLikeTopicList(title: string): boolean {
+  const commaCount = title.match(/,/g)?.length ?? 0;
+  return commaCount >= 2
+    || /^[^,:;]+,\s*[^,:;]+\s+(?:and|&)\s+[^,:;]+$/i.test(title)
+    || /\s(?:\||\/|·)\s/.test(title);
+}
+
+function studyMentionCount(letter: string, packets: EditorialSourcePacket[]): number {
+  const letterWords = new Set(normalizedWords(letter));
+  return packets.filter((packet) => {
+    if (letter.includes(packet.pmid) || letter.includes(packet.id)) return true;
+    const distinctiveTitleWords = [...new Set(normalizedWords(packet.title))].filter((word) => word.length >= 5);
+    return distinctiveTitleWords.filter((word) => letterWords.has(word)).length >= Math.min(2, distinctiveTitleWords.length);
+  }).length;
+}
+
+export function evaluateEditorialIntelligence(
+  issue: ValidatedEditorialIssue,
+  sourcePackets: EditorialSourcePacket[],
+): EditorialIntelligenceValidationResult {
+  const keywordSupport = new Map<string, string[]>();
+  for (const keyword of issue.themeKeywords) {
+    keywordSupport.set(keyword, sourcePackets.filter((packet) => sourceSupportsKeyword(packet, keyword)).map((packet) => packet.id));
+  }
+  const groundedThemeCandidateIds = [...new Set([...keywordSupport.values()].flat())];
+  const requiredGroundedCount = Math.min(3, sourcePackets.length);
+  const sharedAnchorCandidateIds = keywordSupport.get(issue.themeKeywords[0] ?? "") ?? [];
+  const requiredAnchorLanguage = buildSharedThemeLanguage(sourcePackets)[0]?.keyword;
+  const firstKeyword = issue.themeKeywords[0] ?? "";
+  const thesisWords = new Set(normalizedWords(issue.editorialThesis));
+  const unreferencedKeywords = issue.themeKeywords.filter(
+    (keyword) => !normalizedWords(keyword).some((word) => thesisWords.has(word)),
+  );
+  const unsupportedKeywords = [...keywordSupport.entries()].filter(([, ids]) => ids.length === 0).map(([keyword]) => keyword);
+  const themeGrounded = sourcePackets.length === 0 || (
+    issue.themeKeywords.length >= 1
+    && issue.themeKeywords.length <= 4
+    && unsupportedKeywords.length === 0
+    && unreferencedKeywords.length === 0
+    && groundedThemeCandidateIds.length >= requiredGroundedCount
+    && sharedAnchorCandidateIds.length >= requiredGroundedCount
+    && normalizedWords(firstKeyword).length <= 2
+    && firstKeyword.toLocaleLowerCase("en-US") === requiredAnchorLanguage
+    && (sourcePackets.length === 0 || sharedAnchorCandidateIds.includes(sourcePackets[0]?.id))
+  );
+
+  const coverGrounded = sourcePackets.length === 0
+    || groundedThemeCandidateIds.includes(sourcePackets[0]?.id);
+  const coverText = issue.items[0]
+    ? `${issue.items[0].headline} ${issue.items[0].summary} ${issue.items[0].whyItMatters}`
+    : "";
+  const coverUsesTheme = sourcePackets.length === 0 || issue.themeKeywords.some((keyword) => {
+    const coverWords = new Set(normalizedWords(coverText));
+    return normalizedWords(keyword).some((word) => coverWords.has(word));
+  });
+
+  const genericTitle = /^(?:what|inside)\s+(?:this|the)\s+week(?:'s)?\s+(?:research|science)/i.test(issue.issueTitle)
+    || /^(?:weekly|this week(?:'s)?)\s+(?:research|science)\s+(?:roundup|review|brief)/i.test(issue.issueTitle);
+  const datedTitle = /\b(?:january|february|march|april|may|june|july|august|september|october|november|december|20\d{2})\b/i
+    .test(issue.issueTitle);
+  const issueTitlePassed = !genericTitle && !datedTitle && !titleLooksLikeTopicList(issue.issueTitle);
+
+  const letterParagraphs = paragraphs(issue.pharmacistNote);
+  const mentionedStudies = studyMentionCount(issue.pharmacistNote, sourcePackets);
+  const paperByPaperLanguage = /\b(?:first|second|third|fourth|fifth)\s+(?:study|paper|review)\b/i.test(issue.pharmacistNote)
+    || /\b(?:another|the next|a final)\s+(?:study|paper|review)\b/i.test(issue.pharmacistNote);
+  const editorsLetterPassed = letterParagraphs.length === 2
+    && wordCount(issue.pharmacistNote) <= 170
+    && mentionedStudies <= 3
+    && !paperByPaperLanguage;
+
+  const signatures = issue.items.map((item) => openingSignature(item.summary));
+  const signatureCounts = new Map<string, number>();
+  for (const signature of signatures) signatureCounts.set(signature, (signatureCounts.get(signature) ?? 0) + 1);
+  const largestSignatureGroup = Math.max(0, ...signatureCounts.values());
+  const allGeneric = issue.items.length >= 3 && issue.items.every((item) => isGenericStudyOpening(item.summary));
+  const allSameOpening = issue.items.length >= 3 && largestSignatureGroup === issue.items.length;
+  const variedOpeningsPassed = !allGeneric && !allSameOpening;
+
+  let repeatedTakeawayPair: [string, string] | null = null;
+  for (let left = 0; left < issue.items.length && !repeatedTakeawayPair; left += 1) {
+    for (let right = left + 1; right < issue.items.length; right += 1) {
+      if (takeawaySimilarity(issue.items[left].whyItMatters, issue.items[right].whyItMatters) >= 0.8) {
+        repeatedTakeawayPair = [issue.items[left].id, issue.items[right].id];
+        break;
+      }
+    }
+  }
+
+  const checks: EditorialIntelligenceValidationCheck[] = [
+    {
+      name: "theme_grounding",
+      passed: themeGrounded,
+      detail: themeGrounded
+        ? `Shared anchor language traces to ${sharedAnchorCandidateIds.length} packets; the full theme traces to ${groundedThemeCandidateIds.length}.`
+        : `The first keyword must anchor ${requiredGroundedCount} packets including the cover; unsupported: ${unsupportedKeywords.join(", ") || "none"}; absent from thesis: ${unreferencedKeywords.join(", ") || "none"}.`,
+    },
+    {
+      name: "cover_theme_framing",
+      passed: coverGrounded && coverUsesTheme,
+      detail: coverGrounded && coverUsesTheme
+        ? "The deterministic cover is grounded in and framed through the issue theme."
+        : "The deterministic cover must support and explicitly introduce the issue theme.",
+    },
+    {
+      name: "issue_title",
+      passed: issueTitlePassed,
+      detail: issueTitlePassed
+        ? "The title is thematic, concise, and undated."
+        : "The issue title is generic, dated, or formatted as a list of topics.",
+    },
+    {
+      name: "editors_letter",
+      passed: editorsLetterPassed,
+      detail: editorsLetterPassed
+        ? `Two paragraphs, ${wordCount(issue.pharmacistNote)} words, ${mentionedStudies} explicitly identifiable studies.`
+        : `The Editor's Letter must be two paragraphs, at most 170 words, mention no more than 3 studies, and avoid a paper-by-paper recap.`,
+    },
+    {
+      name: "varied_openings",
+      passed: variedOpeningsPassed,
+      detail: variedOpeningsPassed
+        ? "Article summaries use varied opening constructions."
+        : "Article summaries repeat the same study/review opening template.",
+    },
+    {
+      name: "distinct_takeaways",
+      passed: repeatedTakeawayPair === null,
+      detail: repeatedTakeawayPair === null
+        ? "Each article has a distinct takeaway."
+        : `Takeaways repeat across candidates ${repeatedTakeawayPair[0]} and ${repeatedTakeawayPair[1]}.`,
+    },
+  ];
+  return {
+    passed: checks.every((check) => check.passed),
+    groundedThemeCandidateIds,
+    checks,
+  };
+}
+
+export function validateEditorial(
+  raw: unknown,
+  selectedIds: string[],
+  sourcePackets: EditorialSourcePacket[] = [],
+): ValidatedEditorialIssue {
   const value = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
   const cover = value.cover as RawEditorialArticle | undefined;
   const briefs = value.briefs;
@@ -386,9 +657,25 @@ export function validateEditorial(raw: unknown, selectedIds: string[]): Validate
     });
   }
   if (cover.candidateId !== selectedIds[0]) throw new Error("AI changed the deterministic cover selection");
-  return {
+  const rawThemeKeywords = value.themeKeywords;
+  if (!Array.isArray(rawThemeKeywords) || rawThemeKeywords.length < 1 || rawThemeKeywords.length > 4) {
+    throw new Error("AI returned an invalid themeKeywords list");
+  }
+  const themeKeywords = rawThemeKeywords.map((keyword, index) =>
+    requiredEditorialText(keyword, `themeKeywords[${index}]`).slice(0, 80)
+  );
+  if (new Set(themeKeywords.map((keyword) => keyword.toLocaleLowerCase("en-US"))).size !== themeKeywords.length) {
+    throw new Error("AI returned duplicate themeKeywords");
+  }
+  const issue: ValidatedEditorialIssue = {
+    editorialThesis: requiredEditorialText(value.editorialThesis, "editorialThesis").slice(0, 600),
+    themeKeywords,
     issueTitle: requiredEditorialText(value.issueTitle, "issueTitle").slice(0, 180),
     pharmacistNote: requiredEditorialText(value.pharmacistNote, "pharmacistNote").slice(0, 1_200),
     items: selectedIds.map((id) => byId.get(id)!),
   };
+  const intelligence = evaluateEditorialIntelligence(issue, sourcePackets);
+  const failed = intelligence.checks.find((check) => !check.passed);
+  if (failed) throw new Error(`Editorial intelligence validation failed (${failed.name}): ${failed.detail}`);
+  return issue;
 }
