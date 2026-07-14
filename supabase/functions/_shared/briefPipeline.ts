@@ -6,7 +6,10 @@ export type StudyType =
   | "prospective-cohort"
   | "cohort-study"
   | "observational-study"
+  | "protocol"
   | "case-report"
+  | "case-series"
+  | "conference-abstract"
   | "animal-study"
   | "in-vitro-study"
   | "editorial"
@@ -43,34 +46,81 @@ const TYPE_BASE_SCORE: Record<StudyType, number> = {
   "observational-study": 52,
   "other": 35,
   "case-report": 14,
+  "case-series": 18,
+  "protocol": 6,
+  "conference-abstract": 5,
   "animal-study": 10,
   "in-vitro-study": 7,
   "editorial": 3,
 };
+
+function includesPublicationType(publicationTypes: string[], pattern: RegExp): boolean {
+  return publicationTypes.some((value) => pattern.test(value.toLowerCase()));
+}
+
+function hasCaseReportSignal(publicationTypes: string[], title: string, abstract: string): boolean {
+  if (includesPublicationType(publicationTypes, /\bcase reports?\b/)) return true;
+  if (/\bcase reports?\b/i.test(title)) return true;
+  return /\b(?:this is|we (?:report|present|describe))\b.{0,40}\bcase\b/i.test(abstract)
+    || /\bcase presentation\b/i.test(abstract);
+}
+
+function hasCaseSeriesSignal(publicationTypes: string[], title: string, abstract: string): boolean {
+  if (includesPublicationType(publicationTypes, /\bcase series\b/)) return true;
+  if (/\bcase series\b/i.test(title)) return true;
+  return /\b(?:this|our) case series\b/i.test(abstract)
+    || /\bwe (?:report|present|describe)\b.{0,30}\bseries of\b.{0,20}\bcases\b/i.test(abstract);
+}
+
+function hasProtocolSignal(publicationTypes: string[], title: string, abstract: string): boolean {
+  if (includesPublicationType(publicationTypes, /\bprotocol\b/)) return true;
+  if (/\bprotocol\b/i.test(title)) return true;
+  return /\b(?:study|trial|review|research|registered|systematic review|meta-analysis) protocol\b/i.test(abstract)
+    || /\bprotocol for (?:an? |the )?(?:study|trial|review|meta-analysis)\b/i.test(abstract)
+    || /\b(?:we|this (?:paper|article|study)) (?:describe|describes|present|presents|report|reports)\b.{0,40}\bprotocol\b/i.test(abstract);
+}
+
+function hasConferenceAbstractSignal(publicationTypes: string[], title: string, abstract: string): boolean {
+  if (includesPublicationType(publicationTypes, /\b(?:conference|congress|meeting) abstracts?\b/)) return true;
+  if (/\b(?:conference|congress|meeting) abstract\b/i.test(title)) return true;
+  return /\bpublished as (?:a |an )?(?:conference|congress|meeting) abstract\b/i.test(abstract);
+}
+
+function hasEditorialSignal(publicationTypes: string[], title: string): boolean {
+  if (includesPublicationType(publicationTypes, /\b(?:editorial|comment|letter)\b/)) return true;
+  return /^(?:editorial|commentary|comment|letter to the editor)\b/i.test(title.trim())
+    || /\b(?:editorial|commentary|letter to the editor)\s*[:\-]/i.test(title);
+}
 
 export function classifyStudyType(
   publicationTypes: string[],
   title: string,
   abstract: string | null,
 ): StudyType {
-  const types = publicationTypes.map((value) => value.toLowerCase());
-  const text = `${title} ${abstract ?? ""}`.toLowerCase();
-  const hasType = (needle: string) => types.some((value) => value.includes(needle));
+  const normalizedAbstract = abstract ?? "";
+  const text = `${title} ${normalizedAbstract}`.toLowerCase();
+  const hasType = (needle: string) => includesPublicationType(publicationTypes, new RegExp(needle));
 
-  if (hasType("meta-analysis")) return "meta-analysis";
+  // Explicit weak or incomplete publication labels always win over stronger
+  // phrases that may appear later in the same title or abstract.
+  if (hasCaseSeriesSignal(publicationTypes, title, normalizedAbstract)) return "case-series";
+  if (hasCaseReportSignal(publicationTypes, title, normalizedAbstract)) return "case-report";
+  if (hasProtocolSignal(publicationTypes, title, normalizedAbstract)) return "protocol";
+  if (hasConferenceAbstractSignal(publicationTypes, title, normalizedAbstract)) return "conference-abstract";
+  if (hasEditorialSignal(publicationTypes, title)) return "editorial";
+  if (hasType("animals") && !hasType("humans")) return "animal-study";
+  if (/\bin vitro\b|cell line|cultured cells/.test(text)) return "in-vitro-study";
+  if (/\b(mice|mouse|rats?|murine)\b/.test(text) && !/\bparticipants?|patients?|adults?|humans?\b/.test(text)) {
+    return "animal-study";
+  }
+
+  if (hasType("meta-analysis") || /\bmeta[\s-]analysis\b/.test(text)) return "meta-analysis";
   if (hasType("systematic review") || text.includes("systematic review")) return "systematic-review";
   if (hasType("randomized controlled trial") || /randomi[sz]ed controlled trial/.test(text)) {
     return "randomized-controlled-trial";
   }
   if (hasType("clinical trial")) return "clinical-trial";
   if (/prospective.{0,20}cohort|cohort.{0,20}prospective/.test(text)) return "prospective-cohort";
-  if (hasType("case reports") || /\bcase report\b/.test(text)) return "case-report";
-  if (hasType("editorial") || hasType("comment") || hasType("letter")) return "editorial";
-  if (/\bin vitro\b|cell line|cultured cells/.test(text)) return "in-vitro-study";
-  if (hasType("animals") && !hasType("humans")) return "animal-study";
-  if (/\b(mice|mouse|rats?|murine)\b/.test(text) && !/\bparticipants?|patients?|adults?|humans?\b/.test(text)) {
-    return "animal-study";
-  }
   if (/\bcohort\b/.test(text)) return "cohort-study";
   if (hasType("observational study") || /cross-sectional|case-control|observational/.test(text)) {
     return "observational-study";
@@ -104,8 +154,16 @@ export function deriveSafetyFlags(
   if (!abstract?.trim()) flags.add("missing-abstract");
   if (studyType === "animal-study") flags.add("animal-only");
   if (studyType === "in-vitro-study") flags.add("in-vitro");
-  if (studyType === "case-report") flags.add("case-report");
-  if (studyType === "editorial") flags.add("editorial-content");
+  if (studyType === "case-report" || studyType === "case-series") flags.add("case-report");
+  if (studyType === "protocol") {
+    flags.add("protocol");
+    flags.add("incomplete-evidence");
+  }
+  if (studyType === "conference-abstract") {
+    flags.add("conference-abstract");
+    flags.add("incomplete-evidence");
+  }
+  if (studyType === "editorial") flags.add("editorial");
   if (publicationTypes.some((value) => /retracted publication/i.test(value))) flags.add("retracted");
   return [...flags].sort();
 }
@@ -130,6 +188,11 @@ export function scoreEvidence(
   }
   if (!hasAbstract) score -= 25;
   if (safetyFlags.includes("retracted")) score = 0;
+  if (studyType === "protocol") score = Math.min(score, 10);
+  if (studyType === "case-report") score = Math.min(score, 14);
+  if (studyType === "case-series") score = Math.min(score, 20);
+  if (studyType === "conference-abstract") score = Math.min(score, 5);
+  if (studyType === "editorial") score = Math.min(score, 3);
   return clamp(score);
 }
 
@@ -220,7 +283,14 @@ export function selectIssueCandidates(
   if (desiredCount < 4 || desiredCount > 5) throw new Error("Issue size must be 4 or 5");
   const eligible = rankCandidates(candidates).filter(
     (candidate) => candidate.abstract?.trim()
-      && !candidate.safetyFlags.some((flag) => ["retracted", "editorial-content"].includes(flag)),
+      && !candidate.safetyFlags.some((flag) => [
+        "retracted",
+        "editorial",
+        "editorial-content",
+        "protocol",
+        "incomplete-evidence",
+        "conference-abstract",
+      ].includes(flag)),
   );
   const selected: ResearchCandidate[] = [];
   const usedLeadTopics = new Set<string>();

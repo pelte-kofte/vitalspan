@@ -1,7 +1,10 @@
 import {
   type ResearchCandidate,
+  classifyStudyType,
   deduplicateByIdentity,
+  deriveSafetyFlags,
   rankCandidates,
+  scoreEvidence,
   selectIssueCandidates,
   totalCandidateScore,
 } from '../../supabase/functions/_shared/briefPipeline';
@@ -22,6 +25,23 @@ function candidate(overrides: Partial<ResearchCandidate> & Pick<ResearchCandidat
     evidenceScore: overrides.evidenceScore ?? 88,
     relevanceScore: overrides.relevanceScore ?? 66,
     noveltyScore: overrides.noveltyScore ?? 90,
+  };
+}
+
+function classify(input: {
+  title: string;
+  abstract?: string | null;
+  publicationTypes?: string[];
+  sampleSize?: number | null;
+}) {
+  const abstract = input.abstract === undefined ? 'Completed study results.' : input.abstract;
+  const publicationTypes = input.publicationTypes ?? ['Journal Article'];
+  const studyType = classifyStudyType(publicationTypes, input.title, abstract);
+  const safetyFlags = deriveSafetyFlags(studyType, abstract, publicationTypes);
+  return {
+    studyType,
+    safetyFlags,
+    evidenceScore: scoreEvidence(studyType, input.sampleSize ?? null, Boolean(abstract?.trim()), safetyFlags),
   };
 }
 
@@ -100,5 +120,121 @@ describe('Vitalspan Brief deterministic pipeline', () => {
     ];
 
     expect(selectIssueCandidates(pool, 4).map((item) => item.pmid)).toEqual(['503', '504', '505', '506']);
+  });
+
+  test('case report overrides literature review language', () => {
+    expect(classify({
+      title: 'Sustained metabolic control: a case report and literature review',
+      publicationTypes: ['Journal Article', 'Review'],
+    })).toEqual({
+      studyType: 'case-report',
+      safetyFlags: ['case-report'],
+      evidenceScore: 14,
+    });
+  });
+
+  test('review protocol overrides systematic review and meta-analysis language', () => {
+    expect(classify({
+      title: 'Protocol for a randomized-trial systematic review and meta-analysis',
+    })).toEqual({
+      studyType: 'protocol',
+      safetyFlags: ['incomplete-evidence', 'protocol'],
+      evidenceScore: 6,
+    });
+  });
+
+  test('completed systematic reviews retain high evidence scores', () => {
+    expect(classify({
+      title: 'Sleep duration and healthy aging: a systematic review',
+      publicationTypes: ['Journal Article', 'Systematic Review'],
+    })).toEqual({
+      studyType: 'systematic-review',
+      safetyFlags: [],
+      evidenceScore: 94,
+    });
+  });
+
+  test('completed meta-analyses retain the highest evidence score', () => {
+    expect(classify({
+      title: 'Exercise and cardiovascular outcomes: meta-analysis of randomized trials',
+      publicationTypes: ['Journal Article', 'Meta-Analysis'],
+    })).toEqual({
+      studyType: 'meta-analysis',
+      safetyFlags: [],
+      evidenceScore: 100,
+    });
+  });
+
+  test('RCT protocol wording in metadata or abstract overrides trial language', () => {
+    expect(classify({
+      title: 'A randomized controlled trial of resistance training',
+      abstract: 'This article presents the protocol for a clinical trial.',
+      publicationTypes: ['Clinical Trial Protocol'],
+    })).toEqual({
+      studyType: 'protocol',
+      safetyFlags: ['incomplete-evidence', 'protocol'],
+      evidenceScore: 6,
+    });
+  });
+
+  test('case series is kept below completed clinical evidence', () => {
+    expect(classify({
+      title: 'Metabolic outcomes after treatment: a case series',
+      publicationTypes: ['Journal Article', 'Case Reports'],
+    })).toEqual({
+      studyType: 'case-series',
+      safetyFlags: ['case-report'],
+      evidenceScore: 18,
+    });
+  });
+
+  test.each([
+    ['Editorial: interpreting new longevity evidence', ['Editorial']],
+    ['Commentary: limits of biological age clocks', ['Comment']],
+    ['Letter to the editor: reporting standards', ['Letter']],
+  ])('classifies editorial, commentary, and letter content conservatively', (title, publicationTypes) => {
+    expect(classify({ title, publicationTypes })).toEqual({
+      studyType: 'editorial',
+      safetyFlags: ['editorial'],
+      evidenceScore: 3,
+    });
+  });
+
+  test('conference abstracts receive incomplete-evidence flags and a low score', () => {
+    expect(classify({
+      title: 'Cardiometabolic outcomes: conference abstract',
+      publicationTypes: ['Conference Abstract'],
+    })).toEqual({
+      studyType: 'conference-abstract',
+      safetyFlags: ['conference-abstract', 'incomplete-evidence'],
+      evidenceScore: 5,
+    });
+  });
+
+  test('missing abstracts remain down-ranked', () => {
+    expect(classify({
+      title: 'Completed systematic review of dietary patterns',
+      abstract: null,
+      publicationTypes: ['Systematic Review'],
+    })).toEqual({
+      studyType: 'systematic-review',
+      safetyFlags: ['missing-abstract'],
+      evidenceScore: 69,
+    });
+  });
+
+  test.each([
+    {
+      title: 'Systematic analysis of aging in mice',
+      publicationTypes: ['Journal Article', 'Animals'],
+      expected: { studyType: 'animal-study', safetyFlags: ['animal-only'], evidenceScore: 10 },
+    },
+    {
+      title: 'Meta-analysis methods applied in vitro to cultured cells',
+      publicationTypes: ['Journal Article'],
+      expected: { studyType: 'in-vitro-study', safetyFlags: ['in-vitro'], evidenceScore: 7 },
+    },
+  ])('keeps animal-only and in-vitro evidence below human evidence', ({ title, publicationTypes, expected }) => {
+    expect(classify({ title, publicationTypes })).toEqual(expected);
   });
 });
