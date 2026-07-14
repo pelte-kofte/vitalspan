@@ -165,6 +165,89 @@ describe('Vitalspan Brief deterministic pipeline', () => {
     });
   });
 
+  test('does not promote a retrospective comparative cohort when its methods use meta-analysis', () => {
+    expect(classify({
+      title: 'Cognitive Aging and Brain Health: A Comparison of Super Movers vs Nonsuper Movers.',
+      abstract: 'This study used a retrospective study design. Hazard ratios from five datasets were pooled in a meta-analysis.',
+      publicationTypes: ['Journal Article', 'Comparative Study'],
+      sampleSize: 3989,
+    })).toEqual({
+      studyType: 'observational-study',
+      safetyFlags: [],
+      evidenceScore: 61,
+    });
+  });
+
+  test('uses an explicit PubMed Meta-Analysis publication type as the primary high-evidence signal', () => {
+    expect(classify({
+      title: 'Exercise interventions and cardiometabolic outcomes',
+      abstract: 'Completed results from the eligible controlled studies are reported.',
+      publicationTypes: ['Journal Article', 'Meta-Analysis'],
+    })).toEqual({
+      studyType: 'meta-analysis',
+      safetyFlags: [],
+      evidenceScore: 100,
+    });
+  });
+
+  test('recognizes a completed meta-analysis clearly identified in the title', () => {
+    expect(classify({
+      title: 'Exercise and healthy aging: a meta-analysis of randomized trials',
+      publicationTypes: ['Journal Article'],
+    })).toEqual({
+      studyType: 'meta-analysis',
+      safetyFlags: [],
+      evidenceScore: 100,
+    });
+  });
+
+  test('keeps a cohort design when the abstract compares findings with a prior meta-analysis', () => {
+    expect(classify({
+      title: 'Sleep duration and mortality in a prospective cohort',
+      abstract: 'The cohort findings were compared with a prior meta-analysis.',
+      publicationTypes: ['Journal Article'],
+    })).toEqual({
+      studyType: 'prospective-cohort',
+      safetyFlags: [],
+      evidenceScore: 72,
+    });
+  });
+
+  test('does not treat an individual-participant-data pooled analysis as a formal meta-analysis', () => {
+    expect(classify({
+      title: 'Individual-participant-data pooled analysis of aging cohorts',
+      abstract: 'We pooled individual records from three observational cohorts for a harmonized analysis.',
+      publicationTypes: ['Journal Article', 'Observational Study'],
+    })).toEqual({
+      studyType: 'observational-study',
+      safetyFlags: [],
+      evidenceScore: 52,
+    });
+  });
+
+  test('recognizes a completed systematic review from an unambiguous title', () => {
+    expect(classify({
+      title: 'Diet quality and healthy aging: a systematic review of prospective studies',
+      publicationTypes: ['Journal Article'],
+    })).toEqual({
+      studyType: 'systematic-review',
+      safetyFlags: [],
+      evidenceScore: 94,
+    });
+  });
+
+  test('keeps a systematic-review protocol below completed evidence', () => {
+    expect(classify({
+      title: 'Protocol for a systematic review of sleep interventions',
+      abstract: 'This article describes the planned search and synthesis methods.',
+      publicationTypes: ['Journal Article'],
+    })).toEqual({
+      studyType: 'protocol',
+      safetyFlags: ['incomplete-evidence', 'protocol'],
+      evidenceScore: 6,
+    });
+  });
+
   test('RCT protocol wording in metadata or abstract overrides trial language', () => {
     expect(classify({
       title: 'A randomized controlled trial of resistance training',

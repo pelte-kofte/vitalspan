@@ -92,14 +92,33 @@ function hasEditorialSignal(publicationTypes: string[], title: string): boolean 
     || /\b(?:editorial|commentary|letter to the editor)\s*[:\-]/i.test(title);
 }
 
+function titleIdentifiesMetaAnalysis(title: string): boolean {
+  const normalized = title.trim();
+  return /\bsystematic review\s+(?:and|with)\s+(?:an?\s+)?(?:network\s+)?meta-analysis\b/i.test(normalized)
+    || /\b(?:network\s+|dose-response\s+|individual participant data\s+)?meta-analysis\s+of\b/i.test(normalized)
+    || /^(?:an?\s+)?(?:updated\s+)?(?:network\s+)?meta-analysis\b/i.test(normalized)
+    || /[:;\u2013\u2014-]\s*(?:an?\s+)?(?:updated\s+)?(?:network\s+)?meta-analysis\b/i.test(normalized);
+}
+
+function titleIdentifiesSystematicReview(title: string): boolean {
+  const normalized = title.trim();
+  return /\bsystematic review\s+of\b/i.test(normalized)
+    || /^(?:an?\s+)?(?:updated\s+)?systematic review\b/i.test(normalized)
+    || /[:;\u2013\u2014-]\s*(?:an?\s+)?(?:updated\s+)?systematic review\b/i.test(normalized);
+}
+
 export function classifyStudyType(
   publicationTypes: string[],
   title: string,
   abstract: string | null,
 ): StudyType {
   const normalizedAbstract = abstract ?? "";
+  const normalizedTitle = title.toLowerCase();
   const text = `${title} ${normalizedAbstract}`.toLowerCase();
   const hasType = (needle: string) => includesPublicationType(publicationTypes, new RegExp(needle));
+  const hasExactType = (label: string) => publicationTypes.some(
+    (value) => value.trim().toLowerCase() === label,
+  );
 
   // Explicit weak or incomplete publication labels always win over stronger
   // phrases that may appear later in the same title or abstract.
@@ -114,15 +133,26 @@ export function classifyStudyType(
     return "animal-study";
   }
 
-  if (hasType("meta-analysis") || /\bmeta[\s-]analysis\b/.test(text)) return "meta-analysis";
-  if (hasType("systematic review") || text.includes("systematic review")) return "systematic-review";
+  // High-evidence review labels come from PubMed publication types first, or
+  // from a title that clearly identifies the publication itself as a completed
+  // review. Abstract method wording is deliberately excluded: a cohort paper
+  // can pool estimates using meta-analysis without being a meta-analysis.
+  if (hasExactType("meta-analysis")) return "meta-analysis";
+  if (hasExactType("systematic review")) return "systematic-review";
+  if (titleIdentifiesMetaAnalysis(title)) return "meta-analysis";
+  if (titleIdentifiesSystematicReview(title)) return "systematic-review";
   if (hasType("randomized controlled trial") || /randomi[sz]ed controlled trial/.test(text)) {
     return "randomized-controlled-trial";
   }
   if (hasType("clinical trial")) return "clinical-trial";
   if (/prospective.{0,20}cohort|cohort.{0,20}prospective/.test(text)) return "prospective-cohort";
   if (/\bcohort\b/.test(text)) return "cohort-study";
-  if (hasType("observational study") || /cross-sectional|case-control|observational/.test(text)) {
+  if (
+    hasType("observational study")
+    || hasType("comparative study")
+    || /cross-sectional|case-control|observational|retrospective/.test(text)
+    || /\bcomparative stud(?:y|ies)\b/.test(normalizedTitle)
+  ) {
     return "observational-study";
   }
   return "other";

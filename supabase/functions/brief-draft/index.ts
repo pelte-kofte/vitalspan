@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { DRAFT_ARTICLE_COUNT, MAX_EDITORIAL_POOL } from "../_shared/briefTopics.ts";
 import {
   type ResearchCandidate,
+  classifyStudyType,
+  deriveSafetyFlags,
+  scoreEvidence,
   selectIssueCandidates,
 } from "../_shared/briefPipeline.ts";
 import {
@@ -28,6 +31,24 @@ interface CandidateRow {
   evidence_score: number;
   relevance_score: number;
   novelty_score: number;
+  raw_metadata: Record<string, unknown> | null;
+}
+
+function publicationTypesFromMetadata(metadata: Record<string, unknown> | null): string[] {
+  const values = metadata?.publicationTypes;
+  return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string") : [];
+}
+
+function withCanonicalClassification(row: CandidateRow): CandidateRow {
+  const publicationTypes = publicationTypesFromMetadata(row.raw_metadata);
+  const studyType = classifyStudyType(publicationTypes, row.title, row.abstract);
+  const safetyFlags = deriveSafetyFlags(studyType, row.abstract, publicationTypes);
+  return {
+    ...row,
+    study_type: studyType,
+    safety_flags: safetyFlags,
+    evidence_score: scoreEvidence(studyType, row.sample_size, Boolean(row.abstract?.trim()), safetyFlags),
+  };
 }
 
 interface EditorialItem {
@@ -58,7 +79,7 @@ function asResearchCandidate(row: CandidateRow): ResearchCandidate {
     title: row.title,
     abstract: row.abstract,
     publicationDate: row.publication_date,
-    publicationTypes: [],
+    publicationTypes: publicationTypesFromMetadata(row.raw_metadata),
     studyType: row.study_type,
     sampleSize: row.sample_size,
     topics: row.topics,
@@ -170,13 +191,13 @@ serve(async (req) => {
 
     const { data: poolData, error: poolError } = await runtime.supabase
       .from("article_candidates")
-      .select("id,pmid,doi,title,abstract,journal,publication_date,study_type,sample_size,topics,biomarker_tags,safety_flags,evidence_score,relevance_score,novelty_score")
+      .select("id,pmid,doi,title,abstract,journal,publication_date,study_type,sample_size,topics,biomarker_tags,safety_flags,evidence_score,relevance_score,novelty_score,raw_metadata")
       .in("status", ["new", "shortlisted"])
       .order("evidence_score", { ascending: false })
       .order("relevance_score", { ascending: false })
       .limit(MAX_EDITORIAL_POOL);
     if (poolError) throw new Error(`Could not load candidate pool: ${poolError.message}`);
-    const pool = (poolData ?? []) as CandidateRow[];
+    const pool = ((poolData ?? []) as CandidateRow[]).map(withCanonicalClassification);
     stats.pool = pool.length;
 
     const { data: recentData, error: recentError } = await runtime.supabase
