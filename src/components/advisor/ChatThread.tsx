@@ -4,10 +4,22 @@ import * as WebBrowser from 'expo-web-browser';
 import { ChatMessage } from '../../lib/advisorService';
 import { parseCitations } from '../../lib/citations';
 import { Colors, Spacing, Typography, Radius } from '../../theme';
+import { MicroscopeIcon } from '../DesignSystemIcons';
+
+const SUGGESTED_PROMPTS = [
+  'What should I focus on first?',
+  'Explain my biggest biomarker risk',
+  'Review my current supplements',
+  'How can I improve my biological age?',
+] as const;
 
 export interface ChatThreadProps {
   messages: ChatMessage[];
   isThinking: boolean;
+  hasReport?: boolean;
+  onSuggestedPrompt?: (prompt: string) => void;
+  onGenerateReport?: () => void;
+  isReportLoading?: boolean;
 }
 
 function SourcesFooter({ content }: { content: string }) {
@@ -34,13 +46,57 @@ function SourcesFooter({ content }: { content: string }) {
   );
 }
 
-export default function ChatThread({ messages, isThinking }: ChatThreadProps) {
+export default function ChatThread({
+  messages,
+  isThinking,
+  hasReport = false,
+  onSuggestedPrompt,
+  onGenerateReport,
+  isReportLoading = false,
+}: ChatThreadProps) {
   if (messages.length === 0 && !isThinking) {
     return (
       <View style={s.emptyCard}>
-        <Text style={s.emptyPrompt}>
-          Ask a follow-up question about your report…
+        <View style={s.emptyIcon}>
+          <MicroscopeIcon color={Colors.dark.textMuted} size={24} />
+        </View>
+        <Text style={s.emptyTitle}>
+          {hasReport ? 'Your report is ready' : 'Ask about your health'}
         </Text>
+        <Text style={s.emptyPrompt}>
+          {hasReport
+            ? 'Ask a follow-up question using your report and latest health context.'
+            : 'I’ll use your latest biomarkers, protocol, and health context to answer.'}
+        </Text>
+
+        <View style={s.promptGrid}>
+          {SUGGESTED_PROMPTS.map(prompt => (
+            <TouchableOpacity
+              key={prompt}
+              style={s.promptChip}
+              onPress={() => onSuggestedPrompt?.(prompt)}
+              disabled={!onSuggestedPrompt}
+              accessibilityRole="button"
+              accessibilityLabel={prompt}
+            >
+              <Text style={s.promptChipText}>{prompt}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {onGenerateReport && (
+          <TouchableOpacity
+            style={[s.reportAction, isReportLoading && s.reportActionDisabled]}
+            onPress={onGenerateReport}
+            disabled={isReportLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Generate my health report"
+          >
+            <Text style={s.reportActionText}>
+              {isReportLoading ? 'Generating health report…' : 'Generate my health report'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -81,12 +137,67 @@ const s = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.dark.cardBorder,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.base,
+  },
+  emptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  emptyTitle: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.h3,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
   },
   emptyPrompt: {
     color: Colors.dark.textMuted,
     fontSize: Typography.sizes.sm,
-    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: Spacing.base,
+  },
+  promptGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  promptChip: {
+    width: '48%',
+    minHeight: 44,
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.bgElevated,
+    borderWidth: 0.5,
+    borderColor: Colors.dark.cardBorder,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  promptChipText: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.xs,
+    lineHeight: 16,
+  },
+  reportAction: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.dark.accentBorder,
+    borderRadius: Radius.full,
+    marginTop: Spacing.base,
+    paddingHorizontal: Spacing.base,
+  },
+  reportActionDisabled: {
+    opacity: 0.6,
+  },
+  reportActionText: {
+    color: Colors.dark.ctaPrimary,
+    fontSize: Typography.sizes.sm,
+    fontWeight: '600',
   },
   bubble: {
     maxWidth: '80%',
