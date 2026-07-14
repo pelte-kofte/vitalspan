@@ -23,7 +23,11 @@ The job cannot write an issue and cannot publish content. Its result is visible 
 
 ### 2. Automated draft creation
 
-After ingestion, `brief-draft` ranks candidates before making one bounded AI request. It selects a topic-diverse cover plus four briefs, generates reviewable editorial fields only from PubMed metadata and abstracts, and creates an `editorial_drafts` row with status `ready_for_review`.
+After ingestion, `brief-draft` ranks the active pool deterministically, removes weak or incomplete evidence, caps the pre-editorial shortlist at 12, and selects a topic-diverse cover plus four briefs before making one bounded AI request. Anthropic receives only those five selected records. Abstracts are deterministically capped at 2,400 characters while retaining structured objective, methods, results, limitations, and conclusion sections where present; `raw_metadata` is never sent.
+
+The Anthropic call has an 80-second per-attempt deadline and a 110-second total request budget, leaving time inside the scheduler's 120-second deadline to persist job status. There is at most one retry, after a 750 ms delay, and only timeouts, network errors, HTTP 429, and HTTP 5xx responses are retried. Permanent 4xx and response/schema validation failures are not retried. `publication_jobs.stats` records counts, payload bytes, estimated input tokens, elapsed milliseconds, HTTP status/error category, and attempt number; it must never contain prompts, API keys, titles, or abstracts. These budgets remain below the hosted Edge Function 150-second request-idle limit and free-plan wall-clock limit.
+
+The function generates reviewable editorial fields only from the bounded PubMed source packet and creates an `editorial_drafts` row with status `ready_for_review`.
 
 The pharmacist note is intentionally a placeholder. AI output is draft copy, not approved medical content.
 

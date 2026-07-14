@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
+export { fetchWithRetry } from "./fetchWithRetry.ts";
 
 export interface RuntimeContext {
   supabase: SupabaseClient;
@@ -33,35 +34,6 @@ export function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
-}
-
-export async function fetchWithRetry(
-  url: string,
-  init: RequestInit = {},
-  options: { attempts?: number; timeoutMs?: number; baseDelayMs?: number } = {},
-): Promise<Response> {
-  const attempts = options.attempts ?? 3;
-  const timeoutMs = options.timeoutMs ?? 15_000;
-  const baseDelayMs = options.baseDelayMs ?? 500;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(url, { ...init, signal: controller.signal });
-      if (response.ok || (response.status < 500 && response.status !== 429)) return response;
-      lastError = new Error(`HTTP ${response.status}`);
-    } catch (error) {
-      lastError = error;
-    } finally {
-      clearTimeout(timer);
-    }
-    if (attempt + 1 < attempts) {
-      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 2 ** attempt));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("Request failed after retries");
 }
 
 export async function startPublicationJob(

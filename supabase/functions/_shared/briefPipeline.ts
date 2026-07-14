@@ -301,27 +301,39 @@ export function rankCandidates(candidates: ResearchCandidate[]): ResearchCandida
   return ranked.sort((a, b) => totalCandidateScore(b) - totalCandidateScore(a) || a.pmid.localeCompare(b.pmid));
 }
 
-/**
- * Selects one cover plus 3–4 briefs while penalizing repeated lead topics.
- * The returned order is editorial order and the first item is the cover.
- */
-export function selectIssueCandidates(
+const EXCLUDED_EDITORIAL_FLAGS = new Set([
+  "retracted",
+  "editorial",
+  "editorial-content",
+  "protocol",
+  "incomplete-evidence",
+  "conference-abstract",
+]);
+
+/** Ranks once, then removes evidence that cannot support an editorial brief. */
+export function rankEligibleCandidates(candidates: ResearchCandidate[]): ResearchCandidate[] {
+  return rankCandidates(candidates).filter(
+    (candidate) => candidate.abstract?.trim()
+      && !candidate.safetyFlags.some((flag) => EXCLUDED_EDITORIAL_FLAGS.has(flag)),
+  );
+}
+
+/** Produces the bounded, deterministic pre-editorial shortlist. */
+export function buildEditorialShortlist(
   candidates: ResearchCandidate[],
-  desiredCount = 5,
-  recentTopics: string[] = [],
+  maximum = 12,
+): ResearchCandidate[] {
+  if (!Number.isInteger(maximum) || maximum < 1) throw new Error("Shortlist maximum must be positive");
+  return rankEligibleCandidates(candidates).slice(0, maximum);
+}
+
+function selectFromRankedCandidates(
+  rankedEligible: ResearchCandidate[],
+  desiredCount: number,
+  recentTopics: string[],
 ): ResearchCandidate[] {
   if (desiredCount < 4 || desiredCount > 5) throw new Error("Issue size must be 4 or 5");
-  const eligible = rankCandidates(candidates).filter(
-    (candidate) => candidate.abstract?.trim()
-      && !candidate.safetyFlags.some((flag) => [
-        "retracted",
-        "editorial",
-        "editorial-content",
-        "protocol",
-        "incomplete-evidence",
-        "conference-abstract",
-      ].includes(flag)),
-  );
+  const eligible = [...rankedEligible];
   const selected: ResearchCandidate[] = [];
   const usedLeadTopics = new Set<string>();
   const recentlyCovered = new Set(recentTopics);
@@ -345,4 +357,25 @@ export function selectIssueCandidates(
     if (chosen.topics[0]) usedLeadTopics.add(chosen.topics[0]);
   }
   return selected;
+}
+
+/** Selects from a shortlist already produced by rankEligibleCandidates. */
+export function selectRankedIssueCandidates(
+  rankedEligible: ResearchCandidate[],
+  desiredCount = 5,
+  recentTopics: string[] = [],
+): ResearchCandidate[] {
+  return selectFromRankedCandidates(rankedEligible, desiredCount, recentTopics);
+}
+
+/**
+ * Selects one cover plus 3–4 briefs while penalizing repeated lead topics.
+ * The returned order is editorial order and the first item is the cover.
+ */
+export function selectIssueCandidates(
+  candidates: ResearchCandidate[],
+  desiredCount = 5,
+  recentTopics: string[] = [],
+): ResearchCandidate[] {
+  return selectFromRankedCandidates(rankEligibleCandidates(candidates), desiredCount, recentTopics);
 }

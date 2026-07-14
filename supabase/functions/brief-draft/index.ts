@@ -1,12 +1,30 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { DRAFT_ARTICLE_COUNT, MAX_EDITORIAL_POOL } from "../_shared/briefTopics.ts";
+import {
+  DRAFT_ARTICLE_COUNT,
+  MAX_EDITORIAL_SHORTLIST,
+  MAX_RANKING_POOL,
+} from "../_shared/briefTopics.ts";
 import {
   type ResearchCandidate,
+  buildEditorialShortlist,
   classifyStudyType,
   deriveSafetyFlags,
+  rankEligibleCandidates,
   scoreEvidence,
-  selectIssueCandidates,
+  selectRankedIssueCandidates,
 } from "../_shared/briefPipeline.ts";
+import {
+  type EditorialCandidateSource,
+  type EditorialItem,
+  buildAnthropicEditorialRequest,
+  buildEditorialSourcePacket,
+  safeEditorialRequestMetrics,
+  validateEditorial,
+} from "../_shared/briefEditorial.ts";
+import {
+  type FetchAttemptMetadata,
+  FetchRequestError,
+} from "../_shared/fetchWithRetry.ts";
 import {
   authorizePipelineRequest,
   fetchWithRetry,
@@ -31,16 +49,16 @@ interface CandidateRow {
   evidence_score: number;
   relevance_score: number;
   novelty_score: number;
-  raw_metadata: Record<string, unknown> | null;
+  source_url: string;
+  publication_types: unknown;
 }
 
-function publicationTypesFromMetadata(metadata: Record<string, unknown> | null): string[] {
-  const values = metadata?.publicationTypes;
+function normalizePublicationTypes(values: unknown): string[] {
   return Array.isArray(values) ? values.filter((value): value is string => typeof value === "string") : [];
 }
 
 function withCanonicalClassification(row: CandidateRow): CandidateRow {
-  const publicationTypes = publicationTypesFromMetadata(row.raw_metadata);
+  const publicationTypes = normalizePublicationTypes(row.publication_types);
   const studyType = classifyStudyType(publicationTypes, row.title, row.abstract);
   const safetyFlags = deriveSafetyFlags(studyType, row.abstract, publicationTypes);
   return {
@@ -51,19 +69,27 @@ function withCanonicalClassification(row: CandidateRow): CandidateRow {
   };
 }
 
-interface EditorialItem {
-  id: string;
-  headline: string;
-  summary: string;
-  whyItMatters: string;
-  limitations: string;
-  evidenceLabel: "High" | "Moderate" | "Preliminary" | "Limited";
-}
-
 interface EditorialResult {
   items: EditorialItem[];
   usage: { input_tokens?: number; output_tokens?: number } | null;
 }
+
+interface SafeAnthropicStats {
+  candidateCount: number;
+  payloadBytes: number;
+  estimatedInputTokens: number;
+  attemptCount: number;
+  elapsedMs: number;
+  errorCategory: string | null;
+  attempts: FetchAttemptMetadata[];
+}
+
+const ANTHROPIC_ATTEMPT_TIMEOUT_MS = 80_000;
+// The scheduler has a 120s HTTP deadline. This total budget leaves time to
+// persist the failed job and is also below Supabase's 150s request-idle limit.
+const ANTHROPIC_TOTAL_TIMEOUT_MS = 110_000;
+const ANTHROPIC_MAX_ATTEMPTS = 2;
+const ANTHROPIC_RETRY_DELAY_MS = 750;
 
 function mondayUtc(date = new Date()): string {
   const copy = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -79,7 +105,7 @@ function asResearchCandidate(row: CandidateRow): ResearchCandidate {
     title: row.title,
     abstract: row.abstract,
     publicationDate: row.publication_date,
-    publicationTypes: publicationTypesFromMetadata(row.raw_metadata),
+    publicationTypes: normalizePublicationTypes(row.publication_types),
     studyType: row.study_type,
     sampleSize: row.sample_size,
     topics: row.topics,
@@ -91,77 +117,97 @@ function asResearchCandidate(row: CandidateRow): ResearchCandidate {
   };
 }
 
-function validateEditorial(raw: unknown, selectedIds: string[]): EditorialItem[] {
-  const articles = (raw as { articles?: unknown[] })?.articles;
-  if (!Array.isArray(articles) || articles.length !== selectedIds.length) {
-    throw new Error("AI editorial response has the wrong article count");
-  }
-  const allowedLabels = new Set(["High", "Moderate", "Preliminary", "Limited"]);
-  const byId = new Map<string, EditorialItem>();
-  for (const item of articles) {
-    const value = item as Partial<EditorialItem>;
-    if (!value.id || !selectedIds.includes(value.id) || byId.has(value.id)) throw new Error("AI returned an invalid candidate id");
-    for (const field of ["headline", "summary", "whyItMatters", "limitations"] as const) {
-      if (typeof value[field] !== "string" || !value[field]!.trim()) throw new Error(`AI omitted ${field}`);
-    }
-    if (!value.evidenceLabel || !allowedLabels.has(value.evidenceLabel)) throw new Error("AI returned an invalid evidence label");
-    byId.set(value.id, {
-      id: value.id,
-      headline: value.headline!.trim().slice(0, 180),
-      summary: value.summary!.trim().slice(0, 1_200),
-      whyItMatters: value.whyItMatters!.trim().slice(0, 600),
-      limitations: value.limitations!.trim().slice(0, 600),
-      evidenceLabel: value.evidenceLabel,
-    });
-  }
-  return selectedIds.map((id) => byId.get(id)!);
-}
-
-async function generateEditorial(rows: CandidateRow[]): Promise<EditorialResult> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required for editorial drafting");
-  const sourcePackets = rows.map((row) => ({
+function asEditorialCandidate(row: CandidateRow): EditorialCandidateSource {
+  return {
     id: row.id,
     pmid: row.pmid,
     doi: row.doi,
-    sourceTitle: row.title,
+    sourceUrl: row.source_url,
+    title: row.title,
     abstract: row.abstract,
     journal: row.journal,
     publicationDate: row.publication_date,
+    publicationTypes: normalizePublicationTypes(row.publication_types),
     studyType: row.study_type,
     sampleSize: row.sample_size,
     topics: row.topics,
     biomarkerTags: row.biomarker_tags,
-  }));
-  const response = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: Deno.env.get("BRIEF_AI_MODEL") ?? "claude-sonnet-4-6",
-      max_tokens: 2_200,
-      system:
-        "You are the editorial assistant for The Vitalspan Brief. Work only from each supplied PubMed metadata packet and abstract. "
-        + "Do not add facts, effect sizes, sample sizes, study designs, journals, identifiers, diagnoses, treatment instructions, or clinical recommendations. "
-        + "Never change an id, PMID, or DOI. Write restrained, premium science-desk copy for human pharmacist review. "
-        + "Each summary must be 2-3 factual sentences. 'Why it matters' explains relevance without telling a reader what to take, stop, or change. "
-        + "Limitations must name only limitations present or directly inferable from the supplied design/abstract; when detail is absent, say the abstract does not provide enough detail. "
-        + "Evidence labels are High, Moderate, Preliminary, or Limited and must align conservatively with the supplied study type. "
-        + "Return only JSON: {\"articles\":[{\"id\":\"uuid\",\"headline\":\"string\",\"summary\":\"string\",\"whyItMatters\":\"string\",\"limitations\":\"string\",\"evidenceLabel\":\"High|Moderate|Preliminary|Limited\"}]}",
-      messages: [{ role: "user", content: JSON.stringify(sourcePackets) }],
-    }),
-  }, { attempts: 2, timeoutMs: 35_000, baseDelayMs: 1_000 });
-  if (!response.ok) throw new Error(`Anthropic editorial request failed with HTTP ${response.status}`);
-  const payload = await response.json();
-  const text = payload?.content?.find((block: { type?: string }) => block.type === "text")?.text;
-  if (typeof text !== "string") throw new Error("Anthropic returned no editorial text");
-  return {
-    items: validateEditorial(JSON.parse(text), rows.map((row) => row.id)),
-    usage: payload?.usage ?? null,
+    safetyFlags: row.safety_flags,
+    evidenceScore: Number(row.evidence_score),
+    relevanceScore: Number(row.relevance_score),
+    noveltyScore: Number(row.novelty_score),
   };
+}
+
+async function generateEditorial(rows: CandidateRow[], stats: SafeAnthropicStats): Promise<EditorialResult> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required for editorial drafting");
+  const sourcePackets = buildEditorialSourcePacket(rows.map(asEditorialCandidate));
+  const request = buildAnthropicEditorialRequest(
+    sourcePackets,
+    Deno.env.get("BRIEF_AI_MODEL") ?? undefined,
+  );
+  const body = JSON.stringify(request);
+  const requestMetrics = safeEditorialRequestMetrics(request, sourcePackets.length);
+  stats.candidateCount = requestMetrics.candidateCount;
+  stats.payloadBytes = requestMetrics.payloadBytes;
+  stats.estimatedInputTokens = requestMetrics.estimatedInputTokens;
+  console.info("brief-draft Anthropic request metrics", JSON.stringify({
+    candidateCount: stats.candidateCount,
+    payloadBytes: stats.payloadBytes,
+    estimatedInputTokens: stats.estimatedInputTokens,
+  }));
+
+  const startedAt = Date.now();
+  try {
+    const response = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body,
+    }, {
+      attempts: ANTHROPIC_MAX_ATTEMPTS,
+      timeoutMs: ANTHROPIC_ATTEMPT_TIMEOUT_MS,
+      totalTimeoutMs: ANTHROPIC_TOTAL_TIMEOUT_MS,
+      baseDelayMs: ANTHROPIC_RETRY_DELAY_MS,
+      maxDelayMs: ANTHROPIC_RETRY_DELAY_MS,
+      onAttempt: (metadata) => {
+        stats.attempts.push(metadata);
+        stats.attemptCount = stats.attempts.length;
+        stats.errorCategory = metadata.errorCategory;
+        console.info("brief-draft Anthropic attempt", JSON.stringify(metadata));
+      },
+    });
+    stats.elapsedMs = Date.now() - startedAt;
+    if (!response.ok) {
+      stats.errorCategory = response.status >= 400 && response.status < 500 ? "permanent_4xx" : "server_error";
+      throw new Error(`Anthropic editorial request failed with HTTP ${response.status}`);
+    }
+
+    let payload: {
+      content?: Array<{ type?: string; text?: string }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    try {
+      payload = await response.json();
+      const text = payload.content?.find((block) => block.type === "text")?.text;
+      if (typeof text !== "string") throw new Error("Anthropic returned no editorial text");
+      return {
+        items: validateEditorial(JSON.parse(text), rows.map((row) => row.id)),
+        usage: payload.usage ?? null,
+      };
+    } catch (error) {
+      stats.errorCategory = "schema_validation";
+      throw error;
+    }
+  } catch (error) {
+    stats.elapsedMs = Date.now() - startedAt;
+    if (error instanceof FetchRequestError) stats.errorCategory = error.category;
+    throw error;
+  }
 }
 
 serve(async (req) => {
@@ -169,7 +215,7 @@ serve(async (req) => {
   const runtime = authorizePipelineRequest(req);
   if (!runtime) return jsonResponse({ error: "Unauthorized or pipeline secrets are not configured" }, 401);
   let jobId: string | null = null;
-  const stats: Record<string, unknown> = { pool: 0, selected: 0, draftId: null };
+  const stats: Record<string, unknown> = { pool: 0, shortlist: 0, selected: 0, draftId: null };
 
   try {
     jobId = await startPublicationJob(runtime.supabase, "editorial_generation");
@@ -191,11 +237,11 @@ serve(async (req) => {
 
     const { data: poolData, error: poolError } = await runtime.supabase
       .from("article_candidates")
-      .select("id,pmid,doi,title,abstract,journal,publication_date,study_type,sample_size,topics,biomarker_tags,safety_flags,evidence_score,relevance_score,novelty_score,raw_metadata")
+      .select("id,pmid,doi,title,abstract,journal,publication_date,study_type,sample_size,topics,biomarker_tags,safety_flags,evidence_score,relevance_score,novelty_score,source_url,publication_types:raw_metadata->publicationTypes")
       .in("status", ["new", "shortlisted"])
       .order("evidence_score", { ascending: false })
       .order("relevance_score", { ascending: false })
-      .limit(MAX_EDITORIAL_POOL);
+      .limit(MAX_RANKING_POOL);
     if (poolError) throw new Error(`Could not load candidate pool: ${poolError.message}`);
     const pool = ((poolData ?? []) as CandidateRow[]).map(withCanonicalClassification);
     stats.pool = pool.length;
@@ -209,12 +255,31 @@ serve(async (req) => {
     if (recentError) throw new Error(`Could not load recent topics: ${recentError.message}`);
     const recentTopics = (recentData ?? []).flatMap((row) => (row.topics as string[]) ?? []);
 
-    const selectedResearch = selectIssueCandidates(pool.map(asResearchCandidate), DRAFT_ARTICLE_COUNT, recentTopics);
+    const researchPool = pool.map(asResearchCandidate);
+    const rankedEligible = rankEligibleCandidates(researchPool);
+    const deterministicShortlist = buildEditorialShortlist(researchPool, MAX_EDITORIAL_SHORTLIST);
+    stats.shortlist = deterministicShortlist.length;
+    stats.excludedWeakOrIncomplete = pool.length - rankedEligible.length;
+    const selectedResearch = selectRankedIssueCandidates(
+      deterministicShortlist,
+      DRAFT_ARTICLE_COUNT,
+      recentTopics,
+    );
     if (selectedResearch.length < 4) throw new Error("Fewer than four eligible candidates are available");
     const selectedRows = selectedResearch.map((candidate) => pool.find((row) => row.pmid === candidate.pmid)!);
-    const editorialResult = await generateEditorial(selectedRows);
-    const editorial = editorialResult.items;
     stats.selected = selectedRows.length;
+    const anthropicStats: SafeAnthropicStats = {
+      candidateCount: 0,
+      payloadBytes: 0,
+      estimatedInputTokens: 0,
+      attemptCount: 0,
+      elapsedMs: 0,
+      errorCategory: null,
+      attempts: [],
+    };
+    stats.anthropic = anthropicStats;
+    const editorialResult = await generateEditorial(selectedRows, anthropicStats);
+    const editorial = editorialResult.items;
     stats.aiUsage = editorialResult.usage;
 
     for (const item of editorial) {

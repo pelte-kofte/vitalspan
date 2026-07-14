@@ -100,5 +100,8 @@ export const BRIEF_TOPICS: BriefTopicConfig[] = [
 
 export const MAX_RESULTS_PER_TOPIC = 12;
 export const INGESTION_LOOKBACK_DAYS = 10;
-export const MAX_EDITORIAL_POOL = 24;
+// Rank the full weekly pool deterministically, then bound the shortlist before
+// selecting the five records that are sent to Anthropic.
+export const MAX_RANKING_POOL = 250;
+export const MAX_EDITORIAL_SHORTLIST = 12;
 export const DRAFT_ARTICLE_COUNT = 5;
