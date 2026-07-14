@@ -1,4 +1,5 @@
 import type { StudyType } from "./briefPipeline.ts";
+import { buildEditorialSchema, buildMinimalDiagnosticSchema, type JsonSchema } from "./briefSchema.ts";
 
 export const MAX_AI_SOURCE_CANDIDATES = 5;
 export const MAX_ABSTRACT_CHARACTERS = 2_400;
@@ -56,6 +57,12 @@ export interface EditorialItem {
   evidenceLabel: "High" | "Moderate" | "Preliminary" | "Limited";
 }
 
+export interface ValidatedEditorialIssue {
+  issueTitle: string;
+  pharmacistNote: string;
+  items: EditorialItem[];
+}
+
 export interface AnthropicEditorialRequest {
   model: string;
   max_tokens: number;
@@ -73,6 +80,18 @@ export interface SafeEditorialRequestMetrics {
   candidateCount: number;
   payloadBytes: number;
   estimatedInputTokens: number;
+}
+
+export interface SafeAnthropicErrorDetails {
+  httpStatus: number;
+  errorType: string | null;
+  errorMessage: string | null;
+  requestId: string | null;
+}
+
+export interface AnthropicRequestCompatibilityAudit {
+  hasCitations: boolean;
+  hasAssistantPrefill: boolean;
 }
 
 function compactWhitespace(value: string): string {
@@ -200,37 +219,11 @@ const EDITORIAL_SYSTEM_PROMPT = [
   "You draft The Vitalspan Brief for mandatory human pharmacist review.",
   "Use only the supplied PubMed source packets. Never add or alter facts, effect sizes, sample sizes, designs, journals, identifiers, diagnoses, treatment instructions, or clinical recommendations.",
   "Keep association distinct from causation. Preserve uncertainty and all safety signals. Evidence labels must be conservative and one of High, Moderate, Preliminary, or Limited.",
-  "For each supplied id, write only the existing fields: a restrained headline, a 2-3 sentence factual summary, a concise whyItMatters without reader instructions, concise limitations grounded in the packet, and an evidenceLabel.",
+  "The first supplied candidate is the cover and every remaining candidate is an ordered brief; do not change the selection or order.",
+  "Return exactly issueTitle, cover, briefs, and pharmacistNote. For the cover and every brief return candidateId, a restrained headline, a 2-3 sentence factual summary, a concise takeaway without reader instructions, concise limitations grounded in the packet, and an evidenceLabel.",
+  "Keep issueTitle concise. Keep pharmacistNote concise, grounded in the supplied sources, and free of direct medical recommendations.",
   "When limitation detail is absent, say the supplied abstract does not provide enough detail. Return strict JSON only, with no markdown or prose outside the schema.",
 ].join(" ");
-
-function editorialSchema(candidateCount: number): Record<string, unknown> {
-  return {
-    type: "object",
-    properties: {
-      articles: {
-        type: "array",
-        minItems: candidateCount,
-        maxItems: candidateCount,
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            headline: { type: "string" },
-            summary: { type: "string" },
-            whyItMatters: { type: "string" },
-            limitations: { type: "string" },
-            evidenceLabel: { type: "string", enum: ["High", "Moderate", "Preliminary", "Limited"] },
-          },
-          required: ["id", "headline", "summary", "whyItMatters", "limitations", "evidenceLabel"],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ["articles"],
-    additionalProperties: false,
-  };
-}
 
 export function buildAnthropicEditorialRequest(
   packets: EditorialSourcePacket[],
@@ -244,9 +237,86 @@ export function buildAnthropicEditorialRequest(
     output_config: {
       format: {
         type: "json_schema",
-        schema: editorialSchema(packets.length),
+        schema: buildEditorialSchema(),
       },
     },
+  };
+}
+
+export function buildMinimalStructuredOutputRequest(model = EDITORIAL_MODEL): AnthropicEditorialRequest {
+  return {
+    model,
+    max_tokens: 64,
+    system: "Return the required JSON value only.",
+    messages: [{ role: "user", content: "Return a short greeting." }],
+    output_config: {
+      format: {
+        type: "json_schema",
+        schema: buildMinimalDiagnosticSchema(),
+      },
+    },
+  };
+}
+
+export function buildPlainJsonEditorialRequest(
+  packets: EditorialSourcePacket[],
+  model = EDITORIAL_MODEL,
+): Omit<AnthropicEditorialRequest, "output_config"> {
+  const { output_config: _outputConfig, ...request } = buildAnthropicEditorialRequest(packets, model);
+  return request;
+}
+
+export function auditAnthropicRequestCompatibility(request: unknown): AnthropicRequestCompatibilityAudit {
+  let hasCitations = false;
+  const inspect = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value) inspect(item);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      if (key === "citations") hasCitations = true;
+      inspect(child);
+    }
+  };
+  inspect(request);
+  const messages = request && typeof request === "object"
+    ? (request as { messages?: unknown }).messages
+    : null;
+  const lastMessage = Array.isArray(messages) ? messages.at(-1) : null;
+  const hasAssistantPrefill = Boolean(
+    lastMessage && typeof lastMessage === "object" && (lastMessage as { role?: unknown }).role === "assistant",
+  );
+  return { hasCitations, hasAssistantPrefill };
+}
+
+function safeDiagnosticString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  return normalized ? normalized.slice(0, 1_000) : null;
+}
+
+/** Consumes an Anthropic error response body exactly once and returns only allowlisted diagnostics. */
+export async function extractSafeAnthropicError(response: Response): Promise<SafeAnthropicErrorDetails> {
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(await response.text());
+  } catch {
+    // Malformed or non-JSON bodies are deliberately discarded.
+  }
+  const error = payload && typeof payload === "object"
+    ? (payload as { error?: unknown }).error
+    : null;
+  const safeError = error && typeof error === "object"
+    ? error as { type?: unknown; message?: unknown }
+    : null;
+  return {
+    httpStatus: response.status,
+    errorType: safeDiagnosticString(safeError?.type),
+    errorMessage: safeDiagnosticString(safeError?.message),
+    requestId: safeDiagnosticString(
+      response.headers.get("request-id") ?? response.headers.get("x-request-id"),
+    ),
   };
 }
 
@@ -276,32 +346,49 @@ export function safeEditorialRequestMetrics(
   };
 }
 
-export function validateEditorial(raw: unknown, selectedIds: string[]): EditorialItem[] {
-  const articles = (raw as { articles?: unknown[] })?.articles;
-  if (!Array.isArray(articles) || articles.length !== selectedIds.length) {
+interface RawEditorialArticle {
+  candidateId?: unknown;
+  headline?: unknown;
+  summary?: unknown;
+  takeaway?: unknown;
+  limitations?: unknown;
+  evidenceLabel?: unknown;
+}
+
+function requiredEditorialText(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`AI omitted ${field}`);
+  return value.trim();
+}
+
+export function validateEditorial(raw: unknown, selectedIds: string[]): ValidatedEditorialIssue {
+  const value = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  const cover = value.cover as RawEditorialArticle | undefined;
+  const briefs = value.briefs;
+  if (!cover || !Array.isArray(briefs) || briefs.length !== Math.max(0, selectedIds.length - 1)) {
     throw new Error("AI editorial response has the wrong article count");
   }
   const allowedLabels = new Set(["High", "Moderate", "Preliminary", "Limited"]);
   const byId = new Map<string, EditorialItem>();
-  for (const item of articles) {
-    const value = item as Partial<EditorialItem>;
-    if (!value.id || !selectedIds.includes(value.id) || byId.has(value.id)) {
+  for (const item of [cover, ...briefs] as RawEditorialArticle[]) {
+    if (typeof item.candidateId !== "string" || !selectedIds.includes(item.candidateId) || byId.has(item.candidateId)) {
       throw new Error("AI returned an invalid candidate id");
     }
-    for (const field of ["headline", "summary", "whyItMatters", "limitations"] as const) {
-      if (typeof value[field] !== "string" || !value[field]!.trim()) throw new Error(`AI omitted ${field}`);
-    }
-    if (!value.evidenceLabel || !allowedLabels.has(value.evidenceLabel)) {
+    if (typeof item.evidenceLabel !== "string" || !allowedLabels.has(item.evidenceLabel)) {
       throw new Error("AI returned an invalid evidence label");
     }
-    byId.set(value.id, {
-      id: value.id,
-      headline: value.headline!.trim().slice(0, 180),
-      summary: value.summary!.trim().slice(0, 1_200),
-      whyItMatters: value.whyItMatters!.trim().slice(0, 600),
-      limitations: value.limitations!.trim().slice(0, 600),
-      evidenceLabel: value.evidenceLabel,
+    byId.set(item.candidateId, {
+      id: item.candidateId,
+      headline: requiredEditorialText(item.headline, "headline").slice(0, 180),
+      summary: requiredEditorialText(item.summary, "summary").slice(0, 1_200),
+      whyItMatters: requiredEditorialText(item.takeaway, "takeaway").slice(0, 600),
+      limitations: requiredEditorialText(item.limitations, "limitations").slice(0, 600),
+      evidenceLabel: item.evidenceLabel as EditorialItem["evidenceLabel"],
     });
   }
-  return selectedIds.map((id) => byId.get(id)!);
+  if (cover.candidateId !== selectedIds[0]) throw new Error("AI changed the deterministic cover selection");
+  return {
+    issueTitle: requiredEditorialText(value.issueTitle, "issueTitle").slice(0, 180),
+    pharmacistNote: requiredEditorialText(value.pharmacistNote, "pharmacistNote").slice(0, 1_200),
+    items: selectedIds.map((id) => byId.get(id)!),
+  };
 }

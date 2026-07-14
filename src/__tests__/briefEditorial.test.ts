@@ -1,12 +1,20 @@
 import {
   type EditorialCandidateSource,
   MAX_ABSTRACT_CHARACTERS,
+  auditAnthropicRequestCompatibility,
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
+  buildMinimalStructuredOutputRequest,
+  extractSafeAnthropicError,
   safeEditorialRequestMetrics,
   truncateAbstract,
   validateEditorial,
 } from '../../supabase/functions/_shared/briefEditorial';
+import {
+  auditJsonSchema,
+  buildEditorialSchema,
+  buildMinimalDiagnosticSchema,
+} from '../../supabase/functions/_shared/briefSchema';
 import {
   type ResearchCandidate,
   buildEditorialShortlist,
@@ -126,6 +134,82 @@ describe('Brief editorial source packet', () => {
     expect(serialized).not.toContain('Study 1');
     expect(serialized).not.toContain('api');
   });
+
+  test('keeps every output object closed and schema complexity below Anthropic limits', () => {
+    const schema = buildEditorialSchema();
+    const audit = auditJsonSchema(schema);
+
+    expect(Object.keys(schema.properties as object)).toEqual([
+      'issueTitle', 'cover', 'briefs', 'pharmacistNote',
+    ]);
+    const properties = schema.properties as Record<string, Record<string, unknown>>;
+    const requiredArticleFields = [
+      'candidateId', 'headline', 'summary', 'takeaway', 'limitations', 'evidenceLabel',
+    ];
+    expect(properties.cover.required).toEqual(requiredArticleFields);
+    expect((properties.briefs.items as Record<string, unknown>).required).toEqual(requiredArticleFields);
+    expect(audit.everyObjectClosed).toBe(true);
+    expect(audit.optionalFields).toBeLessThan(24);
+    expect(audit.unionTypeFields).toBeLessThan(16);
+    expect(audit.arraysWithOptionalObjectFields).toBe(0);
+    expect(audit.unsupportedKeywords).toEqual([]);
+  });
+
+  test('does not combine structured output with citations or assistant prefill', () => {
+    const request = buildAnthropicEditorialRequest(
+      buildEditorialSourcePacket([editorialCandidate(1)]),
+    );
+
+    expect(auditAnthropicRequestCompatibility(request)).toEqual({
+      hasCitations: false,
+      hasAssistantPrefill: false,
+    });
+  });
+
+  test('constructs the minimal diagnostic request with one closed required string', () => {
+    const request = buildMinimalStructuredOutputRequest();
+    const audit = auditJsonSchema(buildMinimalDiagnosticSchema());
+
+    expect(request.output_config.format.type).toBe('json_schema');
+    expect(request.messages).toEqual([{ role: 'user', content: 'Return a short greeting.' }]);
+    expect(audit).toMatchObject({
+      objectNodes: 1,
+      everyObjectClosed: true,
+      requiredFields: 1,
+      optionalFields: 0,
+      unionTypeFields: 0,
+    });
+  });
+
+  test('extracts only allowlisted Anthropic error diagnostics and consumes the body once', async () => {
+    const response = new Response(JSON.stringify({
+      error: { type: 'invalid_request_error', message: 'Schema keyword is unsupported.' },
+      request: {
+        apiKey: 'secret-key-value',
+        prompt: 'private prompt text',
+        abstract: 'private abstract text',
+        title: 'private candidate title',
+      },
+    }), {
+      status: 400,
+      headers: { 'request-id': 'req_safe_123' },
+    });
+
+    const safe = await extractSafeAnthropicError(response);
+    const serialized = JSON.stringify(safe);
+
+    expect(safe).toEqual({
+      httpStatus: 400,
+      errorType: 'invalid_request_error',
+      errorMessage: 'Schema keyword is unsupported.',
+      requestId: 'req_safe_123',
+    });
+    expect(response.bodyUsed).toBe(true);
+    expect(serialized).not.toContain('secret-key-value');
+    expect(serialized).not.toContain('private prompt text');
+    expect(serialized).not.toContain('private abstract text');
+    expect(serialized).not.toContain('private candidate title');
+  });
 });
 
 describe('Brief Anthropic retry policy', () => {
@@ -182,26 +266,41 @@ describe('Brief Anthropic retry policy', () => {
 
 describe('Brief editorial response validation', () => {
   const valid = {
-    id: 'one',
+    candidateId: 'one',
     headline: 'Headline',
     summary: 'Summary',
-    whyItMatters: 'Why it matters',
+    takeaway: 'Why it matters',
     limitations: 'Limitations',
     evidenceLabel: 'Moderate',
   };
 
-  test('keeps the existing schema and selected-id order behavior', () => {
-    const second = { ...valid, id: 'two', headline: 'Second' };
-    expect(validateEditorial({ articles: [second, valid] }, ['one', 'two']).map((item) => item.id))
+  function issue(cover = valid, briefs: typeof valid[] = []) {
+    return {
+      issueTitle: 'Issue title',
+      cover,
+      briefs,
+      pharmacistNote: 'Pharmacist note',
+    };
+  }
+
+  test('keeps deterministic cover and selected-id order behavior', () => {
+    const second = { ...valid, candidateId: 'two', headline: 'Second' };
+    expect(validateEditorial(issue(valid, [second]), ['one', 'two']).items.map((item) => item.id))
       .toEqual(['one', 'two']);
   });
 
   test('still rejects wrong counts, duplicate ids, and omitted fields', () => {
-    expect(() => validateEditorial({ articles: [valid] }, ['one', 'two']))
+    expect(() => validateEditorial(issue(valid), ['one', 'two']))
       .toThrow('wrong article count');
-    expect(() => validateEditorial({ articles: [valid, valid] }, ['one', 'two']))
+    expect(() => validateEditorial(issue(valid, [valid]), ['one', 'two']))
       .toThrow('invalid candidate id');
-    expect(() => validateEditorial({ articles: [{ ...valid, summary: '' }] }, ['one']))
+    expect(() => validateEditorial(issue({ ...valid, summary: '' }), ['one']))
       .toThrow('AI omitted summary');
+  });
+
+  test('rejects an AI attempt to replace the deterministic cover', () => {
+    const second = { ...valid, candidateId: 'two' };
+    expect(() => validateEditorial(issue(second, [valid]), ['one', 'two']))
+      .toThrow('deterministic cover');
   });
 });

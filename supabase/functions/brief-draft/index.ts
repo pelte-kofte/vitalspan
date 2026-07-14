@@ -18,6 +18,7 @@ import {
   type EditorialItem,
   buildAnthropicEditorialRequest,
   buildEditorialSourcePacket,
+  extractSafeAnthropicError,
   safeEditorialRequestMetrics,
   validateEditorial,
 } from "../_shared/briefEditorial.ts";
@@ -70,7 +71,11 @@ function withCanonicalClassification(row: CandidateRow): CandidateRow {
 }
 
 interface EditorialResult {
-  items: EditorialItem[];
+  issue: {
+    issueTitle: string;
+    pharmacistNote: string;
+    items: EditorialItem[];
+  };
   usage: { input_tokens?: number; output_tokens?: number } | null;
 }
 
@@ -81,6 +86,10 @@ interface SafeAnthropicStats {
   attemptCount: number;
   elapsedMs: number;
   errorCategory: string | null;
+  httpStatus: number | null;
+  upstreamErrorType: string | null;
+  upstreamErrorMessage: string | null;
+  requestId: string | null;
   attempts: FetchAttemptMetadata[];
 }
 
@@ -184,7 +193,17 @@ async function generateEditorial(rows: CandidateRow[], stats: SafeAnthropicStats
     stats.elapsedMs = Date.now() - startedAt;
     if (!response.ok) {
       stats.errorCategory = response.status >= 400 && response.status < 500 ? "permanent_4xx" : "server_error";
-      throw new Error(`Anthropic editorial request failed with HTTP ${response.status}`);
+      const safeError = await extractSafeAnthropicError(response);
+      stats.httpStatus = safeError.httpStatus;
+      stats.upstreamErrorType = safeError.errorType;
+      stats.upstreamErrorMessage = safeError.errorMessage;
+      stats.requestId = safeError.requestId;
+      stats.elapsedMs = Date.now() - startedAt;
+      console.error("brief-draft Anthropic safe error", JSON.stringify(safeError));
+      const detail = [safeError.errorType, safeError.errorMessage].filter(Boolean).join(": ");
+      throw new Error(
+        `Anthropic editorial request failed with HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
+      );
     }
 
     let payload: {
@@ -196,7 +215,7 @@ async function generateEditorial(rows: CandidateRow[], stats: SafeAnthropicStats
       const text = payload.content?.find((block) => block.type === "text")?.text;
       if (typeof text !== "string") throw new Error("Anthropic returned no editorial text");
       return {
-        items: validateEditorial(JSON.parse(text), rows.map((row) => row.id)),
+        issue: validateEditorial(JSON.parse(text), rows.map((row) => row.id)),
         usage: payload.usage ?? null,
       };
     } catch (error) {
@@ -275,11 +294,15 @@ serve(async (req) => {
       attemptCount: 0,
       elapsedMs: 0,
       errorCategory: null,
+      httpStatus: null,
+      upstreamErrorType: null,
+      upstreamErrorMessage: null,
+      requestId: null,
       attempts: [],
     };
     stats.anthropic = anthropicStats;
     const editorialResult = await generateEditorial(selectedRows, anthropicStats);
-    const editorial = editorialResult.items;
+    const editorial = editorialResult.issue.items;
     stats.aiUsage = editorialResult.usage;
 
     for (const item of editorial) {
@@ -317,8 +340,8 @@ serve(async (req) => {
         proposed_publish_date: new Date().toISOString().slice(0, 10),
         cover_candidate_id: selectedIds[0],
         candidate_ids: selectedIds,
-        pharmacist_note_draft: "Pharmacist review required before publication.",
-        title: `The Vitalspan Brief — Week of ${weekStart}`,
+        pharmacist_note_draft: editorialResult.issue.pharmacistNote,
+        title: editorialResult.issue.issueTitle,
         status: "ready_for_review",
       })
       .select("id")

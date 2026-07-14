@@ -15,6 +15,7 @@ module.exports = {
       tsconfig: {
         strict: true,
         esModuleInterop: true,
+        allowImportingTsExtensions: true,
       },
     }],
   },
