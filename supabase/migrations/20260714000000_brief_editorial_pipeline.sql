@@ -175,6 +175,11 @@ DROP POLICY IF EXISTS "anon insert issues" ON public.issues;
 DROP POLICY IF EXISTS "anon update issues" ON public.issues;
 DROP POLICY IF EXISTS "public read articles" ON public.articles;
 DROP POLICY IF EXISTS "public read issues" ON public.issues;
+DROP POLICY IF EXISTS "public read published articles" ON public.articles;
+DROP POLICY IF EXISTS "public read published issues" ON public.issues;
+DROP POLICY IF EXISTS "brief admins read candidates" ON public.article_candidates;
+DROP POLICY IF EXISTS "brief admins read drafts" ON public.editorial_drafts;
+DROP POLICY IF EXISTS "brief admins read jobs" ON public.publication_jobs;
 
 CREATE POLICY "public read published articles"
   ON public.articles FOR SELECT TO anon, authenticated
