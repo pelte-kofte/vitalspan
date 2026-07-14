@@ -1,0 +1,103 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "local-issue-1",
+  "source": "local-task-context",
+  "productionSupabaseCalled": false,
+  "issueNumber": 1,
+  "issueTitle": "The Gut, the Heart, and the Aging Brain",
+  "editorialThesis": "This week's selected evidence spans microbial stress, cardiovascular treatment choice, movement, weight management, and multidomain cognitive prevention; the signals are worthwhile, but they do not establish one shared mechanism.",
+  "themeConfidence": "low",
+  "themeType": "no-unifying-theme",
+  "sources": [
+    {
+      "candidateId": "local-pmid-42438056",
+      "pmid": "42438056",
+      "title": "Lactiplantibacillus plantarum (WJL) ameliorates chronic kidney disease by inhibiting fibroblast growth factor 21 adaptive stress response via low protein diet.",
+      "journal": "Gut Microbes",
+      "publicationDate": "2026-07-14",
+      "doi": "10.1080/19490976.2026.2696622",
+      "sourcePhrase": "A preclinical microbial intervention study reports a kidney-stress response in the context of a low-protein diet."
+    },
+    {
+      "candidateId": "local-pmid-42443539",
+      "pmid": "42443539",
+      "title": "Impact of carvedilol versus metoprolol on ventricular arrhythmia burden and ICD therapies: a systematic review and meta-analysis.",
+      "journal": "European Journal of Clinical Pharmacology",
+      "publicationDate": "2026-07-14",
+      "doi": "10.1007/s00228-026-04139-y",
+      "sourcePhrase": "A systematic review compares two beta blockers for ventricular arrhythmia burden and ICD therapy outcomes."
+    },
+    {
+      "candidateId": "local-pmid-42440326",
+      "pmid": "42440326",
+      "title": "Physical activity for the management of obesity in children up to the age of 9 years.",
+      "journal": "Cochrane Database of Systematic Reviews",
+      "publicationDate": "2026-07-13",
+      "doi": "10.1002/14651858.CD015988",
+      "sourcePhrase": "A Cochrane review evaluates physical activity for obesity management in children aged nine years or younger."
+    },
+    {
+      "candidateId": "local-pmid-42442701",
+      "pmid": "42442701",
+      "title": "Efficacy and tolerability of nutraceuticals and phytotherapics for antipsychotic-induced weight gain in schizophrenia spectrum disorders: Systematic review and meta-analysis.",
+      "journal": "Pharmacopsychiatry",
+      "publicationDate": "2026-07-13",
+      "doi": "10.1055/a-2869-0635",
+      "sourcePhrase": "A systematic review examines nutraceutical and phytotherapy approaches to antipsychotic-associated weight gain."
+    },
+    {
+      "candidateId": "local-pmid-42442374",
+      "pmid": "42442374",
+      "title": "Multidomain lifestyle intervention for the prevention of cognitive decline in at-risk older adults in Latin America (LatAm-FINGERS): a single-blind, multicentre, randomised controlled trial.",
+      "journal": "The Lancet",
+      "publicationDate": "2026-07-13",
+      "doi": "10.1016/S0140-6736(26)01278-X",
+      "sourcePhrase": "A multicentre randomized trial studies a multidomain lifestyle intervention for cognitive decline prevention in at-risk older adults in Latin America."
+    }
+  ],
+  "direction": {
+    "centralTension": "Five useful observations share one week of attention without resolving into one biological explanation.",
+    "coverPaperRole": "The multidomain cognitive-prevention trial is an entry point into the week's questions, not a claim of greater importance or a mechanism linking all five papers.",
+    "compositionFamily": "constellation",
+    "physicalWorld": "A shallow, quiet tabletop world of weathered natural and domestic forms arranged on warm paper in cool morning light.",
+    "heroObject": "a closed seed pod",
+    "supportingForms": [
+      "a small unglazed ceramic vessel",
+      "a bent reed",
+      "a folded mineral-blue textile",
+      "a smooth dark stone"
+    ],
+    "dominantObjects": [
+      "a small unglazed ceramic vessel",
+      "a bent reed",
+      "a folded mineral-blue textile",
+      "a smooth dark stone",
+      "a closed seed pod"
+    ],
+    "heroDescription": "Five distinct forms sit with generous intervals and individual shadows; none touches another, and no form dominates the group.",
+    "controlledImpossibility": "Only the seed pod's shadow stops a finger-width before the object that should cast it.",
+    "unresolvedState": "The arrangement feels poised for comparison, but its five parts remain deliberately separate.",
+    "supportedInterpretation": "The week contains several credible lines of inquiry across different interventions, populations, and outcomes.",
+    "principalUncertainty": "The studies differ in population, intervention, endpoint, and evidentiary context, so their coexistence does not establish a shared gut-heart-brain pathway.",
+    "claimsNotImply": [
+      "That the five studies demonstrate a shared biological mechanism.",
+      "That association or intervention evidence in one population establishes causation in another.",
+      "That one medicine, supplement, lifestyle program, or dietary approach is clinically recommended.",
+      "That findings generalize across children, adults with schizophrenia, kidney-disease models, cardiac populations, and at-risk older adults.",
+      "That the visually featured paper is the week's most important evidence."
+    ],
+    "palette": {
+      "ground": "Bone Paper #EEE8DC",
+      "structural": "Editorial Ink #252421",
+      "biological": "Oxidized Blue #667B88",
+      "accent": "Clay Coral #BC7161",
+      "accentPercent": 7
+    },
+    "cropPlan": {
+      "masterAspectRatio": "3:4",
+      "upperQuietPercent": 18,
+      "centralSafePercent": 70,
+      "lowerNonessentialPercent": 13
+    }
+  }
+}

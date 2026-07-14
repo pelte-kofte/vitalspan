@@ -8,7 +8,9 @@
     "ios": "expo run:ios",
     "android": "expo run:android",
     "test": "jest",
-    "brief:admin": "node scripts/brief-admin.mjs"
+    "brief:admin": "node --no-warnings scripts/brief-admin.mjs",
+    "brief:cover": "node --no-warnings --permission --allow-fs-read=. scripts/brief-cover-admin.mjs",
+    "brief:cover:migration:dry-run": "node scripts/brief-cover-migration-dry-run.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

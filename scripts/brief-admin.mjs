@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js'
+import { readFile } from 'node:fs/promises'
+import {
+  ART_BIBLE_SHA256,
+  COVER_PROMPT_VERSION,
+  PERMANENT_EXCLUSION_BLOCK,
+  PERMANENT_STYLE_BLOCK,
+  auditCoverConcept,
+  buildCoverConcept,
+} from '../supabase/functions/_shared/briefCover.ts'
 
 const args = process.argv.slice(2)
 const command = args.shift()
@@ -41,8 +50,33 @@ Commands:
   npm run brief:admin -- edit-candidate <candidate-id> --headline "..." --summary "..." --takeaway "..." --limitations "..." --evidence "Moderate"
   npm run brief:admin -- edit-draft <draft-id> --cover <candidate-id> --order <id,id,id,id[,id]> --title "..." --note "..."
   npm run brief:admin -- review-draft <draft-id> --status draft|ready_for_review|approved|rejected
+  npm run brief:admin -- create-cover-concept <draft-id> --fixture fixtures/brief/issue-1-draft.json
+  npm run brief:admin -- generate-cover <draft-id>
+  npm run brief:admin -- inspect-cover <draft-id>
+  npm run brief:admin -- approve-cover <draft-id>
+  npm run brief:admin -- reject-cover <draft-id> --reason "..."
+  npm run brief:admin -- regenerate-cover <draft-id>
   npm run brief:admin -- publish <draft-id> --confirm publish
 `)
+}
+
+async function invokeCoverPipeline(url, draftId) {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const pipelineSecret = process.env.BRIEF_PIPELINE_SECRET
+  if (!serviceRoleKey || !pipelineSecret) {
+    throw new Error('generate-cover requires server-side SUPABASE_SERVICE_ROLE_KEY and BRIEF_PIPELINE_SECRET environment configuration')
+  }
+  const response = await fetch(`${url}/functions/v1/brief-cover`, {
+    method: 'POST',
+    headers: {
+      apikey: serviceRoleKey,
+      'x-brief-pipeline-secret': pipelineSecret,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ draftId }),
+  })
+  if (!response.ok) throw new Error(`brief-cover service failed with HTTP ${response.status}`)
+  return response.json()
 }
 
 async function main() {
@@ -71,6 +105,98 @@ async function main() {
     const { data, error } = await promise
     if (error) throw new Error(error.message)
     return data
+  }
+
+  if (command === 'create-cover-concept') {
+    const draftId = positional(0, 'draft id')
+    const fixturePath = option('fixture', true)
+    const fixture = JSON.parse(await readFile(fixturePath, 'utf8'))
+    const concept = buildCoverConcept(fixture)
+    const audit = auditCoverConcept(concept)
+    if (!audit.passed) throw new Error(`Cover concept audit failed: ${audit.failures.join(', ')}`)
+    const draft = await checked(supabase.from('editorial_drafts')
+      .select('id,status,candidate_ids')
+      .eq('id', draftId).single())
+    if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
+    const candidates = await checked(supabase.from('article_candidates')
+      .select('id,pmid').in('id', draft.candidate_ids))
+    const candidateByPmid = new Map(candidates.map((candidate) => [candidate.pmid, candidate.id]))
+    const supportingSources = concept.supportingSources.map((source, index) => {
+      const candidateId = candidateByPmid.get(source.pmid)
+      if (!candidateId) throw new Error(`Fixture PMID ${source.pmid} is not selected in this draft`)
+      return { ...source, candidateId, ordinal: index + 1 }
+    })
+    print(await checked(supabase.rpc('create_cover_concept', {
+      p_draft_id: draftId,
+      p_concept: {
+        artBibleVersion: concept.artBible.version,
+        artBibleSha256: ART_BIBLE_SHA256,
+        promptVersion: COVER_PROMPT_VERSION,
+        permanentStyleBlock: PERMANENT_STYLE_BLOCK,
+        permanentExclusionBlock: PERMANENT_EXCLUSION_BLOCK,
+        editorialThesis: concept.editorialThesis,
+        themeConfidence: concept.themeConfidence,
+        themeType: concept.themeType,
+        centralTension: concept.centralTension,
+        coverPaperRole: concept.coverPaperRole,
+        compositionFamily: concept.compositionFamily,
+        physicalWorld: concept.physicalWorld,
+        heroObject: concept.heroObject,
+        supportingForms: concept.supportingForms,
+        dominantObjects: concept.dominantObjects,
+        heroDescription: concept.heroDescription,
+        controlledImpossibility: concept.controlledImpossibility,
+        unresolvedState: concept.unresolvedState,
+        supportedInterpretation: concept.supportedInterpretation,
+        principalUncertainty: concept.principalUncertainty,
+        claimsNotImply: concept.claimsNotImply,
+        palette: concept.palette,
+        cropPlan: concept.cropPlan,
+        supportingSources,
+      },
+    })))
+    return
+  }
+
+  if (command === 'generate-cover') {
+    print(await invokeCoverPipeline(url, positional(0, 'draft id')))
+    return
+  }
+
+  if (command === 'inspect-cover') {
+    const draftId = positional(0, 'draft id')
+    const generations = await checked(supabase.from('editorial_cover_generations')
+      .select('id,draft_id,version,status,issue_number_snapshot,issue_title_snapshot,theme_confidence,theme_type,composition_family,hero_object,supporting_forms,controlled_impossibility,unresolved_state,palette,crop_plan,provider_id,provider_model,render_size,render_quality,output_mime_type,output_bytes,output_width,output_height,generation_duration_ms,estimated_cost_usd,storage_bucket,storage_path,asset_sha256,prompt_sha256,provider_request_id,created_at,generation_started_at,generation_completed_at,approved_by,approved_at,rejected_by,rejected_at,rejection_reason,failed_at,failure_code,failure_message')
+      .eq('draft_id', draftId).order('version', { ascending: false }))
+    const newest = generations[0]
+    let signedReviewUrl = null
+    if (newest?.storage_bucket === 'brief-covers' && newest.storage_path) {
+      const { data, error } = await supabase.storage.from('brief-covers').createSignedUrl(newest.storage_path, 300)
+      if (error) throw new Error(error.message)
+      signedReviewUrl = data?.signedUrl ?? null
+    }
+    print({ generations, newestSignedReviewUrl: signedReviewUrl, signedUrlExpiresInSeconds: signedReviewUrl ? 300 : null })
+    return
+  }
+
+  if (command === 'approve-cover') {
+    print(await checked(supabase.rpc('approve_cover', { p_draft_id: positional(0, 'draft id') })))
+    return
+  }
+
+  if (command === 'reject-cover') {
+    print(await checked(supabase.rpc('reject_cover', {
+      p_draft_id: positional(0, 'draft id'),
+      p_reason: option('reason', true),
+    })))
+    return
+  }
+
+  if (command === 'regenerate-cover') {
+    const draftId = positional(0, 'draft id')
+    await checked(supabase.rpc('regenerate_cover', { p_draft_id: draftId }))
+    print(await invokeCoverPipeline(url, draftId))
+    return
   }
 
   if (command === 'candidates') {

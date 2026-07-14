@@ -343,6 +343,11 @@ serve(async (req) => {
         candidate_ids: selectedIds,
         pharmacist_note_draft: editorialResult.issue.pharmacistNote,
         title: editorialResult.issue.issueTitle,
+        editorial_thesis: editorialResult.issue.editorialThesis,
+        theme_confidence: editorialResult.issue.themeConfidence,
+        theme_type: editorialResult.issue.themeType,
+        theme_keywords: editorialResult.issue.themeKeywords,
+        theme_evidence: editorialResult.issue.themeEvidence,
         status: "ready_for_review",
       })
       .select("id")
