@@ -17,6 +17,7 @@ import {
   generateAnthropicVisualDirection,
   selectCandidateFromPhase4AResult,
 } from '../supabase/functions/_shared/briefCoverDirection.ts'
+import { compileGptImage2CoverPrompt } from '../supabase/functions/_shared/briefCoverPromptCompiler.ts'
 
 const args = process.argv.slice(2)
 const command = args.shift()
@@ -77,6 +78,7 @@ Commands:
   npm run brief:admin -- review-draft <draft-id> --status draft|ready_for_review|approved|rejected
   npm run brief:admin -- generate-cover-concepts <draft-id>
   npm run brief:admin -- generate-cover-direction <draft-id> --candidate <candidateId> [--candidate-file <phase4a-result.json>]
+  npm run brief:admin -- compile-cover-prompt <draft-id> --candidate <candidateId> --direction-file <phase4b-result.json>
   npm run brief:admin -- create-cover-direction <draft-id> --fixture fixtures/brief/issue-1-draft.json
   npm run brief:admin -- create-cover-concept <draft-id> --fixture fixtures/brief/issue-1-draft.json  legacy alias
   npm run brief:admin -- generate-cover <draft-id>
@@ -222,7 +224,71 @@ async function main() {
       persisted: false,
       imageProviderInvoked: false,
       previousCoverCount: previousRows.length,
+      selectedCandidate,
       ...result,
+    })
+    return
+  }
+
+  if (command === 'compile-cover-prompt') {
+    const draftId = positional(0, 'draft id')
+    const candidateId = option('candidate', true)
+    const directionFile = option('direction-file', true)
+    const phase4bResult = JSON.parse(await readFile(directionFile, 'utf8'))
+    if (phase4bResult.candidateId && phase4bResult.candidateId !== candidateId) {
+      throw new Error(`Phase 4B direction does not belong to ${candidateId}`)
+    }
+    const selectedCandidate = phase4bResult.selectedCandidate
+    const visualDirection = phase4bResult.direction
+    if (!selectedCandidate || !visualDirection) {
+      throw new Error('Direction file must contain selectedCandidate and direction from Phase 4B')
+    }
+    const draft = await checked(supabase.from('editorial_drafts')
+      .select('id,status,editorial_thesis,theme_confidence')
+      .eq('id', draftId).single())
+    if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
+    if (!draft.editorial_thesis || !draft.theme_confidence) {
+      throw new Error('Draft must contain approved editorial intelligence')
+    }
+    const [artBibleContent, foundingCoverDnaContent] = await Promise.all([
+      readFile('.claude/VITALSPAN_ART_BIBLE.md', 'utf8'),
+      readFile('.claude/FOUNDING_COVER_DNA.md', 'utf8'),
+    ])
+    const result = compileGptImage2CoverPrompt({
+      selectedCandidate,
+      visualDirection,
+      artBible: {
+        version: documentVersion(artBibleContent, 'current'),
+        content: artBibleContent,
+      },
+      foundingCoverDna: {
+        version: documentVersion(foundingCoverDnaContent, 'current'),
+        content: foundingCoverDnaContent,
+      },
+      editorialThesis: draft.editorial_thesis,
+      themeConfidence: draft.theme_confidence,
+      prohibitedImplications: visualDirection.prohibitedImplications,
+    })
+    print({
+      draftId,
+      candidateId,
+      phase: '4C',
+      persisted: false,
+      providerInvoked: false,
+      selectedCandidate,
+      visualDirectionSummary: {
+        visualMode: visualDirection.visualMode,
+        visualEnergy: visualDirection.visualEnergy,
+        visualWorld: visualDirection.visualWorld,
+        dominantRelationship: visualDirection.dominantRelationship,
+        silhouettePlan: visualDirection.silhouettePlan,
+      },
+      exactFinalPrompt: result.compiled.finalPrompt,
+      exactExclusions: result.compiled.exclusionPrompt,
+      parameters: result.compiled.providerParameters,
+      promptWordCount: result.compiled.promptWordCount,
+      promptVersion: result.compiled.promptVersion,
+      validation: result.validation,
     })
     return
   }
