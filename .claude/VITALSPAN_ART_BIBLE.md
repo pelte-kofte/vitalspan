@@ -1,12 +1,23 @@
 # VITALSPAN ART BIBLE
+# VITALSPAN ART BIBLE
 
-Version 1.0 — Permanent Visual Constitution
+Status: Canonical
+Version: 1.1
+Owner: Vitalspan
+This document is the permanent visual constitution of Vitalspan.
+
+No implementation, prompt, image generation, or UI change may contradict this document unless this file itself is intentionally revised.
+Version 1.1 — Permanent Visual Constitution
 
 Vitalspan’s visual identity is called **The Living Still**: quiet, hand-painted editorial worlds in which scientific ideas appear as material transformations.
+
+Vitalspan’s second, equally valid visual mode is called **The Living Tapestry**: dense but disciplined biological-poetic worlds in which natural systems echo one another through rhythm, color, and transformation.
 
 A Vitalspan cover does not illustrate a paper literally. It translates the issue’s central scientific tension into one restrained, memorable image.
 
 The subject changes every week. The hand, light, restraint, and intelligence never do.
+
+Editorial restraint must never become visual timidity. **Curiosity must arrive before calm.**
 
 ---
 
@@ -61,6 +72,8 @@ A visually resolved transformation must never imply a mechanism, cure, or causal
 ## Article 5 — Restraint is the premium signal
 
 Vitalspan does not compete for attention through spectacle.
+
+Restraint means editorial control, not visual timidity. Disciplined richness and biological wonder remain compatible with this article when every element serves the thesis.
 
 The cover earns attention through:
 
@@ -123,6 +136,25 @@ A reader should recognize a Vitalspan cover before reading the masthead.
 
 Weekly novelty occurs inside the system, never by abandoning it.
 
+## Article 11 — Memorability is constitutional
+
+Editorial restraint must never become visual timidity.
+
+Every Vitalspan cover must contain one relationship, transformation, or composition that remains memorable after the reader looks away.
+
+The desired reaction is not only calm recognition. It is:
+
+1. Recognition
+2. Wonder
+3. Interpretation
+4. Reflection
+
+**Curiosity must arrive before calm.**
+
+A cover that is tasteful but forgettable fails the Vitalspan standard.
+
+**Reject any image that could be described as merely a tasteful still life.**
+
 ---
 
 # II. Brand Philosophy
@@ -149,6 +181,15 @@ Every cover should produce three sequential reactions:
 
 The intended mood is **quietly revelatory**.
 
+Within the expanded two-mode system, this emotional sequence develops into four governing reactions:
+
+1. **Recognition:** the visual world is immediately legible.
+2. **Wonder:** disruption, transformation, or abundance creates curiosity.
+3. **Interpretation:** the reader begins to understand the editorial relationship.
+4. **Reflection:** the unresolved scientific meaning remains after the first look.
+
+Curiosity must arrive before calm.
+
 Not cheerful. Not ominous. Not mystical. Not futuristic.
 
 ## The governing idea
@@ -159,7 +200,62 @@ The visual world therefore favors systems, consequences, trade-offs, context, an
 
 ---
 
-# III. Visual Language: The Living Still
+# III. Visual Language: The Living Still and The Living Tapestry
+
+## Two approved visual modes
+
+Vitalspan has two permanent, equally valid cover modes. They share the same medium, light, pigment behavior, editorial discipline, and scientific restraint.
+
+### Mode A — The Living Still
+
+The Living Still retains the established Vitalspan definition:
+
+- Restrained still-life composition
+- One hero object or relationship
+- Generous negative space
+- Material tension
+- One controlled impossibility
+- Best for trade-offs, uncertainty, evidence maturity, thresholds, and decision-making
+
+### Mode B — The Living Tapestry
+
+The Living Tapestry is a dense but disciplined biological-poetic composition in which several natural forms appear to belong to one painted world.
+
+It is not a literal anatomical illustration. It is not a scientific diagram. It is not a random collage.
+
+It is a visually rich editorial field where materials, tissues, leaves, branching systems, roots, vessels, membranes, and organic structures echo one another through rhythm, color, and transformation.
+
+The image should feel:
+
+- Immersive
+- Mysterious
+- Layered
+- Luminous without glow effects
+- Biologically suggestive without becoming medically literal
+- Visually abundant but compositionally controlled
+- Recognizably hand-painted
+- Emotionally resonant
+- Iconic at full size
+- Legible as one silhouette at thumbnail size
+
+Use The Living Tapestry for:
+
+- Interconnected systems
+- Gut–heart–brain relationships
+- Microbiome ecology
+- Multisystem biology
+- Metabolism
+- Complex adaptation
+- Networked physiology
+- Issues where the editorial thesis genuinely connects several systems
+- Founding editions or identity-defining issues
+
+Do not use The Living Tapestry when:
+
+- Theme confidence is low
+- The selected studies have no defensible relationship
+- The image would imply an unsupported shared biological mechanism
+- Complexity is being added merely for spectacle
 
 ## Permanent illustration signature
 
@@ -226,6 +322,39 @@ A typical image should contain:
 - 30% lost or atmosphere-absorbed edges
 
 Uniform sharpness makes the work feel digital.
+
+## Living Tapestry style rules
+
+The permanent artistic medium remains unchanged:
+
+- Gouache foundation
+- Translucent glaze
+- Cold-press paper
+- Dry-brush edges
+- Chromatic shadows
+- Cool morning light from the upper left
+- Hand-painted irregularity
+- No photorealism
+- No digital 3D appearance
+
+A Living Tapestry composition may contain:
+
+- One dominant central biological form
+- Two or three supporting organic systems
+- Repeated branching or cellular rhythms
+- Natural fragments such as leaves, roots, membranes, seed structures, vessels, mineral textures, or fluid patterns
+- One controlled transformation linking forms visually
+
+The image must still read as one visual sentence.
+
+Density must be organized around:
+
+- One dominant focal path
+- One principal light source
+- One accent color
+- One central editorial argument
+
+No element may exist only as decoration.
 
 ---
 
@@ -325,6 +454,8 @@ Maintain:
 - One immediately legible focal relationship
 - Generous negative space
 
+For The Living Still, generous negative space remains a primary compositional material. For The Living Tapestry, preserve quiet masthead and crop-safe breathing zones while allowing disciplined richness inside the focal field.
+
 ## Visual hierarchy
 
 1. Hero form or relationship
@@ -344,6 +475,8 @@ Preferred:
 
 Five small objects are permitted only for a deliberately low-confidence “five signals” issue.
 
+In The Living Tapestry, organized systems replace still-life object counting. Use one dominant central biological form, two or three supporting organic systems, and only those fragments required to complete the single editorial sentence.
+
 ## Balance
 
 Compositions should be asymmetrical but settled. The focal point generally sits slightly below and to the right of center, allowing the upper-left light and masthead space to remain active.
@@ -351,6 +484,36 @@ Compositions should be asymmetrical but settled. The focal point generally sits 
 ## Scale
 
 Ordinary objects may be rendered slightly monumental. Tiny scientific imagery should not dominate the cover.
+
+## Visual energy scale
+
+Every cover concept must declare one internal `visualEnergy` value.
+
+### Quiet
+
+- Use The Living Still.
+- Maintain high negative space.
+- Build one object relationship.
+- Best for uncertainty, evidence limits, and threshold themes.
+
+### Balanced
+
+- Either visual mode is permitted.
+- Use moderate detail.
+- Organize one dominant subject with layered supporting forms.
+
+### Immersive
+
+- Use The Living Tapestry.
+- Permit richer detail and biological rhythm.
+- Use only when the editorial thesis is strongly grounded.
+- Never use when theme confidence is low.
+
+Theme confidence governs visual energy:
+
+- **High confidence:** quiet, balanced, or immersive are permitted.
+- **Medium confidence:** quiet or balanced are preferred. Immersive is permitted only when the visual relationship represents editorial tension rather than a claimed shared mechanism.
+- **Low confidence:** quiet Constellation only. Immersive is prohibited.
 
 ---
 
@@ -388,9 +551,11 @@ Avoid:
 
 # VIII. Illustration Direction
 
-## Approved modes
+## Approved compositional families
 
 Future covers should rotate among five compositional families.
+
+These families operate inside the two approved visual modes. The Singular Transformation, Tension Still Life, and Threshold most naturally support The Living Still. The Living System most naturally supports The Living Tapestry. The Constellation remains a quiet, low-confidence Living Still treatment unless a future revision explicitly changes that rule.
 
 ### 1. The Singular Transformation
 
@@ -479,6 +644,36 @@ Metaphors must describe the editorial tension—not invent a biological mechanis
 
 # X. Forbidden Imagery
 
+## Biological abstraction rule
+
+Literal organs remain prohibited by default.
+
+Highly stylized, painterly, non-clinical organ-like silhouettes may be allowed only in The Living Tapestry when:
+
+- They are transformed into an editorial metaphor.
+- They are not anatomically instructional.
+- They do not resemble textbook medical illustration.
+- They are integrated into a larger poetic composition.
+- They do not imply cure, causation, or a shared mechanism unsupported by the issue.
+
+Acceptable treatments include:
+
+- A heart-like vessel becoming a branching root system
+- A brain-like canopy dissolving into painted fibers
+- An intestinal landscape rendered as an ecosystem
+- Vascular forms echoing leaf venation
+
+Unacceptable treatments include:
+
+- Labeled anatomy
+- Isolated floating organs
+- Clinical cross-sections
+- Textbook realism
+- Glowing organs
+- Organs connected by literal medical pathways
+
+Transformed, non-literal, painterly anatomical echoes are permitted only under The Living Tapestry rules above. Floating organs remain prohibited in every mode.
+
 Never use:
 
 - DNA helices
@@ -527,7 +722,7 @@ Faces should be rare. If people are necessary, portray human presence through ge
 Every issue contains:
 
 - The Vitalspan masthead
-- One Living Still illustration
+- One illustration in either approved visual mode: The Living Still or The Living Tapestry
 - One concise issue title
 - Optional restrained issue identifier or date outside the artwork
 
@@ -558,6 +753,8 @@ Use tension, partial alignment, visible trade-offs, or an unfinished transition.
 
 Use the Constellation system: five distinct forms, no connecting roots, threads, pathways, or implied shared mechanism.
 
+Low-confidence themes must use a quiet Living Still Constellation. Living Tapestry and immersive visual energy are prohibited.
+
 ## Series rhythm
 
 Across eight consecutive covers:
@@ -568,6 +765,12 @@ Across eight consecutive covers:
 - At least two covers should be nearly monochromatic.
 - Only one cover may use a visible human trace.
 - No more than one cover should use a landscape.
+- At least two covers should use The Living Still.
+- At least two covers should use The Living Tapestry.
+- No visual mode may appear more than three times consecutively.
+- No two consecutive Living Tapestry covers may use the same organic focal family.
+- The series must alternate between visual quiet and visual richness.
+- Consistency comes from medium, light, pigment, and editorial intelligence—not identical object count.
 
 ---
 
@@ -584,6 +787,9 @@ Before visual ideation, provide:
 - Cover-paper role
 - Principal uncertainty
 - Claims the image must not imply
+- Visual mode
+- Visual energy
+- Memorability device
 
 ## Step 2 — Translate the thesis into a relationship
 
@@ -596,13 +802,23 @@ Reduce the theme to one physical tension:
 - Intervention versus unintended consequence
 - Measurement versus lived complexity
 
-## Step 3 — Select one metaphor family
+## Step 3 — Select visual mode and energy
+
+Declare:
+
+- **Visual mode:** The Living Still or The Living Tapestry
+- **Visual energy:** quiet, balanced, or immersive
+- **Memorability device:** one vivid visual relationship that survives title removal and thumbnail reduction
+
+The selection must follow the theme-confidence and visual-energy rules. Richness is earned by the editorial thesis, never added merely for spectacle.
+
+## Step 4 — Select one metaphor family
 
 Choose the simplest material relationship capable of carrying the tension.
 
 Do not begin with a biological noun. Begin with the editorial relationship.
 
-## Step 4 — Define the unresolved state
+## Step 5 — Define the unresolved state
 
 Specify what remains incomplete:
 
@@ -612,11 +828,11 @@ Specify what remains incomplete:
 - The protective layer leaves another area exposed.
 - The path grows clearer but does not arrive.
 
-## Step 5 — Apply the permanent style block
+## Step 6 — Apply the permanent style block
 
 The permanent style block is never rewritten for a particular issue. Only the concept block changes.
 
-## Step 6 — Audit the claim
+## Step 7 — Audit the claim
 
 Ask:
 
@@ -632,14 +848,23 @@ If yes, revise.
 
 # XIII. Canonical Prompt Framework
 
-## A. Permanent style block
+## A. Permanent style block — The Living Still
 
 > Create a vertical editorial cover illustration for Vitalspan in its permanent “Living Still” visual language: a restrained hand-painted gouache-and-glaze image on subtly visible cold-press paper. Use simplified naturalistic forms, quiet surrealism, cool morning window light from the upper left, soft chromatic shadows, controlled pigment variation, generous negative space, and one precise conceptual focal point. The composition should feel intelligent, tactile, timeless, and contemplative. Use a bone-paper ground, editorial charcoal, one muted biological or mineral color, and no more than one restrained accent. Preserve quiet space in the upper portion for the masthead. The artwork must feel painted by the same consistent editorial illustrator as every other Vitalspan issue.
+
+The permanent medium, light, pigment, paper, edge hierarchy, and editorial intelligence in this block govern both approved modes. Living Tapestry prompts retain those shared rules and append the mode-specific block below.
+
+## A2. Permanent Living Tapestry append block
+
+> Build a layered but disciplined painted biological world. Use repeated natural rhythms, branching forms, membrane-like textures, vascular echoes, roots, leaves, and organic structures as visual metaphors. Preserve one clear focal path and one dominant editorial relationship. The image may feel abundant, but it must never become chaotic, diagrammatic, clinical, or decorative.
 
 ## B. Weekly concept block
 
 > This issue concerns: **[EDITORIAL THESIS]**.  
 > Theme confidence: **[HIGH / MEDIUM / LOW]**.  
+> Visual mode: **[THE LIVING STILL / THE LIVING TAPESTRY]**.
+> Visual energy: **[QUIET / BALANCED / IMMERSIVE]**.
+> Memorability device: **[ONE VIVID VISUAL RELATIONSHIP]**.
 > The central editorial tension is: **[PHYSICAL OR DECISION TENSION]**.  
 > Depict: **[HERO OBJECT AND RELATIONSHIP]**.  
 > The single controlled impossibility is: **[SURREAL EVENT]**.  
@@ -650,6 +875,8 @@ If yes, revise.
 ## C. Permanent exclusion block
 
 > No typography, lettering, logos, numbers, charts, labels, UI, photography, photorealism, 3D rendering, glossy surfaces, neon, medical-blue gradients, futuristic interfaces, DNA helices, floating organs, pills, doctors, hospital imagery, clocks, hourglasses, fitness imagery, stock wellness symbolism, miraculous transformation, or visual claims of cure or rejuvenation.
+
+“Floating organs” means isolated, literal, or clinically rendered organs and remains prohibited. Only transformed, non-literal, painterly anatomical echoes integrated into a grounded Living Tapestry metaphor may use organ-like silhouettes, subject to the Biological Abstraction Rule.
 
 ## D. Low-confidence template
 
@@ -705,6 +932,8 @@ Approximately 80% of every cover is fixed:
 - Absence of typography
 - One controlled impossibility
 
+Negative space is fixed as an intentional behavior, not an identical quantity: expansive in The Living Still and strategically organized around the focal path in The Living Tapestry.
+
 The remaining 20% may change:
 
 - Theme
@@ -713,6 +942,9 @@ The remaining 20% may change:
 - Approved composition family
 - Specific metaphor
 - Degree of visual tension
+- Approved visual mode
+- Visual energy
+- Memorability device
 
 ## Cover rejection criteria
 
@@ -730,6 +962,28 @@ Reject a proposed cover if:
 10. Its palette could not sit beside the previous issues.
 11. The metaphor cannot be traced to the editorial thesis.
 12. The same composition could illustrate almost any health topic.
+13. It is elegant but forgettable.
+14. It resembles generic interior-design wall art.
+15. The controlled impossibility is invisible at first glance.
+16. The metaphor is understandable only after reading the prompt.
+17. The composition lacks a memorable silhouette.
+18. Restraint has removed all emotional or visual tension.
+19. Richness has become decorative clutter.
+20. Biological imagery is literal rather than transformed.
+21. Several systems are shown without a grounded editorial reason.
+22. It could be described as merely a tasteful still life.
+
+## Memorability Test
+
+Every proposed cover must answer yes to all five questions:
+
+- Is there one image relationship that can be described in a single vivid sentence?
+- Would the cover still be recognizable after the title is removed?
+- Does it contain a visual event the reader is likely to remember tomorrow?
+- Does the image invite a second look?
+- Would it feel distinctive beside a premium magazine cover rather than merely decorative wall art?
+
+If the answer to any question is no, reject and revise.
 
 ## Final cover audit
 
@@ -742,6 +996,8 @@ Every approved image must pass:
 - **Series test:** unmistakably Vitalspan beside prior issues
 - **Novelty test:** contains one fresh idea
 - **Restraint test:** nothing can be removed without weakening the image
+- **Memorability test:** one vivid relationship remains recognizable after the title is removed and memorable after the reader looks away
+- **Second-look test:** curiosity arrives before calm and the image rewards renewed attention
 
 ---
 
@@ -760,6 +1016,39 @@ Therefore:
 - Accessibility must be maintained through tonal contrast, not color alone.
 - The last eight covers must always be reviewed together before approving the next.
 
+---
+
+# XVII. Reference Calibration
+
+## Vitalspan Founding Artwork — Living Tapestry reference v1
+
+The existing artwork at `assets/brief-cover-editorial.jpg` is the canonical **“Vitalspan Founding Artwork — Living Tapestry reference v1.”**
+
+Use it only as a visual calibration reference for:
+
+- Richness
+- Biological rhythm
+- Layered organic composition
+- Luminous pigment behavior
+- Emotional impact
+- Memorable silhouette
+
+Do not copy its exact composition.
+
+Do not force gut, heart, or brain imagery into unrelated issues.
+
+Do not use it as the recurring static weekly cover.
+
+Do not modify or delete the asset.
+
+Its purpose is to prevent future generators from interpreting Vitalspan restraint as emptiness or generic minimalism.
+
+---
+
+# XVIII. Final Governing Rule
+
 The ultimate test is simple:
 
 > A Vitalspan cover should look like a beautiful object first, reveal an editorial argument second, and preserve scientific uncertainty throughout.
+
+> **Vitalspan should alternate between contemplative stillness and disciplined biological wonder. The brand is not defined by minimalism alone. It is defined by intelligent beauty, scientific restraint, and unforgettable visual metaphor.**
