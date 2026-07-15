@@ -5,9 +5,9 @@
   "productionSupabaseCalled": false,
   "issueNumber": 1,
   "issueTitle": "The Gut, the Heart, and the Aging Brain",
-  "editorialThesis": "This week's selected evidence spans microbial stress, cardiovascular treatment choice, movement, weight management, and multidomain cognitive prevention; the signals are worthwhile, but they do not establish one shared mechanism.",
-  "themeConfidence": "low",
-  "themeType": "no-unifying-theme",
+  "editorialThesis": "Promising intervention signals repeatedly meet decision limits: nutritional trade-offs, observational uncertainty, and methodological weakness constrain how confidently findings can guide practice.",
+  "themeConfidence": "medium",
+  "themeType": "evidence-limitation",
   "sources": [
     {
       "candidateId": "local-pmid-42438056",
@@ -16,7 +16,7 @@
       "journal": "Gut Microbes",
       "publicationDate": "2026-07-14",
       "doi": "10.1080/19490976.2026.2696622",
-      "sourcePhrase": "A preclinical microbial intervention study reports a kidney-stress response in the context of a low-protein diet."
+      "sourcePhrase": "A microbial intervention study reports a promising kidney-stress signal in the context of the nutritional trade-offs of a low-protein diet."
     },
     {
       "candidateId": "local-pmid-42443539",
@@ -25,7 +25,7 @@
       "journal": "European Journal of Clinical Pharmacology",
       "publicationDate": "2026-07-14",
       "doi": "10.1007/s00228-026-04139-y",
-      "sourcePhrase": "A systematic review compares two beta blockers for ventricular arrhythmia burden and ICD therapy outcomes."
+      "sourcePhrase": "A systematic review reports fewer inappropriate ICD therapies with carvedilol than metoprolol, while study-design differences and residual confounding limit treatment conclusions."
     },
     {
       "candidateId": "local-pmid-42440326",
@@ -34,7 +34,7 @@
       "journal": "Cochrane Database of Systematic Reviews",
       "publicationDate": "2026-07-13",
       "doi": "10.1002/14651858.CD015988",
-      "sourcePhrase": "A Cochrane review evaluates physical activity for obesity management in children aged nine years or younger."
+      "sourcePhrase": "A Cochrane review evaluates physical activity for obesity management in young children, but incomplete abstract reporting limits interpretation."
     },
     {
       "candidateId": "local-pmid-42442701",
@@ -43,7 +43,7 @@
       "journal": "Pharmacopsychiatry",
       "publicationDate": "2026-07-13",
       "doi": "10.1055/a-2869-0635",
-      "sourcePhrase": "A systematic review examines nutraceutical and phytotherapy approaches to antipsychotic-associated weight gain."
+      "sourcePhrase": "A systematic review finds intervention-specific signals for antipsychotic-associated weight gain, with frequent risk of bias limiting generalization."
     },
     {
       "candidateId": "local-pmid-42442374",
@@ -52,46 +52,46 @@
       "journal": "The Lancet",
       "publicationDate": "2026-07-13",
       "doi": "10.1016/S0140-6736(26)01278-X",
-      "sourcePhrase": "A multicentre randomized trial studies a multidomain lifestyle intervention for cognitive decline prevention in at-risk older adults in Latin America."
+      "sourcePhrase": "A single-blind multicentre randomized trial reports cognitive improvement from a multidomain lifestyle program, while the abstract leaves the clinical importance of the difference uncertain."
     }
   ],
   "direction": {
-    "centralTension": "Five useful observations share one week of attention without resolving into one biological explanation.",
-    "coverPaperRole": "The multidomain cognitive-prevention trial is an entry point into the week's questions, not a claim of greater importance or a mechanism linking all five papers.",
-    "compositionFamily": "constellation",
-    "physicalWorld": "A shallow, quiet tabletop world of weathered natural and domestic forms arranged on warm paper in cool morning light.",
-    "heroObject": "a closed seed pod",
+    "centralTension": "A promising signal can approach the threshold of practice without supplying enough certainty to cross it.",
+    "coverPaperRole": "The kidney-diet study is the visual entry point into the week's recurring tension between an intriguing intervention signal and the evidence needed for a confident decision; it is not presented as the most important study.",
+    "compositionFamily": "threshold",
+    "physicalWorld": "A quiet tabletop divided by a narrow mineral sill, rendered as a hand-painted still life on warm cold-press paper in cool morning light.",
+    "heroObject": "a shallow unglazed ceramic bowl",
     "supportingForms": [
-      "a small unglazed ceramic vessel",
-      "a bent reed",
-      "a folded mineral-blue textile",
-      "a smooth dark stone"
-    ],
-    "dominantObjects": [
-      "a small unglazed ceramic vessel",
-      "a bent reed",
-      "a folded mineral-blue textile",
-      "a smooth dark stone",
+      "a folded bone-paper sheet",
+      "a small oxidized-blue weight stone",
+      "a loose measured linen thread",
       "a closed seed pod"
     ],
-    "heroDescription": "Five distinct forms sit with generous intervals and individual shadows; none touches another, and no form dominates the group.",
-    "controlledImpossibility": "Only the seed pod's shadow stops a finger-width before the object that should cast it.",
-    "unresolvedState": "The arrangement feels poised for comparison, but its five parts remain deliberately separate.",
-    "supportedInterpretation": "The week contains several credible lines of inquiry across different interventions, populations, and outcomes.",
-    "principalUncertainty": "The studies differ in population, intervention, endpoint, and evidentiary context, so their coexistence does not establish a shared gut-heart-brain pathway.",
+    "dominantObjects": [
+      "a shallow unglazed ceramic bowl",
+      "a folded bone-paper sheet",
+      "a small oxidized-blue weight stone",
+      "a loose measured linen thread",
+      "a closed seed pod"
+    ],
+    "heroDescription": "The shallow bowl rests just before the mineral sill, carrying the weight stone and closed seed pod; the folded sheet and measured linen thread remain nearby as quiet evidence of trade-offs, measurement, and incomplete decisions.",
+    "controlledImpossibility": "Only the bowl's soft shadow crosses the mineral sill while the bowl itself remains entirely on the near side.",
+    "unresolvedState": "The bowl is poised at the boundary but neither advances nor retreats; its contents remain balanced rather than resolved.",
+    "supportedInterpretation": "Across the selected studies, promising intervention signals coexist with nutritional trade-offs, design uncertainty, incomplete reporting, or risk of bias that constrain practical conclusions.",
+    "principalUncertainty": "The studies span different populations, interventions, endpoints, and evidence designs, so the shared editorial tension does not establish a shared mechanism or a common treatment effect.",
     "claimsNotImply": [
-      "That the five studies demonstrate a shared biological mechanism.",
-      "That association or intervention evidence in one population establishes causation in another.",
-      "That one medicine, supplement, lifestyle program, or dietary approach is clinically recommended.",
-      "That findings generalize across children, adults with schizophrenia, kidney-disease models, cardiac populations, and at-risk older adults.",
-      "That the visually featured paper is the week's most important evidence."
+      "That the five studies demonstrate one biological pathway or shared mechanism.",
+      "That an intriguing intervention signal is sufficient for a treatment decision.",
+      "That one medicine, supplement, lifestyle program, probiotic, or dietary approach is clinically recommended.",
+      "That findings generalize across kidney disease, cardiac populations, young children, adults with schizophrenia, and at-risk older adults.",
+      "That the visually featured kidney-diet study is the week's most important evidence or proves benefit in clinical practice."
     ],
     "palette": {
       "ground": "Bone Paper #EEE8DC",
       "structural": "Editorial Ink #252421",
       "biological": "Oxidized Blue #667B88",
-      "accent": "Clay Coral #BC7161",
-      "accentPercent": 7
+      "accent": "Burnished Amber #B38852",
+      "accentPercent": 8
     },
     "cropPlan": {
       "masterAspectRatio": "3:4",

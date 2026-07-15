@@ -220,12 +220,12 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="Articles"
           component={ArticlesScreen}
-          options={{ presentation: 'card' }}
+          options={{ presentation: 'card', animation: 'fade' }}
         />
         <Stack.Screen
           name="ArticleDetail"
           component={ArticleDetailScreen}
-          options={{ presentation: 'card' }}
+          options={{ presentation: 'card', animation: 'fade_from_bottom' }}
         />
         <Stack.Screen
           name="ExerciseDetail"

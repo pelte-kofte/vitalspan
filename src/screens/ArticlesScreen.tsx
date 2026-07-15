@@ -1,16 +1,40 @@
 import React from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
-  StatusBar, TouchableOpacity, RefreshControl,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated';
 
-import { IssueHeroCard, BriefArticleCard, PharmacistNoteCard, PastIssueRow } from '../components/IssueCard';
+import {
+  ArchiveIntroduction,
+  BriefArticleCard,
+  IssueHeroCard,
+  MagazineMasthead,
+  PAST_ISSUE_GAP,
+  PAST_ISSUE_WIDTH,
+  PastIssueRow,
+  PharmacistNoteCard,
+  SectionHeading,
+} from '../components/IssueCard';
 import { SkeletonLoader } from '../components/ArticleSkeletonLoader';
 import { useIssue } from '../hooks/useIssue';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Colors, Spacing, Typography } from '../theme';
+import { Spacing, Typography } from '../theme';
+import { EditorialColors, EditorialLayout } from '../theme/editorial';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Articles'>;
@@ -21,83 +45,151 @@ export default function ArticlesScreen() {
   const issueNumber = route.params?.issueNumber;
   const isArchiveView = issueNumber === 0;
   const { issue, pastIssues, loading, refreshing, onRefresh } = useIssue(issueNumber);
+  const reduceMotion = useReducedMotion();
+  const archiveScrollX = useSharedValue(0);
+
+  const archiveScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      archiveScrollX.value = event.contentOffset.x;
+    },
+  });
 
   const openArticle = (pmid: string) => nav.navigate('ArticleDetail', { pmid });
   const openIssue = (n: number) => nav.push('Articles', { issueNumber: n });
 
   return (
     <SafeAreaView style={s.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={EditorialColors.ink} />
 
       <View style={s.topBar}>
         <TouchableOpacity
-          style={s.backBtn}
+          style={s.navButton}
           onPress={() => nav.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
+          accessibilityHint="Returns to the previous screen"
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle="Back"
         >
-          <Text style={s.backChevron}>←</Text>
+          <Text style={s.backChevron}>‹</Text>
         </TouchableOpacity>
-        <Text style={s.screenTitle}>THE VITALSPAN BRIEF</Text>
-        <View style={s.backBtn} />
+        <Text style={s.topBarLabel}>WEEKLY EDITION</Text>
+        <View style={s.navButton} accessibilityElementsHidden />
       </View>
 
       {loading && !issue ? (
         <SkeletonLoader />
       ) : !issue ? (
         <View style={s.center}>
-          <Text style={s.emptyTitle}>No issue published yet.</Text>
-          <Text style={s.emptySub}>Check back soon for the first Brief.</Text>
+          <Text style={s.emptyEyebrow}>THE VITALSPAN BRIEF</Text>
+          <Text style={s.emptyTitle} accessibilityRole="header">The next issue is being edited.</Text>
+          <Text style={s.emptySub}>Evidence-led longevity reporting returns here each week.</Text>
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={s.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.dark.ctaPrimary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={EditorialColors.copper} />
           }
         >
-          {issue.coverArticle && (
-            <IssueHeroCard
+          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(420)}>
+            <MagazineMasthead
               issueNumber={issue.issueNumber}
               publishDate={issue.publishDate}
-              article={issue.coverArticle}
-              onPress={() => openArticle(issue.coverArticle!.pmid)}
+              isArchive={isArchiveView}
             />
-          )}
+          </Animated.View>
 
-          {issue.briefArticles.length > 0 && (
-            <View style={s.section}>
-              <Text style={s.sectionLabel}>
-                {isArchiveView ? 'ARCHIVE' : 'THIS WEEK IN THE LITERATURE'}
-              </Text>
-              <View style={s.briefList}>
-                {issue.briefArticles.map((a) => (
-                  <BriefArticleCard key={a.pmid} article={a} onPress={() => openArticle(a.pmid)} />
+          {isArchiveView ? (
+            <Animated.View entering={reduceMotion ? undefined : FadeInUp.duration(520).delay(80)}>
+              <ArchiveIntroduction />
+            </Animated.View>
+          ) : issue.coverArticle ? (
+            <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(720).delay(100)}>
+              <IssueHeroCard
+                issueNumber={issue.issueNumber}
+                publishDate={issue.publishDate}
+                article={issue.coverArticle}
+                onPress={() => openArticle(issue.coverArticle!.pmid)}
+              />
+            </Animated.View>
+          ) : null}
+
+          {issue.briefArticles.length > 0 ? (
+            <Animated.View
+              style={s.section}
+              entering={reduceMotion ? undefined : FadeInUp.duration(480).delay(isArchiveView ? 100 : 220)}
+            >
+              <SectionHeading
+                eyebrow={isArchiveView ? 'Index' : 'Inside this issue'}
+                title={isArchiveView ? 'From the archive' : 'This Week'}
+                description={isArchiveView ? 'A chronological reading room of previously published research.' : 'Four studies selected for relevance, evidence, and what they add to the conversation.'}
+              />
+              <View style={s.articleList}>
+                {issue.briefArticles.map((article, index) => (
+                  <Animated.View
+                    key={article.pmid}
+                    entering={reduceMotion ? undefined : FadeInUp.duration(360).delay(260 + index * 55)}
+                  >
+                    <BriefArticleCard article={article} index={index} onPress={() => openArticle(article.pmid)} />
+                  </Animated.View>
                 ))}
               </View>
-            </View>
-          )}
+            </Animated.View>
+          ) : null}
 
-          {issue.pharmacistNote != null && (
-            <View style={s.section}>
-              <Text style={s.sectionLabel}>PHARMACIST'S NOTE</Text>
+          {issue.pharmacistNote ? (
+            <Animated.View
+              style={s.section}
+              entering={reduceMotion ? undefined : FadeInUp.duration(500).delay(320)}
+            >
+              <SectionHeading eyebrow="From the editor" title="Editor's Perspective" />
               <PharmacistNoteCard note={issue.pharmacistNote} />
-            </View>
-          )}
+            </Animated.View>
+          ) : null}
 
-          {pastIssues.length > 0 && (
-            <View style={s.section}>
-              <Text style={s.sectionLabel}>PAST ISSUES</Text>
-              <View style={s.briefList}>
-                {pastIssues.map((p) => (
-                  <PastIssueRow key={p.issueNumber} issue={p} onPress={() => openIssue(p.issueNumber)} />
+          {pastIssues.length > 0 ? (
+            <Animated.View
+              style={s.section}
+              entering={reduceMotion ? undefined : FadeInUp.duration(500).delay(380)}
+            >
+              <SectionHeading
+                eyebrow="The collection"
+                title="Past Issues"
+                description="Return to earlier editions of The Vitalspan Brief."
+              />
+              <Animated.ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.pastIssuesContent}
+                onScroll={archiveScrollHandler}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+                snapToInterval={PAST_ISSUE_WIDTH + PAST_ISSUE_GAP}
+                snapToAlignment="start"
+                disableIntervalMomentum
+                accessibilityRole="list"
+              >
+                {pastIssues.map((pastIssue, index) => (
+                  <PastIssueRow
+                    key={pastIssue.issueNumber}
+                    issue={pastIssue}
+                    index={index}
+                    scrollX={archiveScrollX}
+                    reduceMotion={reduceMotion}
+                    onPress={() => openIssue(pastIssue.issueNumber)}
+                  />
                 ))}
-              </View>
-            </View>
-          )}
+              </Animated.ScrollView>
+            </Animated.View>
+          ) : null}
 
-          <View style={{ height: Spacing.xxl }} />
+          <View style={s.colophon}>
+            <View style={s.colophonRule} />
+            <Text style={s.colophonMark}>V</Text>
+            <Text style={s.colophonText}>CURATED SCIENCE · HUMAN EDITED</Text>
+          </View>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -105,66 +197,27 @@ export default function ArticlesScreen() {
 }
 
 const s = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.dark.bg,
-  },
+  root: { flex: 1, backgroundColor: EditorialColors.ink },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
+    minHeight: 54,
+    paddingHorizontal: 10,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-  },
-  backChevron: {
-    fontSize: Typography.sizes.lg,
-    color: Colors.dark.textMuted,
-  },
-  screenTitle: {
-    fontSize: Typography.sizes.captionSmall,
-    fontWeight: '600',
-    color: Colors.dark.textMuted,
-    letterSpacing: Typography.letterSpacing.widest,
-  },
-  scrollContent: {
-    paddingTop: Spacing.base,
-    gap: Spacing.lg,
-  },
-  section: {
-    gap: Spacing.md,
-  },
-  sectionLabel: {
-    fontSize: Typography.sizes.captionSmall,
-    fontWeight: '600',
-    letterSpacing: Typography.letterSpacing.widest,
-    textTransform: 'uppercase',
-    color: Colors.dark.textMuted,
-    marginHorizontal: Spacing.base,
-  },
-  briefList: {
-    gap: Spacing.sm,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxl,
-  },
-  emptyTitle: {
-    fontSize: Typography.sizes.body,
-    color: Colors.dark.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  emptySub: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.dark.textMuted,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-  },
+  navButton: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
+  backChevron: { color: EditorialColors.textSecondary, fontSize: 37, fontWeight: '200', lineHeight: 40 },
+  topBarLabel: { color: EditorialColors.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.8 },
+  scrollContent: { paddingTop: 6, paddingBottom: 48, gap: 36 },
+  section: { gap: 18 },
+  articleList: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: EditorialColors.rule },
+  pastIssuesContent: { paddingHorizontal: EditorialLayout.pageInset, paddingBottom: 12, gap: PAST_ISSUE_GAP },
+  colophon: { alignItems: 'center', marginHorizontal: EditorialLayout.pageInset, gap: Spacing.sm, paddingTop: 8 },
+  colophonRule: { width: '100%', height: StyleSheet.hairlineWidth, backgroundColor: EditorialColors.rule },
+  colophonMark: { color: EditorialColors.copper, fontFamily: Typography.displaySerif, fontSize: 22, marginTop: 10 },
+  colophonText: { color: EditorialColors.textMuted, fontSize: 8, fontWeight: '700', letterSpacing: 1.7 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 36, gap: 10 },
+  emptyEyebrow: { color: EditorialColors.copper, fontSize: 9, fontWeight: '700', letterSpacing: 1.8 },
+  emptyTitle: { color: EditorialColors.text, fontFamily: Typography.displaySerif, fontSize: 31, lineHeight: 38, textAlign: 'center' },
+  emptySub: { color: EditorialColors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 320 },
 });

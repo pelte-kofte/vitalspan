@@ -49,6 +49,7 @@ Commands:
   npm run brief:admin -- review-candidate <candidate-id> --status approved|rejected|shortlisted
   npm run brief:admin -- edit-candidate <candidate-id> --headline "..." --summary "..." --takeaway "..." --limitations "..." --evidence "Moderate"
   npm run brief:admin -- edit-draft <draft-id> --cover <candidate-id> --order <id,id,id,id[,id]> --title "..." --note "..."
+  npm run brief:admin -- backfill-issue-one-intelligence <draft-id>
   npm run brief:admin -- review-draft <draft-id> --status draft|ready_for_review|approved|rejected
   npm run brief:admin -- create-cover-concept <draft-id> --fixture fixtures/brief/issue-1-draft.json
   npm run brief:admin -- generate-cover <draft-id>
@@ -263,6 +264,13 @@ async function main() {
       p_candidate_ids: option('order', true).split(',').map((value) => value.trim()),
       p_title: option('title', true),
       p_pharmacist_note: option('note') ?? '',
+    })))
+    return
+  }
+
+  if (command === 'backfill-issue-one-intelligence') {
+    print(await checked(supabase.rpc('backfill_issue_one_editorial_intelligence', {
+      p_draft_id: positional(0, 'draft id'),
     })))
     return
   }

@@ -4,10 +4,15 @@ The Vitalspan Brief is a weekly, pharmacist-approved science publication. PubMed
 
 ## Editorial standard
 
-Each issue contains one cover story and three or four briefs. It should read like a restrained science desk—not a generic AI feed.
+Each issue contains one cover story and three or four briefs. It should read like a premium weekly science magazine—not a generic AI feed, PubMed digest, or press release.
 
 - Prefer systematic reviews, meta-analyses, randomized trials, and large prospective cohorts.
-- Explain what the paper found and why it is relevant without diagnosis, prescribing, or treatment instructions.
+- Lead with why the scientific question matters, then explain what happened and what remains uncertain without diagnosis, prescribing, or treatment instructions.
+- Headlines should create intelligent curiosity without clickbait or overstating causality.
+- Summaries use three short paragraphs: context, finding, and why it matters or what to watch next. They must paraphrase rather than copy the abstract.
+- Takeaways are one accurate, memorable sentence. Limitations are specific and candid.
+- Issue titles express one memorable editorial idea; they do not concatenate topics or append dates.
+- The compatibility field `pharmacist_note` is presented as an Editor's Letter. It connects the issue through one narrative instead of summarizing every paper separately.
 - Keep study design, sample size, journal, publication date, PMID, DOI, and source metadata exactly aligned with PubMed.
 - State limitations and uncertainty plainly. Never turn association into causation.
 - A pharmacist must review the source abstract and every editorial field before approval.
@@ -29,7 +34,7 @@ The Anthropic call has an 80-second per-attempt deadline and a 110-second total 
 
 The function generates reviewable editorial fields only from the bounded PubMed source packet and creates an `editorial_drafts` row with status `ready_for_review`.
 
-The pharmacist note is intentionally a placeholder. AI output is draft copy, not approved medical content.
+The Editor's Letter is intentionally a placeholder draft stored in the compatibility field `pharmacist_note_draft`. AI output is review copy, not approved medical content.
 
 ### 3. Human review
 
@@ -74,8 +79,8 @@ Choose the cover, arrange all four or five candidate IDs in reading order, and w
 npm run brief:admin -- edit-draft <draft-id> \
   --cover <cover-candidate-id> \
   --order <cover-id>,<brief-id>,<brief-id>,<brief-id>,<brief-id> \
-  --title "The Vitalspan Brief — Week of 2026-07-13" \
-  --note "Pharmacist-authored note"
+  --title "The Gut, the Heart, and the Aging Brain" \
+  --note "Editor-authored letter connecting the issue through one scientific theme."
 ```
 
 ### 4. Approval and publication
@@ -86,7 +91,7 @@ Approval records the authenticated admin user and timestamp. It does not publish
 npm run brief:admin -- review-draft <draft-id> --status approved
 ```
 
-The placeholder pharmacist note cannot be approved. Editing the candidate copy, selection, order, title, or note after approval automatically returns the draft to `ready_for_review` and clears the approval.
+The placeholder Editor's Letter cannot be approved. Editing the candidate copy, selection, order, title, or letter after approval automatically returns the draft to `ready_for_review` and clears the approval.
 
 Inspect the approved draft once more, then publish with the explicit confirmation flag:
 
@@ -126,8 +131,8 @@ Fix the configuration or upstream error and invoke the affected Edge Function ag
 
 ## Legacy archive
 
-Issue 0 remains the synthetic archive for pre-Brief articles. It has no cover or pharmacist note. New publication always receives the next positive issue number inside the transactional publisher.
+Issue 0 remains the synthetic archive for pre-Brief articles. It has no cover or Editor's Letter. New publication always receives the next positive issue number inside the transactional publisher.
 
 ## Operational reference
 
-Deployment, Vault, cron, rollback, security, and future admin-UI notes live in `.planning/brief-editorial-pipeline.md`. The mobile Articles UI is intentionally unchanged.
+Deployment, Vault, cron, rollback, security, and future admin-UI notes live in `.planning/brief-editorial-pipeline.md`. The mobile Articles UI continues to consume only the existing published `articles` and `issues` contracts.

@@ -1,65 +1,78 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Colors, Spacing, Radius } from '../theme';
+import { StyleSheet, View } from 'react-native';
+
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { EditorialColors, EditorialLayout } from '../theme/editorial';
 import { SkeletonBlock, SkeletonPulse } from './Skeleton';
 
 export function SkeletonLoader() {
-  return (
-    <SkeletonPulse style={{ gap: 10, paddingTop: Spacing.base }}>
-      <View style={s.heroCard}>
-        <View style={s.accentBar} />
-        <View style={s.heroContent}>
-          <SkeletonBlock w={64} h={18} /><SkeletonBlock w="90%" h={16} /><SkeletonBlock w="70%" h={16} />
-          <SkeletonBlock w="50%" h={12} /><SkeletonBlock w="95%" h={12} />
+  const reduceMotion = useReducedMotion();
+  const content = (
+    <>
+      <View style={s.masthead}>
+        <SkeletonBlock w={120} h={8} />
+        <SkeletonBlock w="78%" h={25} />
+        <SkeletonBlock w={170} h={8} />
+      </View>
+      <View style={s.hero}>
+        <View style={s.heroCopy}>
+          <SkeletonBlock w={84} h={9} />
+          <SkeletonBlock w="88%" h={32} />
+          <SkeletonBlock w="72%" h={32} />
+          <SkeletonBlock w={150} h={12} />
+          <SkeletonBlock w={132} h={38} radius={0} />
         </View>
       </View>
-      {[0, 1].map((i) => (
-        <View key={i} style={s.stdCard}>
-          <View style={s.row}><SkeletonBlock w="55%" h={11} /><SkeletonBlock w={50} h={11} /></View>
-          <SkeletonBlock w="90%" h={14} /><SkeletonBlock w="75%" h={14} /><SkeletonBlock w="90%" h={11} />
+      <View style={s.listHeading}>
+        <SkeletonBlock w={74} h={8} />
+        <SkeletonBlock w={142} h={27} />
+      </View>
+      {[0, 1, 2].map((index) => (
+        <View key={index} style={s.row}>
+          <SkeletonBlock w={20} h={10} />
+          <View style={s.rowCopy}>
+            <SkeletonBlock w="94%" h={18} />
+            <SkeletonBlock w="74%" h={18} />
+            <SkeletonBlock w="88%" h={11} />
+            <SkeletonBlock w="52%" h={9} />
+          </View>
         </View>
       ))}
-    </SkeletonPulse>
+    </>
   );
+
+  if (reduceMotion) return <View style={s.container}>{content}</View>;
+  return <SkeletonPulse style={s.container}>{content}</SkeletonPulse>;
 }
 
-const CARD_BG = Colors.dark.cardBg;
-const CARD_BORDER = Colors.dark.cardBorder;
-
 const s = StyleSheet.create({
-  heroCard: {
-    flexDirection: 'row',
-    backgroundColor: CARD_BG,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: CARD_BORDER,
-    marginHorizontal: Spacing.base,
+  container: { flex: 1, gap: 28, paddingTop: 4 },
+  masthead: {
+    marginHorizontal: EditorialLayout.pageInset,
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: EditorialColors.rule,
+  },
+  hero: {
+    height: 420,
+    marginHorizontal: 12,
+    borderRadius: EditorialLayout.heroRadius,
+    backgroundColor: EditorialColors.surface,
+    justifyContent: 'flex-end',
     overflow: 'hidden',
-    minHeight: 180,
   },
-  accentBar: {
-    width: 3,
-    alignSelf: 'stretch',
-    backgroundColor: Colors.dark.bgElevated,
-  },
-  heroContent: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.base,
-    gap: 6,
-  },
-  stdCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: Radius.md,
-    borderWidth: 0.5,
-    borderColor: CARD_BORDER,
-    marginHorizontal: Spacing.base,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.base,
-    gap: 6,
-  },
+  heroCopy: { padding: 22, gap: 13 },
+  listHeading: { marginHorizontal: EditorialLayout.pageInset, gap: 8 },
   row: {
+    marginHorizontal: EditorialLayout.pageInset,
+    paddingVertical: 18,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: EditorialColors.rule,
   },
+  rowCopy: { flex: 1, gap: 8 },
 });
