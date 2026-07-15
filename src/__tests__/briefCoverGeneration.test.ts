@@ -5,7 +5,7 @@ import {
   COVER_PROMPT_VERSION,
   PERMANENT_EXCLUSION_BLOCK,
   PERMANENT_STYLE_BLOCK,
-  buildCoverConcept,
+  buildLegacyCoverDirection,
   buildOpenAIProductionRequest,
   type IssueCoverFixture,
 } from '../../supabase/functions/_shared/briefCover';
@@ -29,7 +29,7 @@ const GENERATION_ID = '22222222-2222-4222-8222-222222222222';
 
 function fixtureConcept() {
   const fixture = JSON.parse(readFileSync('fixtures/brief/issue-1-draft.json', 'utf8')) as IssueCoverFixture;
-  return buildCoverConcept(fixture);
+  return buildLegacyCoverDirection(fixture);
 }
 
 function generationClaim(): { generation: ClaimedCoverGeneration; sources: ClaimedCoverSource[] } {

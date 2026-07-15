@@ -226,7 +226,12 @@ ${claims}
 ${PERMANENT_EXCLUSION_BLOCK}`;
 }
 
-export function buildCoverConcept(fixture: IssueCoverFixture): CoverConcept {
+/**
+ * Builds the legacy visual-direction contract consumed by the unchanged Phase
+ * 3C renderer. Phase 4A concept generation lives in briefCoverConcept.ts and
+ * must complete before any caller reaches this compatibility boundary.
+ */
+export function buildLegacyCoverDirection(fixture: IssueCoverFixture): CoverConcept {
   if (fixture.fixtureVersion !== 1) throw new Error("Unsupported Issue 1 fixture version");
   if (fixture.productionSupabaseCalled !== false) throw new Error("A local fixture must not call production Supabase");
   requireText(fixture.editorialThesis, "editorialThesis");

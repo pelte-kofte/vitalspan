@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import {
   PROVIDER_CATALOG,
   auditCoverConcept,
-  buildCoverConcept,
+  buildLegacyCoverDirection,
   buildProductionCoverPreview,
   buildProviderRequestPlan,
   estimateWeeklyCost,
@@ -27,11 +27,12 @@ function print(value) {
 }
 
 function usage() {
-  process.stdout.write(`The Vitalspan Brief cover concept CLI (local/read-only)
+  process.stdout.write(`The Vitalspan Brief cover direction preview CLI (local/read-only)
 
 Commands:
   npm run brief:cover -- preview [--fixture ${DEFAULT_FIXTURE}]
-  npm run brief:cover -- concept [--fixture ${DEFAULT_FIXTURE}]
+  npm run brief:cover -- direction [--fixture ${DEFAULT_FIXTURE}]
+  npm run brief:cover -- concept [--fixture ${DEFAULT_FIXTURE}]  legacy alias
   npm run brief:cover -- providers
   npm run brief:cover -- plan --provider openai|google|stability [--fixture ${DEFAULT_FIXTURE}]
 
@@ -43,7 +44,7 @@ generate/publish/deploy command.\n`)
 async function loadConcept() {
   const path = option('fixture') ?? DEFAULT_FIXTURE
   const raw = JSON.parse(await readFile(path, 'utf8'))
-  const concept = buildCoverConcept(raw)
+  const concept = buildLegacyCoverDirection(raw)
   const audit = auditCoverConcept(concept)
   if (!audit.passed) throw new Error(`Concept audit failed: ${audit.failures.join(', ')}`)
   return { path, concept, audit }
@@ -62,7 +63,7 @@ async function main() {
         estimatedWeeklyUsdForThreeConceptsAndOneFinal: estimateWeeklyCost(provider.id),
       })),
     })
-  } else if (command === 'concept') {
+  } else if (command === 'direction' || command === 'concept') {
     const { concept, audit } = await loadConcept()
     print({ concept, audit })
   } else if (command === 'preview') {

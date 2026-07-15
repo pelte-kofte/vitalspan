@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import {
   PROVIDER_CATALOG,
   auditCoverConcept,
-  buildCoverConcept,
+  buildLegacyCoverDirection,
   buildOpenAIProductionRequest,
   buildProductionCoverPreview,
   buildProviderRequestPlan,
@@ -17,14 +17,14 @@ function loadFixture(): IssueCoverFixture {
   return JSON.parse(readFileSync(fixturePath, 'utf8')) as IssueCoverFixture;
 }
 
-describe('Phase 3C cover concept builder', () => {
+describe('legacy downstream cover direction compatibility', () => {
   test('builds the local Issue 1 concept without an external call', () => {
-    const concept = buildCoverConcept(loadFixture());
+    const concept = buildLegacyCoverDirection(loadFixture());
 
     expect(concept.issueTitle).toBe('The Gut, the Heart, and the Aging Brain');
-    expect(concept.themeConfidence).toBe('low');
-    expect(concept.compositionFamily).toBe('constellation');
-    expect(concept.heroObject).toBe('a closed seed pod');
+    expect(concept.themeConfidence).toBe('medium');
+    expect(concept.compositionFamily).toBe('threshold');
+    expect(concept.heroObject).toBe('a shallow unglazed ceramic bowl');
     expect(concept.supportingForms).toHaveLength(4);
     expect(concept.supportingSources.map((source) => source.pmid)).toEqual([
       '42438056',
@@ -42,20 +42,20 @@ describe('Phase 3C cover concept builder', () => {
   });
 
   test('carries the canonical composition, crop, and evidence restraint into the prompt', () => {
-    const concept = buildCoverConcept(loadFixture());
+    const concept = buildLegacyCoverDirection(loadFixture());
 
     expect(concept.prompt).toContain('quiet hand-painted editorial world');
     expect(concept.prompt).toContain('upper 18%');
     expect(concept.prompt).toContain('central 70%');
     expect(concept.prompt).toContain('lower 12–15%');
-    expect(concept.prompt).toContain('no roots, threads, pathways, bridges, network lines, or shared mechanism');
+    expect(concept.prompt).toContain('Keep relationships legible without turning them into a diagram');
     expect(concept.prompt).toContain('No typography, lettering, labels');
     expect(concept.prompt).not.toContain('gpt-image');
     expect(concept.prompt).not.toContain('imagen-');
   });
 
   test('passes all deterministic concept audits', () => {
-    const audit = auditCoverConcept(buildCoverConcept(loadFixture()));
+    const audit = auditCoverConcept(buildLegacyCoverDirection(loadFixture()));
 
     expect(audit.passed).toBe(true);
     expect(audit.failures).toEqual([]);
@@ -66,13 +66,15 @@ describe('Phase 3C cover concept builder', () => {
     const fixture = loadFixture();
     fixture.direction.compositionFamily = 'living-system';
 
-    expect(() => buildCoverConcept(fixture)).toThrow('low confidence is incompatible with living-system');
+    expect(() => buildLegacyCoverDirection(fixture)).toThrow('medium confidence is incompatible with living-system');
   });
 
   test('detects connector language that would imply a low-confidence shared mechanism', () => {
-    const concept = buildCoverConcept(loadFixture());
+    const concept = buildLegacyCoverDirection(loadFixture());
     const inflated: CoverConcept = {
       ...concept,
+      themeConfidence: 'low',
+      compositionFamily: 'constellation',
       heroDescription: 'Five objects are joined by a network of roots.',
     };
 
@@ -86,20 +88,20 @@ describe('Phase 3C cover concept builder', () => {
     const fixture = loadFixture();
     fixture.direction.palette.accentPercent = 20;
 
-    expect(() => buildCoverConcept(fixture)).toThrow('5–12%');
+    expect(() => buildLegacyCoverDirection(fixture)).toThrow('5–12%');
   });
 
   test('produces the complete no-generation production preview', () => {
-    const preview = buildProductionCoverPreview(buildCoverConcept(loadFixture()));
+    const preview = buildProductionCoverPreview(buildLegacyCoverDirection(loadFixture()));
 
     expect(preview).toMatchObject({
       readOnly: true,
       productionSupabaseCalled: false,
       providerInvoked: false,
       imageGenerated: false,
-      themeConfidence: 'low',
-      compositionFamily: 'constellation',
-      heroObject: 'a closed seed pod',
+      themeConfidence: 'medium',
+      compositionFamily: 'threshold',
+      heroObject: 'a shallow unglazed ceramic bowl',
       expectedCostUsd: 0.05,
       promptVersion: 1,
     });
@@ -115,7 +117,7 @@ describe('Phase 3C cover concept builder', () => {
 });
 
 describe('inert provider abstraction', () => {
-  const concept = buildCoverConcept(loadFixture());
+  const concept = buildLegacyCoverDirection(loadFixture());
 
   test.each(Object.keys(PROVIDER_CATALOG) as Array<keyof typeof PROVIDER_CATALOG>)(
     '%s plans a request without enabling execution or including credentials',
