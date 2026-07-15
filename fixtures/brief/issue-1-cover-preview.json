@@ -1,0 +1,114 @@
+{
+  "coverStory": {
+    "coverStoryCandidateId": "local-pmid-42442374",
+    "coverStoryReason": "The LatAm-FINGERS trial wins because a multicentre randomized design, cognitive aging relevance, an underrepresented Latin American population, and a multidomain intervention combine unusually strong evidence, freshness, reader curiosity, and visual potential. It overtakes the deterministic kidney-diet nomination, whose preclinical mechanism is vivid but less directly relevant to human longevity outcomes.",
+    "centralFinding": "A single-blind multicentre randomized trial reports greater cognitive improvement from a multidomain lifestyle program in at-risk older adults in Latin America than from the comparison condition.",
+    "whyItMatters": "It tests whether coordinated changes across movement, nutrition, cognitive training, and vascular-risk management can help preserve cognition in a rapidly aging and historically underrepresented population.",
+    "editorialQuestion": "Can several modest lifestyle domains act together strongly enough to alter the trajectory of cognitive aging across diverse Latin American settings?",
+    "principalUncertainty": "The abstract does not establish the clinical importance, durability, contribution of each intervention component, or generalizability beyond the studied participants and care settings.",
+    "prohibitedClaims": [
+      "The program prevents dementia or reverses brain aging.",
+      "Every intervention component contributed equally or through one proven biological mechanism.",
+      "The observed cognitive difference is necessarily clinically meaningful or durable.",
+      "The findings generalize to all older adults or health systems."
+    ],
+    "visualStorySentence": "Several everyday streams converge into a more resilient cognitive landscape, while their individual contributions and the durability of the change remain unresolved."
+  },
+  "concepts": [
+    {
+      "visualStory": "Distinct lifestyle rhythms enter one aging neural terrain and become a coordinated pattern without losing all traces of their separate origins.",
+      "relationship": "Multiple intervention domains converge around cognitive improvement while the contribution of each domain remains unresolved.",
+      "visualEvent": "Several differently textured biological currents braid into a broad neural canopy, but faint separations persist inside the new growth.",
+      "scientificAnchor": "LatAm-FINGERS randomized four lifestyle domains and reported cognitive improvement.",
+      "whyMemorable": "A single flourishing canopy that still reveals four internal currents creates an immediate silhouette and rewards a second, scientific look.",
+      "suitableVisualFamilies": ["Living Tapestry", "Landscape"],
+      "prohibitedImplications": [
+        "Do not imply that the intervention prevents dementia or reverses aging.",
+        "Do not imply that the four domains share one proven mechanism or contribute equally."
+      ]
+    },
+    {
+      "visualStory": "A worn terrain responds to several simultaneous forms of cultivation, greening unevenly while some ground remains unchanged.",
+      "relationship": "Coordinated lifestyle inputs correspond with cognitive improvement, but response and durability remain uneven and incomplete.",
+      "visualEvent": "Four seasonal flows reach the same highland basin and trigger an irregular thaw that stops before the entire terrain changes.",
+      "scientificAnchor": "The trial's multidomain program produced a cognitive difference, while the abstract leaves clinical magnitude and persistence uncertain.",
+      "whyMemorable": "An incomplete thaw makes improvement visible without turning a statistical result into total restoration.",
+      "suitableVisualFamilies": ["Landscape"],
+      "prohibitedImplications": [
+        "Do not imply complete recovery, prevention of dementia, or permanent benefit.",
+        "Do not imply that every participant or region responds identically."
+      ]
+    },
+    {
+      "visualStory": "Separate adaptive signals pulse through one layered neural ecology, meeting at shared folds but never collapsing into a single pathway.",
+      "relationship": "Several intervention domains operate together around cognition without establishing one common biological mechanism.",
+      "visualEvent": "Branching rhythms cross a folded tissue-like field, briefly synchronizing at several junctions before diverging again.",
+      "scientificAnchor": "The multidomain intervention is evaluated as a package, so the randomized result cannot isolate the biological contribution of movement, nutrition, training, or vascular care.",
+      "whyMemorable": "Momentary synchrony across a layered field communicates coordination and unresolved mechanism at once.",
+      "suitableVisualFamilies": ["Living Tapestry"],
+      "prohibitedImplications": [
+        "Do not present the synchronized junctions as proven neural pathways.",
+        "Do not assign a larger effect to any one intervention component."
+      ]
+    },
+    {
+      "visualStory": "A cognitive habitat gains new routes from several directions, yet the routes do not reveal which traveler changed the destination.",
+      "relationship": "Access to multiple coordinated supports changes the system-level outcome while component attribution remains impossible.",
+      "visualEvent": "Several permeable boundaries open into one protected inner region at different widths, with no single opening becoming the entrance.",
+      "scientificAnchor": "LatAm-FINGERS tests a coordinated package rather than isolated components, and reports improvement without component-specific attribution.",
+      "whyMemorable": "A protected region with several unequal openings turns multidomain access into a specific structural question.",
+      "suitableVisualFamilies": ["Architecture", "Living Tapestry"],
+      "prohibitedImplications": [
+        "Do not imply a literal brain barrier or a proven route into neural tissue.",
+        "Do not imply that access alone explains the trial result."
+      ]
+    },
+    {
+      "visualStory": "A repeated training rhythm leaves increasingly coherent traces across an older biological surface, though the traces fade toward the edge of time.",
+      "relationship": "Structured participation corresponds with improved cognition while durability after the intervention remains unknown.",
+      "visualEvent": "Successive wavefronts reorganize a fibrous field into clearer folds, then lose definition before reaching the far boundary.",
+      "scientificAnchor": "The randomized intervention reports cognitive improvement, but the abstract does not establish how long the observed difference persists.",
+      "whyMemorable": "The transition from coherent folds to fading traces makes durability the unresolved visual event rather than a footnote.",
+      "suitableVisualFamilies": ["Living Tapestry", "Landscape"],
+      "prohibitedImplications": [
+        "Do not imply permanent neuroplastic change or structural brain repair.",
+        "Do not depict the measured cognitive outcome as direct tissue evidence."
+      ]
+    },
+    {
+      "visualStory": "Many modest adjustments hold one changing system in a new relation, but none can be removed to reveal a single cause.",
+      "relationship": "The package-level cognitive result depends on coordinated participation while causal attribution among components remains unavailable.",
+      "visualEvent": "A flexible woven membrane changes curvature where several tensions meet, with every strand remaining visibly independent.",
+      "scientificAnchor": "The multidomain randomized design estimates the combined program's effect and does not isolate the effect of each lifestyle domain.",
+      "whyMemorable": "One altered curvature made by independent tensions is a concise physical expression of package-level evidence.",
+      "suitableVisualFamilies": ["Living Tapestry", "Living Still"],
+      "prohibitedImplications": [
+        "Do not imply equal contribution from each intervention domain.",
+        "Do not imply that the package works through one shared mechanism."
+      ]
+    }
+  ],
+  "direction": {
+    "selectedVisualFamily": "Living Tapestry",
+    "familyJustification": "Living Tapestry most directly expresses a multidomain intervention acting across an integrated cognitive-aging system while preserving the four domains as distinguishable rhythms rather than asserting one mechanism.",
+    "dominantScientificRelationship": "Multiple lifestyle domains converge around cognitive improvement while their separate contributions and shared mechanism remain unresolved.",
+    "visualWorld": "A continuous biological-poetic highland grows into a folded neural canopy, with vascular, fibrous, botanical, and synaptic rhythms belonging to one transformed ecology.",
+    "visualEvent": "Four differently textured currents braid upward into a broader, more coherent canopy, yet hairline separations persist and the newest outer growth remains translucent and incomplete.",
+    "structuralContinuity": "Branching, folding, and pigment migration repeat from broad landscape-like masses into vascular and neural-scale detail, creating continuity without literal connecting arrows or fused mechanisms.",
+    "macroComposition": "One asymmetric rising canopy occupies the central portrait field, widening from four lower currents into a single memorable crown while leaving a quiet upper margin.",
+    "microDetailLanguage": "Close viewing reveals capillary linework, synaptic forks, fibrous muscle-like striations, leaf venation, and small cellular clusters embedded selectively in the painted surfaces.",
+    "depthStrategy": "Opaque foreground folds overlap translucent middle-field membranes; lost edges, pale particulate traces, and receding linework open atmospheric depth behind the canopy.",
+    "focalPath": "The eye enters through the four distinct lower currents, follows their braid through a warm hinge, spreads across the canopy, then returns along one unresolved translucent edge.",
+    "silhouettePlan": "One memorable asymmetric canopy remains legible at thumbnail size, with a narrow braided base and a broad irregular crown after all microscopic detail disappears.",
+    "materialLanguage": "Opaque gouache foundations, thin translucent glazing, cold-press paper tooth, selective dry brush, and hand-drawn scientific linework with controlled irregularity.",
+    "colorStrategy": "A restrained mineral and botanical palette keeps the four currents tonally distinct, then concentrates one controlled amber accent where coordination becomes visible.",
+    "lightingStrategy": "Cool morning daylight enters from the upper-left, catching translucent edges with soft chromatic shadow and no digital glow.",
+    "uncertaintyTreatment": "The braid never becomes seamless, the newest canopy edge remains partly unresolved, and no current receives visual dominance that would assign it a larger causal contribution.",
+    "prohibitedImplications": [
+      "Do not imply that the intervention prevents dementia or reverses brain aging.",
+      "Do not imply one proven biological mechanism or equal contribution from every domain.",
+      "Do not imply that the measured cognitive difference is necessarily clinically meaningful or durable."
+    ],
+    "optionalForms": []
+  }
+}

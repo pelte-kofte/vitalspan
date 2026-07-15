@@ -2,20 +2,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { readFile } from 'node:fs/promises'
 import {
-  ART_BIBLE_SHA256,
-  COVER_PROMPT_VERSION,
-  PERMANENT_EXCLUSION_BLOCK,
-  PERMANENT_STYLE_BLOCK,
-  auditCoverConcept,
-  buildLegacyCoverDirection,
-} from '../supabase/functions/_shared/briefCover.ts'
-import {
   DEFAULT_COVER_CONCEPT_BOUNDARIES,
   generateAnthropicCoverMetaphorCandidates,
 } from '../supabase/functions/_shared/briefCoverConcept.ts'
 import {
   generateAnthropicVisualDirection,
-  selectCandidateFromPhase4AResult,
+  selectConceptFromPhase4AResult,
 } from '../supabase/functions/_shared/briefCoverDirection.ts'
 import { compileGptImage2CoverPrompt } from '../supabase/functions/_shared/briefCoverPromptCompiler.ts'
 
@@ -77,10 +69,8 @@ Commands:
   npm run brief:admin -- backfill-issue-one-intelligence <draft-id>
   npm run brief:admin -- review-draft <draft-id> --status draft|ready_for_review|approved|rejected
   npm run brief:admin -- generate-cover-concepts <draft-id>
-  npm run brief:admin -- generate-cover-direction <draft-id> --candidate <candidateId> [--candidate-file <phase4a-result.json>]
-  npm run brief:admin -- compile-cover-prompt <draft-id> --candidate <candidateId> --direction-file <phase4b-result.json>
-  npm run brief:admin -- create-cover-direction <draft-id> --fixture fixtures/brief/issue-1-draft.json
-  npm run brief:admin -- create-cover-concept <draft-id> --fixture fixtures/brief/issue-1-draft.json  legacy alias
+  npm run brief:admin -- generate-cover-direction <draft-id> --concept <conceptId> [--candidate-file <phase4a-result.json>]
+  npm run brief:admin -- compile-cover-prompt <draft-id> --concept <conceptId> --direction-file <phase4b-result.json>
   npm run brief:admin -- generate-cover <draft-id>
   npm run brief:admin -- inspect-cover <draft-id>
   npm run brief:admin -- approve-cover <draft-id>
@@ -142,20 +132,37 @@ async function main() {
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is required for cover concept generation')
     const draftId = positional(0, 'draft id')
     const draft = await checked(supabase.from('editorial_drafts')
-      .select('id,status,editorial_thesis,theme_confidence,theme_type,theme_evidence')
+      .select('id,status,candidate_ids,cover_candidate_id')
       .eq('id', draftId).single())
     if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
-    if (!draft.editorial_thesis || !draft.theme_confidence || !draft.theme_type) {
-      throw new Error('Draft must contain approved editorial intelligence')
+    if (!Array.isArray(draft.candidate_ids) || draft.candidate_ids.length !== 5) {
+      throw new Error('Cover-story evaluation requires exactly five selected articles')
     }
-    const evidence = Array.isArray(draft.theme_evidence)
-      ? draft.theme_evidence.map((item) => ({ sourcePhrase: item?.sourcePhrase })).filter((item) => item.sourcePhrase)
-      : []
-    const candidates = await generateAnthropicCoverMetaphorCandidates({
-      editorialThesis: draft.editorial_thesis,
-      themeConfidence: draft.theme_confidence,
-      themeType: draft.theme_type,
-      evidence,
+    const rows = await checked(supabase.from('article_candidates')
+      .select('id,title,journal,publication_date,abstract,study_type,evidence_label,limitations,evidence_score,relevance_score,novelty_score,ai_summary')
+      .in('id', draft.candidate_ids))
+    const byId = new Map(rows.map((article) => [article.id, article]))
+    const articles = draft.candidate_ids.map((id) => {
+      const article = byId.get(id)
+      if (!article) throw new Error(`Selected article ${id} is unavailable`)
+      return {
+        candidateId: article.id,
+        title: article.title,
+        journal: article.journal,
+        publicationDate: article.publication_date,
+        sourcePhrase: article.ai_summary || article.title,
+        abstract: article.abstract,
+        studyType: article.study_type,
+        evidenceLabel: article.evidence_label,
+        limitations: article.limitations,
+        evidenceScore: article.evidence_score,
+        relevanceScore: article.relevance_score,
+        noveltyScore: article.novelty_score,
+      }
+    })
+    const result = await generateAnthropicCoverMetaphorCandidates({
+      articles,
+      deterministicCoverArticleId: draft.cover_candidate_id,
       claimsNotImply: [...DEFAULT_COVER_CONCEPT_BOUNDARIES],
     }, apiKey, fetch, process.env.BRIEF_AI_MODEL)
     print({
@@ -163,10 +170,12 @@ async function main() {
       phase: '4A',
       persisted: false,
       downstreamInvoked: false,
-      candidates: candidates.map((candidate, index) => ({
-        candidateId: `candidate-${index + 1}`,
-        candidate,
-      })),
+      deterministicCoverArticleId: draft.cover_candidate_id,
+      coverStory: result.coverStory,
+      concepts: result.concepts,
+      strongestTwo: result.strongestTwo,
+      selectedConceptId: 'concept-1',
+      selectedConcept: result.selectedConcept,
     })
     return
   }
@@ -175,18 +184,15 @@ async function main() {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is required for visual direction generation')
     const draftId = positional(0, 'draft id')
-    const candidateId = option('candidate', true)
+    const conceptId = option('concept') ?? option('candidate', true)
     const candidateFile = option('candidate-file')
     const candidateJson = option('candidate-json')
     const phase4aResult = await readPhase4aResult(candidateFile, candidateJson)
-    const selectedCandidate = selectCandidateFromPhase4AResult(candidateId, phase4aResult)
+    const { coverStory, selectedConcept } = selectConceptFromPhase4AResult(conceptId, phase4aResult)
     const draft = await checked(supabase.from('editorial_drafts')
-      .select('id,status,editorial_thesis,theme_confidence')
+      .select('id,status')
       .eq('id', draftId).single())
     if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
-    if (!draft.editorial_thesis || !draft.theme_confidence) {
-      throw new Error('Draft must contain approved editorial intelligence')
-    }
     const previousRows = await checked(supabase.from('editorial_cover_generations')
       .select('id,composition_family,physical_world,central_tension,hero_description,created_at')
       .eq('status', 'approved')
@@ -198,9 +204,8 @@ async function main() {
       readFile('.claude/FOUNDING_COVER_DNA.md', 'utf8'),
     ])
     const result = await generateAnthropicVisualDirection({
-      editorialThesis: draft.editorial_thesis,
-      themeConfidence: draft.theme_confidence,
-      selectedCandidate,
+      coverStory,
+      selectedConcept,
       artBible: {
         version: documentVersion(artBibleContent, 'current'),
         content: artBibleContent,
@@ -211,20 +216,21 @@ async function main() {
       },
       previousCovers: previousRows.map((cover) => ({
         id: cover.id,
-        visualMode: cover.composition_family === 'living-system' ? 'Living Tapestry' : 'Living Still',
+        selectedVisualFamily: cover.composition_family === 'living-system' ? 'Living Tapestry' : 'Living Still',
         visualWorld: cover.physical_world,
-        dominantRelationship: cover.central_tension,
+        dominantScientificRelationship: cover.central_tension,
         silhouettePlan: cover.hero_description,
       })),
     }, apiKey, fetch, process.env.BRIEF_AI_MODEL)
     print({
       draftId,
-      candidateId,
+      conceptId,
       phase: '4B',
       persisted: false,
       imageProviderInvoked: false,
       previousCoverCount: previousRows.length,
-      selectedCandidate,
+      coverStory,
+      selectedConcept,
       ...result,
     })
     return
@@ -232,30 +238,29 @@ async function main() {
 
   if (command === 'compile-cover-prompt') {
     const draftId = positional(0, 'draft id')
-    const candidateId = option('candidate', true)
+    const conceptId = option('concept') ?? option('candidate', true)
     const directionFile = option('direction-file', true)
     const phase4bResult = JSON.parse(await readFile(directionFile, 'utf8'))
-    if (phase4bResult.candidateId && phase4bResult.candidateId !== candidateId) {
-      throw new Error(`Phase 4B direction does not belong to ${candidateId}`)
+    if (phase4bResult.conceptId && phase4bResult.conceptId !== conceptId) {
+      throw new Error(`Phase 4B direction does not belong to ${conceptId}`)
     }
-    const selectedCandidate = phase4bResult.selectedCandidate
+    const coverStory = phase4bResult.coverStory
+    const selectedConcept = phase4bResult.selectedConcept
     const visualDirection = phase4bResult.direction
-    if (!selectedCandidate || !visualDirection) {
-      throw new Error('Direction file must contain selectedCandidate and direction from Phase 4B')
+    if (!coverStory || !selectedConcept || !visualDirection) {
+      throw new Error('Direction file must contain coverStory, selectedConcept, and direction from Phase 4B')
     }
     const draft = await checked(supabase.from('editorial_drafts')
       .select('id,status,editorial_thesis,theme_confidence')
       .eq('id', draftId).single())
     if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
-    if (!draft.editorial_thesis || !draft.theme_confidence) {
-      throw new Error('Draft must contain approved editorial intelligence')
-    }
     const [artBibleContent, foundingCoverDnaContent] = await Promise.all([
       readFile('.claude/VITALSPAN_ART_BIBLE.md', 'utf8'),
       readFile('.claude/FOUNDING_COVER_DNA.md', 'utf8'),
     ])
     const result = compileGptImage2CoverPrompt({
-      selectedCandidate,
+      coverStory,
+      selectedConcept,
       visualDirection,
       artBible: {
         version: documentVersion(artBibleContent, 'current'),
@@ -265,22 +270,19 @@ async function main() {
         version: documentVersion(foundingCoverDnaContent, 'current'),
         content: foundingCoverDnaContent,
       },
-      editorialThesis: draft.editorial_thesis,
-      themeConfidence: draft.theme_confidence,
-      prohibitedImplications: visualDirection.prohibitedImplications,
     })
     print({
       draftId,
-      candidateId,
+      conceptId,
       phase: '4C',
       persisted: false,
       providerInvoked: false,
-      selectedCandidate,
+      coverStory,
+      selectedConcept,
       visualDirectionSummary: {
-        visualMode: visualDirection.visualMode,
-        visualEnergy: visualDirection.visualEnergy,
+        selectedVisualFamily: visualDirection.selectedVisualFamily,
         visualWorld: visualDirection.visualWorld,
-        dominantRelationship: visualDirection.dominantRelationship,
+        dominantScientificRelationship: visualDirection.dominantScientificRelationship,
         silhouettePlan: visualDirection.silhouettePlan,
       },
       exactFinalPrompt: result.compiled.finalPrompt,
@@ -294,59 +296,7 @@ async function main() {
   }
 
   if (command === 'create-cover-direction' || command === 'create-cover-concept') {
-    if (command === 'create-cover-concept') {
-      process.stderr.write('create-cover-concept is a compatibility alias; use create-cover-direction after Phase 4A selection\n')
-    }
-    const draftId = positional(0, 'draft id')
-    const fixturePath = option('fixture', true)
-    const fixture = JSON.parse(await readFile(fixturePath, 'utf8'))
-    // Phase 4A concept generation happens before this legacy visual-direction
-    // compatibility boundary. The persisted/rendered contract remains unchanged.
-    const concept = buildLegacyCoverDirection(fixture)
-    const audit = auditCoverConcept(concept)
-    if (!audit.passed) throw new Error(`Cover concept audit failed: ${audit.failures.join(', ')}`)
-    const draft = await checked(supabase.from('editorial_drafts')
-      .select('id,status,candidate_ids')
-      .eq('id', draftId).single())
-    if (draft.status !== 'ready_for_review') throw new Error('Draft must be ready_for_review')
-    const candidates = await checked(supabase.from('article_candidates')
-      .select('id,pmid').in('id', draft.candidate_ids))
-    const candidateByPmid = new Map(candidates.map((candidate) => [candidate.pmid, candidate.id]))
-    const supportingSources = concept.supportingSources.map((source, index) => {
-      const candidateId = candidateByPmid.get(source.pmid)
-      if (!candidateId) throw new Error(`Fixture PMID ${source.pmid} is not selected in this draft`)
-      return { ...source, candidateId, ordinal: index + 1 }
-    })
-    print(await checked(supabase.rpc('create_cover_concept', {
-      p_draft_id: draftId,
-      p_concept: {
-        artBibleVersion: concept.artBible.version,
-        artBibleSha256: ART_BIBLE_SHA256,
-        promptVersion: COVER_PROMPT_VERSION,
-        permanentStyleBlock: PERMANENT_STYLE_BLOCK,
-        permanentExclusionBlock: PERMANENT_EXCLUSION_BLOCK,
-        editorialThesis: concept.editorialThesis,
-        themeConfidence: concept.themeConfidence,
-        themeType: concept.themeType,
-        centralTension: concept.centralTension,
-        coverPaperRole: concept.coverPaperRole,
-        compositionFamily: concept.compositionFamily,
-        physicalWorld: concept.physicalWorld,
-        heroObject: concept.heroObject,
-        supportingForms: concept.supportingForms,
-        dominantObjects: concept.dominantObjects,
-        heroDescription: concept.heroDescription,
-        controlledImpossibility: concept.controlledImpossibility,
-        unresolvedState: concept.unresolvedState,
-        supportedInterpretation: concept.supportedInterpretation,
-        principalUncertainty: concept.principalUncertainty,
-        claimsNotImply: concept.claimsNotImply,
-        palette: concept.palette,
-        cropPlan: concept.cropPlan,
-        supportingSources,
-      },
-    })))
-    return
+    throw new Error('Legacy issue-thesis cover persistence is disabled; use the story-first Phase 4A–4C commands')
   }
 
   if (command === 'generate-cover') {

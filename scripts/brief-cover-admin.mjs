@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 
 import { readFile } from 'node:fs/promises'
-import {
-  PROVIDER_CATALOG,
-  auditCoverConcept,
-  buildLegacyCoverDirection,
-  buildProductionCoverPreview,
-  buildProviderRequestPlan,
-  estimateWeeklyCost,
-} from '../supabase/functions/_shared/briefCover.ts'
+import { PROVIDER_CATALOG, buildProviderRequestPlan, estimateWeeklyCost } from '../supabase/functions/_shared/briefCover.ts'
+import { DEFAULT_COVER_CONCEPT_BOUNDARIES, selectCoverMetaphorCandidates } from '../supabase/functions/_shared/briefCoverConcept.ts'
+import { validateVisualDirection } from '../supabase/functions/_shared/briefCoverDirection.ts'
+import { compileGptImage2CoverPrompt } from '../supabase/functions/_shared/briefCoverPromptCompiler.ts'
 
 const DEFAULT_FIXTURE = 'fixtures/brief/issue-1-draft.json'
+const DEFAULT_PREVIEW = 'fixtures/brief/issue-1-cover-preview.json'
 const args = process.argv.slice(2)
 const command = args.shift() ?? 'help'
 
@@ -22,39 +19,76 @@ function option(name) {
   return value
 }
 
-function print(value) {
-  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)
-}
+function print(value) { process.stdout.write(`${JSON.stringify(value, null, 2)}\n`) }
+function documentVersion(content, fallback) { return content.match(/^Version:\s*([^\n]+)$/mi)?.[1]?.trim() ?? fallback }
 
 function usage() {
-  process.stdout.write(`The Vitalspan Brief cover direction preview CLI (local/read-only)
+  process.stdout.write(`The Vitalspan story-first cover preview CLI (local/read-only)
 
 Commands:
-  npm run brief:cover -- preview [--fixture ${DEFAULT_FIXTURE}]
-  npm run brief:cover -- direction [--fixture ${DEFAULT_FIXTURE}]
-  npm run brief:cover -- concept [--fixture ${DEFAULT_FIXTURE}]  legacy alias
+  npm run brief:cover -- preview [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
+  npm run brief:cover -- concepts [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
+  npm run brief:cover -- direction [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
+  npm run brief:cover -- prompt [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
   npm run brief:cover -- providers
-  npm run brief:cover -- plan --provider openai|google|stability [--fixture ${DEFAULT_FIXTURE}]
+  npm run brief:cover -- plan --provider openai|google|stability [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
 
-This Phase 3C preview CLI runs under Node's permission model with filesystem read-only
-access. It has no Supabase client, provider execution function, or
-generate/publish/deploy command.\n`)
+This CLI reads local fixtures only. It has no Supabase client and no image-generation,
+publication, deployment, approval, rejection, or migration command.\n`)
 }
 
-async function loadConcept() {
-  const path = option('fixture') ?? DEFAULT_FIXTURE
-  const raw = JSON.parse(await readFile(path, 'utf8'))
-  const concept = buildLegacyCoverDirection(raw)
-  const audit = auditCoverConcept(concept)
-  if (!audit.passed) throw new Error(`Concept audit failed: ${audit.failures.join(', ')}`)
-  return { path, concept, audit }
+async function loadPreview() {
+  const fixturePath = option('fixture') ?? DEFAULT_FIXTURE
+  const previewPath = option('preview') ?? DEFAULT_PREVIEW
+  const [fixture, rawPreview, artBibleContent, foundingCoverDnaContent] = await Promise.all([
+    readFile(fixturePath, 'utf8').then(JSON.parse),
+    readFile(previewPath, 'utf8').then(JSON.parse),
+    readFile('.claude/VITALSPAN_ART_BIBLE.md', 'utf8'),
+    readFile('.claude/FOUNDING_COVER_DNA.md', 'utf8'),
+  ])
+  if (fixture.productionSupabaseCalled !== false) throw new Error('Local fixture must explicitly disable production Supabase')
+  if (!Array.isArray(fixture.sources) || fixture.sources.length !== 5) throw new Error('Issue preview requires exactly five selected articles')
+  const input = {
+    articles: fixture.sources.map((source) => ({
+      candidateId: source.candidateId,
+      title: source.title,
+      journal: source.journal,
+      publicationDate: source.publicationDate,
+      sourcePhrase: source.sourcePhrase,
+    })),
+    deterministicCoverArticleId: fixture.sources[0].candidateId,
+    claimsNotImply: [...DEFAULT_COVER_CONCEPT_BOUNDARIES],
+  }
+  const selection = selectCoverMetaphorCandidates(input, {
+    coverStory: rawPreview.coverStory,
+    concepts: rawPreview.concepts,
+  })
+  const governance = {
+    artBible: { version: documentVersion(artBibleContent, 'current'), content: artBibleContent },
+    foundingCoverDna: { version: documentVersion(foundingCoverDnaContent, 'current'), content: foundingCoverDnaContent },
+  }
+  const directionResult = validateVisualDirection({
+    coverStory: selection.coverStory,
+    selectedConcept: selection.selectedConcept,
+    ...governance,
+    previousCovers: [],
+  }, rawPreview.direction)
+  if (!directionResult.validation.passed) {
+    throw new Error(`Preview direction failed validation: ${directionResult.validation.errors.join(', ')}`)
+  }
+  const promptResult = compileGptImage2CoverPrompt({
+    coverStory: selection.coverStory,
+    selectedConcept: selection.selectedConcept,
+    visualDirection: directionResult.direction,
+    ...governance,
+  })
+  return { fixturePath, previewPath, fixture, selection, directionResult, promptResult }
 }
 
 async function main() {
-  if (command === 'help' || command === '--help') {
-    usage()
-  } else if (command === 'providers') {
-    print({
+  if (command === 'help' || command === '--help') return usage()
+  if (command === 'providers') {
+    return print({
       localOnly: true,
       providerInvoked: false,
       imageGenerated: false,
@@ -63,24 +97,65 @@ async function main() {
         estimatedWeeklyUsdForThreeConceptsAndOneFinal: estimateWeeklyCost(provider.id),
       })),
     })
-  } else if (command === 'direction' || command === 'concept') {
-    const { concept, audit } = await loadConcept()
-    print({ concept, audit })
-  } else if (command === 'preview') {
-    const { path, concept } = await loadConcept()
-    print({ fixture: path, ...buildProductionCoverPreview(concept) })
-  } else if (command === 'plan') {
-    const provider = option('provider')
-    if (!provider || !(provider in PROVIDER_CATALOG)) {
-      throw new Error('--provider must be openai, google, or stability')
-    }
-    const { concept } = await loadConcept()
-    print(buildProviderRequestPlan(provider, concept.prompt))
-  } else if (['generate', 'publish', 'deploy'].includes(command)) {
-    throw new Error(`${command} is intentionally unavailable in the local preview CLI`)
-  } else {
-    throw new Error(`Unknown command: ${command}`)
   }
+  if (['generate', 'publish', 'deploy', 'migrate', 'approve', 'reject'].includes(command)) {
+    throw new Error(`${command} is intentionally unavailable in the local preview CLI`)
+  }
+
+  const loaded = await loadPreview()
+  const { fixture, selection, directionResult, promptResult } = loaded
+  if (command === 'concepts' || command === 'concept') {
+    return print({
+      localOnly: true,
+      productionSupabaseCalled: false,
+      providerInvoked: false,
+      imageGenerated: false,
+      coverStory: selection.coverStory,
+      concepts: selection.concepts,
+      strongestTwo: selection.strongestTwo,
+      selectedConcept: selection.selectedConcept,
+    })
+  }
+  if (command === 'direction') return print({ direction: directionResult.direction, validation: directionResult.validation })
+  if (command === 'prompt') return print({
+    exactCompiledPrompt: promptResult.compiled.finalPrompt,
+    wordCount: promptResult.compiled.promptWordCount,
+    validation: promptResult.validation,
+  })
+  if (command === 'preview') {
+    const selectedArticle = fixture.sources.find((article) => article.candidateId === selection.coverStory.coverStoryCandidateId)
+    return print({
+      localOnly: true,
+      productionSupabaseCalled: false,
+      providerInvoked: false,
+      imageGenerated: false,
+      issueNumber: fixture.issueNumber,
+      issueTitle: fixture.issueTitle,
+      allFiveArticles: fixture.sources.map(({ candidateId, pmid, title, journal, publicationDate, sourcePhrase }) => ({
+        candidateId, pmid, title, journal, publicationDate, sourcePhrase,
+      })),
+      selectedCoverStory: selectedArticle,
+      whyItWon: selection.coverStory.coverStoryReason,
+      centralFinding: selection.coverStory.centralFinding,
+      editorialQuestion: selection.coverStory.editorialQuestion,
+      principalUncertainty: selection.coverStory.principalUncertainty,
+      visualStorySentence: selection.coverStory.visualStorySentence,
+      concepts: selection.concepts,
+      strongestTwoConcepts: selection.strongestTwo,
+      selectedConcept: selection.selectedConcept,
+      selectedVisualFamily: directionResult.direction.selectedVisualFamily,
+      familyJustification: directionResult.direction.familyJustification,
+      fullVisualDirection: directionResult.direction,
+      exactCompiledPrompt: promptResult.compiled.finalPrompt,
+      promptWordCount: promptResult.compiled.promptWordCount,
+    })
+  }
+  if (command === 'plan') {
+    const provider = option('provider')
+    if (!provider || !(provider in PROVIDER_CATALOG)) throw new Error('--provider must be openai, google, or stability')
+    return print(buildProviderRequestPlan(provider, promptResult.compiled.finalPrompt))
+  }
+  throw new Error(`Unknown command: ${command}`)
 }
 
 main().catch((error) => {

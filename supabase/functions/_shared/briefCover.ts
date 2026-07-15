@@ -68,8 +68,8 @@ export interface CoverConcept {
   issueTitle: string;
   artBible: {
     path: ".claude/VITALSPAN_ART_BIBLE.md";
-    version: "1.0";
-    constitutionName: "The Living Still";
+    version: "2.0";
+    constitutionName: "Four Visual Families";
   };
   editorialThesis: string;
   themeConfidence: ThemeConfidence;
@@ -139,11 +139,11 @@ export interface ProviderRequestPlan {
 
 export const ART_BIBLE = {
   path: ".claude/VITALSPAN_ART_BIBLE.md" as const,
-  version: "1.0" as const,
-  constitutionName: "The Living Still" as const,
+  version: "2.0" as const,
+  constitutionName: "Four Visual Families" as const,
 };
 
-export const ART_BIBLE_SHA256 = "43e83d69e275c5a5227f19f7f5fb9fa519659bf4a4a2ad9f5abf1e53347499d0";
+export const ART_BIBLE_SHA256 = "1020264cedc49eec750b7b28aedbafec1a60418a5589ddfa8eee8f64080a1291";
 export const COVER_PROMPT_VERSION = 1;
 export const COVER_STORAGE_BUCKET = "brief-covers";
 export const OPENAI_COVER_CONFIG = {
