@@ -124,6 +124,22 @@ export const Colors = {
     info: '#007AFF',     // iOS blue, informational state
   },
 
+  // Health OS — quiet editorial surfaces with attention used sparingly.
+  health: {
+    background: '#F2F0E9',
+    surface: '#FAF9F5',
+    surfaceStrong: '#FFFFFF',
+    ink: '#171916',
+    inkSecondary: '#555A53',
+    inkTertiary: '#858A82',
+    rule: '#DADCD4',
+    ruleStrong: '#BFC3B9',
+    accent: '#255B46',
+    accentSoft: '#E1EBE5',
+    attention: '#93662D',
+    attentionSoft: '#F1E7D8',
+  },
+
 };
 
 export const Typography = {

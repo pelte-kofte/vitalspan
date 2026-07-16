@@ -1,0 +1,86 @@
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+
+import type { BodySystemModel, BodySystemId } from '../../lib/healthExperience';
+import { Colors, Radius, Spacing, Typography } from '../../theme';
+import BodySystemIcon from './BodySystemIcon';
+import TrendSignal from './TrendSignal';
+import Text from './HealthText';
+
+interface Props {
+  systems: readonly BodySystemModel[];
+  onOpen: (systemId: BodySystemId) => void;
+}
+
+function Chevron() {
+  return (
+    <Svg width={Spacing.base} height={Spacing.base} viewBox="0 0 16 16" accessible={false}>
+      <Path d="M6 3 L11 8 L6 13" fill="none" stroke={Colors.health.inkTertiary} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function SystemRow({ system, onOpen, last }: { system: BodySystemModel; onOpen: (id: BodySystemId) => void; last: boolean }) {
+  const accessibilityLabel = [
+    system.name,
+    system.state,
+    `Trend ${system.trend.replace(/_/g, ' ')}`,
+    system.driver,
+    `Confidence ${system.confidence}`,
+    `${system.openActions} open actions`,
+  ].join('. ');
+  return (
+    <Pressable
+      onPress={() => onOpen(system.id)}
+      style={({ pressed }) => [s.row, !last && s.rowRule, pressed && s.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Opens system summary, biomarkers, evidence, and actions"
+    >
+      <View style={s.iconFrame}>
+        <BodySystemIcon system={system.id} color={Colors.health.ink} size={Spacing.xxl} />
+      </View>
+      <View style={s.content}>
+        <View style={s.titleRow}>
+          <Text style={s.title}>{system.name}</Text>
+          <Chevron />
+        </View>
+        <Text style={[s.state, system.state === 'Needs review' && s.stateAttention]}>{system.state}</Text>
+        <Text style={s.driver} numberOfLines={2}>{system.driver}</Text>
+        <View style={s.metaRow}>
+          <TrendSignal trend={system.trend} compact />
+          <Text style={s.confidence}>{system.confidence} confidence</Text>
+          {system.openActions > 0 && <Text style={s.actions}>{system.openActions} open</Text>}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+export default function BodySystemsList({ systems, onOpen }: Props) {
+  return (
+    <View style={s.list}>
+      {systems.map((system, index) => (
+        <SystemRow key={system.id} system={system} onOpen={onOpen} last={index === systems.length - 1} />
+      ))}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  list: { backgroundColor: Colors.health.surface, borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.rule, overflow: 'hidden' },
+  row: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.base, minHeight: Spacing.xxl * 4 },
+  rowRule: { borderBottomWidth: 1, borderBottomColor: Colors.health.rule },
+  pressed: { backgroundColor: Colors.health.accentSoft },
+  iconFrame: { width: Spacing.xxl + Spacing.base, height: Spacing.xxl + Spacing.base, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.ruleStrong, alignItems: 'center', justifyContent: 'center' },
+  content: { flex: 1, minWidth: 0 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  title: { color: Colors.health.ink, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, flex: 1 },
+  state: { color: Colors.health.accent, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, fontWeight: Typography.weights.label, marginTop: Spacing.xs },
+  stateAttention: { color: Colors.health.attention },
+  driver: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.md },
+  confidence: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall },
+  actions: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall },
+});

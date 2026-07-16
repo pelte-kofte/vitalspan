@@ -49,6 +49,16 @@ export function BiomarkersIcon({ color, focused, size = 24 }: TabIconProps) {
   );
 }
 
+export function HealthIcon({ color, focused, size = 24 }: TabIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M3 13 C6 13 7 7 10 7 C13 7 13 17 16 17 C19 17 19 11 22 11" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={3} cy={13} r={1.2} fill={focused ? color : 'none'} stroke={color} strokeWidth={1.5} />
+      <Circle cx={22} cy={11} r={1.2} fill="none" stroke={color} strokeWidth={1.5} />
+    </Svg>
+  );
+}
+
 export function ProtocolIcon({ color, focused, size = 24 }: TabIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">

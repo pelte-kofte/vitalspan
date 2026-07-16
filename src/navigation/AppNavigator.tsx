@@ -5,6 +5,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import DashboardScreen from '../screens/DashboardScreen';
+import HealthScreen from '../screens/HealthScreen';
+import HealthSystemScreen from '../screens/HealthSystemScreen';
 import ExerciseScreen from '../screens/ExerciseScreen';
 import LongevityScoreScreen from '../screens/LongevityScoreScreen';
 import BiomarkerDetailScreen from '../screens/BiomarkerDetailScreen';
@@ -25,9 +27,10 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import SignUpConfirmationScreen from '../screens/SignUpConfirmationScreen';
 import AIAdvisorScreen from '../screens/AIAdvisorScreen';
 import PaywallScreen from '../screens/PaywallScreen';
+import type { BodySystemId } from '../lib/healthExperience';
 
 import { Colors } from '../theme';
-import { HomeIcon, BiomarkersIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
+import { HomeIcon, HealthIcon, ProtocolIcon, ExerciseIcon, ProfileIcon } from '../components/TabIcons';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -38,6 +41,7 @@ export type RootStackParamList = {
   // to a specific tab: nav.navigate('Main', { screen: 'Profile' }).
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   BiomarkerDetail: { biomarkerId?: string };
+  HealthSystem: { systemId: BodySystemId };
   BiomarkerEntry: { biomarkerId?: string };
   InteractionChecker: undefined;
   LabUpload: undefined;
@@ -98,10 +102,10 @@ function MainTabs() {
       />
       <Tab.Screen
         name="Biomarkers"
-        component={BiomarkerDetailScreen}
+        component={HealthScreen}
         options={{
-          tabBarLabel: 'Biomarkers',
-          tabBarIcon: ({ color, focused }) => <BiomarkersIcon color={color} focused={focused} />,
+          tabBarLabel: 'Health',
+          tabBarIcon: ({ color, focused }) => <HealthIcon color={color} focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -167,6 +171,11 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="Main"
           component={MainTabs}
           options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="HealthSystem"
+          component={HealthSystemScreen}
+          options={{ presentation: 'card', animation: 'fade_from_bottom' }}
         />
         <Stack.Screen
           name="BiomarkerDetail"

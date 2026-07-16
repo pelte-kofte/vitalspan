@@ -207,7 +207,7 @@ export default function LabUploadScreen() {
           ))}
         </View>
         <TouchableOpacity style={s.primaryBtn} onPress={() => nav.goBack()}>
-          <Text style={s.primaryBtnTxt}>View Biomarkers</Text>
+          <Text style={s.primaryBtnTxt}>View Health</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

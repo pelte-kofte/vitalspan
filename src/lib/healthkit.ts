@@ -32,6 +32,8 @@ const READ_TYPES: readonly ObjectTypeIdentifier[] = [
 ];
 
 export interface HealthData {
+  /** Provenance lets the Health OS distinguish HealthKit from a wearable adapter. */
+  source?: 'healthkit' | 'wearable';
   hrv?: number;               // ms, SDNN
   restingHeartRate?: number;  // bpm
   vo2max?: number;            // mL/kg/min
@@ -201,6 +203,7 @@ export async function syncHealthData(): Promise<SyncResult> {
     const recovery = Math.min(100, Math.round(55 + ((hrv ?? 50) - 48) * 1.2));
 
     const data: HealthData = {
+      source: 'healthkit',
       hrv, restingHeartRate, vo2max,
       sleepHours, sleepDeep, sleepRem,
       respiratoryRate, steps, mindfulMinutes,
