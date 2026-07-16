@@ -3,10 +3,12 @@ import {
   ImageBackground,
   Pressable,
   StyleSheet,
-  Text,
+  Text as NativeText,
+  type TextProps,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import type { Article } from '../../lib/articleService';
 import { articleDeck, readingTime } from '../../lib/articleUtils';
 import type {
@@ -19,9 +21,18 @@ import type {
   TodaySafetyAlert,
 } from '../../lib/todayExperience';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
+import AnimatedPressable from '../AnimatedPressable';
+import { CheckmarkIcon, ChevronRightIcon } from '../DesignSystemIcons';
 import { SkeletonBlock, SkeletonPulse } from '../Skeleton';
 
 const COVER_ART = require('../../../assets/brief-cover-editorial.jpg');
+const TODAY_TEXT_SECONDARY = 'rgba(232,245,238,0.66)';
+const TODAY_TEXT_TERTIARY = 'rgba(232,245,238,0.46)';
+const TODAY_SURFACE = '#151A16';
+
+function Text({ maxFontSizeMultiplier = 1.4, ...props }: TextProps) {
+  return <NativeText maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />;
+}
 
 interface SectionHeadingProps {
   eyebrow: string;
@@ -58,14 +69,14 @@ export function SafetyAlertCard({
         <Text style={styles.safetyTitle} accessibilityRole="header">{alert.title}</Text>
         <Text style={styles.safetyBody}>{alert.body}</Text>
         <Text style={styles.sourceText}>Source · {alert.sourceLabel}</Text>
-        <Pressable
+        <AnimatedPressable
           onPress={onReview}
-          style={({ pressed }) => [styles.outlineButton, pressed && styles.pressed]}
+          style={styles.outlineButton}
           accessibilityRole="button"
           accessibilityLabel="Review possible protocol interaction"
         >
           <Text style={styles.outlineButtonText}>Review now</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -76,81 +87,124 @@ export function TodayPriorityHero({
   layout,
   onPrimaryAction,
   onDecline,
+  reduceMotion,
 }: {
   priority: TodayPriorityCandidate;
   layout: TodayLayout;
   onPrimaryAction: () => void;
   onDecline: () => void;
+  reduceMotion: boolean;
 }) {
   const [disclosure, setDisclosure] = useState<'why' | 'evidence' | null>(null);
   return (
-    <View style={[styles.priorityHero, layout === 'compact' && styles.priorityHeroCompact]} testID="today-priority">
+    <LinearGradient
+      colors={['#182019', '#121713']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.priorityHero, layout === 'compact' && styles.priorityHeroCompact]}
+      testID="today-priority"
+    >
       <Text style={styles.priorityEyebrow}>TODAY’S PRIORITY</Text>
       <Text style={[styles.priorityTitle, layout === 'compact' && styles.priorityTitleCompact]} accessibilityRole="header">
         {priority.title}
       </Text>
       <Text style={styles.priorityReason}>{priority.reason}</Text>
 
-      <View style={styles.provenancePanel}>
-        <View style={styles.provenanceRow}>
-          <Text style={styles.provenanceLabel}>SOURCE</Text>
-          <Text style={styles.provenanceValue}>{priority.sourceLabel}</Text>
-        </View>
-        <View style={styles.provenanceRow}>
-          <Text style={styles.provenanceLabel}>FRESHNESS</Text>
-          <Text style={styles.provenanceValue}>{priority.freshnessLabel}</Text>
-        </View>
-        <View style={styles.provenanceRow}>
-          <Text style={styles.provenanceLabel}>CONFIDENCE</Text>
-          <Text style={styles.provenanceValue}>{priority.confidenceLanguage}</Text>
-        </View>
-      </View>
-
-      <Pressable
+      <AnimatedPressable
         onPress={onPrimaryAction}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+        style={styles.primaryButton}
+        haptic="none"
         accessibilityRole="button"
         accessibilityLabel={`${priority.ctaLabel}. Today’s priority: ${priority.title}`}
       >
-        <Text style={styles.primaryButtonText}>{priority.ctaLabel}</Text>
-        <Text style={styles.primaryButtonArrow} accessibilityElementsHidden>→</Text>
-      </Pressable>
+        <Text maxFontSizeMultiplier={1.3} style={styles.primaryButtonText}>{priority.ctaLabel}</Text>
+        <View style={styles.primaryButtonIcon} accessibilityElementsHidden>
+          <ChevronRightIcon color="#07120B" size={19} />
+        </View>
+      </AnimatedPressable>
+
+      <View style={[styles.provenancePanel, layout === 'compact' && styles.provenancePanelCompact]}>
+        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
+            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
+          >SOURCE</Text>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
+            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
+          >{priority.sourceLabel}</Text>
+        </View>
+        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
+            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
+          >FRESHNESS</Text>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
+            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
+          >{priority.freshnessLabel}</Text>
+        </View>
+        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
+            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
+          >CONFIDENCE</Text>
+          <Text
+            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
+            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
+          >{priority.confidenceLanguage}</Text>
+        </View>
+      </View>
 
       <View style={styles.heroLinks}>
         <Pressable
           onPress={() => setDisclosure(disclosure === 'why' ? null : 'why')}
+          style={({ pressed }) => [styles.heroLinkButton, pressed && styles.controlPressed]}
           accessibilityRole="button"
           accessibilityLabel="Why this priority"
           accessibilityState={{ expanded: disclosure === 'why' }}
         >
-          <Text style={styles.heroLink}>Why this?</Text>
+          <Text maxFontSizeMultiplier={1.15} style={[styles.heroLink, disclosure === 'why' && styles.heroLinkActive]}>Why this?</Text>
         </Pressable>
         <Pressable
           onPress={() => setDisclosure(disclosure === 'evidence' ? null : 'evidence')}
+          style={({ pressed }) => [styles.heroLinkButton, pressed && styles.controlPressed]}
           accessibilityRole="button"
           accessibilityLabel="Evidence for this priority"
           accessibilityState={{ expanded: disclosure === 'evidence' }}
         >
-          <Text style={styles.heroLink}>Evidence</Text>
+          <Text maxFontSizeMultiplier={1.15} style={[styles.heroLink, disclosure === 'evidence' && styles.heroLinkActive]}>Evidence</Text>
         </Pressable>
         {priority.canDecline ? (
           <Pressable
             onPress={onDecline}
+            style={({ pressed }) => [styles.heroLinkButton, styles.heroLinkButtonFlexible, pressed && styles.controlPressed]}
             accessibilityRole="button"
             accessibilityLabel="This priority is not for me or I cannot do this"
           >
-            <Text style={styles.heroLinkMuted}>Not for me / I can’t do this</Text>
+            <Text maxFontSizeMultiplier={1.15} style={styles.heroLinkMuted}>Not for me / I can’t do this</Text>
           </Pressable>
         ) : null}
       </View>
 
       {disclosure ? (
-        <View style={styles.disclosure} accessibilityLiveRegion="polite">
-          <Text style={styles.disclosureLabel}>{disclosure === 'why' ? 'WHY THIS' : 'EVIDENCE'}</Text>
-          <Text style={styles.disclosureText}>{disclosure === 'why' ? priority.whyThis : priority.evidence}</Text>
-        </View>
+        reduceMotion ? (
+          <View style={styles.disclosure} accessibilityLiveRegion="polite">
+            <Text style={styles.disclosureLabel}>{disclosure === 'why' ? 'WHY THIS' : 'EVIDENCE'}</Text>
+            <Text style={styles.disclosureText}>{disclosure === 'why' ? priority.whyThis : priority.evidence}</Text>
+          </View>
+        ) : (
+          <Animated.View
+            entering={FadeInDown.duration(180)}
+            style={styles.disclosure}
+            accessibilityLiveRegion="polite"
+          >
+            <Text style={styles.disclosureLabel}>{disclosure === 'why' ? 'WHY THIS' : 'EVIDENCE'}</Text>
+            <Text style={styles.disclosureText}>{disclosure === 'why' ? priority.whyThis : priority.evidence}</Text>
+          </Animated.View>
+        )
       ) : null}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -170,15 +224,15 @@ export function DailyBriefCard({ brief, onAsk }: { brief: DailyHealthBrief; onAs
             <Text style={[styles.briefValue, row.emphasis && styles.briefValueEmphasis]}>{row.value}</Text>
           </View>
         ))}
-        <Pressable
+        <AnimatedPressable
           onPress={onAsk}
           accessibilityRole="button"
           accessibilityLabel={`Ask AI Advisor about this health brief. ${brief.askContext}`}
-          style={({ pressed }) => [styles.textRoute, pressed && styles.pressed]}
+          style={styles.textRoute}
         >
           <Text style={styles.textRouteLabel}>Ask about this</Text>
-          <Text style={styles.textRouteArrow}>→</Text>
-        </Pressable>
+          <ChevronRightIcon color={Colors.dark.textMuted} size={17} />
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -195,10 +249,12 @@ export function TodayProtocolSection({
   items,
   onToggle,
   onOpenPlan,
+  reduceMotion,
 }: {
   items: TodayProtocolItem[];
   onToggle: (item: TodayProtocolItem) => void;
   onOpenPlan: () => void;
+  reduceMotion: boolean;
 }) {
   return (
     <View style={styles.sectionBlock} testID="today-protocol">
@@ -208,21 +264,37 @@ export function TodayProtocolSection({
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No protocol is scheduled</Text>
             <Text style={styles.emptyBody}>Vitalspan has no medication, supplement, exercise, or habit action to show today.</Text>
-            <Pressable onPress={onOpenPlan} accessibilityRole="button" accessibilityLabel="Open Plan to review protocol">
-              <Text style={styles.emptyAction}>Review Plan →</Text>
-            </Pressable>
+            <AnimatedPressable
+              onPress={onOpenPlan}
+              style={styles.emptyActionButton}
+              accessibilityRole="button"
+              accessibilityLabel="Open Plan to review protocol"
+            >
+              <Text style={styles.emptyAction}>Review plan</Text>
+              <ChevronRightIcon color={Colors.viz.bioGreen} size={16} />
+            </AnimatedPressable>
           </View>
         ) : items.map((item, index) => (
           <View key={item.id} style={[styles.protocolRow, index > 0 && styles.dividedRow]}>
             <Pressable
               onPress={() => item.canToggle && onToggle(item)}
               disabled={!item.canToggle}
-              style={[styles.completionControl, item.state === 'done' && styles.completionDone]}
+              style={({ pressed }) => [styles.completionHitbox, pressed && styles.controlPressed]}
               accessibilityRole={item.canToggle ? 'checkbox' : undefined}
               accessibilityState={item.canToggle ? { checked: item.state === 'done', disabled: false } : undefined}
               accessibilityLabel={`${item.title}, ${item.state === 'done' ? 'completed' : 'due'}`}
             >
-              <Text style={styles.checkmark}>{item.state === 'done' ? '✓' : ''}</Text>
+              <View style={[styles.completionControl, item.state === 'done' && styles.completionDone]}>
+                {item.state === 'done' ? (
+                  reduceMotion ? (
+                    <CheckmarkIcon color={Colors.viz.bioGreen} size={15} />
+                  ) : (
+                    <Animated.View entering={ZoomIn.duration(180)}>
+                      <CheckmarkIcon color={Colors.viz.bioGreen} size={15} />
+                    </Animated.View>
+                  )
+                ) : null}
+              </View>
             </Pressable>
             <View style={styles.protocolCopy}>
               <View style={styles.protocolTopline}>
@@ -239,10 +311,10 @@ export function TodayProtocolSection({
           </View>
         ))}
         {items.length > 0 ? (
-          <Pressable onPress={onOpenPlan} style={styles.textRoute} accessibilityRole="button" accessibilityLabel="Open full Plan">
+          <AnimatedPressable onPress={onOpenPlan} style={styles.textRoute} accessibilityRole="button" accessibilityLabel="Open full Plan">
             <Text style={styles.textRouteLabel}>Open full plan</Text>
-            <Text style={styles.textRouteArrow}>→</Text>
-          </Pressable>
+            <ChevronRightIcon color={Colors.dark.textMuted} size={17} />
+          </AnimatedPressable>
         ) : null}
       </View>
     </View>
@@ -260,9 +332,9 @@ export function HealthStateSection({ state, onOpen }: { state: TodayHealthState;
   return (
     <View style={styles.sectionBlock} testID="health-state">
       <TodaySectionHeading eyebrow="Measure response" title="Health State" />
-      <Pressable
+      <AnimatedPressable
         onPress={onOpen}
-        style={({ pressed }) => [styles.healthSurface, pressed && styles.pressed]}
+        style={styles.healthSurface}
         accessibilityRole="button"
         accessibilityLabel={state.status === 'valid'
           ? `Blood phenotypic age ${state.bloodPhenotypicAge}. Chronological age ${state.chronologicalAge}. ${state.historyLabel}. Opens limitations and details.`
@@ -295,13 +367,16 @@ export function HealthStateSection({ state, onOpen }: { state: TodayHealthState;
         </View>
         <View style={styles.healthFooter}>
           <Text style={styles.healthFooterText}>{state.presentCount}/{state.totalRequired} inputs · {state.historyLabel}</Text>
-          <Text style={styles.healthFooterLink}>Limitations →</Text>
+          <View style={styles.healthFooterRoute}>
+            <Text style={styles.healthFooterLink}>Limitations</Text>
+            <ChevronRightIcon color={Colors.dark.text} size={14} />
+          </View>
         </View>
         <View style={styles.wearableNote}>
           <Text style={styles.wearableLabel}>{state.wearableStatus === 'connected' ? 'WEARABLE CONNECTED' : 'WEARABLE NOT CONNECTED'}</Text>
           <Text style={styles.wearableText}>{state.wearableSummary}</Text>
         </View>
-      </Pressable>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -364,9 +439,9 @@ export function WeeklyResearchCard({
   return (
     <View style={styles.researchBlock} testID="weekly-research">
       <TodaySectionHeading eyebrow="Weekly research" title="One study worth your time" />
-      <Pressable
+      <AnimatedPressable
         onPress={onOpen}
-        style={({ pressed }) => [styles.researchCard, pressed && styles.pressed]}
+        style={styles.researchCard}
         accessibilityRole="button"
         accessibilityLabel={`Weekly Research, Issue ${issueNumber}. ${article.title}. ${relevance}. ${duration}. Open issue.`}
       >
@@ -380,10 +455,13 @@ export function WeeklyResearchCard({
           <Text style={styles.researchRelevance} numberOfLines={3}>{relevance}</Text>
           <View style={styles.researchMetaRow}>
             <Text style={styles.researchMeta}>{duration}</Text>
-            <Text style={styles.researchCta}>Open issue →</Text>
+            <View style={styles.researchRoute}>
+              <Text style={styles.researchCta}>Open issue</Text>
+              <ChevronRightIcon color={Colors.dark.text} size={14} />
+            </View>
           </View>
         </View>
-      </Pressable>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -411,103 +489,112 @@ export function TodaySkeleton({ reduceMotion }: { reduceMotion: boolean }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  pressed: { opacity: 0.72 },
-  sectionBlock: { marginTop: 42 },
-  researchBlock: { marginTop: 48, marginBottom: 48 },
-  sectionHeading: { marginBottom: Spacing.md },
-  eyebrow: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.8 },
-  sectionTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: '500', marginTop: 5 },
-  sectionDetail: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 5 },
-  safetyCard: { flexDirection: 'row', gap: Spacing.md, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: Colors.dark.statusWarnBorder, borderRadius: Radius.card, padding: Spacing.base, marginBottom: Spacing.xl },
+  pressed: { opacity: 0.78 },
+  controlPressed: { opacity: 0.64 },
+  sectionBlock: { marginTop: 52 },
+  researchBlock: { marginTop: 56, marginBottom: 56 },
+  sectionHeading: { marginBottom: 18 },
+  eyebrow: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.7 },
+  sectionTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: '400', letterSpacing: -0.25, marginTop: 6 },
+  sectionDetail: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 6 },
+  safetyCard: { flexDirection: 'row', gap: Spacing.md, backgroundColor: 'rgba(245,158,11,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.statusWarnBorder, borderRadius: Radius.card, padding: Spacing.lg, marginBottom: Spacing.xl },
   safetyMarker: { width: 3, borderRadius: 2, backgroundColor: Colors.viz.amber },
   safetyEyebrow: { color: Colors.viz.amber, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.5 },
   safetyTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: '600', marginTop: 5 },
-  safetyBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 6 },
-  sourceText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, marginTop: Spacing.sm },
-  outlineButton: { alignSelf: 'flex-start', borderWidth: 1, borderColor: Colors.dark.statusWarnBorder, borderRadius: Radius.card, paddingHorizontal: Spacing.md, paddingVertical: 9, marginTop: Spacing.md },
+  safetyBody: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 7 },
+  sourceText: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, marginTop: Spacing.sm },
+  outlineButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', borderWidth: 1, borderColor: Colors.dark.statusWarnBorder, borderRadius: Radius.card, paddingHorizontal: Spacing.base, paddingVertical: 10, marginTop: Spacing.base },
   outlineButtonText: { color: Colors.viz.amber, fontWeight: '600', fontSize: Typography.sizes.bodySmall },
-  priorityHero: { backgroundColor: Colors.dark.bgElevated, borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.borderStrong, padding: Spacing.xl },
-  priorityHeroCompact: { padding: Spacing.base },
+  priorityHero: { borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(132,189,154,0.18)', padding: 28, shadowColor: '#000000', shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.26, shadowRadius: 28, elevation: 5 },
+  priorityHeroCompact: { padding: Spacing.lg },
   priorityEyebrow: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 2 },
-  priorityTitle: { color: Colors.dark.text, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, letterSpacing: -0.7, fontWeight: '400', marginTop: Spacing.md },
+  priorityTitle: { color: Colors.dark.text, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, letterSpacing: -0.8, fontWeight: '400', marginTop: Spacing.lg },
   priorityTitleCompact: { fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1 },
-  priorityReason: { color: Colors.dark.textMuted, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, marginTop: Spacing.md },
-  provenancePanel: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, paddingVertical: Spacing.sm, marginTop: Spacing.lg },
-  provenanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, paddingVertical: 6 },
-  provenanceLabel: { width: 76, color: Colors.dark.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.2, paddingTop: 2 },
-  provenanceValue: { flex: 1, color: Colors.dark.text, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption },
-  primaryButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.dark.ctaPrimary, borderRadius: Radius.card, paddingHorizontal: Spacing.base, paddingVertical: 15, marginTop: Spacing.lg, minHeight: 52 },
-  primaryButtonPressed: { backgroundColor: '#3FC26F' },
+  priorityReason: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.body, lineHeight: 22, marginTop: Spacing.base },
+  provenancePanel: { backgroundColor: 'rgba(255,255,255,0.035)', borderRadius: Radius.card, paddingHorizontal: Spacing.md, paddingVertical: 10, marginTop: 22 },
+  provenancePanelCompact: { paddingHorizontal: 10, paddingVertical: 7, marginTop: Spacing.base },
+  provenanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, paddingVertical: 7 },
+  provenanceRowCompact: { gap: Spacing.sm, paddingVertical: 4 },
+  provenanceLabel: { width: 96, color: TODAY_TEXT_TERTIARY, fontSize: 10, fontWeight: '700', letterSpacing: 1, paddingTop: 1 },
+  provenanceLabelCompact: { width: 88, fontSize: 10, letterSpacing: 0.8 },
+  provenanceValue: { flex: 1, color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall },
+  provenanceValueCompact: { fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption },
+  primaryButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#59BE89', borderRadius: Radius.card, paddingLeft: Spacing.lg, paddingRight: Spacing.md, paddingVertical: 14, marginTop: Spacing.lg, minHeight: 56, shadowColor: '#000000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 12, elevation: 3 },
   primaryButtonText: { color: '#07120B', fontSize: Typography.sizes.body, fontWeight: '700' },
-  primaryButtonArrow: { color: '#07120B', fontSize: 18 },
-  heroLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.base, marginTop: Spacing.base },
-  heroLink: { color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, textDecorationLine: 'underline' },
-  heroLinkMuted: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall },
-  disclosure: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.card, padding: Spacing.md, marginTop: Spacing.md },
-  disclosureLabel: { color: Colors.viz.bioGreen, fontSize: 9, fontWeight: '700', letterSpacing: 1.2 },
-  disclosureText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 5 },
-  briefSurface: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border },
-  briefRow: { paddingVertical: Spacing.base },
+  primaryButtonIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(7,18,11,0.08)', alignItems: 'center', justifyContent: 'center' },
+  heroLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 0, marginTop: 8 },
+  heroLinkButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 7 },
+  heroLinkButtonFlexible: { flexShrink: 1 },
+  heroLink: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.bodySmall, fontWeight: '500' },
+  heroLinkActive: { color: Colors.viz.bioGreen },
+  heroLinkMuted: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.bodySmall },
+  disclosure: { backgroundColor: 'rgba(255,255,255,0.035)', borderRadius: Radius.card, padding: Spacing.base, marginTop: Spacing.xs },
+  disclosureLabel: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.2 },
+  disclosureText: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 7 },
+  briefSurface: { backgroundColor: TODAY_SURFACE, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, borderRadius: Radius.card, paddingHorizontal: Spacing.lg, overflow: 'hidden' },
+  briefRow: { paddingVertical: 18 },
   dividedRow: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border },
-  briefLabel: { color: Colors.dark.textMuted, fontSize: Typography.sizes.caption, fontWeight: '600', marginBottom: 5 },
+  briefLabel: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.caption, fontWeight: '600', marginBottom: 6 },
   briefLabelEmphasis: { color: Colors.viz.bioGreen },
   briefValue: { color: Colors.dark.text, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body },
-  briefValueEmphasis: { fontSize: Typography.sizes.lg, lineHeight: 24, fontWeight: '500' },
-  textRoute: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md },
+  briefValueEmphasis: { fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: '500' },
+  textRoute: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border, paddingVertical: Spacing.md },
   textRouteLabel: { color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, fontWeight: '600' },
-  textRouteArrow: { color: Colors.dark.textMuted, fontSize: 17 },
   listSurface: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border },
-  emptyState: { paddingVertical: Spacing.xl },
+  emptyState: { paddingVertical: 28 },
   emptyTitle: { color: Colors.dark.text, fontSize: Typography.sizes.lg, fontWeight: '500' },
-  emptyBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 6, maxWidth: 500 },
-  emptyAction: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.bodySmall, fontWeight: '600', marginTop: Spacing.md },
-  protocolRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', minHeight: 86, paddingVertical: Spacing.md, gap: Spacing.md },
-  completionControl: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, borderColor: Colors.dark.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  emptyBody: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 7, maxWidth: 500 },
+  emptyActionButton: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: Spacing.sm },
+  emptyAction: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.bodySmall, fontWeight: '600' },
+  protocolRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', minHeight: 92, paddingVertical: Spacing.md, gap: Spacing.sm },
+  completionHitbox: { width: 40, height: 44, marginLeft: -6, alignItems: 'center', justifyContent: 'center' },
+  completionControl: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: Colors.dark.borderStrong, alignItems: 'center', justifyContent: 'center' },
   completionDone: { borderColor: Colors.viz.bioGreen, backgroundColor: Colors.dark.accentBg },
-  checkmark: { color: Colors.viz.bioGreen, fontWeight: '700' },
   protocolCopy: { flex: 1 },
   protocolTopline: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 4 },
-  kindBadge: { color: Colors.dark.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.1 },
-  protocolTime: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall },
+  kindBadge: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.05 },
+  protocolTime: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall },
   protocolTitle: { color: Colors.dark.text, fontSize: Typography.sizes.body, fontWeight: '500' },
-  protocolDetail: { color: Colors.dark.textMuted, fontSize: Typography.sizes.caption, marginTop: 3 },
+  protocolDetail: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.caption, marginTop: 3 },
   protocolWarning: { color: Colors.viz.amber, fontSize: Typography.sizes.captionSmall, marginTop: 5 },
-  completedText: { color: Colors.dark.textMuted, textDecorationLine: 'line-through' },
-  protocolState: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, maxWidth: 56, textAlign: 'right' },
-  healthSurface: { backgroundColor: Colors.dark.cardBg, borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, padding: Spacing.base },
+  completedText: { color: TODAY_TEXT_TERTIARY, textDecorationLine: 'line-through' },
+  protocolState: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, maxWidth: 58, textAlign: 'right' },
+  healthSurface: { backgroundColor: TODAY_SURFACE, borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, padding: Spacing.lg, shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 3 },
   healthAgeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.base },
-  healthLabel: { color: Colors.dark.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.25 },
-  healthAge: { color: Colors.dark.text, fontSize: Typography.sizes.display2, lineHeight: Typography.lineHeights.display2, fontWeight: '300', marginTop: 4 },
+  healthLabel: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.2 },
+  healthAge: { color: Colors.dark.text, fontSize: Typography.sizes.display2, lineHeight: Typography.lineHeights.display2, fontWeight: '400', letterSpacing: -0.8, marginTop: 5 },
   healthMetaColumn: { alignItems: 'flex-end' },
-  healthMetaLabel: { color: Colors.dark.textMuted, fontSize: 8, fontWeight: '700', letterSpacing: 1, marginTop: 3 },
-  healthMetaValue: { color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, marginTop: 2, marginBottom: 5 },
+  healthMetaLabel: { color: TODAY_TEXT_TERTIARY, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginTop: 3 },
+  healthMetaValue: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.bodySmall, marginTop: 3, marginBottom: 6 },
   healthUnavailable: { color: Colors.dark.text, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: '500', marginTop: Spacing.sm },
-  healthSummary: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm },
-  completenessTrack: { height: 3, backgroundColor: Colors.dark.border, marginTop: Spacing.lg, overflow: 'hidden' },
-  completenessFill: { height: 3, backgroundColor: Colors.viz.bioGreen },
+  healthSummary: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm },
+  completenessTrack: { height: 4, backgroundColor: Colors.dark.border, borderRadius: 2, marginTop: Spacing.lg, overflow: 'hidden' },
+  completenessFill: { height: 4, borderRadius: 2, backgroundColor: Colors.viz.bioGreen },
   healthFooter: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Spacing.sm, marginTop: Spacing.md },
-  healthFooterText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall },
+  healthFooterText: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall },
+  healthFooterRoute: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   healthFooterLink: { color: Colors.dark.text, fontSize: Typography.sizes.captionSmall, fontWeight: '600' },
   wearableNote: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border, marginTop: Spacing.md, paddingTop: Spacing.md },
-  wearableLabel: { color: Colors.dark.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.1 },
-  wearableText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: 4 },
-  signalRow: { paddingVertical: Spacing.base },
-  signalKind: { color: Colors.dark.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.15 },
+  wearableLabel: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.05 },
+  wearableText: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: 5 },
+  signalRow: { minHeight: 72, paddingVertical: 18 },
+  signalKind: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.1 },
   signalTitle: { color: Colors.dark.text, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: '500', marginTop: 5 },
-  signalDetail: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 4 },
-  signalMeta: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, marginTop: Spacing.sm },
-  researchCard: { borderRadius: Radius.card, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg },
-  researchImage: { minHeight: 180 },
+  signalDetail: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: 5 },
+  signalMeta: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, marginTop: Spacing.sm },
+  researchCard: { borderRadius: Radius.card, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.borderStrong, backgroundColor: TODAY_SURFACE, shadowColor: '#000000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 4 },
+  researchImage: { minHeight: 192 },
   researchImageCorners: { borderTopLeftRadius: Radius.card, borderTopRightRadius: Radius.card },
-  researchScrim: { flex: 1, justifyContent: 'space-between', padding: Spacing.base },
-  researchIssue: { color: 'rgba(255,255,255,0.72)', fontSize: 9, fontWeight: '700', letterSpacing: 1.3 },
-  researchTitle: { color: '#FFFFFF', fontFamily: Typography.displaySerif, fontSize: Typography.sizes.xl, lineHeight: 27 },
-  researchCopy: { padding: Spacing.base },
-  researchRelevance: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall },
-  researchMetaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.md },
-  researchMeta: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall },
+  researchScrim: { flex: 1, justifyContent: 'space-between', padding: Spacing.lg },
+  researchIssue: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '700', letterSpacing: 1.3 },
+  researchTitle: { color: '#FFFFFF', fontFamily: Typography.displaySerif, fontSize: Typography.sizes.h2, lineHeight: 29 },
+  researchCopy: { padding: Spacing.lg },
+  researchRelevance: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body },
+  researchMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.base },
+  researchMeta: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall },
+  researchRoute: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   researchCta: { color: Colors.dark.text, fontSize: Typography.sizes.captionSmall, fontWeight: '600' },
-  skeleton: { padding: Spacing.lg, gap: Spacing.xl },
+  skeleton: { padding: Spacing.lg, gap: 28 },
   skeletonHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   skeletonGap: { gap: Spacing.sm },
 });

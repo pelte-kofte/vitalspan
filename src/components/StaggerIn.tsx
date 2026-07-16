@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
+import { StyleProp, View, ViewStyle } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Motion } from '../theme';
 
@@ -8,6 +8,7 @@ interface Props {
   /** Position in the list — each step adds Motion.entranceStagger ms of delay. */
   index?: number;
   style?: StyleProp<ViewStyle>;
+  reduceMotion?: boolean;
 }
 
 /**
@@ -18,7 +19,9 @@ interface Props {
  * Kept deliberately understated per DESIGN_SYSTEM.md's calm/scientific
  * identity — short duration, no spring overshoot, small offset.
  */
-export default function StaggerIn({ children, index = 0, style }: Props) {
+export default function StaggerIn({ children, index = 0, style, reduceMotion = false }: Props) {
+  if (reduceMotion) return <View style={style}>{children}</View>;
+
   return (
     <Animated.View
       style={style}

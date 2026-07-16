@@ -79,6 +79,7 @@ function MainTabs() {
         },
         tabBarActiveTintColor: Colors.dark.ctaPrimary,
         tabBarInactiveTintColor: Colors.dark.textMuted,
+        tabBarAllowFontScaling: false,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',

@@ -4,14 +4,15 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
+  Text as NativeText,
+  type TextProps,
   useWindowDimensions,
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CompositeNavigationProp,
   useFocusEffect,
@@ -32,7 +33,9 @@ import {
   TodaySkeleton,
   WeeklyResearchCard,
 } from '../components/today/TodaySections';
-import { BellIcon } from '../components/DesignSystemIcons';
+import AnimatedPressable from '../components/AnimatedPressable';
+import { GearIcon } from '../components/DesignSystemIcons';
+import StaggerIn from '../components/StaggerIn';
 import { usePremiumContext } from '../context/PremiumContext';
 import type { ExerciseLogEntry } from '../data/exercises';
 import { useIssue } from '../hooks/useIssue';
@@ -83,6 +86,12 @@ interface LegacyProtocol {
 }
 
 const TODAY_DISMISSED_KEY = '@vitalspan_today_priority_dismissed';
+const TODAY_TEXT_SECONDARY = 'rgba(232,245,238,0.66)';
+const TODAY_TEXT_TERTIARY = 'rgba(232,245,238,0.46)';
+
+function Text({ maxFontSizeMultiplier = 1.4, ...props }: TextProps) {
+  return <NativeText maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />;
+}
 
 function normalizeProtocol(raw: string | null): ProtocolState {
   if (!raw) return EMPTY_PROTOCOL;
@@ -402,74 +411,92 @@ export default function DashboardScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.viz.bioGreen} />}
           accessibilityLabel="Today longevity briefing"
         >
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.date}>{dateHeading(new Date()).toUpperCase()}</Text>
-              <Text style={styles.title} accessibilityRole="header">Today{profile?.name ? `, ${profile.name}` : ''}</Text>
-              <Text style={styles.subtitle}>Your daily longevity briefing</Text>
+          <StaggerIn index={0} reduceMotion={reduceMotion}>
+            <View style={styles.header}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.date}>{dateHeading(new Date()).toUpperCase()}</Text>
+                <Text style={styles.title} accessibilityRole="header">Today{profile?.name ? `, ${profile.name}` : ''}</Text>
+                <Text style={styles.subtitle}>Your daily longevity briefing</Text>
+              </View>
+              <AnimatedPressable
+                style={styles.settingsButton}
+                onPress={() => navigation.navigate('Settings')}
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+              >
+                <GearIcon color={Colors.dark.text} size={20} />
+              </AnimatedPressable>
             </View>
-            <Pressable
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate('Settings')}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-            >
-              <BellIcon color={Colors.dark.text} size={19} />
-            </Pressable>
-          </View>
+          </StaggerIn>
 
           {experience.safetyAlert ? (
-            <SafetyAlertCard
-              alert={experience.safetyAlert}
-              onReview={() => navigate(experience.safetyAlert!.action)}
-            />
+            <StaggerIn index={1} reduceMotion={reduceMotion}>
+              <SafetyAlertCard
+                alert={experience.safetyAlert}
+                onReview={() => navigate(experience.safetyAlert!.action)}
+              />
+            </StaggerIn>
           ) : null}
 
-          <TodayPriorityHero
-            priority={experience.priority}
-            layout={layout.mode}
-            onPrimaryAction={() => navigate(experience.priority.action)}
-            onDecline={dismissPriority}
-          />
-
-          <DailyBriefCard
-            brief={experience.brief}
-            onAsk={() => navigate({ destination: 'AIAdvisor' })}
-          />
-
-          <TodayProtocolSection
-            items={experience.protocolItems}
-            onToggle={toggleProtocolItem}
-            onOpenPlan={() => navigation.navigate('Protocol')}
-          />
-
-          <HealthStateSection
-            state={experience.healthState}
-            onOpen={() => navigation.navigate('LongevityScore')}
-          />
-
-          <ChangedSignalsSection
-            signals={experience.changedSignals}
-            emptyMessage={experience.changedSignalsEmptyMessage}
-            onOpen={biomarkerId => navigation.navigate('BiomarkerDetail', { biomarkerId })}
-          />
-
-          {issue?.coverArticle ? (
-            <WeeklyResearchCard
-              issueNumber={issue.issueNumber}
-              article={issue.coverArticle}
-              onOpen={() => {
-                if (isPremium) navigation.navigate('Articles', { issueNumber: issue.issueNumber });
-                else navigation.navigate('Paywall');
-              }}
+          <StaggerIn index={1} reduceMotion={reduceMotion}>
+            <TodayPriorityHero
+              priority={experience.priority}
+              layout={layout.mode}
+              onPrimaryAction={() => navigate(experience.priority.action)}
+              onDecline={dismissPriority}
+              reduceMotion={reduceMotion}
             />
-          ) : (
-            <View style={styles.researchEmpty} testID="weekly-research">
-              <TodaySectionHeading eyebrow="Weekly research" title="One study worth your time" />
-              <Text style={styles.researchEmptyTitle}>The current issue is unavailable</Text>
-              <Text style={styles.researchEmptyBody}>No unreviewed research is substituted. Pull to refresh when the editorial issue is available.</Text>
-            </View>
-          )}
+          </StaggerIn>
+
+          <StaggerIn index={2} reduceMotion={reduceMotion}>
+            <DailyBriefCard
+              brief={experience.brief}
+              onAsk={() => navigate({ destination: 'AIAdvisor' })}
+            />
+          </StaggerIn>
+
+          <StaggerIn index={3} reduceMotion={reduceMotion}>
+            <TodayProtocolSection
+              items={experience.protocolItems}
+              onToggle={toggleProtocolItem}
+              onOpenPlan={() => navigation.navigate('Protocol')}
+              reduceMotion={reduceMotion}
+            />
+          </StaggerIn>
+
+          <StaggerIn index={4} reduceMotion={reduceMotion}>
+            <HealthStateSection
+              state={experience.healthState}
+              onOpen={() => navigation.navigate('LongevityScore')}
+            />
+          </StaggerIn>
+
+          <StaggerIn index={5} reduceMotion={reduceMotion}>
+            <ChangedSignalsSection
+              signals={experience.changedSignals}
+              emptyMessage={experience.changedSignalsEmptyMessage}
+              onOpen={biomarkerId => navigation.navigate('BiomarkerDetail', { biomarkerId })}
+            />
+          </StaggerIn>
+
+          <StaggerIn index={6} reduceMotion={reduceMotion}>
+            {issue?.coverArticle ? (
+              <WeeklyResearchCard
+                issueNumber={issue.issueNumber}
+                article={issue.coverArticle}
+                onOpen={() => {
+                  if (isPremium) navigation.navigate('Articles', { issueNumber: issue.issueNumber });
+                  else navigation.navigate('Paywall');
+                }}
+              />
+            ) : (
+              <View style={styles.researchEmpty} testID="weekly-research">
+                <TodaySectionHeading eyebrow="Weekly research" title="One study worth your time" />
+                <Text style={styles.researchEmptyTitle}>The current issue is unavailable</Text>
+                <Text style={styles.researchEmptyBody}>No unreviewed research is substituted. Pull to refresh when the editorial issue is available.</Text>
+              </View>
+            )}
+          </StaggerIn>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -479,13 +506,13 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
-  content: { paddingTop: Spacing.base, paddingBottom: Spacing.xxl },
+  content: { paddingTop: Spacing.base, paddingBottom: 48 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.xl },
-  headerCopy: { flex: 1, paddingRight: Spacing.base },
-  date: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.4 },
-  title: { color: Colors.dark.text, fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1, fontWeight: '500', letterSpacing: -0.5, marginTop: 5 },
-  subtitle: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, marginTop: 4 },
-  settingsButton: { width: 40, height: 40, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg, alignItems: 'center', justifyContent: 'center' },
+  headerCopy: { flex: 1, paddingRight: Spacing.lg },
+  date: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.55 },
+  title: { color: Colors.dark.text, fontSize: 30, lineHeight: 36, fontWeight: '400', letterSpacing: -0.65, marginTop: 7 },
+  subtitle: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 4 },
+  settingsButton: { width: 44, height: 44, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.borderStrong, backgroundColor: 'rgba(255,255,255,0.035)', alignItems: 'center', justifyContent: 'center' },
   verificationBanner: { backgroundColor: Colors.dark.statusWarnBg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.dark.statusWarnBorder, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.md },
   verificationText: { flex: 1, color: Colors.viz.amber, fontSize: Typography.sizes.caption },
   verificationActions: { flexDirection: 'row', gap: Spacing.md },
@@ -493,7 +520,7 @@ const styles = StyleSheet.create({
   verificationDismiss: { color: Colors.dark.textMuted, fontSize: Typography.sizes.caption },
   toast: { position: 'absolute', zIndex: 10, top: 14, alignSelf: 'center', borderRadius: Radius.card, backgroundColor: Colors.dark.bgElevated, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.borderStrong, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm },
   toastText: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.caption, fontWeight: '600' },
-  researchEmpty: { marginTop: 48, marginBottom: 48, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, paddingVertical: Spacing.xl },
+  researchEmpty: { marginTop: 56, marginBottom: 56, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, paddingVertical: 28 },
   researchEmptyTitle: { color: Colors.dark.text, fontSize: Typography.sizes.lg, fontWeight: '500' },
-  researchEmptyBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm },
+  researchEmptyBody: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm },
 });
