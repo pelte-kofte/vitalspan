@@ -10,19 +10,19 @@ export const FIRST_RUN_CONTENT: FirstRunContent[] = [
     biomarkerId: 'fastingglucose',
     icon: '🍬',
     headline: 'Why Fasting Glucose Matters',
-    body: 'Fasting glucose is one of the earliest signals of metabolic dysfunction — years before a diabetes diagnosis appears. Longevity medicine targets below 90 mg/dL, tighter than the standard 100 mg/dL cutoff, to reduce your risk of cardiovascular disease and accelerated biological aging.',
+    body: 'Fasting glucose is interpreted using the source laboratory range, collection conditions, and clinical context. It is also one of the nine inputs used by the blood phenotypic age calculation after explicit unit normalization.',
   },
   {
     biomarkerId: 'hba1c',
     icon: '🩸',
     headline: 'Why HbA1c Matters',
-    body: 'HbA1c reflects your average blood sugar over the past 3 months — a sustained picture that fasting glucose alone cannot give you. Keeping it below 5.4% is associated with lower all-cause mortality and slower cellular aging in longevity medicine studies.',
+    body: 'HbA1c reflects average blood glucose over recent months. Interpretation depends on clinical context and factors that affect red blood cells; Vitalspan does not apply an unreviewed universal longevity target.',
   },
   {
     biomarkerId: 'totalcholesterol',
     icon: '💙',
     headline: 'Why Total Cholesterol Matters',
-    body: 'Total cholesterol sets the context for your cardiovascular risk. Longevity medicine focuses on the ratio and particle quality — not the number alone — but an optimal range of 150–200 mg/dL is associated with reduced atherosclerosis progression and longer healthspan.',
+    body: 'Total cholesterol should not be interpreted as a standalone longevity target. Vitalspan preserves the reported value and laboratory range while its marker-specific clinical interpretation is reviewed.',
   },
 ];
 

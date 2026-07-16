@@ -12,13 +12,13 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RunnerIcon, BellIcon, DnaHelixIcon, ClipboardIcon, WarningIcon } from '../components/DesignSystemIcons';
 import { BIOMARKERS, INTERACTIONS } from '../data/biomarkers';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { StoredEntry } from './BiomarkerEntryScreen';
-import FutureSelf from '../components/FutureSelf';
+import type { StoredEntry } from '../types/biomarkerEntry';
 import BioAgeSpherePreview from '../components/BioAgeSpherePreview';
 import AnimatedPressable from '../components/AnimatedPressable';
 import StaggerIn from '../components/StaggerIn';
 import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
-import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from '../lib/phenoAge';
+import { computePhenoAge, createPhenoAgeInputsFromEntries } from '../lib/phenoAge';
+import { BIOMARKER_STATUS_LABELS, classifyStoredEntry } from '../lib/biomarkerInterpretation';
 import { loadHealthData, HealthData } from '../lib/healthkit';
 import { ExerciseLogEntry } from '../data/exercises';
 import { usePremiumContext } from '../context/PremiumContext';
@@ -39,6 +39,7 @@ interface UserProfile {
   name: string;
   age: number;
   biologicalAge?: number;
+  bloodPhenotypicAge?: number;
   medications: string[];
   conditions: string[];
 }
@@ -105,6 +106,8 @@ export default function DashboardScreen() {
       ]);
 
       if (profileRaw) setProfile(JSON.parse(profileRaw));
+      const localEntries: StoredEntry[] = entriesRaw ? JSON.parse(entriesRaw) : [];
+      const localEntryMap = new Map(localEntries.map(entry => [entry.id, entry]));
 
       // Single getUser() call — result reused for biomarker fetch and verification banner (M3)
       let currentUser: import('@supabase/supabase-js').User | null = null;
@@ -123,6 +126,7 @@ export default function DashboardScreen() {
           if (!sbError && sbEntries && sbEntries.length > 0) {
             setEntries(
               sbEntries.map((row) => ({
+                ...localEntryMap.get(row.id as string),
                 id: row.id as string,
                 biomarkerId: row.biomarker_id as string,
                 value: row.value as number,
@@ -246,24 +250,24 @@ export default function DashboardScreen() {
   // Compute PhenoAge from logged biomarkers
   const phenoResult = useMemo(() => {
     if (!profile || !profile.age || profile.age <= 0) return null;
-    const inputs: PhenoAgeInputs = { age: profile.age };
-    for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
-      const entry = entryMap.get(biomarkerId);
-      if (entry != null && entry.value != null) {
-        inputs[inputKey] = entry.value;
-      }
-    }
-    return computePhenoAge(inputs);
+    return computePhenoAge(createPhenoAgeInputsFromEntries(profile.age, entryMap));
   }, [entryMap, profile]);
 
-  // CR-01: persist computed biological age back to profile so ProfileScreen stays current
+  // Persist only the corrected blood-based estimate. Remove the legacy field so
+  // an old, unit-incompatible result cannot survive an insufficient-data state.
   useEffect(() => {
-    if (!phenoResult || phenoResult.biologicalAge == null || !profile) return;
-    const updated = { ...profile, biologicalAge: phenoResult.biologicalAge };
+    if (!phenoResult || !profile) return;
+    const updated = { ...profile };
+    delete updated.biologicalAge;
+    if (phenoResult.bloodPhenotypicAge == null) {
+      delete updated.bloodPhenotypicAge;
+    } else {
+      updated.bloodPhenotypicAge = phenoResult.bloodPhenotypicAge;
+    }
     AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(updated)).catch(
       (e) => console.error('[bioAge sync]', e),
     );
-  }, [phenoResult?.biologicalAge, profile]);
+  }, [phenoResult?.bloodPhenotypicAge, phenoResult?.status, profile]);
 
   // Recompute the proactive insight banner on every tab focus.
   // Times out silently after 2s so the banner never blocks screen rendering.
@@ -333,16 +337,6 @@ export default function DashboardScreen() {
     );
   }, [profile, addedSupplements]);
 
-  const biomarkerOptimality = useMemo(() => {
-    const logged = BIOMARKERS.filter(bm => entryMap.has(bm.id));
-    if (logged.length === 0) return 0;
-    const optimal = logged.filter(bm => {
-      const e = entryMap.get(bm.id)!;
-      return e.value >= bm.optMin && e.value <= bm.optMax;
-    });
-    return optimal.length / logged.length;
-  }, [entryMap]);
-
   async function handleInsightDismiss(insightId: string) {
     const today = new Date().toISOString().slice(0, 10);
     const updated = { ...dismissedInsights, [insightId]: today };
@@ -379,10 +373,8 @@ export default function DashboardScreen() {
   const medications = profile?.medications ?? [];
   const takenCount = medications.filter(m => takenItems.has(m)).length;
 
-  const bioAge = phenoResult?.biologicalAge ?? null;
-  const chronoAge = profile?.age ?? null;
-  const yearsDiff = (bioAge != null && chronoAge != null) ? chronoAge - bioAge : 0;
-  const missingForPhenoAge = phenoResult?.missingBiomarkers ?? [];
+  const bioAge = phenoResult?.bloodPhenotypicAge ?? null;
+  const unmetPhenoRequirements = phenoResult?.requirements.filter(item => item.status !== 'present') ?? [];
 
   // Weekly movement summary (Mon–Sun current week)
   const weeklyMovement = useMemo(() => {
@@ -478,21 +470,25 @@ export default function DashboardScreen() {
             >
               <View style={[s.bioCardInner, bioAge == null && s.bioCardInnerCompact]}>
                 <Text style={s.bioChevron}>›</Text>
-                <Text style={s.bioLabel}>Biological age</Text>
+                <Text style={s.bioLabel}>Blood phenotypic age</Text>
                 {bioAge != null ? (
                   <>
                     <Text style={s.bioNum}>{bioAge}</Text>
                     <Text style={s.bioSub}>
-                      Chronological {chronoAge}
-                      {yearsDiff > 0 ? ` · ${yearsDiff} years younger` : ''}
+                      Estimate based on chronological age and 9 blood measurements
                     </Text>
                   </>
                 ) : (
                   <View style={s.bioEmptyState}>
                     <BioAgeSpherePreview size={48} dimmed />
                     <Text style={s.bioEmptyHeadline}>
-                      Log 9 biomarkers to see your biological age
+                      {phenoResult
+                        ? `${phenoResult.presentCount}/9 required inputs ready`
+                        : 'Log 9 required blood measurements'}
                     </Text>
+                    {unmetPhenoRequirements.slice(0, 2).map(item => (
+                      <Text key={item.key} style={s.bioSub}>{item.label}: {item.status.replace('_', ' ')}</Text>
+                    ))}
                     <AnimatedPressable
                       style={s.bioCtaBtn}
                       onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}
@@ -505,15 +501,6 @@ export default function DashboardScreen() {
               </View>
             </TouchableOpacity>
           </View>
-          </StaggerIn>
-
-          <StaggerIn index={1}>
-          <FutureSelf
-            biologicalAge={bioAge ?? undefined}
-            chronologicalAge={profile?.age}
-            optimality={biomarkerOptimality}
-            onViewBiomarkers={() => nav.getParent()?.navigate('Biomarkers')}
-          />
           </StaggerIn>
 
           {hasKnownInteractions && (
@@ -555,7 +542,7 @@ export default function DashboardScreen() {
               <DnaHelixIcon color={Colors.dark.textMuted} size={40} />
               <Text style={s.emptyStateHeading}>Your longevity data starts here</Text>
               <Text style={s.emptyStateBody}>
-                Log your first three biomarkers — Glucose, HbA1c, and Cholesterol — to see your Longevity Score and biological age.
+                Blood phenotypic age requires all 9 specified blood measurements. Partial data will not produce an age estimate.
               </Text>
               <AnimatedPressable
                 style={s.emptyStateCta}
@@ -571,21 +558,27 @@ export default function DashboardScreen() {
               {BIOMARKERS.slice(0, 5).map((bm, idx) => {
                 const latest = entryMap.get(bm.id) ?? null;
                 const hasData = latest !== null;
-                const isOptimal = hasData && latest.value >= bm.optMin && latest.value <= bm.optMax;
+                const status = latest ? classifyStoredEntry(latest) : null;
+                const withinRange = status === 'within_reported_range';
+                const outsideRange = status === 'outside_reported_range';
                 return (
                   <StaggerIn key={bm.id} index={idx}>
                   <View
-                    style={[s.bmCard, hasData ? (isOptimal ? s.bmCardGood : s.bmCardWarning) : s.bmCardNone]}
+                    style={[s.bmCard, hasData ? (withinRange ? s.bmCardGood : outsideRange ? s.bmCardWarning : s.bmCardNone) : s.bmCardNone]}
                   >
-                    <Text style={[s.bmName, { color: hasData ? (isOptimal ? Colors.viz.bioGreen : Colors.viz.amber) : Colors.dark.textMuted }]}>{bm.name}</Text>
-                    <Text style={[s.bmVal, { color: hasData ? (isOptimal ? Colors.viz.bioGreen : Colors.viz.amber) : Colors.dark.textMuted }]}>
+                    <Text style={[s.bmName, { color: hasData ? (withinRange ? Colors.viz.bioGreen : outsideRange ? Colors.viz.amber : Colors.dark.text) : Colors.dark.textMuted }]}>{bm.name}</Text>
+                    <Text
+                      style={[s.bmVal, { color: hasData ? (withinRange ? Colors.viz.bioGreen : outsideRange ? Colors.viz.amber : Colors.dark.text) : Colors.dark.textMuted }]}
+                    >
                       {hasData ? String(latest.value) : '·'}
                     </Text>
                     <Text style={s.bmUnit}>{bm.unit}</Text>
                     {hasData ? (
-                      <View style={[s.bmBadge, isOptimal ? s.bmBadgeGood : s.bmBadgeWarn]}>
-                        <Text style={[s.bmBadgeTxt, { color: isOptimal ? Colors.viz.bioGreen : Colors.viz.amber }]}>
-                          {isOptimal ? 'Optimal' : 'Review'}
+                      <View style={[s.bmBadge, withinRange ? s.bmBadgeGood : outsideRange ? s.bmBadgeWarn : s.bmBadgeNeutral]}>
+                        <Text
+                          style={[s.bmBadgeTxt, { color: withinRange ? Colors.viz.bioGreen : outsideRange ? Colors.viz.amber : Colors.dark.textMuted }]}
+                        >
+                          {status ? BIOMARKER_STATUS_LABELS[status] : 'Unable to classify'}
                         </Text>
                       </View>
                     ) : (
@@ -807,6 +800,7 @@ const s = StyleSheet.create({
   bmBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
   bmBadgeWarn: { backgroundColor: Colors.dark.statusWarnBg, borderWidth: 0.5, borderColor: Colors.dark.statusWarnBorder },
   bmBadgeGood: { backgroundColor: Colors.dark.statusOptimalBg, borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder },
+  bmBadgeNeutral: { backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
   bmBadgeTxt: { fontSize: 9, fontWeight: '500' },
   bmBadgeEmpty: {
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,

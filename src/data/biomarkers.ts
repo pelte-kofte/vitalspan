@@ -1,6 +1,7 @@
 import { Colors } from '../theme';
+import type { BiomarkerKnowledgeFields } from '../types/biomarkerKnowledge';
 
-export interface Biomarker {
+export interface Biomarker extends BiomarkerKnowledgeFields {
   id: string;
   name: string;
   category: 'cardio' | 'metabolic' | 'inflammation' | 'hormones' | 'vitamins' | 'cbc' | 'metabolicPanel' | 'thyroid' | 'liver' | 'kidney' | 'longevity';
@@ -1468,4 +1469,3 @@ export const INTERACTIONS = [
     recommendation: 'Take both in the evening. Ashwagandha 300–600mg KSM-66 extract + Magnesium Glycinate 200–400mg.',
   },
 ];
-

@@ -38,7 +38,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from '../components/NeuralGrid';
 import { OrbitalInfoModal } from '../components/OrbitalInfoModal';
-import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PHENO_BIOMARKER_LIST, PhenoAgeInputs } from '../lib/phenoAge';
+import {
+  computePhenoAge,
+  createPhenoAgeInputsFromEntries,
+  PHENO_BIOMARKER_LIST,
+  type PhenoAgeRequirementStatus,
+  type PhenoAgeResult,
+} from '../lib/phenoAge';
 import {
   connectAndSync,
   loadHealthData,
@@ -47,7 +53,7 @@ import {
   formatSyncTime,
   HealthData,
 } from '../lib/healthkit';
-import { StoredEntry } from './BiomarkerEntryScreen';
+import type { StoredEntry } from '../types/biomarkerEntry';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -63,7 +69,7 @@ const DATA_POINTS = [
   { key: 'sleep',       label: 'Sleep',    unit: 'hrs', angle: -90 },
   { key: 'hrv',         label: 'HRV',      unit: 'ms',  angle: -30 },
   { key: 'recovery',    label: 'Recovery', unit: '%',   angle: 30 },
-  { key: 'inflammation',label: 'Inflam.',  unit: '',    angle: 90 },
+  { key: 'inflammation',label: 'hsCRP',    unit: 'mg/L', angle: 90 },
   { key: 'glucose',     label: 'Glucose',  unit: '',    angle: 150 },
   { key: 'fitness',     label: 'Fitness',  unit: '',    angle: 210 },
 ] as const;
@@ -85,12 +91,8 @@ function polarToXY(angleDeg: number, r: number, cx: number, cy: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function healthScoreColor(bioAge?: number | null, age?: number | null): [string, string] {
-  if (bioAge == null || age == null) return ['#1C3B2A', '#2D6A4F'];
-  const diff = age - bioAge;
-  if (diff >= 3) return ['#0D2B22', '#2D6A4F'];
-  if (diff >= 0) return ['#1A2010', '#3A5C2E'];
-  return ['#2A1A0A', '#6B3B12'];
+function healthScoreColor(hasEstimate: boolean): [string, string] {
+  return hasEstimate ? ['#0D2B22', '#2D6A4F'] : ['#1C3B2A', '#2D6A4F'];
 }
 
 // Returns a display value for an orbital metric, or null when data is unavailable.
@@ -136,15 +138,15 @@ function ExplainerModal({ visible, onClose, onConnectHealth, nav }: ExplainerMod
       >
         <View style={s.explainerSheet}>
           <View style={s.sheetHandle} />
-          <Text style={s.sheetTitle}>Your Longevity Mission Control</Text>
+          <Text style={s.sheetTitle}>Blood phenotypic age</Text>
           <Text style={s.sheetBody}>
-            This screen is your biological dashboard — a real-time map of how your body is aging.
+            An estimate based on chronological age and nine blood measurements. It is not a diagnosis and does not represent every dimension of aging.
           </Text>
           <View style={s.explainItem}>
             <Text style={s.explainEmoji}>🧬</Text>
             <View style={s.explainText}>
               <Text style={s.explainHead}>Sphere center</Text>
-              <Text style={s.explainDesc}>Your PhenoAge — computed from 9 blood biomarkers using the Levine 2018 formula (Aging Cell, DOI: 10.1111/acel.12748).</Text>
+              <Text style={s.explainDesc}>Calculated only when all nine required inputs are present, valid, current, and unit-compatible with the published Levine formula.</Text>
             </View>
           </View>
           <View style={s.explainItem}>
@@ -155,10 +157,10 @@ function ExplainerModal({ visible, onClose, onConnectHealth, nav }: ExplainerMod
             </View>
           </View>
           <View style={s.explainItem}>
-            <Text style={s.explainEmoji}>📈</Text>
+            <Text style={s.explainEmoji}>ℹ</Text>
             <View style={s.explainText}>
-              <Text style={s.explainHead}>Projected lifespan</Text>
-              <Text style={s.explainDesc}>Baseline of 88–92 years adjusted by your bio age vs chronological age delta.</Text>
+              <Text style={s.explainHead}>Model limitations</Text>
+              <Text style={s.explainDesc}>Do not compare results across incompatible laboratories or units without normalization. Longitudinal aging velocity is not calculated yet.</Text>
             </View>
           </View>
           <View style={s.quickActions}>
@@ -185,19 +187,18 @@ function ExplainerModal({ visible, onClose, onConnectHealth, nav }: ExplainerMod
 interface TransparencyModalProps {
   visible: boolean;
   onClose: () => void;
-  bioConfidence: number;
-  loggedPhenoCount: number;
-  totalPhenoCount: number;
-  isConnected: boolean;
-  entryMap: Map<string, StoredEntry>;
-  bioAge: number | null;
-  chronoAge: number | undefined;
-  yearsDiff: number;
+  result: PhenoAgeResult | null;
 }
-function TransparencyModal({
-  visible, onClose, bioConfidence, loggedPhenoCount, totalPhenoCount,
-  isConnected, entryMap, bioAge, chronoAge, yearsDiff,
-}: TransparencyModalProps) {
+
+const REQUIREMENT_LABELS: Record<PhenoAgeRequirementStatus, string> = {
+  present: 'Present',
+  missing: 'Missing',
+  stale: 'Stale',
+  invalid: 'Invalid',
+  unit_incompatible: 'Unit incompatible',
+};
+
+function TransparencyModal({ visible, onClose, result }: TransparencyModalProps) {
   return (
     <Modal
       visible={visible}
@@ -214,48 +215,45 @@ function TransparencyModal({
           <View style={s.sheetHandle} />
           <Text style={s.sheetTitle}>How is this calculated?</Text>
           <Text style={s.sheetBody}>
-            Score confidence: <Text style={{ color: Colors.viz.bioGreen, fontWeight: '700' }}>{bioConfidence}%</Text>
-            {' '}based on {loggedPhenoCount}/{totalPhenoCount} biomarkers logged{isConnected ? ' + Apple Health connected' : ''}.
+            Data completeness: <Text style={{ color: Colors.viz.bioGreen, fontWeight: '700' }}>{result?.presentCount ?? 0}/9 required inputs</Text>.
+            {' '}Model confidence has not been established for this individual.
+          </Text>
+          <Text style={s.sheetBody}>
+            Chronological age: {result?.ageValid ? result.chronologicalAge : 'Missing or invalid'}
           </Text>
 
-          <Text style={s.transparencySubHead}>PhenoAge Biomarkers</Text>
+          <Text style={s.transparencySubHead}>Required blood measurements</Text>
           {PHENO_BIOMARKER_LIST.map(b => {
-            const logged = entryMap.has(b.id);
+            const requirement = result?.requirements.find(item => item.key === b.key);
+            const present = requirement?.status === 'present';
             return (
-              <View key={b.id} style={s.transparencyRow}>
-                <Text style={[s.transparencyCheck, { color: logged ? Colors.viz.bioGreen : Colors.dark.textMuted }]}>
-                  {logged ? '✓' : '○'}
+              <View key={b.biomarkerId} style={s.transparencyRow}>
+                <Text
+                  style={[s.transparencyCheck, { color: present ? Colors.viz.bioGreen : Colors.dark.textMuted }]}
+                >
+                  {present ? '✓' : '○'}
                 </Text>
-                <Text style={[s.transparencyLabel, { color: logged ? Colors.dark.text : Colors.dark.textMuted }]}>
+                <Text
+                  style={[s.transparencyLabel, { color: present ? Colors.dark.text : Colors.dark.textMuted }]}
+                >
                   {b.label}
                 </Text>
-                <Text style={s.transparencyUnit}>{b.unit}</Text>
+                <View style={s.requirementDetail}>
+                  <Text style={s.transparencyUnit}>{REQUIREMENT_LABELS[requirement?.status ?? 'missing']}</Text>
+                  <Text style={s.transparencyUnit}>{requirement?.reportedUnit ?? '—'} → {b.publishedUnit}</Text>
+                  {requirement?.unitSource === 'legacy_definition' && (
+                    <Text style={s.legacyUnitNote}>Legacy unit fallback</Text>
+                  )}
+                </View>
               </View>
             );
           })}
 
           <View style={s.improvementSection}>
-            <Text style={s.transparencySubHead}>What improves this score?</Text>
-            {!isConnected && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>Connect Apple Health</Text>
-                <Text style={s.improvementGain}>+25% confidence</Text>
-              </View>
-            )}
-            {loggedPhenoCount < totalPhenoCount && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>
-                  Log {PHENO_BIOMARKER_LIST.find(b => !entryMap.has(b.id))?.label ?? 'next biomarker'}
-                </Text>
-                <Text style={s.improvementGain}>+{Math.round(60 / totalPhenoCount)}% confidence</Text>
-              </View>
-            )}
-            {bioAge != null && chronoAge != null && chronoAge > bioAge && (
-              <View style={s.improvementRow}>
-                <Text style={s.improvementAction}>Lower ApoB to &lt;70</Text>
-                <Text style={s.improvementGain}>−1.2 bio years</Text>
-              </View>
-            )}
+            <Text style={s.transparencySubHead}>Model limitations</Text>
+            {(result?.modelLimitations ?? []).map(limitation => (
+              <Text key={limitation} style={s.limitationText}>• {limitation}</Text>
+            ))}
           </View>
         </View>
       </TouchableOpacity>
@@ -275,7 +273,7 @@ export default function LongevityScoreScreen() {
   const [permissionState, setPermissionState] = useState<'pre-request' | 'granted' | 'denied' | 'loading'>('loading');
   const [orbitalModal, setOrbitalModal] = useState<{ title: string; body: string; ctaLabel?: string; onCta?: () => void } | null>(null);
 
-  // Derived for backward compat with bioConfidence calculation
+  // Apple Health remains independent from blood phenotypic-age completeness.
   const isConnected = permissionState === 'granted';
 
   // Prompt fade-in animation
@@ -453,12 +451,7 @@ export default function LongevityScoreScreen() {
   // PhenoAge computation
   const phenoResult = React.useMemo(() => {
     if (!profile?.age || profile.age <= 0) return null;
-    const inputs: PhenoAgeInputs = { age: profile.age };
-    for (const [biomarkerId, inputKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
-      const entry = entryMap.get(biomarkerId);
-      if (entry != null && entry.value != null) inputs[inputKey] = entry.value;
-    }
-    return computePhenoAge(inputs);
+    return computePhenoAge(createPhenoAgeInputsFromEntries(profile.age, entryMap));
   }, [entryMap, profile]);
 
   // Enrich health data with biomarker-derived values
@@ -478,36 +471,17 @@ export default function LongevityScoreScreen() {
       .filter(e => e.biomarkerId === 'hscrp')
       .sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!entry) return null;
-    if (entry.value < 1) return 'Low';
-    if (entry.value < 3) return 'Mod';
-    return 'High';
+    return String(entry.value);
   }, [biomarkerEntries]);
 
-  const bioAge = phenoResult?.biologicalAge ?? null;
-  const chronoAge = profile?.age;
-  const yearsDiff = bioAge != null && chronoAge != null ? chronoAge - bioAge : 0;
-  const [gradStart, gradEnd] = healthScoreColor(bioAge ?? undefined, chronoAge);
-
-  const loggedPhenoCount = PHENO_BIOMARKER_LIST.filter(b => entryMap.has(b.id)).length;
-  const totalPhenoCount = PHENO_BIOMARKER_LIST.length;
-  const bioConfidence = Math.round(
-    (loggedPhenoCount / totalPhenoCount) * 60 +
-    (isConnected ? 25 : 0) +
-    (loggedPhenoCount >= totalPhenoCount ? 15 : 0),
-  );
+  const bioAge = phenoResult?.bloodPhenotypicAge ?? null;
+  const [gradStart, gradEnd] = healthScoreColor(bioAge != null);
 
   function arcPath(r: number): string {
     const start = polarToXY(-135, r, SPHERE_CX, SPHERE_CY);
     const end   = polarToXY(135, r, SPHERE_CX, SPHERE_CY);
     return `M ${start.x} ${start.y} A ${r} ${r} 0 1 1 ${end.x} ${end.y}`;
   }
-
-  const projectedLifespan =
-    bioAge != null && chronoAge != null
-      ? `${85 + yearsDiff}–${92 + yearsDiff} years`
-      : phenoResult != null
-        ? `Log ${phenoResult.missingBiomarkers[0] ?? 'missing biomarkers'} to unlock`
-        : 'Log biomarkers to unlock';
 
   // Render the HealthKit card area based on permission state
   function renderHealthKitArea() {
@@ -608,7 +582,7 @@ export default function LongevityScoreScreen() {
             <TouchableOpacity style={s.backBtn} onPress={() => nav.goBack()}>
               <Text style={s.backArrow}>←</Text>
             </TouchableOpacity>
-            <Text style={s.screenTitle}>LONGEVITY SCORE</Text>
+            <Text style={s.screenTitle}>BLOOD PHENOTYPIC AGE</Text>
             <TouchableOpacity
               style={s.helpBtn}
               onPress={() => {
@@ -657,16 +631,15 @@ export default function LongevityScoreScreen() {
               {bioAge != null ? (
                 <>
                   <Text style={s.bioAgeHero}>{bioAge}</Text>
-                  <Text style={s.bioAgeLabel}>BIO AGE</Text>
-                  {yearsDiff > 0 && <Text style={s.bioAgeDiff}>↓ {yearsDiff}y younger</Text>}
+                  <Text style={s.bioAgeLabel}>BLOOD PHENOTYPIC AGE</Text>
                 </>
               ) : (
                 <>
                   <Text style={s.bioAgePending}>—</Text>
                   <Text style={s.bioAgeLabel}>
                     {phenoResult != null
-                      ? `Missing: ${phenoResult.missingBiomarkers.slice(0, 2).join(', ')}${phenoResult.missingBiomarkers.length > 2 ? ` +${phenoResult.missingBiomarkers.length - 2}` : ''}`
-                      : 'LOG BIOMARKERS'}
+                      ? `${phenoResult.presentCount}/9 INPUTS READY`
+                      : 'LOG 9 REQUIRED INPUTS'}
                   </Text>
                 </>
               )}
@@ -713,22 +686,16 @@ export default function LongevityScoreScreen() {
             </Animated.View>
           </Animated.View>
 
-          {/* Longevity projection */}
+          {/* Scientific stop-loss status — no lifespan or biological-age projection. */}
           <View style={s.projectionCard}>
-            <Text style={s.projLabel}>PROJECTED LIFESPAN</Text>
-            <Text style={s.projValue}>{projectedLifespan}</Text>
-            {bioAge != null ? (
-              <Text style={s.projSub}>
-                Based on PhenoAge vs chronological age.
-                {yearsDiff > 0
-                  ? ` Tracking ${yearsDiff} year${yearsDiff !== 1 ? 's' : ''} ahead.`
-                  : ' Optimise biomarkers to improve.'}
-              </Text>
-            ) : (
-              <Text style={s.projSub}>
-                Your biological signature is waiting — log 4+ biomarkers to unlock your projection.
-              </Text>
-            )}
+            <Text style={s.projLabel}>MODEL STATUS</Text>
+            <Text style={s.projValue}>Data completeness: {phenoResult?.presentCount ?? 0}/9</Text>
+            <Text style={s.projSub}>Longitudinal trend: Insufficient longitudinal history</Text>
+            <Text style={s.projSub}>
+              Last calculated: {phenoResult?.calculatedAt
+                ? new Date(phenoResult.calculatedAt).toLocaleDateString()
+                : 'Not calculated'}
+            </Text>
           </View>
 
           {/* Metric grid */}
@@ -782,7 +749,7 @@ export default function LongevityScoreScreen() {
               How is this calculated?
             </Text>
             <View style={s.confidencePill}>
-              <Text style={s.confidenceTxt}>{bioConfidence}% confident</Text>
+              <Text style={s.confidenceTxt}>{phenoResult?.presentCount ?? 0}/9 inputs</Text>
             </View>
           </TouchableOpacity>
 
@@ -817,7 +784,7 @@ export default function LongevityScoreScreen() {
               onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: 'albumin' })}
             >
               <Text style={s.quickActionIcon}>📋</Text>
-              <Text style={s.quickActionTxt}>Bio-age test</Text>
+              <Text style={s.quickActionTxt}>Blood age inputs</Text>
             </TouchableOpacity>
           </View>
 
@@ -833,14 +800,7 @@ export default function LongevityScoreScreen() {
         <TransparencyModal
           visible={showTransparency}
           onClose={() => setShowTransparency(false)}
-          bioConfidence={bioConfidence}
-          loggedPhenoCount={loggedPhenoCount}
-          totalPhenoCount={totalPhenoCount}
-          isConnected={isConnected}
-          entryMap={entryMap}
-          bioAge={bioAge}
-          chronoAge={chronoAge}
-          yearsDiff={yearsDiff}
+          result={phenoResult}
         />
         {orbitalModal && (
           <OrbitalInfoModal
@@ -1087,6 +1047,9 @@ const s = StyleSheet.create({
   transparencyCheck: { fontSize: 14, width: 18, textAlign: 'center' },
   transparencyLabel: { flex: 1, fontSize: Typography.sizes.sm },
   transparencyUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
+  requirementDetail: { alignItems: 'flex-end', maxWidth: 130 },
+  legacyUnitNote: { fontSize: 9, color: Colors.viz.amber, marginTop: 2 },
+  limitationText: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18, marginBottom: Spacing.xs },
   improvementSection: { marginTop: Spacing.sm },
   improvementRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.xs + 2 },
   improvementAction: { fontSize: Typography.sizes.sm, color: Colors.dark.text },

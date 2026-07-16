@@ -32,6 +32,7 @@ interface UserProfile {
   conditions: string[];
   medications: string[];
   biologicalAge?: number;
+  bloodPhenotypicAge?: number;
   onboardingComplete?: boolean;
 }
 
@@ -159,7 +160,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const yearsDiff = profile.age - (profile.biologicalAge ?? profile.age);
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
   if (editing) {
@@ -245,7 +245,7 @@ export default function ProfileScreen() {
           <View style={s.editNote}>
             <Text style={s.editNoteTxt}>
               To update medications, use the Protocol screen.
-              Biological age updates automatically as you log biomarkers.
+              Blood phenotypic age updates only when all 9 required blood measurements are valid and current.
             </Text>
           </View>
 
@@ -306,11 +306,6 @@ export default function ProfileScreen() {
             <Text style={s.avatarTxt}>{profile.name.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={s.name}>{profile.name}</Text>
-          {yearsDiff > 0 && (
-            <View style={s.agePill}>
-              <Text style={s.agePillTxt}>{yearsDiff} years younger biologically</Text>
-            </View>
-          )}
         </View>
 
         {/* Personal */}
@@ -324,17 +319,17 @@ export default function ProfileScreen() {
             <Text style={s.rowLabel}>Sex</Text>
             <Text style={s.rowValue}>{capitalize(profile.sex)}</Text>
           </View>
-          {profile.biologicalAge != null ? (
+          {profile.bloodPhenotypicAge != null ? (
             <View style={[s.row, s.rowBorder]}>
-              <Text style={s.rowLabel}>Biological age</Text>
-              <Text style={[s.rowValue, { color: Colors.dark.ctaPrimary }]}>{profile.biologicalAge}</Text>
+              <Text style={s.rowLabel}>Blood phenotypic age</Text>
+              <Text style={[s.rowValue, { color: Colors.dark.ctaPrimary }]}>{profile.bloodPhenotypicAge}</Text>
             </View>
           ) : (
             <View style={[s.row, s.rowBorder]}>
-              <Text style={s.rowLabel}>Biological age</Text>
+              <Text style={s.rowLabel}>Blood phenotypic age</Text>
               <TouchableOpacity onPress={() => nav.navigate('BiomarkerEntry', { biomarkerId: undefined })}>
                 <Text style={[s.rowValue, { color: Colors.dark.ctaPrimary }]}>
-                  Log 9 PhenoAge biomarkers to compute
+                  Log all 9 required blood measurements
                 </Text>
               </TouchableOpacity>
             </View>

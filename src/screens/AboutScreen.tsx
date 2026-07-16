@@ -21,24 +21,14 @@ const EVIDENCE_GRADES = [
   { grade: 'C', desc: 'Early evidence — animal studies or observational data',    color: Colors.onSurfaceMuted, bg: Colors.surfaceElevated, border: Colors.borderLight },
 ];
 
-const BIOMARKER_RANGES = [
-  { marker: 'ApoB',           longevity: '<70 mg/dL',    standard: '<100 mg/dL' },
-  { marker: 'Fasting Glucose', longevity: '<90 mg/dL',   standard: '<100 mg/dL' },
-  { marker: 'hsCRP',           longevity: '<1.0 mg/L',   standard: '<3.0 mg/L' },
-  { marker: 'Vitamin D',       longevity: '50–80 ng/mL', standard: '30–100 ng/mL' },
-  { marker: 'HbA1c',           longevity: '<5.3%',       standard: '<5.7%' },
-  { marker: 'LDL-C',           longevity: '<70 mg/dL',   standard: '<130 mg/dL' },
-];
-
 const CITATIONS = [
-  { id: '1', text: 'Levine ME et al. "An epigenetic biomarker of aging for lifespan and healthspan." Aging Cell. 2018;17(4):e12748. DOI: 10.1111/acel.12748' },
+  { id: '1', text: 'Levine ME et al. "An epigenetic biomarker of aging for lifespan and healthspan." Aging (Albany NY). 2018;10(4):573–591. DOI: 10.18632/aging.101414' },
   { id: '2', text: 'Attia P. Outlive: The Science and Art of Longevity. Harmony Books. 2023.' },
   { id: '3', text: 'Katz DL et al. "Can We Say What Diet Is Best for Health?" Annu Rev Public Health. 2014;35:83–103.' },
   { id: '4', text: 'Bjelakovic G et al. "Mortality in Randomized Trials of Antioxidant Supplements." JAMA. 2007;297(8):842–857.' },
   { id: '5', text: 'Mills KT et al. "A Systematic Analysis of Worldwide Population-Based Data on the Global Burden of Nonalcoholic Fatty Liver Disease." J Hepatol. 2016;65(5):1087–98.' },
   { id: '6', text: 'Sinclair DA, LaPlante MD. Lifespan: Why We Age — and Why We Don\'t Have To. Atria Books. 2019.' },
   { id: '7', text: 'Fontana L et al. "Extending Healthy Life Span." Science. 2010;328(5976):321–326.' },
-  { id: '8', text: 'Longevity Medicine Alliance. Biomarker Reference Intervals for Healthy Aging. 2022.' },
 ];
 
 export default function AboutScreen() {
@@ -105,7 +95,7 @@ export default function AboutScreen() {
             Longevity medicine, metabolic health optimization, and drug–supplement interaction safety.
           </Text>
           <Text style={s.bodyTxt}>
-            Every biomarker range, supplement recommendation, and interaction warning in Vitalspan is pharmacist-reviewed. We hold ourselves to the standard of clinical practice — not wellness trends.
+              Biomarker interpretations are undergoing structured clinical review. Until a marker is reviewed, Vitalspan shows the source laboratory range and neutral context rather than an unsupported universal target.
           </Text>
         </View>
 
@@ -113,7 +103,7 @@ export default function AboutScreen() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Why pharmacist-built matters</Text>
           <Text style={s.bodyTxt}>
-            Most health apps are built by engineers, not clinicians. This leads to dangerous oversimplifications — recommending supplements without checking your medications, using population-average ranges rather than longevity targets, and missing critical interactions.
+            Health information can be misleading when laboratory ranges, assay context, medications, and interaction risks are oversimplified.
           </Text>
           <View style={s.whyPoint}>
             <View style={s.whyIconWrap}><PillIcon color={Colors.onSurface} size={16} /></View>
@@ -121,11 +111,11 @@ export default function AboutScreen() {
           </View>
           <View style={s.whyPoint}>
             <View style={s.whyIconWrap}><TargetIcon color={Colors.onSurface} size={16} /></View>
-            <Text style={s.whyTxt}>Biomarker targets are based on longevity medicine literature, not standard lab normals designed to detect disease.</Text>
+            <Text style={s.whyTxt}>Biomarker interpretations are being reviewed marker by marker. Legacy longevity targets are not used as clinical thresholds.</Text>
           </View>
           <View style={s.whyPoint}>
             <View style={s.whyIconWrap}><MicroscopeIcon color={Colors.onSurface} size={16} /></View>
-            <Text style={s.whyTxt}>Biological age is calculated using the validated Levine PhenoAge algorithm, not a proprietary black-box score.</Text>
+            <Text style={s.whyTxt}>Blood phenotypic age follows the published Levine PhenoAge formula and is withheld unless all required inputs are valid, current, and unit-compatible.</Text>
           </View>
         </View>
 
@@ -133,30 +123,16 @@ export default function AboutScreen() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Our mission</Text>
           <Text style={s.bodyTxt}>
-            Longevity medicine has existed in elite clinics for years. We're making it accessible — the same tools, the same biomarker targets, the same evidence-based protocols used by the world's leading longevity physicians.
+            Our mission is to make careful, transparent health tracking accessible while clearly separating measured data, reviewed clinical guidance, and areas where evidence remains uncertain.
           </Text>
         </View>
 
-        {/* Longevity vs standard ranges */}
+        {/* Biomarker range review */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Longevity vs. standard ranges</Text>
+          <Text style={s.sectionTitle}>Biomarker ranges</Text>
           <Text style={s.bodyTxt}>
-            Standard lab ranges detect disease. Longevity ranges optimize for decades of strong health.
+            Clinical interpretation is being reviewed. Vitalspan preserves the range and unit reported by the source laboratory. Ranges vary by laboratory, assay, population, and clinical context.
           </Text>
-          <View style={s.rangeTable}>
-            <View style={s.rangeHeaderRow}>
-              <Text style={[s.rangeCell, s.rangeLabel, { flex: 1.2 }]}>Biomarker</Text>
-              <Text style={[s.rangeCell, s.rangeLabel]}>Longevity</Text>
-              <Text style={[s.rangeCell, s.rangeLabel]}>Standard</Text>
-            </View>
-            {BIOMARKER_RANGES.map(r => (
-              <View key={r.marker} style={[s.rangeHeaderRow, s.rangeRow]}>
-                <Text style={[s.rangeCell, { flex: 1.2, color: Colors.onSurface }]}>{r.marker}</Text>
-                <Text style={[s.rangeCell, { color: Colors.primary, fontWeight: '600' }]}>{r.longevity}</Text>
-                <Text style={[s.rangeCell, { color: Colors.onSurfaceMuted }]}>{r.standard}</Text>
-              </View>
-            ))}
-          </View>
         </View>
 
         {/* Evidence grading */}
@@ -174,14 +150,13 @@ export default function AboutScreen() {
 
         {/* PhenoAge */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Biological age calculation</Text>
+          <Text style={s.sectionTitle}>Blood phenotypic age calculation</Text>
           <Text style={s.bodyTxt}>
-            Biological age uses the Levine PhenoAge formula (
-            <Text style={s.italic}>Aging Cell</Text>, 2018). It requires 9 standard blood biomarkers and is validated across multiple large cohort studies. All math is transparent — no black-box scores.
+            Blood phenotypic age uses the Levine PhenoAge formula. It is an estimate based on chronological age and 9 blood measurements, not a diagnosis, and does not represent every dimension of aging. Results should not be compared across incompatible laboratories or units without normalization.
           </Text>
           <View style={s.citationBlock}>
             <Text style={s.citationText}>
-              Levine ME et al. Aging Cell. 2018;17(4):e12748.
+              Levine ME et al. Aging (Albany NY). 2018;10(4):573–591. DOI: 10.18632/aging.101414.
             </Text>
           </View>
         </View>

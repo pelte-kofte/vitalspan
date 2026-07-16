@@ -3,10 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SUPPLEMENT_DATABASE, EvidenceGrade } from '../../data/supplementTimings';
 import { MEDICATION_DATABASE } from '../../data/medications';
 import { Colors, Spacing, Typography, Radius } from '../../theme';
+import type { BiomarkerStatus } from '../../lib/advisorContext';
 
 export type ReportItem =
   | { kind: 'finding'; finding: string; priority: 'high' | 'medium' | 'low' }
-  | { kind: 'biomarker'; name: string; status: 'Optimal' | 'Suboptimal' | 'Critical'; insight: string }
+  | { kind: 'biomarker'; name: string; status: BiomarkerStatus; insight: string }
   | { kind: 'supplement'; name: string; type: 'supplement' | 'medication'; assessment: string }
   | { kind: 'recommendation'; action: string; category: string; timeframe: string };
 
@@ -40,11 +41,16 @@ const PRIORITY_COLORS: Record<'high' | 'medium' | 'low', string> = {
   low:    Colors.primary,
 };
 
-const STATUS_COLORS: Record<'Optimal' | 'Suboptimal' | 'Critical', { bg: string; border: string; text: string }> = {
-  Optimal:    { bg: Colors.status.optimalBg,  border: Colors.status.optimalBorder,  text: Colors.status.optimalText },
-  Suboptimal: { bg: Colors.status.reviewBg,   border: Colors.status.reviewBorder,   text: Colors.status.reviewText },
-  Critical:   { bg: Colors.status.criticalBg, border: Colors.status.criticalBorder, text: Colors.status.criticalText },
+const STATUS_COLORS: Record<BiomarkerStatus, { bg: string; border: string; text: string }> = {
+  'Within reported laboratory range': { bg: Colors.status.optimalBg, border: Colors.status.optimalBorder, text: Colors.status.optimalText },
+  'Outside reported laboratory range': { bg: Colors.status.reviewBg, border: Colors.status.reviewBorder, text: Colors.status.reviewText },
+  'Needs context': { bg: Colors.dark.cardBg, border: Colors.dark.cardBorder, text: Colors.dark.textMuted },
+  'Unable to classify': { bg: Colors.dark.cardBg, border: Colors.dark.cardBorder, text: Colors.dark.textMuted },
 };
+
+function safeBiomarkerStatus(status: BiomarkerStatus): BiomarkerStatus {
+  return Object.prototype.hasOwnProperty.call(STATUS_COLORS, status) ? status : 'Needs context';
+}
 
 function renderItem(item: ReportItem, index: number): React.ReactElement {
   if (item.kind === 'finding') {
@@ -56,12 +62,15 @@ function renderItem(item: ReportItem, index: number): React.ReactElement {
     );
   }
   if (item.kind === 'biomarker') {
-    const cols = STATUS_COLORS[item.status];
+    // Older cached/remote reports can still contain legacy status strings.
+    // They are deliberately downgraded to neutral context rather than shown.
+    const displayStatus = safeBiomarkerStatus(item.status);
+    const cols = STATUS_COLORS[displayStatus];
     return (
       <View key={index} style={s.itemBlock}>
         <View style={s.itemRow}>
           <View style={[s.pill, { backgroundColor: cols.bg, borderColor: cols.border }]}>
-            <Text style={[s.pillText, { color: cols.text }]}>{item.status}</Text>
+            <Text style={[s.pillText, { color: cols.text }]}>{displayStatus}</Text>
           </View>
           <Text style={s.itemText}>{item.name}</Text>
         </View>

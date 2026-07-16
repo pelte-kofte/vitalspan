@@ -105,43 +105,40 @@ async function run(): Promise<void> {
     assert('Test 4: recovery present when isDemoMode=false', ctx.recovery === 70, `got ${ctx.recovery}`);
   }
 
-  // ── Test 5: biomarker within optMin..optMax → 'Optimal' ───────────────────
-  // Using 'apob' (optMin:40, optMax:70) — value 55 is within range
+  // ── Test 5: value within its reported laboratory range ───────────────────
   clearStorage();
   setStorageKey('@vitalspan_user_profile', { age: 45, sex: 'male', goal: 'longevity', medications: [], conditions: [] });
   setStorageKey('@vitalspan_biomarkers', [
-    { id: '1', type: 'apob', value: 55, unit: 'mg/dL', date: '2026-01-01' },
+    { id: '1', biomarkerId: 'apob', value: 55, unit: 'mg/dL', date: '2026-01-01', sourceLabRange: { lowerBound: 40, upperBound: 70, unit: 'mg/dL' } },
   ]);
   {
     const ctx = await assembleAdvisorContext();
     const apob = ctx.biomarkers.find((b) => b.name === 'ApoB');
-    assert('Test 5: value within range → Optimal', apob?.status === 'Optimal', `got ${apob?.status}`);
+    assert('Test 5: value within reported range', apob?.status === 'Within reported laboratory range', `got ${apob?.status}`);
   }
 
-  // ── Test 6: biomarker moderately above optMax → 'Suboptimal' ──────────────
-  // ApoB optMax=70; value 90 is 28.6% above optMax (<40%) → Suboptimal
+  // ── Test 6: value outside its reported laboratory range ──────────────────
   clearStorage();
   setStorageKey('@vitalspan_user_profile', { age: 45, sex: 'male', goal: 'longevity', medications: [], conditions: [] });
   setStorageKey('@vitalspan_biomarkers', [
-    { id: '1', type: 'apob', value: 90, unit: 'mg/dL', date: '2026-01-01' },
+    { id: '1', biomarkerId: 'apob', value: 90, unit: 'mg/dL', date: '2026-01-01', sourceLabRange: { lowerBound: 40, upperBound: 70, unit: 'mg/dL' } },
   ]);
   {
     const ctx = await assembleAdvisorContext();
     const apob = ctx.biomarkers.find((b) => b.name === 'ApoB');
-    assert('Test 6: value moderately above optMax → Suboptimal', apob?.status === 'Suboptimal', `got ${apob?.status}`);
+    assert('Test 6: value outside reported range', apob?.status === 'Outside reported laboratory range', `got ${apob?.status}`);
   }
 
-  // ── Test 7: biomarker far above optMax → 'Critical' ───────────────────────
-  // ApoB optMax=70; value 150 is 114% above optMax (>40%) → Critical
+  // ── Test 7: distance never manufactures a critical state ─────────────────
   clearStorage();
   setStorageKey('@vitalspan_user_profile', { age: 45, sex: 'male', goal: 'longevity', medications: [], conditions: [] });
   setStorageKey('@vitalspan_biomarkers', [
-    { id: '1', type: 'apob', value: 150, unit: 'mg/dL', date: '2026-01-01' },
+    { id: '1', biomarkerId: 'apob', value: 150, unit: 'mg/dL', date: '2026-01-01', sourceLabRange: { lowerBound: 40, upperBound: 70, unit: 'mg/dL' } },
   ]);
   {
     const ctx = await assembleAdvisorContext();
     const apob = ctx.biomarkers.find((b) => b.name === 'ApoB');
-    assert('Test 7: value far above optMax → Critical', apob?.status === 'Critical', `got ${apob?.status}`);
+    assert('Test 7: far value remains outside reported range', apob?.status === 'Outside reported laboratory range', `got ${apob?.status}`);
   }
 
   // ── Test 8: medications array contains names only ─────────────────────────

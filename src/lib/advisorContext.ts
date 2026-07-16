@@ -6,7 +6,7 @@
  *
  * Security guarantees:
  *   - Chronological age bucketed into 5-year bands; exact age never included.
- *   - Biomarker values mapped to status categories (Optimal/Suboptimal/Critical);
+ *   - Biomarker values mapped only against their reported laboratory range;
  *     raw numeric values never included in the output.
  *   - No user name, no exact birthdate, no Supabase user ID, no device ID.
  *   - HealthKit fields excluded when isDemoMode:true (D-12).
@@ -16,17 +16,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BIOMARKERS } from '../data/biomarkers';
 import { ExerciseLogEntry } from '../data/exercises';
-import { computePhenoAge, PHENO_AGE_BIOMARKER_MAP, PhenoAgeInputs } from './phenoAge';
+import { computePhenoAge, createPhenoAgeInputsFromEntries } from './phenoAge';
+import { BIOMARKER_STATUS_LABELS, classifyStoredEntry } from './biomarkerInterpretation';
+import type { StoredEntry } from '../types/biomarkerEntry';
 import { ProtocolItem } from '../types/protocol';
 import { SUPPLEMENT_DATABASE } from '../data/supplementTimings';
 
 // ── Exported types ────────────────────────────────────────────────────────────
 
-export type BiomarkerStatus = 'Optimal' | 'Suboptimal' | 'Critical';
+export type BiomarkerStatus =
+  | 'Within reported laboratory range'
+  | 'Outside reported laboratory range'
+  | 'Needs context'
+  | 'Unable to classify';
 
 export interface AdvisorContext {
   ageBand: string;                   // e.g. "35–39" (D-11)
-  biologicalAge: number | null;      // from computePhenoAge() (D-03)
+  biologicalAge: number | null;      // corrected blood phenotypic age; legacy API field name
   phenoAgeInputCount: number;        // how many of 9 PhenoAge biomarkers were available
   sex: string;
   goal: string;
@@ -44,7 +50,7 @@ export interface AdvisorContext {
     status: BiomarkerStatus;
     daysAgo?: number;                // how many days since this entry was logged
     dataPointCount: number;          // real logged entries for this biomarker
-    trend?: 'improving' | 'stable' | 'declining';  // only set once dataPointCount >= MIN_TREND_DATA_POINTS
+    trend?: 'improving' | 'stable' | 'declining';
   }>;
   adherenceRate: string;             // e.g. "72%" or "unknown"
   timingConflicts: Array<{
@@ -62,14 +68,6 @@ export interface AdvisorContext {
 }
 
 // ── Internal types (not exported) ────────────────────────────────────────────
-
-interface StoredEntry {
-  id: string;
-  biomarkerId: string;
-  value: number;
-  unit: string;
-  date: string;
-}
 
 interface UserProfile {
   age: number;
@@ -111,20 +109,6 @@ interface HealthData {
 function bucketAge(age: number): string {
   const lowerBound = Math.floor(age / 5) * 5;
   return `${lowerBound}–${lowerBound + 4}`;
-}
-
-// ── Biomarker status bucketing (D-10) ─────────────────────────────────────────
-
-function bucketBiomarkerStatus(value: number, optMin: number, optMax: number): BiomarkerStatus {
-  if (optMin === 0) {
-    if (value <= optMax) return 'Optimal';
-    if (value <= optMax * 1.5) return 'Suboptimal';
-    return 'Critical';
-  }
-  if (value >= optMin && value <= optMax) return 'Optimal';
-  const aboveOptMax = value > optMax ? (value - optMax) / optMax : 0;
-  const belowOptMin = value < optMin ? (optMin - value) / optMin : 0;
-  return Math.max(aboveOptMax, belowOptMin) < 0.4 ? 'Suboptimal' : 'Critical';
 }
 
 // ── Safe AsyncStorage reader ──────────────────────────────────────────────────
@@ -353,13 +337,6 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     }
 
     // ── Biomarker status + daysAgo + trend ────────────────────────────────
-    // MIN_TREND_DATA_POINTS: a trend (especially "declining", which drives a
-    // user-facing warning insight) must never be inferred from a single new
-    // reading or a two-point blip — e.g. a lab PDF upload that back-fills two
-    // historical values at once for a brand-new account. Require at least 3
-    // real logged entries before trend is computed at all.
-    const MIN_TREND_DATA_POINTS = 3;
-    const STATUS_RANK: Record<BiomarkerStatus, number> = { Optimal: 2, Suboptimal: 1, Critical: 0 };
     const nowMs = Date.now();
 
     const biomarkerStatusList: AdvisorContext['biomarkers'] = [];
@@ -368,18 +345,12 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
       if (!entries || entries.length === 0) continue;
 
       const latest = entries[0];
-      const prev = entries[1];  // undefined if fewer than 2 entries
-
-      const status = bucketBiomarkerStatus(latest.value, biomarker.optMin, biomarker.optMax);
+      const status = BIOMARKER_STATUS_LABELS[classifyStoredEntry(latest)] as BiomarkerStatus;
       const daysAgo = Math.floor((nowMs - new Date(latest.date).getTime()) / 86_400_000);
 
-      let trend: 'improving' | 'stable' | 'declining' | undefined;
-      if (prev !== undefined && entries.length >= MIN_TREND_DATA_POINTS) {
-        const prevStatus = bucketBiomarkerStatus(prev.value, biomarker.optMin, biomarker.optMax);
-        const latestRank = STATUS_RANK[status];
-        const prevRank = STATUS_RANK[prevStatus];
-        trend = latestRank > prevRank ? 'improving' : latestRank < prevRank ? 'declining' : 'stable';
-      }
+      // Directionality cannot be inferred safely without a reviewed marker rule.
+      // Retain the data-point count, but withhold improving/declining labels.
+      const trend: 'improving' | 'stable' | 'declining' | undefined = undefined;
 
       biomarkerStatusList.push({
         name: biomarker.name,
@@ -391,16 +362,13 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     }
 
     // ── PhenoAge calculation ───────────────────────────────────────────────
-    const phenoInputs: PhenoAgeInputs = { age };
-    for (const [biomarkerId, phenoKey] of Object.entries(PHENO_AGE_BIOMARKER_MAP)) {
-      const entries = entryLists.get(biomarkerId);
-      if (entries && entries.length > 0) {
-        phenoInputs[phenoKey] = entries[0].value;
-      }
+    const latestEntryMap = new Map<string, StoredEntry>();
+    for (const [biomarkerId, biomarkerEntries] of entryLists) {
+      if (biomarkerEntries[0]) latestEntryMap.set(biomarkerId, biomarkerEntries[0]);
     }
-    const phenoResult = computePhenoAge(phenoInputs);
-    const biologicalAge = phenoResult.biologicalAge;
-    const phenoAgeInputCount = phenoResult.totalRequired - phenoResult.missingCount;
+    const phenoResult = computePhenoAge(createPhenoAgeInputsFromEntries(age, latestEntryMap));
+    const biologicalAge = phenoResult.bloodPhenotypicAge;
+    const phenoAgeInputCount = phenoResult.presentCount;
 
     // ── Supplement details (new schema + legacy fallback) ─────────────────
     // Raw personalDose string is NEVER placed in the output (pharmacist-liability, D-07/T-22-06).

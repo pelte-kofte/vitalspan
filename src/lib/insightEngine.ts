@@ -54,20 +54,16 @@ export function computeProactiveInsight(
   }
 
   // ── Priority 2 — warning: biomarker declining (trend computed vs. prior entry) ─
-  // Sort by status severity (Critical > Suboptimal > Optimal), then by oldest daysAgo,
-  // so the most urgent declining biomarker is surfaced when multiple are declining.
+  // A future reviewed marker rule may supply a direction. Until then the context
+  // assembler withholds improving/declining labels rather than deriving severity
+  // from distance to a legacy longevity target.
   // MIN_DATA_POINTS_FOR_TREND: defense-in-depth guard, mirroring the one in
   // advisorContext.ts — a declining-trend insight must never fire off a brand-new
   // account, a single reading, or a two-point blip from a bulk lab-PDF import.
   const MIN_DATA_POINTS_FOR_TREND = 3;
-  const STATUS_SEVERITY: Record<string, number> = { Critical: 2, Suboptimal: 1, Optimal: 0 };
   const decliningBiomarkers = (context.biomarkers ?? [])
     .filter(b => b.trend === 'declining' && (b.dataPointCount ?? 0) >= MIN_DATA_POINTS_FOR_TREND)
-    .sort((a, b) => {
-      const sevDiff = (STATUS_SEVERITY[b.status] ?? 0) - (STATUS_SEVERITY[a.status] ?? 0);
-      if (sevDiff !== 0) return sevDiff;
-      return (b.daysAgo ?? 0) - (a.daysAgo ?? 0);
-    });
+    .sort((a, b) => (b.daysAgo ?? 0) - (a.daysAgo ?? 0));
   for (const declining of decliningBiomarkers) {
     const id = `biomarkerDeclining:${declining.name}`;
     if (!wasDismissedToday(id, dismissedInsights)) {

@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import type { SourceLabRange } from '../types/biomarkerKnowledge';
 
 export interface ParsedBiomarker {
   biomarkerId: string;
@@ -6,6 +7,7 @@ export interface ParsedBiomarker {
   value: number;
   unit: string;
   confidence: 'high' | 'medium' | 'low';
+  sourceLabRange?: SourceLabRange;
 }
 
 interface Pattern {
@@ -70,12 +72,29 @@ function matchBiomarkers(text: string): ParsedBiomarker[] {
 
       const value = parseFloat(m[1].replace(',', '.'));
       if (!isNaN(value) && value >= p.min && value <= p.max) {
+        const matchIndex = m.index ?? 0;
+        const afterValue = text.slice(matchIndex + m[0].length, matchIndex + m[0].length + 160);
+        const rangeMatch = afterValue.match(
+          /(?:reference|ref\.?|range|interval|normal|referans)?\s*[:(]?\s*(\d{1,5}(?:[.,]\d{1,3})?)\s*[-–]\s*(\d{1,5}(?:[.,]\d{1,3})?)/i,
+        );
+        const lowerBound = rangeMatch ? parseFloat(rangeMatch[1].replace(',', '.')) : undefined;
+        const upperBound = rangeMatch ? parseFloat(rangeMatch[2].replace(',', '.')) : undefined;
+        const sourceLabRange =
+          lowerBound !== undefined && upperBound !== undefined && lowerBound <= upperBound
+            ? {
+                lowerBound,
+                upperBound,
+                unit: p.unit,
+                reportedText: `${rangeMatch![1]}–${rangeMatch![2]}`,
+              }
+            : undefined;
         results.push({
           biomarkerId: p.id,
           name: p.name,
           value,
           unit: p.unit,
           confidence: i === 0 ? 'high' : 'medium',
+          sourceLabRange,
         });
         seen.add(p.id);
         break;

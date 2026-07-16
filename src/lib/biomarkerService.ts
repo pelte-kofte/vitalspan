@@ -55,6 +55,8 @@ export async function getBiomarkers(): Promise<Biomarker[]> {
       }
 
       return {
+        // Preserve typed knowledge-system fields and all UI-only legacy fields.
+        ...staticBiomarker,
         // Server-side fields — override from Supabase row
         id: staticBiomarker.id,
         name: row.name,
@@ -64,14 +66,6 @@ export async function getBiomarkers(): Promise<Biomarker[]> {
         category: (row.category ?? staticBiomarker.category) as Biomarker['category'],
         target: row.target ?? staticBiomarker.target,
         description: row.description ?? staticBiomarker.description,
-        // UI-only fields — always from static array
-        categoryLabel: staticBiomarker.categoryLabel,
-        color: staticBiomarker.color,
-        howToImprove: staticBiomarker.howToImprove,
-        defaultVal: staticBiomarker.defaultVal,
-        prevVal: staticBiomarker.prevVal,
-        insight: staticBiomarker.insight,
-        history: staticBiomarker.history,
       };
     });
   } catch (err: unknown) {

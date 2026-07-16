@@ -10,7 +10,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { SearchIcon, SuccessCheckIcon, ClipboardIcon, CameraIcon } from '../components/DesignSystemIcons';
 import { parseLabPDF, ParsedBiomarker } from '../lib/labParser';
-import { StoredEntry } from './BiomarkerEntryScreen';
+import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
+import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
 
 type Phase = 'idle' | 'analyzing' | 'results' | 'noResults' | 'noMatch' | 'success';
 
@@ -77,13 +78,17 @@ export default function LabUploadScreen() {
     );
 
     const today = new Date().toISOString().slice(0, 10);
-    const newEntries: StoredEntry[] = toSave.map(item => ({
+    const newEntries: StoredEntry[] = toSave.map(item => createStoredBiomarkerEntry({
       id: `lab_${item.biomarkerId}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       biomarkerId: item.biomarkerId,
       value: item.value,
+      unit: item.unit,
+      reportedValue: item.value,
+      reportedUnit: item.unit,
       date: today,
       source: 'Lab PDF',
       notes: `Imported from ${fileName}`,
+      sourceLabRange: item.sourceLabRange,
     }));
 
     await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify([...existing, ...newEntries]));
@@ -101,7 +106,7 @@ export default function LabUploadScreen() {
         <View style={{ width: 28 }} />
       </View>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.subtitle}>Your pharmacist-verified analysis</Text>
+        <Text style={s.subtitle}>Import values and reported laboratory ranges</Text>
 
         <TouchableOpacity style={s.uploadZone} onPress={pickPDF} activeOpacity={0.75}>
           <ClipboardIcon color={Colors.onSurfaceMuted} size={48} />
@@ -231,7 +236,9 @@ export default function LabUploadScreen() {
               </View>
               <View style={s.resultInfo}>
                 <Text style={s.resultName}>{item.name}</Text>
-                <Text style={s.resultUnit}>{item.unit}</Text>
+                <Text style={s.resultUnit}>
+                  {item.unit} · Lab range: {formatSourceLabRange(item.sourceLabRange)}
+                </Text>
               </View>
               <View style={s.resultRight}>
                 <Text style={s.resultValue}>{item.value}</Text>

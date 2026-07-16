@@ -12,7 +12,7 @@ import NeuralGrid from '../components/NeuralGrid';
 import SheetForm, { SheetFormField } from '../components/auth/SheetForm';
 import { signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase, signInWithApple, signInWithGoogle } from '../lib/supabase';
 import { migrateHistory } from '../lib/biomarkerWriteService';
-import { StoredEntry } from './BiomarkerEntryScreen';
+import type { StoredEntry } from '../types/biomarkerEntry';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 

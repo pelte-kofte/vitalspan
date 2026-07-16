@@ -16,6 +16,11 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
 import BreathingCard from '../components/BreathingCard';
 import { FIRST_RUN_CONTENT_MAP } from '../data/firstRunContent';
+import { BIOMARKER_STATUS_LABELS, classifyBiomarkerValue } from '../lib/biomarkerInterpretation';
+import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
+import type { SourceLabRange } from '../types/biomarkerKnowledge';
+
+export type { StoredEntry } from '../types/biomarkerEntry';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Source = 'Blood test' | 'Home kit' | 'Hospital' | 'Private clinic';
@@ -24,32 +29,17 @@ type InputUnit = 'native' | 'mmol/L';
 const SOURCES: Source[] = ['Blood test', 'Home kit', 'Hospital', 'Private clinic'];
 
 // Biomarkers that have a common mmol/L alternate input unit
-const MMOL_CONVERTIBLE: Record<string, { factor: number; altUnit: string }> = {
-  fastingglucose: { factor: 18.018, altUnit: 'mmol/L' },  // mg/dL = mmol/L × 18.018
-  hba1c: { factor: 10.929, altUnit: 'mmol/mol' },          // mmol/mol = % × 10.929 (divide mmol/mol by factor to get %)
+const MMOL_CONVERTIBLE: Record<string, { altUnit: string; toNative: (value: number) => number }> = {
+  fastingglucose: { altUnit: 'mmol/L', toNative: value => value * 18.0182 },
+  // NGSP (%) = 0.09148 × IFCC (mmol/mol) + 2.152
+  hba1c: { altUnit: 'mmol/mol', toNative: value => 0.09148 * value + 2.152 },
 };
 
 function convertToNative(val: number, biomarkerId: string, inputUnit: InputUnit): number {
   if (inputUnit === 'native') return val;
   const conv = MMOL_CONVERTIBLE[biomarkerId];
   if (!conv) return val;
-  return Math.round((val / conv.factor) * 100) / 100;
-}
-
-export interface StoredEntry {
-  id: string;
-  biomarkerId: string;
-  value: number;
-  date: string;
-  source: string;
-  notes: string;
-}
-
-export function getStatus(val: number, optMin: number, optMax: number) {
-  if (val >= optMin && val <= optMax) return 'optimal';
-  const buf = (optMax - optMin) * (2 / 3);
-  if (val >= optMin - buf && val <= optMax + buf) return 'suboptimal';
-  return 'out_of_range';
+  return Math.round(conv.toNative(val) * 100) / 100;
 }
 
 export default function BiomarkerEntryScreen() {
@@ -67,6 +57,8 @@ export default function BiomarkerEntryScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [inputUnit, setInputUnit] = useState<InputUnit>('native');
+  const [labRangeLow, setLabRangeLow] = useState('');
+  const [labRangeHigh, setLabRangeHigh] = useState('');
 
   useEffect(() => {
     getBiomarkers().then(loaded => {
@@ -86,11 +78,31 @@ export default function BiomarkerEntryScreen() {
   const rawVal = parseFloat(value.replace(',', '.'));
   const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
   const isValidValue = !isNaN(rawVal) && rawVal > 0;
-  const status = selected && isValidValue
-    ? getStatus(numVal, selected.optMin, selected.optMax)
-    : null;
   const canConvert = selected ? !!MMOL_CONVERTIBLE[selected.id] : false;
   const altUnit = selected ? MMOL_CONVERTIBLE[selected.id]?.altUnit : undefined;
+  const reportedUnit = inputUnit === 'native' ? selected?.unit : altUnit;
+  const parsedRangeLow = labRangeLow.trim() === '' ? undefined : parseFloat(labRangeLow.replace(',', '.'));
+  const parsedRangeHigh = labRangeHigh.trim() === '' ? undefined : parseFloat(labRangeHigh.replace(',', '.'));
+  const rangeHasInvalidValue =
+    (parsedRangeLow !== undefined && !Number.isFinite(parsedRangeLow)) ||
+    (parsedRangeHigh !== undefined && !Number.isFinite(parsedRangeHigh)) ||
+    (parsedRangeLow !== undefined && parsedRangeHigh !== undefined && parsedRangeLow > parsedRangeHigh);
+  const sourceLabRange: SourceLabRange | undefined =
+    reportedUnit && !rangeHasInvalidValue && (parsedRangeLow !== undefined || parsedRangeHigh !== undefined)
+      ? {
+          lowerBound: parsedRangeLow,
+          upperBound: parsedRangeHigh,
+          unit: reportedUnit,
+          reportedText: parsedRangeLow !== undefined && parsedRangeHigh !== undefined
+            ? `${labRangeLow.trim()}–${labRangeHigh.trim()}`
+            : parsedRangeLow !== undefined
+              ? `≥${labRangeLow.trim()}`
+              : `≤${labRangeHigh.trim()}`,
+        }
+      : undefined;
+  const status = selected && isValidValue
+    ? classifyBiomarkerValue(rawVal, reportedUnit, sourceLabRange)
+    : null;
 
   const filtered = biomarkers.filter(bm =>
     bm.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -113,14 +125,17 @@ export default function BiomarkerEntryScreen() {
     try {
       const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
       const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
-      entries.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      entries.push(createStoredBiomarkerEntry({
         biomarkerId: selected.id,
         value: numVal,
+        unit: selected.unit,
+        reportedValue: rawVal,
+        reportedUnit,
         date: getEntryDate(),
         source,
         notes: notes.trim(),
-      });
+        sourceLabRange,
+      }));
       await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
       syncEntry(entries[entries.length - 1]);  // fire-and-forget — void return intentional
       nav.goBack();
@@ -212,7 +227,13 @@ export default function BiomarkerEntryScreen() {
               <TouchableOpacity
                 key={u}
                 style={[s.unitChip, inputUnit === u && s.unitChipActive]}
-                onPress={() => { setInputUnit(u); setValue(''); Haptics.selectionAsync().catch(() => null); }}
+                onPress={() => {
+                  setInputUnit(u);
+                  setValue('');
+                  setLabRangeLow('');
+                  setLabRangeHigh('');
+                  Haptics.selectionAsync().catch(() => null);
+                }}
               >
                 <Text style={[s.unitChipTxt, inputUnit === u && s.unitChipTxtActive]}>
                   {u === 'native' ? selected.unit : altUnit}
@@ -227,25 +248,49 @@ export default function BiomarkerEntryScreen() {
 
         {status && (
           <View style={[s.statusBadge,
-            status === 'optimal' ? s.statusOpt :
-            status === 'suboptimal' ? s.statusSub : s.statusOut,
+            status === 'within_reported_range' ? s.statusWithin :
+            status === 'outside_reported_range' ? s.statusOutside : s.statusNeutral,
           ]}>
             <Text style={[s.statusTxt,
-              status === 'optimal' ? s.statusTxtOpt :
-              status === 'suboptimal' ? s.statusTxtSub : s.statusTxtOut,
+              status === 'within_reported_range' ? s.statusTxtWithin :
+              status === 'outside_reported_range' ? s.statusTxtOutside : s.statusTxtNeutral,
             ]}>
-              {status === 'optimal' ? '✓ Optimal' :
-               status === 'suboptimal' ? '~ Suboptimal' : '⚠ Out of range'}
+              {BIOMARKER_STATUS_LABELS[status]}
             </Text>
           </View>
         )}
 
+        <Text style={s.fieldLabel}>Reported laboratory range (optional)</Text>
+        <Text style={s.rangeNote}>
+          Enter the interval exactly as shown on the report, using {reportedUnit ?? selected.unit}.
+        </Text>
+        <View style={s.rangeInputRow}>
+          <TextInput
+            style={s.rangeInput}
+            value={labRangeLow}
+            onChangeText={setLabRangeLow}
+            keyboardType="decimal-pad"
+            placeholder="Low"
+            placeholderTextColor={Colors.dark.textMuted}
+          />
+          <Text style={s.rangeDash}>–</Text>
+          <TextInput
+            style={s.rangeInput}
+            value={labRangeHigh}
+            onChangeText={setLabRangeHigh}
+            keyboardType="decimal-pad"
+            placeholder="High"
+            placeholderTextColor={Colors.dark.textMuted}
+          />
+          <Text style={s.rangeUnit}>{reportedUnit ?? selected.unit}</Text>
+        </View>
+        {rangeHasInvalidValue && <Text style={s.rangeError}>Enter a valid laboratory interval.</Text>}
+
         <View style={s.section}>
           <RangeBar
-            optMin={selected.optMin}
-            optMax={selected.optMax}
-            value={isValidValue ? numVal : NaN}
-            target={selected.target}
+            sourceLabRange={sourceLabRange}
+            value={isValidValue ? rawVal : NaN}
+            valueUnit={reportedUnit}
           />
         </View>
 
@@ -298,9 +343,9 @@ export default function BiomarkerEntryScreen() {
         />
 
         <TouchableOpacity
-          style={[s.saveBtn, (!isValidValue || saving) && s.saveBtnDisabled]}
+          style={[s.saveBtn, (!isValidValue || rangeHasInvalidValue || saving) && s.saveBtnDisabled]}
           onPress={save}
-          disabled={!isValidValue || saving}
+          disabled={!isValidValue || rangeHasInvalidValue || saving}
         >
           <Text style={s.saveBtnTxt}>{saving ? 'Saving…' : 'Save entry'}</Text>
         </TouchableOpacity>
@@ -330,15 +375,21 @@ const s = StyleSheet.create({
   valueInput: { flex: 1, fontSize: 44, fontWeight: '300', color: Colors.dark.text }, /* intentional — hero entry size, no Typography.sizes match */
   valueUnit: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, paddingBottom: 10 }, /* intentional — no Spacing.* equivalent for paddingBottom: 10 */
   statusBadge: { alignSelf: 'flex-start', borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1, marginBottom: Spacing.base, borderWidth: 0.5 },
-  statusOpt: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
-  statusSub: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
-  statusOut: { backgroundColor: Colors.dark.statusCritBg, borderColor: Colors.dark.statusCritBorder },
+  statusWithin: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  statusOutside: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
+  statusNeutral: { backgroundColor: Colors.dark.cardBg, borderColor: Colors.dark.cardBorder },
   statusTxt: { fontSize: Typography.sizes.sm, fontWeight: '600' },
-  statusTxtOpt: { color: Colors.viz.bioGreen },
-  statusTxtSub: { color: Colors.viz.amber },
-  statusTxtOut: { color: Colors.viz.coral },
+  statusTxtWithin: { color: Colors.viz.bioGreen },
+  statusTxtOutside: { color: Colors.viz.amber },
+  statusTxtNeutral: { color: Colors.dark.textMuted },
   section: { marginBottom: Spacing.base },
   fieldLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm, marginTop: Spacing.sm },
+  rangeNote: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 17, marginBottom: Spacing.sm },
+  rangeInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
+  rangeInput: { flex: 1, backgroundColor: Colors.dark.inputBg, borderRadius: Radius.md, padding: Spacing.md, fontSize: Typography.sizes.base, color: Colors.dark.text, borderWidth: 0.5, borderColor: Colors.dark.inputBorder },
+  rangeDash: { color: Colors.dark.textMuted, fontSize: Typography.sizes.md },
+  rangeUnit: { color: Colors.dark.textMuted, fontSize: Typography.sizes.xs, maxWidth: 72 },
+  rangeError: { color: Colors.viz.coral, fontSize: Typography.sizes.xs, marginBottom: Spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
   chip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.full, borderWidth: 0.5, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg }, /* intentional — no Spacing.* equivalent for paddingVertical: 6 */
   chipActive: { backgroundColor: Colors.dark.accentBg, borderColor: Colors.dark.accentBorder },

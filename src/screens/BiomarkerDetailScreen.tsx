@@ -16,8 +16,13 @@ import { ClipboardIcon, ChartBarIcon, LockIcon } from '../components/DesignSyste
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { StoredEntry, getStatus } from './BiomarkerEntryScreen';
+import type { StoredEntry } from '../types/biomarkerEntry';
 import { usePremiumContext } from '../context/PremiumContext';
+import {
+  BIOMARKER_STATUS_LABELS,
+  classifyStoredEntry,
+  formatSourceLabRange,
+} from '../lib/biomarkerInterpretation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -94,7 +99,13 @@ export default function BiomarkerDetailScreen() {
       Alert.alert('Invalid value', 'Enter a positive number.');
       return;
     }
-    const updated = entries.map(e => e.id === entryId ? { ...e, value: parsed } : e);
+    const updated = entries.map(e => e.id === entryId ? {
+      ...e,
+      value: parsed,
+      unit: biomarkers.find(item => item.id === e.biomarkerId)?.unit ?? e.unit,
+      reportedValue: parsed,
+      reportedUnit: biomarkers.find(item => item.id === e.biomarkerId)?.unit ?? e.reportedUnit,
+    } : e);
     setEntries(updated);
     await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(updated)).catch(console.error);
     setEditingId(null);
@@ -139,7 +150,7 @@ export default function BiomarkerDetailScreen() {
     }
     const latest = latestFor(selectedId);
     const history = historyFor(selectedId);
-    const status = latest ? getStatus(latest.value, bm.optMin, bm.optMax) : null;
+    const status = latest ? classifyStoredEntry(latest) : null;
 
     // ── Premium gate + time-window filter (D-06: premium cap applied FIRST, then window on top) ──
     const cutoff30 = new Date();
@@ -163,17 +174,6 @@ export default function BiomarkerDetailScreen() {
       const d = new Date(e.date);
       return `${d.getMonth() + 1}/${d.getDate()}`;
     });
-
-    const insightBg = status === 'optimal'
-      ? Colors.dark.statusOptimalBg
-      : status === 'suboptimal'
-      ? Colors.dark.statusWarnBg
-      : Colors.dark.statusCritBg;
-    const insightTextColor = status === 'optimal'
-      ? Colors.viz.bioGreen
-      : status === 'suboptimal'
-      ? Colors.viz.amber
-      : Colors.viz.coral;
 
     return (
       <KeyboardAvoidingView
@@ -229,28 +229,21 @@ export default function BiomarkerDetailScreen() {
           <View style={s.metaRow}>
             {status && (
               <View style={[s.statusBadge,
-                status === 'optimal' ? s.statusOpt :
-                status === 'suboptimal' ? s.statusSub : s.statusOut,
+                status === 'within_reported_range' ? s.statusWithin :
+                status === 'outside_reported_range' ? s.statusOutside : s.statusNeutral,
               ]}>
                 <Text style={[s.statusTxt,
-                  status === 'optimal' ? s.statusTxtOpt :
-                  status === 'suboptimal' ? s.statusTxtSub : s.statusTxtOut,
+                  status === 'within_reported_range' ? s.statusTxtWithin :
+                  status === 'outside_reported_range' ? s.statusTxtOutside : s.statusTxtNeutral,
                 ]}>
-                  {status === 'optimal' ? '✓ Optimal' :
-                   status === 'suboptimal' ? '~ Suboptimal' : '⚠ Out of range'}
+                  {BIOMARKER_STATUS_LABELS[status]}
                 </Text>
               </View>
             )}
             <View style={s.targetBadge}>
-              <Text style={s.targetTxt}>Target: {bm.target}</Text>
+              <Text style={s.targetTxt}>Lab range: {formatSourceLabRange(latest?.sourceLabRange)}</Text>
             </View>
           </View>
-
-          {latest && (
-            <View style={[s.insightCard, { backgroundColor: insightBg }]}>
-              <Text style={[s.insightTxt, { color: insightTextColor }]}>{bm.insight}</Text>
-            </View>
-          )}
 
           {/* Phase 22: Time-window segmented pill — same pattern as ExerciseScreen lines 231-245 */}
           <View style={s.segmentedControl}>
@@ -283,23 +276,35 @@ export default function BiomarkerDetailScreen() {
             const dataMin = Math.min(...chartValues);
             const dataMax = Math.max(...chartValues);
             const dataRange = dataMax - dataMin || 1;
-            const clampedOptMin = Math.max(bm.optMin, dataMin);
-            const clampedOptMax = Math.min(bm.optMax, dataMax);
-            const yTop = CHART_TOP_PAD + plotH * (1 - (clampedOptMax - dataMin) / dataRange);
-            const yBot = CHART_TOP_PAD + plotH * (1 - (clampedOptMin - dataMin) / dataRange);
+            const range = latest?.sourceLabRange;
+            const rangeMatchesChartUnit = range?.unit === bm.unit;
+            const clampedRangeMin = rangeMatchesChartUnit && range?.lowerBound !== undefined
+              ? Math.max(range.lowerBound, dataMin)
+              : null;
+            const clampedRangeMax = rangeMatchesChartUnit && range?.upperBound !== undefined
+              ? Math.min(range.upperBound, dataMax)
+              : null;
+            const yTop = clampedRangeMax === null
+              ? null
+              : CHART_TOP_PAD + plotH * (1 - (clampedRangeMax - dataMin) / dataRange);
+            const yBot = clampedRangeMin === null
+              ? null
+              : CHART_TOP_PAD + plotH * (1 - (clampedRangeMin - dataMin) / dataRange);
 
             return (
               <View style={{ width: chartWidth, height: CHART_HEIGHT, alignSelf: 'center' }}>
                 {/* SVG range band behind the chart — absoluteFill pattern */}
                 <Svg width={chartWidth} height={CHART_HEIGHT} style={StyleSheet.absoluteFill}>
-                  <Rect
-                    x={0}
-                    y={yTop}
-                    width={chartWidth}
-                    height={Math.max(yBot - yTop, 0)}
-                    fill={Colors.viz.bioGreen}
-                    fillOpacity={0.15}
-                  />
+                  {yTop !== null && yBot !== null && (
+                    <Rect
+                      x={0}
+                      y={yTop}
+                      width={chartWidth}
+                      height={Math.max(yBot - yTop, 0)}
+                      fill={Colors.viz.bioGreen}
+                      fillOpacity={0.15}
+                    />
+                  )}
                 </Svg>
                 {/* LineChart on top — chartConfig identical to ExerciseDetailScreen */}
                 <LineChart
@@ -407,22 +412,18 @@ export default function BiomarkerDetailScreen() {
 
           <Text style={s.sectionLabel}>About</Text>
           <View style={s.card}>
-            <Text style={s.bodyTxt}>{bm.description}</Text>
+            <Text style={s.bodyTxt}>Clinical interpretation is being reviewed.</Text>
             <View style={s.citationRow}>
-              <Text style={s.citationTxt}>
-                References: Levine et al. Aging Cell 2018 · Attia, Outlive (2023) · Longevity Medicine Alliance guidelines
-              </Text>
+              <Text style={s.citationTxt}>Reported laboratory range: {formatSourceLabRange(latest?.sourceLabRange)}</Text>
+              <Text style={s.citationTxt}>Reported unit: {latest?.reportedUnit ?? latest?.unit ?? bm.unit}</Text>
+              <Text style={s.citationTxt}>Ranges vary by laboratory, assay, population, and clinical context.</Text>
             </View>
           </View>
 
           <Text style={s.sectionLabel}>How to improve</Text>
           <View style={s.card}>
-            <Text style={s.bodyTxt}>{bm.howToImprove}</Text>
-            <View style={s.citationRow}>
-              <Text style={s.citationTxt}>
-                Pharmacist-reviewed · Evidence grade based on RCT + meta-analysis literature
-              </Text>
-            </View>
+            <Text style={s.bodyTxt}>Clinical interpretation is being reviewed.</Text>
+            <Text style={s.citationTxt}>No marker-specific treatment recommendation is shown until review is complete.</Text>
           </View>
 
           <View style={{ height: 32 }} />
@@ -438,7 +439,7 @@ export default function BiomarkerDetailScreen() {
       <View style={s.listHeader}>
         <View>
           <Text style={s.heading}>Biomarkers</Text>
-          <Text style={s.headingSub}>Longevity-optimized ranges</Text>
+          <Text style={s.headingSub}>Laboratory results and clinical context</Text>
         </View>
         <View style={s.headerActions}>
           <TouchableOpacity
@@ -468,7 +469,7 @@ export default function BiomarkerDetailScreen() {
             <ChartBarIcon color={Colors.dark.textMuted} size={32} />
             <Text style={s.emptyTabHeading}>No biomarkers tracked yet</Text>
             <Text style={s.emptyTabBody}>
-              Start with your most recent lab results. Three values reveal your biological age score.
+              Blood phenotypic age requires all 9 specified blood measurements. Partial data will not produce an age estimate.
             </Text>
             <TouchableOpacity
               activeOpacity={0.82}
@@ -488,9 +489,7 @@ export default function BiomarkerDetailScreen() {
               <View style={s.card}>
                 {bms.map((bm, i) => {
                   const latest = latestFor(bm.id);
-                  const isOptimal = latest
-                    ? latest.value >= bm.optMin && latest.value <= bm.optMax
-                    : false;
+                  const status = latest ? classifyStoredEntry(latest) : null;
                   return (
                     <TouchableOpacity
                       key={bm.id}
@@ -499,7 +498,7 @@ export default function BiomarkerDetailScreen() {
                     >
                       <View style={s.nameGroup}>
                         <Text style={s.bmName}>{bm.name}</Text>
-                        <Text style={s.bmTarget}>Target: {bm.target}</Text>
+                        <Text style={s.bmTarget}>Lab range: {formatSourceLabRange(latest?.sourceLabRange)}</Text>
                       </View>
                       {latest ? (
                         <View style={s.valGroup}>
@@ -510,9 +509,15 @@ export default function BiomarkerDetailScreen() {
                         <Text style={s.noBmData}>—</Text>
                       )}
                       {latest ? (
-                        <View style={[s.badge, isOptimal ? s.badgeGood : s.badgeWarn]}>
-                          <Text style={[s.badgeTxt, isOptimal ? s.badgeTxtGood : s.badgeTxtWarn]}>
-                            {isOptimal ? 'Optimal' : 'Review'}
+                        <View style={[s.badge,
+                          status === 'within_reported_range' ? s.badgeGood :
+                          status === 'outside_reported_range' ? s.badgeWarn : s.badgeNeutral,
+                        ]}>
+                          <Text style={[s.badgeTxt,
+                            status === 'within_reported_range' ? s.badgeTxtGood :
+                            status === 'outside_reported_range' ? s.badgeTxtWarn : s.badgeTxtNeutral,
+                          ]}>
+                            {status ? BIOMARKER_STATUS_LABELS[status] : 'Unable to classify'}
                           </Text>
                         </View>
                       ) : (
@@ -566,9 +571,11 @@ const s = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
   badgeGood: { backgroundColor: Colors.dark.statusOptimalBg },
   badgeWarn: { backgroundColor: Colors.dark.statusWarnBg },
+  badgeNeutral: { backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder },
   badgeTxt: { fontSize: 10, fontWeight: '600' },
   badgeTxtGood: { color: Colors.viz.bioGreen },
   badgeTxtWarn: { color: Colors.viz.amber },
+  badgeTxtNeutral: { color: Colors.dark.textMuted },
   badgeLog: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full, /* intentional — no Spacing.* equivalent */
     backgroundColor: Colors.dark.cardBg, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
@@ -588,13 +595,13 @@ const s = StyleSheet.create({
   noData: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted, marginTop: Spacing.sm, fontStyle: 'italic' },
   metaRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.base, marginBottom: Spacing.base, flexWrap: 'wrap' },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5 },
-  statusOpt: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
-  statusSub: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
-  statusOut: { backgroundColor: Colors.dark.statusCritBg, borderColor: Colors.dark.statusCritBorder },
+  statusWithin: { backgroundColor: Colors.dark.statusOptimalBg, borderColor: Colors.dark.statusOptimalBorder },
+  statusOutside: { backgroundColor: Colors.dark.statusWarnBg, borderColor: Colors.dark.statusWarnBorder },
+  statusNeutral: { backgroundColor: Colors.dark.cardBg, borderColor: Colors.dark.cardBorder },
   statusTxt: { fontSize: Typography.sizes.xs, fontWeight: '600' },
-  statusTxtOpt: { color: Colors.viz.bioGreen },
-  statusTxtSub: { color: Colors.viz.amber },
-  statusTxtOut: { color: Colors.viz.coral },
+  statusTxtWithin: { color: Colors.viz.bioGreen },
+  statusTxtOutside: { color: Colors.viz.amber },
+  statusTxtNeutral: { color: Colors.dark.textMuted },
   targetBadge: { borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderWidth: 0.5, borderColor: Colors.dark.border, backgroundColor: Colors.dark.cardBg },
   targetTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   insightCard: { marginHorizontal: Spacing.base, borderRadius: Radius.xl, padding: Spacing.md, marginBottom: Spacing.base },

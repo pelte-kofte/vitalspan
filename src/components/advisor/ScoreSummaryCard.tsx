@@ -8,7 +8,7 @@ export interface ScoreSummaryCardProps {
 }
 
 export default function ScoreSummaryCard({ scoreSummary }: ScoreSummaryCardProps) {
-  const { biologicalAge, ageBand, headline, trend } = scoreSummary;
+  const { biologicalAge, ageBand, headline } = scoreSummary;
 
   return (
     <View style={s.card}>
@@ -16,13 +16,14 @@ export default function ScoreSummaryCard({ scoreSummary }: ScoreSummaryCardProps
         {biologicalAge !== null ? String(biologicalAge) : '—'}
       </Text>
       <Text style={s.ageBand}>{ageBand}</Text>
+      <Text style={s.metricLabel}>Blood phenotypic age</Text>
       {biologicalAge === null && (
         <Text style={s.nullCaption}>
-          Add more biomarkers for your biological age
+          All 9 required blood measurements are needed
         </Text>
       )}
       <Text style={s.headline}>{headline}</Text>
-      <Text style={s.trend}>{trend}</Text>
+      <Text style={s.trend}>Longitudinal trend: insufficient history</Text>
     </View>
   );
 }
@@ -46,6 +47,12 @@ const s = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.dark.textMuted,
     letterSpacing: Typography.letterSpacing.wide,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  metricLabel: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.dark.textMuted,
     textAlign: 'center',
     marginTop: Spacing.xs,
   },

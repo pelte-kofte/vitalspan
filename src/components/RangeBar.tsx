@@ -1,49 +1,57 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Radius, Spacing, Typography } from '../theme';
+import type { SourceLabRange } from '../types/biomarkerKnowledge';
+import { classifyBiomarkerValue, formatSourceLabRange } from '../lib/biomarkerInterpretation';
 
 interface Props {
-  optMin: number;
-  optMax: number;
+  sourceLabRange?: SourceLabRange;
   value: number;
-  target: string;
+  valueUnit?: string;
 }
 
-export default function RangeBar({ optMin, optMax, value, target }: Props) {
+export default function RangeBar({ sourceLabRange, value, valueUnit }: Props) {
   const [barWidth, setBarWidth] = useState(0);
+  const status = classifyBiomarkerValue(value, valueUnit, sourceLabRange);
+  const lower = sourceLabRange?.lowerBound;
+  const upper = sourceLabRange?.upperBound;
+  const hasTwoSidedRange = lower !== undefined && upper !== undefined && upper > lower;
 
-  const range = optMax - optMin;
-  const spread = range * (7 / 6);
-  const displayMin = Math.max(0, optMin - spread);
-  const displayMax = optMax + spread;
-  const displayRange = displayMax - displayMin;
-
-  const isValid = Number.isFinite(value) && value >= 0;
-  const pct = isValid
-    ? Math.max(0, Math.min(100, ((value - displayMin) / displayRange) * 100))
+  const spread = hasTwoSidedRange ? (upper - lower) * 0.75 : 1;
+  const displayMin = hasTwoSidedRange ? Math.max(0, lower - spread) : 0;
+  const displayMax = hasTwoSidedRange ? upper + spread : 1;
+  const pct = hasTwoSidedRange && Number.isFinite(value)
+    ? Math.max(0, Math.min(100, ((value - displayMin) / (displayMax - displayMin)) * 100))
     : -1;
   const markerLeft = pct >= 0 && barWidth > 0 ? (barWidth * pct) / 100 - 1.5 : -10;
 
   return (
     <View style={s.wrapper}>
-      <Text style={s.label}>Longevity target: {target}</Text>
-      <View
-        style={s.barOuter}
-        onLayout={e => setBarWidth(e.nativeEvent.layout.width)}
-      >
+      <Text style={s.label}>Reported laboratory range: {formatSourceLabRange(sourceLabRange)}</Text>
+      <View style={s.barOuter} onLayout={event => setBarWidth(event.nativeEvent.layout.width)}>
         <View style={s.barInner}>
-          <View style={s.zoneDanger} />
-          <View style={s.zoneSubopt} />
-          <View style={s.zoneOpt} />
-          <View style={s.zoneSubopt} />
-          <View style={s.zoneDanger} />
+          {hasTwoSidedRange ? (
+            <>
+              <View style={s.zoneOutside} />
+              <View style={s.zoneReported} />
+              <View style={s.zoneOutside} />
+            </>
+          ) : (
+            <View style={s.zoneUnknown} />
+          )}
         </View>
         {pct >= 0 && <View style={[s.marker, { left: markerLeft }]} />}
       </View>
       <View style={s.scaleRow}>
-        <Text style={s.scaleTxt}>Low</Text>
-        <Text style={s.scaleTxt}>Optimal</Text>
-        <Text style={s.scaleTxt}>High</Text>
+        <Text style={s.scaleTxt}>
+          {status === 'within_reported_range'
+            ? 'Within reported range'
+            : status === 'outside_reported_range'
+              ? 'Outside reported range'
+              : status === 'unable_to_classify'
+                ? 'Unable to classify'
+                : 'Needs laboratory context'}
+        </Text>
       </View>
     </View>
   );
@@ -65,9 +73,9 @@ const s = StyleSheet.create({
     borderRadius: Radius.sm,
     overflow: 'hidden',
   },
-  zoneDanger: { flex: 15, backgroundColor: Colors.dangerBg },
-  zoneSubopt: { flex: 20, backgroundColor: Colors.warningBg },
-  zoneOpt: { flex: 30, backgroundColor: Colors.primaryBg },
+  zoneOutside: { flex: 25, backgroundColor: Colors.warningBg },
+  zoneReported: { flex: 50, backgroundColor: Colors.primaryBg },
+  zoneUnknown: { flex: 1, backgroundColor: Colors.border },
   marker: {
     position: 'absolute',
     top: 3,
@@ -76,10 +84,6 @@ const s = StyleSheet.create({
     backgroundColor: Colors.primaryDark,
     borderRadius: 2,
   },
-  scaleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-  },
+  scaleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xs },
   scaleTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
 });

@@ -1,6 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { AdvisorContext } from './advisorContext';
+import type { BiomarkerStatus } from './advisorContext';
 
 export interface LongevityReport {
   scoreSummary: {
@@ -15,7 +16,7 @@ export interface LongevityReport {
   }>;
   biomarkerAnalysis: Array<{
     name: string;
-    status: 'Optimal' | 'Suboptimal' | 'Critical';
+    status: BiomarkerStatus;
     insight: string;
   }>;
   supplementMedicationReview: Array<{

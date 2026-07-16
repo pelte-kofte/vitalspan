@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography, Motion } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { StoredEntry } from './BiomarkerEntryScreen';
+import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
 import { BIOMARKERS } from '../data/biomarkers';
 import ExplanationCard from '../components/ExplanationCard';
 import { FIRST_RUN_CONTENT } from '../data/firstRunContent';
@@ -49,14 +49,17 @@ export default function GuidedFirstRunScreen() {
     setInputError('');
     const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
     const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
-    entries.push({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    const definition = BIOMARKERS.find(item => item.id === STEP_BIOMARKERS[stepIndex]);
+    entries.push(createStoredBiomarkerEntry({
       biomarkerId: STEP_BIOMARKERS[stepIndex],
       value: parsed,
+      unit: definition?.unit,
+      reportedValue: parsed,
+      reportedUnit: definition?.unit,
       date: new Date().toISOString(),
       source: 'Blood test',
       notes: '',
-    });
+    }));
     await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
   }
 

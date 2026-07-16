@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { StoredEntry } from '../screens/BiomarkerEntryScreen';
+import type { StoredEntry } from '../types/biomarkerEntry';
 
 /**
  * Write service for biomarker entries in Supabase.
