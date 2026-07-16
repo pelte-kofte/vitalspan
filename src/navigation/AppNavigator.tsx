@@ -71,6 +71,7 @@ function MainTabs() {
   const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
+      detachInactiveScreens={false}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -106,6 +107,16 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Health',
           tabBarIcon: ({ color, focused }) => <HealthIcon color={color} focused={focused} />,
+          tabBarActiveTintColor: Colors.health.accent,
+          tabBarInactiveTintColor: Colors.health.inkTertiary,
+          tabBarStyle: {
+            backgroundColor: Colors.health.background,
+            borderTopColor: Colors.health.rule,
+            borderTopWidth: 1,
+            paddingBottom: Math.max(insets.bottom, 8),
+            paddingTop: 8,
+            height: Math.max(insets.bottom, 0) + 56,
+          },
         }}
       />
       <Tab.Screen
@@ -175,7 +186,9 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="HealthSystem"
           component={HealthSystemScreen}
-          options={{ presentation: 'card', animation: 'fade_from_bottom' }}
+          // Health is intentionally motion-light. Avoid a dark transition frame on
+          // compact devices and respect Reduce Motion without custom animation code.
+          options={{ presentation: 'card', animation: 'none' }}
         />
         <Stack.Screen
           name="BiomarkerDetail"

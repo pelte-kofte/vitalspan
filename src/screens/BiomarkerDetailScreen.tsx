@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setStatusBarStyle, StatusBar } from 'expo-status-bar';
 
 import BiomarkerTrendPlot from '../components/health/BiomarkerTrendPlot';
 import DisclosureSection from '../components/health/DisclosureSection';
@@ -37,6 +38,10 @@ export default function BiomarkerDetailScreen() {
     setEntries(raw ? JSON.parse(raw) as StoredEntry[] : []);
   }, []);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle('dark');
+    return () => undefined;
+  }, []));
 
   const biomarker = biomarkers.find(item => item.id === route.params?.biomarkerId);
   const history = useMemo(
@@ -65,6 +70,7 @@ export default function BiomarkerDetailScreen() {
   const reviewedEvidence = Boolean(biomarker.evidenceGrade && biomarker.evidenceGrade !== 'not_reviewed' && biomarker.citations?.length);
   return (
     <SafeAreaView style={s.safe}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={[s.content, { width: Math.min(width, 720) }]} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => navigation.goBack()} style={s.back} accessibilityRole="button" accessibilityLabel="Back">
           <Text style={s.backText}>Health / {biomarker.categoryLabel}</Text>

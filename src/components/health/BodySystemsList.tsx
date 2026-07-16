@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import type { BodySystemModel, BodySystemId } from '../../lib/healthExperience';
+import { sortBodySystems, type BodySystemModel, type BodySystemId } from '../../lib/healthExperience';
 import { Colors, Radius, Spacing, Typography } from '../../theme';
 import BodySystemIcon from './BodySystemIcon';
 import TrendSignal from './TrendSignal';
@@ -22,13 +22,13 @@ function Chevron() {
 }
 
 function SystemRow({ system, onOpen, last }: { system: BodySystemModel; onOpen: (id: BodySystemId) => void; last: boolean }) {
+  const hasData = system.currentEntries.length > 0;
+  const hint = hasData ? system.driver : system.nextAction;
   const accessibilityLabel = [
     system.name,
     system.state,
-    `Trend ${system.trend.replace(/_/g, ' ')}`,
-    system.driver,
-    `Confidence ${system.confidence}`,
-    `${system.openActions} open actions`,
+    hint,
+    ...(hasData ? [`Trend ${system.trend.replace(/_/g, ' ')}`, `Confidence ${system.confidence}`] : []),
   ].join('. ');
   return (
     <Pressable
@@ -46,23 +46,25 @@ function SystemRow({ system, onOpen, last }: { system: BodySystemModel; onOpen: 
           <Text style={s.title}>{system.name}</Text>
           <Chevron />
         </View>
-        <Text style={[s.state, system.state === 'Needs review' && s.stateAttention]}>{system.state}</Text>
-        <Text style={s.driver} numberOfLines={2}>{system.driver}</Text>
-        <View style={s.metaRow}>
-          <TrendSignal trend={system.trend} compact />
-          <Text style={s.confidence}>{system.confidence} confidence</Text>
-          {system.openActions > 0 && <Text style={s.actions}>{system.openActions} open</Text>}
-        </View>
+        <Text style={[s.state, !hasData && s.stateNeutral, system.state === 'Needs review' && s.stateAttention]}>{system.state}</Text>
+        {hint && <Text style={[s.driver, !hasData && s.emptyHint]} numberOfLines={1}>{hint}</Text>}
+        {hasData && (
+          <View style={s.metaRow}>
+            <TrendSignal trend={system.trend} compact />
+            {system.nextAction && <Text style={s.action}>{system.nextAction}</Text>}
+          </View>
+        )}
       </View>
     </Pressable>
   );
 }
 
 export default function BodySystemsList({ systems, onOpen }: Props) {
+  const ordered = sortBodySystems(systems);
   return (
     <View style={s.list}>
-      {systems.map((system, index) => (
-        <SystemRow key={system.id} system={system} onOpen={onOpen} last={index === systems.length - 1} />
+      {ordered.map((system, index) => (
+        <SystemRow key={system.id} system={system} onOpen={onOpen} last={index === ordered.length - 1} />
       ))}
     </View>
   );
@@ -70,7 +72,7 @@ export default function BodySystemsList({ systems, onOpen }: Props) {
 
 const s = StyleSheet.create({
   list: { backgroundColor: Colors.health.surface, borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.rule, overflow: 'hidden' },
-  row: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.base, minHeight: Spacing.xxl * 4 },
+  row: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.base, minHeight: Spacing.xxl * 3 },
   rowRule: { borderBottomWidth: 1, borderBottomColor: Colors.health.rule },
   pressed: { backgroundColor: Colors.health.accentSoft },
   iconFrame: { width: Spacing.xxl + Spacing.base, height: Spacing.xxl + Spacing.base, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.ruleStrong, alignItems: 'center', justifyContent: 'center' },
@@ -78,9 +80,10 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   title: { color: Colors.health.ink, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, flex: 1 },
   state: { color: Colors.health.accent, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, fontWeight: Typography.weights.label, marginTop: Spacing.xs },
+  stateNeutral: { color: Colors.health.neutralInk },
   stateAttention: { color: Colors.health.attention },
-  driver: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm },
+  driver: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  emptyHint: { color: Colors.health.inkTertiary },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.md },
-  confidence: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall },
-  actions: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall },
+  action: { color: Colors.health.accent, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label },
 });

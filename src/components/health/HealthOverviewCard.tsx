@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import type { HealthTrend } from '../../lib/healthExperience';
 import { formatHealthDate } from '../../lib/healthExperience';
@@ -12,89 +13,88 @@ interface Props {
   result: PhenoAgeResult;
   lastLabDate: string | null;
   overallTrend: HealthTrend;
+  actionLabel: string;
+  onAction: () => void;
 }
 
-export default function HealthOverviewCard({ result, lastLabDate, overallTrend }: Props) {
-  const [limitationsOpen, setLimitationsOpen] = useState(false);
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <Svg width={Spacing.base} height={Spacing.base} viewBox="0 0 16 16" accessible={false}>
+      <Path d={open ? 'M3 6 L8 11 L13 6' : 'M6 3 L11 8 L6 13'} fill="none" stroke={Colors.health.inkSecondary} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export default function HealthOverviewCard({ result, lastLabDate, overallTrend, actionLabel, onAction }: Props) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const calculated = result.status === 'calculated';
   return (
     <View style={s.card} accessibilityLabel="Health overview">
       <View style={s.topline}>
-        <Text style={s.eyebrow}>BLOOD PHENOTYPE</Text>
+        <Text style={s.eyebrow}>CURRENT BODY STATE</Text>
         <TrendSignal trend={overallTrend} compact />
       </View>
+      <Text style={s.label}>Blood phenotypic age</Text>
       {calculated ? (
         <View style={s.ageRow}>
           <Text maxFontSizeMultiplier={1.15} style={s.age}>{result.bloodPhenotypicAge?.toFixed(1)}</Text>
-          <View style={s.ageMeta}>
-            <Text style={s.years}>YEARS</Text>
-            <Text style={s.context}>Blood Phenotypic Age</Text>
-          </View>
+          <Text style={s.years}>YEARS</Text>
         </View>
       ) : (
-        <View style={s.incomplete}>
-          <Text maxFontSizeMultiplier={1.2} style={s.incompleteTitle}>Not enough data</Text>
-          <Text style={s.incompleteBody}>{result.presentCount} of {result.totalRequired} required measurements available</Text>
-        </View>
+        <Text maxFontSizeMultiplier={1.2} style={s.unavailable}>Not available yet</Text>
       )}
-      <View style={s.rule} />
-      <View style={s.metaGrid}>
-        <View style={s.metaItem}>
-          <Text style={s.metaLabel}>LAST LABORATORY</Text>
-          <Text style={s.metaValue}>{formatHealthDate(lastLabDate)}</Text>
-        </View>
-        <View style={s.metaItem}>
-          <Text style={s.metaLabel}>DATA COMPLETENESS</Text>
-          <Text style={s.metaValue}>{result.presentCount} / {result.totalRequired} model inputs</Text>
-        </View>
-      </View>
-      {!calculated && result.missingBiomarkers.length > 0 && (
-        <Text style={s.missing} numberOfLines={2}>Missing: {result.missingBiomarkers.join(', ')}</Text>
-      )}
-      <Pressable
-        onPress={() => setLimitationsOpen(open => !open)}
-        style={s.limitButton}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: limitationsOpen }}
-        accessibilityLabel={`${limitationsOpen ? 'Hide' : 'Show'} model limitations`}
-      >
-        <Text style={s.limitButtonText}>{limitationsOpen ? 'Hide model limitations' : 'Model limitations'}</Text>
-        <Text style={s.disclosure}>{limitationsOpen ? '−' : '+'}</Text>
+      <Text style={s.count}>{result.presentCount} of {result.totalRequired} required inputs</Text>
+      <Pressable onPress={onAction} style={s.action} accessibilityRole="button" accessibilityLabel={actionLabel}>
+        <Text style={s.actionText}>{actionLabel}</Text>
+        <Text style={s.actionArrow} accessible={false}>›</Text>
       </Pressable>
-      {limitationsOpen && (
-        <View style={s.limitations}>
-          {result.modelLimitations.map(item => <Text key={item} style={s.limitText}>— {item}</Text>)}
+      <Pressable
+        onPress={() => setDetailsOpen(open => !open)}
+        style={s.detailsButton}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: detailsOpen }}
+        accessibilityLabel={`${detailsOpen ? 'Hide' : 'Show'} health overview details`}
+      >
+        <Text style={s.detailsLabel}>{detailsOpen ? 'Hide details' : 'More about this estimate'}</Text>
+        <Chevron open={detailsOpen} />
+      </Pressable>
+      {detailsOpen && (
+        <View style={s.details}>
+          <View style={s.metaGrid}>
+            <View style={s.metaItem}><Text style={s.metaLabel}>LAST LABORATORY</Text><Text style={s.metaValue}>{formatHealthDate(lastLabDate)}</Text></View>
+            <View style={s.metaItem}><Text style={s.metaLabel}>DATA COMPLETENESS</Text><Text style={s.metaValue}>{result.presentCount} / {result.totalRequired}</Text></View>
+          </View>
+          {result.missingBiomarkers.length > 0 && <Text style={s.missing}>Missing: {result.missingBiomarkers.join(', ')}</Text>}
+          <Text style={s.metaLabel}>MODEL LIMITATIONS</Text>
+          {result.modelLimitations.map(item => <Text key={item} style={s.limitText}>{item}</Text>)}
+          <Text style={s.provenance}>Source: Levine PhenoAge input requirements. This blood model is not a diagnosis and does not represent every dimension of health.</Text>
         </View>
       )}
-      <View style={s.futureRule} />
-      <Text style={s.future}>Architecture ready for multimodal age domains; no multimodal score is calculated today.</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.xl, borderWidth: 1, borderColor: Colors.health.rule },
-  topline: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.md },
+  card: { backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.lg, borderWidth: 1, borderColor: Colors.health.rule },
+  topline: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
   eyebrow: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.widest },
-  ageRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: Spacing.xl },
-  age: { color: Colors.health.ink, fontSize: Typography.sizes.heroNumeral, lineHeight: Typography.sizes.heroNumeral + Spacing.xs, fontWeight: Typography.weights.displayHero, letterSpacing: Typography.letterSpacing.tight },
-  ageMeta: { paddingBottom: Spacing.md, marginLeft: Spacing.md },
+  label: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label, marginTop: Spacing.lg },
+  unavailable: { color: Colors.health.ink, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title, marginTop: Spacing.xs },
+  ageRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm, marginTop: Spacing.xs },
+  age: { color: Colors.health.ink, fontSize: Typography.sizes.display2, lineHeight: Typography.lineHeights.display2, fontWeight: Typography.weights.displayHero },
   years: { color: Colors.health.accent, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
-  context: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, marginTop: Spacing.xs },
-  incomplete: { marginTop: Spacing.xxl, marginBottom: Spacing.lg },
-  incompleteTitle: { color: Colors.health.ink, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title },
-  incompleteBody: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm },
-  rule: { height: 1, backgroundColor: Colors.health.rule, marginVertical: Spacing.lg },
+  count: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  action: { minHeight: Spacing.xxl + Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: Radius.card, backgroundColor: Colors.health.ink, paddingHorizontal: Spacing.base, marginTop: Spacing.lg },
+  actionText: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
+  actionArrow: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.xxl, lineHeight: Typography.sizes.xxl, fontWeight: Typography.weights.title },
+  detailsButton: { minHeight: Spacing.xxl + Spacing.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: Colors.health.rule, marginTop: Spacing.md },
+  detailsLabel: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
+  details: { gap: Spacing.md, paddingTop: Spacing.md },
   metaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.lg },
   metaItem: { flexGrow: 1, flexBasis: 130 },
   metaLabel: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, letterSpacing: Typography.letterSpacing.wider, fontWeight: Typography.weights.label },
-  metaValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs, fontWeight: Typography.weights.headline },
-  missing: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.lg },
-  limitButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: Spacing.xxl + Spacing.base, marginTop: Spacing.md },
-  limitButtonText: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
-  disclosure: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.xl, fontWeight: Typography.weights.title },
-  limitations: { gap: Spacing.sm, paddingBottom: Spacing.md },
+  metaValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  missing: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption },
   limitText: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption },
-  futureRule: { height: 1, backgroundColor: Colors.health.rule, marginTop: Spacing.sm, marginBottom: Spacing.md },
-  future: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall },
+  provenance: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall },
 });

@@ -4,11 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { setStatusBarStyle } from 'expo-status-bar';
+import { setStatusBarStyle, StatusBar } from 'expo-status-bar';
 
 import BodySystemsList from '../components/health/BodySystemsList';
 import HealthOverviewCard from '../components/health/HealthOverviewCard';
-import HealthStateNote from '../components/health/HealthStateNote';
 import Text from '../components/health/HealthText';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
@@ -35,22 +34,29 @@ export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [loadedBiomarkers, entriesRaw, profileRaw, loadedHealth] = await Promise.all([
-      getBiomarkers(),
-      AsyncStorage.getItem('@vitalspan_biomarkers'),
-      AsyncStorage.getItem('@vitalspan_user_profile'),
-      loadHealthData(),
-    ]);
-    setBiomarkers(loadedBiomarkers);
-    setEntries(entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : []);
-    setProfile(profileRaw ? JSON.parse(profileRaw) as UserProfile : null);
-    setHealthData(loadedHealth);
+    try {
+      const [loadedBiomarkers, entriesRaw, profileRaw, loadedHealth] = await Promise.all([
+        getBiomarkers(),
+        AsyncStorage.getItem('@vitalspan_biomarkers'),
+        AsyncStorage.getItem('@vitalspan_user_profile'),
+        loadHealthData(),
+      ]);
+      setBiomarkers(loadedBiomarkers);
+      setEntries(entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : []);
+      setProfile(profileRaw ? JSON.parse(profileRaw) as UserProfile : null);
+      setHealthData(loadedHealth);
+    } catch {
+      // A source failure must leave the Health tab usable and explainable.
+      setBiomarkers(current => current.length > 0 ? current : []);
+      setEntries([]);
+      setHealthData(null);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {
     setStatusBarStyle('dark');
     void load();
-    return () => setStatusBarStyle('light');
+    return () => undefined;
   }, [load]));
 
   const latestMap = useMemo(() => {
@@ -85,6 +91,7 @@ export default function HealthScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
+      <StatusBar style="dark" />
       <ScrollView
         contentContainerStyle={[s.content, { width: Math.min(width, 720) }]}
         showsVerticalScrollIndicator={false}
@@ -93,21 +100,15 @@ export default function HealthScreen() {
         <View style={s.header}>
           <View style={s.headerText}>
             <Text maxFontSizeMultiplier={1.15} style={s.kicker}>VITALSPAN / HEALTH</Text>
-            <Text maxFontSizeMultiplier={1.2} style={s.title}>Your body, now.</Text>
-            <Text style={s.subtitle}>A living map of what your data can—and cannot—say about your physiology.</Text>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={1.2} style={s.title}>Your body, now.</Text>
+            <Text style={s.subtitle}>A clear view of what your data can say today.</Text>
           </View>
           <Pressable onPress={() => navigation.navigate('LabUpload')} style={s.addButton} accessibilityRole="button" accessibilityLabel="Add health data">
             <Text style={s.addButtonText}>Add data</Text>
           </Pressable>
         </View>
 
-        <HealthOverviewCard result={phenoAge} lastLabDate={experience.lastLabDate} overallTrend={experience.overallTrend} />
-
-        {experience.inputState !== 'complete' && (
-          <View style={s.sectionGap}>
-            <HealthStateNote state={experience.inputState} copy={experience.emptyState} onAction={stateAction} />
-          </View>
-        )}
+        <HealthOverviewCard result={phenoAge} lastLabDate={experience.lastLabDate} overallTrend={experience.overallTrend} actionLabel={experience.emptyState.actionLabel} onAction={stateAction} />
 
         <View style={s.sectionHeader}>
           <View>
@@ -126,11 +127,11 @@ export default function HealthScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.health.background },
   content: { alignSelf: 'center', paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxl * 2 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.xxl },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.lg },
   headerText: { flex: 1 },
   kicker: { color: Colors.health.accent, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.widest },
   title: { color: Colors.health.ink, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title, letterSpacing: Typography.letterSpacing.tight, marginTop: Spacing.sm },
-  subtitle: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, maxWidth: 430, marginTop: Spacing.sm },
+  subtitle: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, maxWidth: 330, marginTop: Spacing.xs },
   addButton: { minHeight: Spacing.xxl + Spacing.md, justifyContent: 'center', borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.ruleStrong, paddingHorizontal: Spacing.md },
   addButtonText: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
   sectionGap: { marginTop: Spacing.base },

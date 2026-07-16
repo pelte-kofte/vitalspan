@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setStatusBarStyle, StatusBar } from 'expo-status-bar';
 
 import BodySystemIcon from '../components/health/BodySystemIcon';
 import DisclosureSection from '../components/health/DisclosureSection';
@@ -40,7 +41,11 @@ export default function HealthSystemScreen() {
     setAge(profileRaw ? (JSON.parse(profileRaw) as { age?: number }).age ?? 0 : 0);
   }, []);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle('dark');
+    void load();
+    return () => undefined;
+  }, [load]));
 
   const latestMap = useMemo(() => {
     const map = new Map<string, StoredEntry>();
@@ -62,27 +67,26 @@ export default function HealthSystemScreen() {
   const withReviewedEvidence = system.biomarkers.filter(marker => marker.evidenceGrade && marker.evidenceGrade !== 'not_reviewed');
   return (
     <SafeAreaView style={s.safe}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={[s.content, { width: Math.min(width, 720) }]} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => navigation.goBack()} style={s.back} accessibilityRole="button" accessibilityLabel="Back to Health">
-          <Text style={s.backText}>Health</Text><Text style={s.backGlyph}> / </Text><Text style={s.backMuted}>Body systems</Text>
+          <Text style={s.backChevron} accessible={false}>‹</Text><Text style={s.backText}>Health</Text><Text style={s.backGlyph}> / </Text><Text style={s.backMuted}>Body systems</Text>
         </Pressable>
         <View style={s.hero}>
           <View style={s.icon}><BodySystemIcon system={system.id} color={Colors.health.ink} size={Spacing.xxl + Spacing.sm} /></View>
           <Text maxFontSizeMultiplier={1.2} style={s.title}>{system.name}</Text>
           <Text style={[s.state, system.state === 'Needs review' && s.attention]}>{system.state}</Text>
-          <Text style={s.driver}>{system.driver}</Text>
-          <View style={s.heroMeta}>
-            <TrendSignal trend={system.trend} />
-            <Text style={s.confidence}>{system.confidence} confidence · {system.openActions} open actions</Text>
-          </View>
+          <Text style={s.driver}>{system.currentEntries.length > 0 ? system.driver : system.nextAction ?? 'Add a relevant laboratory result'}</Text>
+          {system.currentEntries.length > 0 && <View style={s.heroMeta}><TrendSignal trend={system.trend} /><Text style={s.confidence}>{system.confidence} confidence</Text></View>}
         </View>
 
-        <DisclosureSection title="Summary" summary={system.changed} initiallyOpen>
-          <Text style={s.body}>{system.changed}. This view is based on {system.currentEntries.length} available current or historical measurements.</Text>
+        <DisclosureSection title="Summary" summary={system.currentEntries.length > 0 ? system.changed : 'No assessment yet'}>
+          <Text style={s.body}>{system.currentEntries.length > 0 ? `${system.changed}. This view is based on ${system.currentEntries.length} available measurements.` : 'Add a relevant laboratory result to begin this system assessment.'}</Text>
           <Text style={s.caution}>System states organize data; they are not diagnoses.</Text>
         </DisclosureSection>
-        <DisclosureSection title="Key biomarkers" summary={`${system.biomarkers.length} measurements can inform this system`} initiallyOpen>
-          {system.biomarkers.map((marker, index) => {
+        {system.currentEntries.length === 0 && <Pressable onPress={() => navigation.navigate('LabUpload')} style={s.primaryButton} accessibilityRole="button" accessibilityLabel="Add relevant laboratory data"><Text style={s.primaryButtonText}>Add relevant laboratory data</Text></Pressable>}
+        <DisclosureSection title="Key biomarkers" summary={`${system.biomarkers.length} measurements can inform this system`} initiallyOpen={system.currentEntries.length > 0}>
+          {system.currentEntries.length === 0 ? <Text style={s.body}>Relevant biomarkers are listed here once data is available.</Text> : system.biomarkers.map((marker, index) => {
             const entry = entriesByMarker.get(marker.id);
             return (
               <Pressable
@@ -93,7 +97,7 @@ export default function HealthSystemScreen() {
                 accessibilityLabel={`${marker.name}. ${entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'No data'}`}
               >
                 <View style={s.markerName}><Text style={s.markerTitle}>{marker.name}</Text><Text style={s.markerDate}>{entry ? formatHealthDate(entry.date) : 'No collection'}</Text></View>
-                <Text style={s.markerValue}>{entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : '—'}</Text>
+                <Text style={s.markerValue}>{entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'No collection'}</Text>
               </Pressable>
             );
           })}
@@ -126,11 +130,12 @@ export default function HealthSystemScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.health.background }, content: { alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl * 2 },
-  back: { flexDirection: 'row', alignItems: 'center', minHeight: Spacing.xxl + Spacing.lg }, backText: { color: Colors.health.accent, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label }, backGlyph: { color: Colors.health.ruleStrong }, backMuted: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.bodySmall },
-  hero: { paddingVertical: Spacing.xxl }, icon: { width: Spacing.xxl * 2, height: Spacing.xxl * 2, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.ruleStrong, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.lg },
+  back: { flexDirection: 'row', alignItems: 'center', minHeight: Spacing.xxl + Spacing.md }, backChevron: { color: Colors.health.accent, fontSize: Typography.sizes.xxl, lineHeight: Typography.sizes.xxl, marginRight: Spacing.xs }, backText: { color: Colors.health.accent, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label }, backGlyph: { color: Colors.health.ruleStrong }, backMuted: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.bodySmall },
+  hero: { paddingVertical: Spacing.lg }, icon: { width: Spacing.xxl * 2, height: Spacing.xxl * 2, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.ruleStrong, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
   title: { color: Colors.health.ink, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title }, state: { color: Colors.health.accent, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, marginTop: Spacing.md }, attention: { color: Colors.health.attention },
   driver: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm, maxWidth: 520 }, heroMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg }, confidence: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption },
   body: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body }, caution: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.md },
+  primaryButton: { minHeight: Spacing.xxl + Spacing.base, justifyContent: 'center', alignItems: 'center', borderRadius: Radius.card, backgroundColor: Colors.health.ink, paddingHorizontal: Spacing.base, marginBottom: Spacing.lg }, primaryButtonText: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
   marker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, paddingVertical: Spacing.md, minHeight: Spacing.xxl + Spacing.xl }, markerRule: { borderTopWidth: 1, borderTopColor: Colors.health.rule }, markerName: { flex: 1 }, markerTitle: { color: Colors.health.ink, fontSize: Typography.sizes.body, fontWeight: Typography.weights.headline }, markerDate: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, marginTop: Spacing.xs }, markerValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label, textAlign: 'right' },
   reference: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginBottom: Spacing.sm },
 });

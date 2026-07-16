@@ -136,6 +136,8 @@ export const Colors = {
     ruleStrong: '#BFC3B9',
     accent: '#255B46',
     accentSoft: '#E1EBE5',
+    neutralSoft: '#ECEEEA',
+    neutralInk: '#5F665F',
     attention: '#93662D',
     attentionSoft: '#F1E7D8',
   },

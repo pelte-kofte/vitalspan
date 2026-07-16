@@ -78,6 +78,7 @@ export interface BodySystemModel extends BodySystemDefinition {
   confidence: 'High' | 'Moderate' | 'Low';
   trend: HealthTrend;
   openActions: number;
+  nextAction?: string;
 }
 
 export interface HealthEmptyStateCopy {
@@ -131,6 +132,13 @@ export const TREND_LABELS: Record<HealthTrend, string> = {
   stable: 'Stable',
   needs_review: 'Needs review',
   insufficient_history: 'Insufficient history',
+};
+
+export const TREND_TONES: Record<HealthTrend, 'attention' | 'neutral' | 'positive'> = {
+  improving: 'positive',
+  stable: 'neutral',
+  needs_review: 'attention',
+  insufficient_history: 'neutral',
 };
 
 export const EMPTY_STATE_COPY: Record<HealthInputState, HealthEmptyStateCopy> = {
@@ -256,7 +264,7 @@ function systemModel(
   const rangedCount = current.filter(entry => Boolean(entry.sourceLabRange)).length;
   const confidence = current.length >= 3 && rangedCount >= 2 ? 'High' : current.length > 0 ? 'Moderate' : 'Low';
 
-  let state = 'No current data';
+  let state = 'No assessment yet';
   if (definition.researchOnly && current.length > 0) state = 'Research data only';
   else if (currentEntries.length > 0 && current.length === 0) state = 'Data out of date';
   else if (outside.length > 0) state = 'Needs review';
@@ -267,7 +275,12 @@ function systemModel(
     ? outside.length > 0
       ? `${driverMarker.name} is outside its reported laboratory range`
       : `${driverMarker.name} is the most recent signal`
-    : 'No current measurements inform this system';
+    : 'No assessment yet';
+  const nextAction = current.length === 0 && definition.id === 'cardiovascular'
+    ? 'Add a recent laboratory result'
+    : outside.length > 0
+      ? 'Review laboratory context'
+      : undefined;
   const changed = trend === 'improving'
     ? 'A result moved toward its reported range'
     : trend === 'stable'
@@ -275,9 +288,19 @@ function systemModel(
       : trend === 'needs_review'
         ? 'A current result needs clinical context'
         : 'More than one collection is needed';
-  const openActions = outside.length + (current.length === 0 ? 1 : 0);
+  const openActions = current.length === 0 ? 0 : outside.length;
 
-  return { ...definition, biomarkers: selected, currentEntries, state, driver, changed, confidence, trend, openActions };
+  return { ...definition, biomarkers: selected, currentEntries, state, driver, changed, confidence, trend, openActions, nextAction };
+}
+
+export function sortBodySystems(systems: readonly BodySystemModel[]): BodySystemModel[] {
+  const rank = (system: BodySystemModel): number => {
+    if (system.trend === 'needs_review') return 0;
+    if (system.trend === 'improving') return 1;
+    if (system.trend === 'stable') return 2;
+    return 3;
+  };
+  return [...systems].sort((a, b) => rank(a) - rank(b));
 }
 
 function overallTrend(systems: readonly BodySystemModel[]): HealthTrend {

@@ -5,6 +5,8 @@ import {
   deriveEntryTrend,
   EMPTY_STATE_COPY,
   HEALTH_DOMAINS,
+  sortBodySystems,
+  TREND_TONES,
   freshnessLabel,
 } from '../lib/healthExperience';
 import type { PhenoAgeResult } from '../lib/phenoAge';
@@ -101,6 +103,33 @@ describe('Health Operating System experience model', () => {
     const cardiovascular = experience.systems.find(system => system.id === 'cardiovascular');
     expect(cardiovascular?.state).toBe('Within reported ranges');
     expect(cardiovascular?.state).not.toMatch(/optimal|suboptimal|critical/i);
+  });
+
+  test('empty systems are neutral, compact, and never manufacture open actions', () => {
+    const experience = buildHealthExperience({
+      biomarkers: BIOMARKERS,
+      entries: [],
+      phenoAge: result('insufficient_data', 0),
+      healthData: null,
+      now: NOW,
+    });
+    const cardiovascular = experience.systems.find(system => system.id === 'cardiovascular');
+    expect(cardiovascular).toMatchObject({ state: 'No assessment yet', openActions: 0, nextAction: 'Add a recent laboratory result' });
+    expect(TREND_TONES.insufficient_history).toBe('neutral');
+    expect(TREND_TONES.stable).toBe('neutral');
+  });
+
+  test('system ordering puts review and changed systems before unavailable systems', () => {
+    const experience = buildHealthExperience({
+      biomarkers: BIOMARKERS,
+      entries: [entry({ id: 'apob-review', biomarkerId: 'apob', value: 120, sourceLabRange: { upperBound: 100, unit: 'mg/dL' } })],
+      phenoAge: result('insufficient_data', 0),
+      healthData: null,
+      now: NOW,
+    });
+    const ordered = sortBodySystems(experience.systems);
+    expect(ordered[0].id).toBe('cardiovascular');
+    expect(ordered.at(-1)?.state).toBe('No assessment yet');
   });
 
   test('summarizes range movement before exposing a chart', () => {

@@ -2,6 +2,7 @@ import React, { type ReactNode, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '../../theme';
+import Svg, { Path } from 'react-native-svg';
 import Text from './HealthText';
 
 interface Props {
@@ -26,7 +27,9 @@ export default function DisclosureSection({ title, summary, children, initiallyO
           <Text style={s.title}>{title}</Text>
           {!open && summary && <Text style={s.summary} numberOfLines={2}>{summary}</Text>}
         </View>
-        <Text style={s.glyph}>{open ? '−' : '+'}</Text>
+        <Svg width={Spacing.base} height={Spacing.base} viewBox="0 0 16 16" accessible={false}>
+          <Path d={open ? 'M3 6 L8 11 L13 6' : 'M6 3 L11 8 L6 13'} fill="none" stroke={Colors.health.inkSecondary} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
       </Pressable>
       {open && <View style={s.body}>{children}</View>}
     </View>
