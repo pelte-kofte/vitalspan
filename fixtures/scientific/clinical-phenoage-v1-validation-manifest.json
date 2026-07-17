@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "scientific-validation-manifest/1.0.0",
+  "validationStatus": "validated_with_documented_platform_limits",
+  "validatedAt": "2026-07-17",
+  "scientificIdentity": {
+    "modelId": "clinical_phenoage",
+    "modelVersion": "clinical-phenoage/1.0.0",
+    "coefficientVersion": "clinical-phenoage-coefficients/1.0.0",
+    "normalizationVersion": "clinical-phenoage-canonical-units/1.0.0",
+    "implementationVersion": "vitalspan-clinical-phenoage/1.0.0",
+    "inputPolicyId": "clinical_phenoage_complete_visit",
+    "coefficientFingerprint": "26d3842b55885598405ae13ae1d058c6403f11a049063d1c565c031f3e5ac4dc"
+  },
+  "primaryReference": {
+    "title": "An epigenetic biomarker of aging for lifespan and healthspan",
+    "doi": "10.18632/aging.101414",
+    "pmcid": "PMC5940111",
+    "clinicalDerivationPopulation": "NHANES III adults with complete biomarker data",
+    "clinicalValidationPopulation": "NHANES IV nationally representative US adults",
+    "publishedNumericIndividualFixturesAvailable": false
+  },
+  "tolerancePolicy": {
+    "engineVsArbitraryPrecisionAbsolute": 1e-10,
+    "engineVsArbitraryPrecisionRelative": 1e-12,
+    "javascriptCrossRuntimeAbsolute": 1e-12,
+    "javascriptCrossRuntimeRelative": 1e-14,
+    "sameRuntimeRepeatability": "exact"
+  },
+  "artifactSha256": {
+    "calculationSource": "ca0e6fda05ba3f4b3df33e001da55349450908218b73a7afd8f22a96b7eaa891",
+    "constantsSource": "2ca6e35cdce99e41efd78105c802e492537a74075c1a3aa1d14355c6c7b39022",
+    "validationSource": "853c6340d630ef0ac1a84cb20e3f727eab62122f6f67a834987b8f69ae32c9e0",
+    "referenceFixture": "41e3247c2bf6ad0e6403a431ac54f4aa4cb90dfe09068a38fcca7084220bfa05",
+    "arbitraryPrecisionEvaluator": "758dbaf7212a1e60eb64d91d5bb81f686f7e5ce610e58014383806c3f1874758",
+    "javascriptRuntimeProbe": "496a5eaea893d88ef85dd2c6dbea60a48f2c4f0d48baba590287d6b04f2f1dd7"
+  },
+  "referenceCases": [
+    {
+      "id": "complete-adult-reference",
+      "inputSnapshotHash": "9e1f0c8e182d9d1013eaf30ac99512228873848966495f5856cfd080ff55835d",
+      "scientificOutputHash": "d6c15ab178a44cd280273fb1439597916052dbf302a659173a021279b45a0b4e"
+    },
+    {
+      "id": "decimal-heavy-reference",
+      "inputSnapshotHash": "f45207e75d04c62f1c6599298946fb07c3a0cef273fe790140dfedc003a87248",
+      "scientificOutputHash": "50b8b3c7a3a6e162238e7ebe05af5f3ab9ea9cb258912abfdca3d89492f22ba5"
+    }
+  ],
+  "verifiedRuntimes": [
+    "Node.js 25.9.0 on macOS 26.5 arm64",
+    "Hermes for React Native 0.81.5, HBC bytecode 96, on macOS 26.5 arm64",
+    "GNU bc 7.0.3 arbitrary-precision decimal runtime on macOS 26.5 arm64"
+  ],
+  "unverifiedPlatforms": [
+    "Linux end-to-end application runtime",
+    "Windows end-to-end application runtime",
+    "Physical iOS device release build",
+    "Physical Android device release build"
+  ]
+}

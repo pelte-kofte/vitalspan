@@ -1,0 +1,16 @@
+/*
+ * Independent arbitrary-precision reference evaluator for the fixed golden
+ * fixtures. Run with: bc -l fixtures/scientific/clinical-phenoage-v1-reference.bc
+ * This file is not imported by production code or Jest.
+ */
+scale=60
+
+define clinical_phenoage(age, albumin, creatinine, glucose, crp, lymphocyte, mcv, rdw, alp, wbc) {
+  xb=-19.9067-0.0336*albumin+0.0095*creatinine+0.1953*glucose+0.0954*l(crp)-0.0120*lymphocyte+0.0268*mcv+0.3306*rdw+0.00188*alp+0.0554*wbc+0.0804*age
+  mortality=1-e(-e(xb)*(e(120*0.0076927)-1)/0.0076927)
+  transformed=-0.00553*l(1-mortality)
+  return 141.50225+l(transformed)/0.090165
+}
+
+clinical_phenoage(40,44,80,5,0.1,30,90,12.5,70,6)
+clinical_phenoage(67.25,38.75,104.2,6.35,0.42,24.8,93.6,14.35,88.4,7.25)

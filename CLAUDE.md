@@ -64,7 +64,9 @@ assets/
 - `RangeBar` — biomarker range visualization
 
 ## Key Libraries / Data
-- `src/lib/phenoAge.ts` — Levine PhenoAge formula, `computePhenoAge()`, `PHENO_AGE_BIOMARKER_MAP`
+- `src/lib/clinicalPhenoAgePresentation.ts` — sole product-facing Clinical PhenoAge entry point and display adapter
+- `src/lib/clinicalPhenoAgeProduct.ts` — eligibility-authorized measurement normalization and scientific execution boundary
+- `src/domain/scientificModels/clinicalPhenoAge/` — locked Clinical PhenoAge v1.0.0 calculation engine
 - `src/lib/healthkit.ts` — HealthKit mock: `connectAndSync()`, `loadHealthData()`, `deriveHealthState()`
 - `src/data/medications.ts` — `MEDICATION_DATABASE` (200 drugs), `MedicationEntry` type
 - `src/data/supplementTimings.ts` — `SUPPLEMENT_DATABASE` (20 supplements), `SupplementInfo` type

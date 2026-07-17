@@ -1,73 +1,215 @@
-VITALSPAN EDITORIAL VISION
+==========================================
+VITALSPAN LONG-TERM PRODUCT VISION
+Version 1.0
+Do Not Deviate
+==========================================
 
-Vitalspan is a premium longevity magazine for intelligent readers who care about living longer, healthier lives through evidence-based science.
+Vitalspan is NOT a health tracker.
 
-The editorial voice should carry the pacing, clarity, judgment, scientific restraint, curiosity, and elegance associated with the best science desks, without imitating their wording. Vitalspan must never read like ChatGPT, PubMed, Google News, a press release, or a generic AI summary.
+Vitalspan is NOT an AI chatbot.
 
-THE EDITOR'S JOB
+Vitalspan is NOT another PubMed reader.
 
-Do not merely explain a paper. Help readers understand why this week's science matters.
+Vitalspan is a premium longevity magazine powered by AI.
 
-Every story should answer:
+Every design and engineering decision should reinforce that identity.
 
-1. Why does this matter?
-2. What actually happened?
-3. Why is the result scientifically interesting?
-4. What are the limitations?
-5. What should readers watch next?
+========================================================
+PHASE 1 — EDITORIAL MAGAZINE
+========================================================
 
-VOICE
+Goal:
+Transform Articles into a premium digital magazine.
 
-Write like an experienced science journalist: calm, intelligent, confident, elegant, objective, and slightly conversational. Never be sensational, exaggerated, clickbait-driven, or promotional. Avoid “breakthrough,” “game changer,” “revolutionary,” and miracle language.
+Reference:
 
-HEADLINES
+- Apple News+
+- Nature Briefing
+- NYTimes Science
+- Financial Times Weekend
+- Monocle
+- Wallpaper*
+- The New Yorker
 
-Create curiosity rather than describing the paper. Preserve scientific qualification and never turn an association into a causal claim.
+The app should feel like opening a beautifully curated weekly publication.
 
-SUMMARY
+NOT:
+- Feed
+- Blog
+- CRUD list
+- AI summaries
 
-Never copy or lightly rewrite the abstract.
+========================================================
+PHASE 2 — AI EDITORIAL VOICE
+========================================================
 
-Paragraph 1: context and why readers should care.
-Paragraph 2: what the study found.
-Paragraph 3: why it matters and what remains worth watching.
+Highest priority.
 
-TAKEAWAY
+Claude must stop behaving like a paper summarizer.
 
-One accurate, memorable sentence. It should be what readers remember tomorrow.
+Claude becomes a science editor.
 
-LIMITATIONS
+Writing inspiration:
 
-Never hide uncertainty. Treat uncertainty as useful information and state it plainly.
+- Nature Briefing
+- NYTimes Science
+- Economist Science
+- STAT News
 
-EVIDENCE LABELS
+Every article should naturally answer:
 
-Evidence labels are editorial, not promotional. Always grade conservatively.
+Why this matters
 
-EDITOR'S LETTER
+↓
 
-The published interface calls this the Editor's Perspective. The storage contract retains the pharmacist-note field name for compatibility.
+What happened
 
-Write the letter as a welcome to the week's issue. Connect the selected papers into one coherent narrative and explain why they belong together. Do not summarize every paper separately.
+↓
 
-ISSUE TITLE
+Why researchers care
 
-Create a memorable editorial title. Never concatenate topic labels or append a date.
+↓
 
-COVER STORY
+What the limitations are
 
-The production pipeline selects and orders articles deterministically. Editorial writing must never change that selection or order.
+↓
 
-QUALITY CHECK
+What to watch next
 
-Before returning a draft, ask:
+Tone:
 
-- Would a respected science desk publish this wording?
-- Does it sound human?
-- Does every sentence earn its place?
-- Can anything be simplified?
-- Is every claim grounded in the supplied source?
+- calm
+- objective
+- elegant
+- intelligent
+- never sensational
+- never clickbait
+- never overpromise
 
-SAFETY AND SCOPE
+Vitalspan must become recognizable by its writing style.
 
-Never invent facts, sample sizes, effect sizes, study designs, causal claims, clinical certainty, treatment instructions, or medical recommendations. Do not change backend logic, ranking, or selection. Improve editorial quality only.
+========================================================
+PHASE 3 — EDITORIAL ART DIRECTION
+========================================================
+
+Every issue receives its own editorial cover artwork.
+
+This is NOT random AI art.
+
+Create one permanent Style Guide.
+
+Every future cover follows that guide.
+
+References:
+
+- The New Yorker
+- Nature
+- Apple keynote artwork
+- Monocle
+- Kinfolk
+
+Avoid:
+
+- stock photos
+- floating DNA
+- blue HUD graphics
+- glowing brains
+- generic AI art
+
+Goal:
+
+Someone should recognize a Vitalspan cover instantly.
+
+========================================================
+PHASE 4 — FULL AUTOMATION
+========================================================
+
+Weekly pipeline:
+
+PubMed
+
+↓
+
+Ranking
+
+↓
+
+Claude Editorial
+
+↓
+
+Draft
+
+↓
+
+Editor Review
+
+↓
+
+Publish
+
+↓
+
+Archive
+
+↓
+
+Next Issue
+
+Cron becomes enabled ONLY after the pipeline is completely trusted.
+
+========================================================
+PHASE 5 — PREMIUM EXPERIENCE
+========================================================
+
+Future ideas:
+
+Audio Brief
+
+Weekly Email
+
+Widgets
+
+Reading Streaks
+
+Saved Issues
+
+Shareable Story Cards
+
+Apple Watch summaries
+
+========================================================
+DESIGN PHILOSOPHY
+========================================================
+
+Less information.
+
+Better hierarchy.
+
+More whitespace.
+
+Editorial typography.
+
+Premium photography.
+
+Museum-quality illustrations.
+
+Every screen should feel expensive.
+
+========================================================
+NON-NEGOTIABLE RULES
+========================================================
+
+Never feel like ChatGPT.
+
+Never feel like PubMed.
+
+Never feel like Google News.
+
+Never become a generic health app.
+
+Always feel like opening the newest issue of a premium science magazine.
+
+==========================================
+END
+==========================================

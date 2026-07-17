@@ -1,6 +1,6 @@
 import type { Biomarker } from '../data/biomarkers';
 import type { HealthData } from './healthkit';
-import type { PhenoAgeResult } from './phenoAge';
+import type { ClinicalPhenoAgePresentation } from './clinicalPhenoAgePresentation';
 import { classifyStoredEntry } from './biomarkerInterpretation';
 import type { StoredEntry } from '../types/biomarkerEntry';
 
@@ -53,7 +53,7 @@ export interface HealthDomainModel extends HealthDomainDefinition {
 }
 
 export interface HealthOverviewModel {
-  bloodPhenotypicAge: PhenoAgeResult;
+  bloodPhenotypicAge: ClinicalPhenoAgePresentation;
   lastLabDate: string | null;
   completeness: number;
   overallTrend: HealthTrend;
@@ -343,7 +343,7 @@ function domainModels(entries: readonly StoredEntry[], biomarkers: readonly Biom
 
 function resolveInputState(
   entries: readonly StoredEntry[],
-  phenoAge: PhenoAgeResult,
+  phenoAge: ClinicalPhenoAgePresentation,
   healthData: HealthData | null,
   healthDataSource: 'healthkit' | 'wearable',
   now: Date,
@@ -356,14 +356,14 @@ function resolveInputState(
   if (!newest || daysOld(newest.date, now) > 365) return 'old_labs';
   const manualOnly = entries.every(entry => /manual|entered/i.test(entry.source));
   if (manualOnly) return 'only_manual';
-  if (phenoAge.status === 'calculated') return 'complete';
+  if (phenoAge.status === 'available') return 'complete';
   return 'partial_labs';
 }
 
 export function buildHealthExperience(input: {
   biomarkers: readonly Biomarker[];
   entries: readonly StoredEntry[];
-  phenoAge: PhenoAgeResult;
+  phenoAge: ClinicalPhenoAgePresentation;
   healthData: HealthData | null;
   healthDataSource?: 'healthkit' | 'wearable';
   now?: Date;
@@ -396,7 +396,7 @@ export function buildHealthExperience(input: {
       ? Math.round((input.phenoAge.presentCount / input.phenoAge.totalRequired) * 100)
       : 0,
     overallTrend: overallTrend(systems),
-    limitations: input.phenoAge.modelLimitations,
+    limitations: input.phenoAge.limitations,
     futureDomains: domains,
   };
   return {

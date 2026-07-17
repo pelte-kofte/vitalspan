@@ -4,6 +4,7 @@ import {
   type CoverStoryExtraction,
   type CoverVisualConcept,
 } from "./briefCoverConcept.ts";
+import { assertEditorialDistinctiveness } from "./briefCoverEditorialDistinctiveness.ts";
 
 export type VisualFamily = "Living Tapestry" | "Landscape" | "Architecture" | "Living Still";
 /** Compatibility alias for older callers; the contract now exposes four families. */
@@ -102,6 +103,8 @@ export const VISUAL_DIRECTION_SYSTEM_PROMPT = [
   "Living Tapestry is preferred for grounded biological mechanisms, connected systems, metabolism, neurobiology, cardiovascular biology, muscle physiology, cellular adaptation, and cross-scale relationships.",
   "Landscape is for an environmental event that directly maps to the finding. Architecture is rare and requires a named scientific barrier, access, compartment, threshold, scaffold, protected/exposed, or translation relationship. Living Still is exceptional and requires a one-sentence proof that one physical relationship is uniquely appropriate.",
   "Preserve article-specific science. Establish the dominant relationship and visual event before deriving forms. An integrated field without a central object is welcome.",
+  "The scientific relationship must be understood before any named object. Prefer woven systems, living fabrics, emergent structures, interconnected fields, dynamic gradients, layered ecologies, biological topology, adaptive geometries, network tension, and collective emergence.",
+  "Apply the one-second test to macroComposition and silhouettePlan before returning. Never use a tree, Tree of Life, bonsai, flower, leaf, brain, neuron icon, DNA helix, heart, lungs, eye, butterfly, bird, hands, globe, planet, mountain, river, sun, roots, coral, blood vessel, mushroom, or recognizable animal as the primary silhouette; these may appear only as microscopic internal references.",
   "Create one memorable macro silhouette plus close-view scientific discovery. Treat uncertainty by limiting resolution or closure, never by erasing specificity.",
   "Reject generic architecture, tasteful still-life defaults, bowls, vessels, stones, seeds, linen, paper, object inventories, vague AI abstraction, and copies of the founding gut-heart-brain arrangement.",
   "Use the supplied Art Bible as governance and the Founding Cover DNA only as an advisory quality benchmark.",
@@ -144,6 +147,10 @@ function requireText(value: unknown, label: string): string {
   if (typeof value !== "string" || !normalizeWhitespace(value)) throw new Error(`${label} must not be empty`);
   return normalizeWhitespace(value);
 }
+function requireEditorialScore(value: unknown, label: string): number {
+  if (!Number.isInteger(value) || Number(value) < 1 || Number(value) > 5) throw new Error(`${label} must be an integer from 1 to 5`);
+  return Number(value);
+}
 function requireStrings(value: unknown, label: string, allowEmpty = false): string[] {
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.some((item) => typeof item !== "string" || !item.trim())) {
     throw new Error(`${label} must be ${allowEmpty ? "an array of strings" : "a non-empty array of strings"}`);
@@ -172,15 +179,23 @@ function cleanConcept(concept: CoverVisualConcept): CoverVisualConcept {
     || concept.suitableVisualFamilies.some((family) => !VISUAL_FAMILIES.includes(family))) {
     throw new Error("selectedConcept.suitableVisualFamilies must contain valid families");
   }
-  return {
+  const cleaned: CoverVisualConcept = {
     visualStory: requireText(concept.visualStory, "selectedConcept.visualStory"),
     relationship: requireText(concept.relationship, "selectedConcept.relationship"),
     visualEvent: requireText(concept.visualEvent, "selectedConcept.visualEvent"),
     scientificAnchor: requireText(concept.scientificAnchor, "selectedConcept.scientificAnchor"),
     whyMemorable: requireText(concept.whyMemorable, "selectedConcept.whyMemorable"),
+    editorialScores: {
+      novelty: requireEditorialScore(concept.editorialScores?.novelty, "selectedConcept.editorialScores.novelty"),
+      originality: requireEditorialScore(concept.editorialScores?.originality, "selectedConcept.editorialScores.originality"),
+      scientificAmbiguity: requireEditorialScore(concept.editorialScores?.scientificAmbiguity, "selectedConcept.editorialScores.scientificAmbiguity"),
+      narrativeClarity: requireEditorialScore(concept.editorialScores?.narrativeClarity, "selectedConcept.editorialScores.narrativeClarity"),
+    },
     suitableVisualFamilies: [...new Set(concept.suitableVisualFamilies)],
     prohibitedImplications: requireStrings(concept.prohibitedImplications, "selectedConcept.prohibitedImplications"),
   };
+  assertEditorialDistinctiveness({ phase: "4A", concept: cleaned });
+  return cleaned;
 }
 
 export function buildVisualDirectionRequest(input: VisualDirectionInput): VisualDirectionRequest {

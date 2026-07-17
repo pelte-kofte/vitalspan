@@ -1,0 +1,54 @@
+{
+  "fixtureSpecification": {
+    "modelVersion": "clinical-phenoage/1.0.0",
+    "source": "Levine et al. (2018), DOI 10.18632/aging.101414",
+    "independentEvaluator": "GNU bc arbitrary-precision math library (scale=60)",
+    "rounding": "No intermediate rounding; decimal reference values converted once to IEEE-754 binary64 by the test runner"
+  },
+  "cases": [
+    {
+      "id": "complete-adult-reference",
+      "inputs": {
+        "chronological_age": 40,
+        "albumin": 44,
+        "creatinine": 80,
+        "glucose": 5,
+        "crp": 0.1,
+        "lymphocyte_percent": 30,
+        "mean_cell_volume": 90,
+        "red_cell_distribution_width": 12.5,
+        "alkaline_phosphatase": 70,
+        "white_blood_cell_count": 6
+      },
+      "expected": {
+        "naturalLogCrp": -2.3025850929940456840179914546843642076,
+        "linearPredictor": -10.0037666178716319582553163847768883454,
+        "publishedMortalityTransformation": 0.0088803724061632089181192882080634019166,
+        "transformedMortality": 0.0000493278096836817799506826807549843083,
+        "phenotypicAgeYears": 31.5147543530390939509604327974371771431
+      }
+    },
+    {
+      "id": "decimal-heavy-reference",
+      "inputs": {
+        "chronological_age": 67.25,
+        "albumin": 38.75,
+        "creatinine": 104.2,
+        "glucose": 6.35,
+        "crp": 0.42,
+        "lymphocyte_percent": 24.8,
+        "mean_cell_volume": 93.6,
+        "red_cell_distribution_width": 14.35,
+        "alkaline_phosphatase": 88.4,
+        "white_blood_cell_count": 7.25
+      },
+      "expected": {
+        "naturalLogCrp": -0.8675005677047230621181528075448464128,
+        "linearPredictor": -6.1316725541590305801260717778397783478,
+        "publishedMortalityTransformation": 0.3485433099714589874977125018906814742,
+        "transformedMortality": 0.0023698503215452456926182957032202341,
+        "phenotypicAgeYears": 74.4592900787930048712648148407700668189
+      }
+    }
+  ]
+}

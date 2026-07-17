@@ -16,7 +16,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BIOMARKERS } from '../data/biomarkers';
 import { ExerciseLogEntry } from '../data/exercises';
-import { computePhenoAge, createPhenoAgeInputsFromEntries } from './phenoAge';
+import { getClinicalPhenoAgePresentation } from './clinicalPhenoAgePresentation';
 import { BIOMARKER_STATUS_LABELS, classifyStoredEntry } from './biomarkerInterpretation';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import { ProtocolItem } from '../types/protocol';
@@ -366,8 +366,8 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     for (const [biomarkerId, biomarkerEntries] of entryLists) {
       if (biomarkerEntries[0]) latestEntryMap.set(biomarkerId, biomarkerEntries[0]);
     }
-    const phenoResult = computePhenoAge(createPhenoAgeInputsFromEntries(age, latestEntryMap));
-    const biologicalAge = phenoResult.bloodPhenotypicAge;
+    const phenoResult = getClinicalPhenoAgePresentation(age, latestEntryMap);
+    const biologicalAge = phenoResult.valueYears;
     const phenoAgeInputCount = phenoResult.presentCount;
 
     // ── Supplement details (new schema + legacy fallback) ─────────────────

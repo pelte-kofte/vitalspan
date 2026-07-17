@@ -142,6 +142,31 @@ export const Colors = {
     attentionSoft: '#F1E7D8',
   },
 
+  // Living Sphere — evidence-neutral, low-saturation rendering palette.
+  // These colors never encode health quality; motion, texture and clarity do.
+  livingSphere: {
+    light: {
+      base: '#D7D4CC',
+      depth: '#77858A',
+      warmth: '#B99C87',
+      surface: '#929D97',
+      highlight: '#F4F0E7',
+      atmosphere: 'rgba(103, 119, 124, 0.16)',
+      contour: 'rgba(69, 78, 76, 0.18)',
+      boundary: 'rgba(69, 78, 76, 0.24)',
+    },
+    dark: {
+      base: '#343C3D',
+      depth: '#52636A',
+      warmth: '#8A7465',
+      surface: '#68756F',
+      highlight: '#CDD1C8',
+      atmosphere: 'rgba(164, 177, 178, 0.14)',
+      contour: 'rgba(222, 226, 218, 0.15)',
+      boundary: 'rgba(222, 226, 218, 0.20)',
+    },
+  },
+
 };
 
 export const Typography = {

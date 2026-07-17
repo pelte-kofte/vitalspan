@@ -39,12 +39,10 @@ import { Colors, Spacing, Typography, Radius } from '../theme';
 import NeuralGrid from '../components/NeuralGrid';
 import { OrbitalInfoModal } from '../components/OrbitalInfoModal';
 import {
-  computePhenoAge,
-  createPhenoAgeInputsFromEntries,
-  PHENO_BIOMARKER_LIST,
-  type PhenoAgeRequirementStatus,
-  type PhenoAgeResult,
-} from '../lib/phenoAge';
+  getClinicalPhenoAgePresentation,
+  type ClinicalPhenoAgePresentation,
+} from '../lib/clinicalPhenoAgePresentation';
+import type { ClinicalPhenoAgeRequirementStatus } from '../lib/clinicalPhenoAgeProduct';
 import {
   connectAndSync,
   loadHealthData,
@@ -187,10 +185,10 @@ function ExplainerModal({ visible, onClose, onConnectHealth, nav }: ExplainerMod
 interface TransparencyModalProps {
   visible: boolean;
   onClose: () => void;
-  result: PhenoAgeResult | null;
+  result: ClinicalPhenoAgePresentation | null;
 }
 
-const REQUIREMENT_LABELS: Record<PhenoAgeRequirementStatus, string> = {
+const REQUIREMENT_LABELS: Record<ClinicalPhenoAgeRequirementStatus, string> = {
   present: 'Present',
   missing: 'Missing',
   stale: 'Stale',
@@ -219,15 +217,15 @@ function TransparencyModal({ visible, onClose, result }: TransparencyModalProps)
             {' '}Model confidence has not been established for this individual.
           </Text>
           <Text style={s.sheetBody}>
-            Chronological age: {result?.ageValid ? result.chronologicalAge : 'Missing or invalid'}
+            Chronological age: {result?.ageValid ? result.chronologicalAgeYears : 'Missing or invalid'}
           </Text>
+          {result?.failure && <Text style={s.sheetBody}>{result.failure.detail}</Text>}
 
           <Text style={s.transparencySubHead}>Required blood measurements</Text>
-          {PHENO_BIOMARKER_LIST.map(b => {
-            const requirement = result?.requirements.find(item => item.key === b.key);
-            const present = requirement?.status === 'present';
+          {(result?.requirements ?? []).map(requirement => {
+            const present = requirement.status === 'present';
             return (
-              <View key={b.biomarkerId} style={s.transparencyRow}>
+              <View key={requirement.biomarkerId} style={s.transparencyRow}>
                 <Text
                   style={[s.transparencyCheck, { color: present ? Colors.viz.bioGreen : Colors.dark.textMuted }]}
                 >
@@ -236,14 +234,11 @@ function TransparencyModal({ visible, onClose, result }: TransparencyModalProps)
                 <Text
                   style={[s.transparencyLabel, { color: present ? Colors.dark.text : Colors.dark.textMuted }]}
                 >
-                  {b.label}
+                  {requirement.label}
                 </Text>
                 <View style={s.requirementDetail}>
-                  <Text style={s.transparencyUnit}>{REQUIREMENT_LABELS[requirement?.status ?? 'missing']}</Text>
-                  <Text style={s.transparencyUnit}>{requirement?.reportedUnit ?? '—'} → {b.publishedUnit}</Text>
-                  {requirement?.unitSource === 'legacy_definition' && (
-                    <Text style={s.legacyUnitNote}>Legacy unit fallback</Text>
-                  )}
+                  <Text style={s.transparencyUnit}>{REQUIREMENT_LABELS[requirement.status]}</Text>
+                  <Text style={s.transparencyUnit}>{requirement.reportedUnit ?? '—'} → {requirement.canonicalUnit}</Text>
                 </View>
               </View>
             );
@@ -251,7 +246,7 @@ function TransparencyModal({ visible, onClose, result }: TransparencyModalProps)
 
           <View style={s.improvementSection}>
             <Text style={s.transparencySubHead}>Model limitations</Text>
-            {(result?.modelLimitations ?? []).map(limitation => (
+            {(result?.limitations ?? []).map(limitation => (
               <Text key={limitation} style={s.limitationText}>• {limitation}</Text>
             ))}
           </View>
@@ -438,7 +433,7 @@ export default function LongevityScoreScreen() {
     opacity: interpolate(spherePulse.value, [0.85, 1.0], [0.85, 1.0]),
   }));
 
-  // Single entryMap — used by both PhenoAge computation and score transparency UI
+  // Single entry map used by the scientific product path and transparency UI.
   const entryMap = React.useMemo(() => {
     const m = new Map<string, StoredEntry>();
     for (const e of biomarkerEntries) {
@@ -448,11 +443,9 @@ export default function LongevityScoreScreen() {
     return m;
   }, [biomarkerEntries]);
 
-  // PhenoAge computation
   const phenoResult = React.useMemo(() => {
-    if (!profile?.age || profile.age <= 0) return null;
-    return computePhenoAge(createPhenoAgeInputsFromEntries(profile.age, entryMap));
-  }, [entryMap, profile]);
+    return getClinicalPhenoAgePresentation(profile?.age, entryMap);
+  }, [entryMap, profile?.age]);
 
   // Enrich health data with biomarker-derived values
   const derivedHealth = React.useMemo((): HealthData => {
@@ -474,7 +467,7 @@ export default function LongevityScoreScreen() {
     return String(entry.value);
   }, [biomarkerEntries]);
 
-  const bioAge = phenoResult?.bloodPhenotypicAge ?? null;
+  const bioAge = phenoResult.valueYears;
   const [gradStart, gradEnd] = healthScoreColor(bioAge != null);
 
   function arcPath(r: number): string {
@@ -689,10 +682,10 @@ export default function LongevityScoreScreen() {
           {/* Scientific stop-loss status — no lifespan or biological-age projection. */}
           <View style={s.projectionCard}>
             <Text style={s.projLabel}>MODEL STATUS</Text>
-            <Text style={s.projValue}>Data completeness: {phenoResult?.presentCount ?? 0}/9</Text>
+            <Text style={s.projValue}>Data completeness: {phenoResult.presentCount}/9</Text>
             <Text style={s.projSub}>Longitudinal trend: Insufficient longitudinal history</Text>
             <Text style={s.projSub}>
-              Last calculated: {phenoResult?.calculatedAt
+              Last calculated: {phenoResult.calculatedAt
                 ? new Date(phenoResult.calculatedAt).toLocaleDateString()
                 : 'Not calculated'}
             </Text>
@@ -749,7 +742,7 @@ export default function LongevityScoreScreen() {
               How is this calculated?
             </Text>
             <View style={s.confidencePill}>
-              <Text style={s.confidenceTxt}>{phenoResult?.presentCount ?? 0}/9 inputs</Text>
+              <Text style={s.confidenceTxt}>{phenoResult.presentCount}/9 inputs</Text>
             </View>
           </TouchableOpacity>
 
@@ -1048,7 +1041,6 @@ const s = StyleSheet.create({
   transparencyLabel: { flex: 1, fontSize: Typography.sizes.sm },
   transparencyUnit: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted },
   requirementDetail: { alignItems: 'flex-end', maxWidth: 130 },
-  legacyUnitNote: { fontSize: 9, color: Colors.viz.amber, marginTop: 2 },
   limitationText: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18, marginBottom: Spacing.xs },
   improvementSection: { marginTop: Spacing.sm },
   improvementRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.xs + 2 },

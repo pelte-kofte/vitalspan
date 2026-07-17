@@ -13,7 +13,9 @@ import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { buildHealthExperience, type BodySystemId } from '../lib/healthExperience';
 import { loadHealthData, type HealthData } from '../lib/healthkit';
-import { computePhenoAge, createPhenoAgeInputsFromEntries } from '../lib/phenoAge';
+import { buildHealthLivingSphere } from '../lib/healthLivingSphere';
+import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { Colors, Radius, Spacing, Typography } from '../theme';
 import type { StoredEntry } from '../types/biomarkerEntry';
@@ -31,7 +33,9 @@ export default function HealthScreen() {
   const [entries, setEntries] = useState<StoredEntry[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [assessmentAsOf, setAssessmentAsOf] = useState(() => new Date().toISOString());
   const [refreshing, setRefreshing] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const load = useCallback(async () => {
     try {
@@ -45,6 +49,7 @@ export default function HealthScreen() {
       setEntries(entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : []);
       setProfile(profileRaw ? JSON.parse(profileRaw) as UserProfile : null);
       setHealthData(loadedHealth);
+      setAssessmentAsOf(new Date().toISOString());
     } catch {
       // A source failure must leave the Health tab usable and explainable.
       setBiomarkers(current => current.length > 0 ? current : []);
@@ -69,10 +74,17 @@ export default function HealthScreen() {
   }, [entries]);
 
   const phenoAge = useMemo(
-    () => computePhenoAge(createPhenoAgeInputsFromEntries(profile?.age ?? 0, latestMap)),
+    () => getClinicalPhenoAgePresentation(profile?.age, latestMap),
     [latestMap, profile?.age],
   );
   const experience = useMemo(() => buildHealthExperience({ biomarkers, entries, phenoAge, healthData }), [biomarkers, entries, phenoAge, healthData]);
+  const livingSphere = useMemo(() => buildHealthLivingSphere({
+    asOf: assessmentAsOf,
+    biomarkers,
+    entries,
+    healthData,
+    reduceMotion,
+  }), [assessmentAsOf, biomarkers, entries, healthData, reduceMotion]);
 
   const openSystem = useCallback((systemId: BodySystemId) => {
     navigation.navigate('HealthSystem', { systemId });
@@ -108,7 +120,13 @@ export default function HealthScreen() {
           </Pressable>
         </View>
 
-        <HealthOverviewCard result={phenoAge} lastLabDate={experience.lastLabDate} overallTrend={experience.overallTrend} actionLabel={experience.emptyState.actionLabel} onAction={stateAction} />
+        <HealthOverviewCard
+          result={phenoAge}
+          lastLabDate={experience.lastLabDate}
+          sphere={livingSphere}
+          actionLabel={experience.emptyState.actionLabel}
+          onAction={stateAction}
+        />
 
         <View style={s.sectionHeader}>
           <View>

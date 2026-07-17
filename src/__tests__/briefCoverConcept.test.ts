@@ -43,9 +43,15 @@ describe('Phase 4A cover-story and concept engine', () => {
       'principalUncertainty', 'prohibitedClaims', 'visualStorySentence', 'whyItMatters',
     ]);
     expect(Object.keys(conceptProperties).sort()).toEqual([
-      'prohibitedImplications', 'relationship', 'scientificAnchor', 'suitableVisualFamilies',
+      'editorialScores', 'prohibitedImplications', 'relationship', 'scientificAnchor', 'suitableVisualFamilies',
       'visualEvent', 'visualStory', 'whyMemorable',
     ]);
+    expect(conceptProperties.editorialScores.properties).toEqual({
+      novelty: { type: 'integer', minimum: 1, maximum: 5 },
+      originality: { type: 'integer', minimum: 1, maximum: 5 },
+      scientificAmbiguity: { type: 'integer', minimum: 1, maximum: 5 },
+      narrativeClarity: { type: 'integer', minimum: 1, maximum: 5 },
+    });
   });
 
   test('confirms or overturns the deterministic cover nomination and returns the strongest two', () => {
@@ -57,6 +63,7 @@ describe('Phase 4A cover-story and concept engine', () => {
     expect(result.strongestTwo).toEqual(result.concepts.slice(0, 2));
     expect(result.selectedConcept).toEqual(result.concepts[0]);
     expect(result.selectedConcept.scientificAnchor).toMatch(/LatAm-FINGERS/i);
+    expect(result.concepts.every((concept) => Object.values(concept.editorialScores).every(Number.isInteger))).toBe(true);
   });
 
   test('rejects unselected or ungrounded cover stories', () => {
@@ -92,6 +99,35 @@ describe('Phase 4A cover-story and concept engine', () => {
 
     expect(result.concepts).toHaveLength(3);
     expect(JSON.stringify(result.concepts)).not.toMatch(/bridge to practice|\bbowl\b|beautiful abstraction/i);
+  });
+
+  test('filters familiar primary silhouettes and concepts below the editorial score floor before ranking', () => {
+    const lowScoring = {
+      ...preview.concepts[0],
+      editorialScores: { ...preview.concepts[0].editorialScores, originality: 3 },
+    };
+    const familiarTree = {
+      ...preview.concepts[1],
+      visualEvent: 'Four inputs merge into a single tree that dominates the primary silhouette.',
+      whyMemorable: 'The recognizable tree makes the intervention package immediately legible.',
+    };
+    const result = selectCoverMetaphorCandidates(input, {
+      coverStory: preview.coverStory,
+      concepts: [lowScoring, familiarTree, ...preview.concepts.slice(2)],
+    });
+
+    expect(result.concepts).toHaveLength(4);
+    expect(JSON.stringify(result.concepts)).not.toMatch(/single tree|"originality":3/);
+    expect(result.selectedConcept).toEqual(result.concepts[0]);
+  });
+
+  test('makes the permanent abstract-first rule explicit in the Phase 4A generation request', () => {
+    const request = buildCoverMetaphorRequest(input);
+
+    expect(request.system).toMatch(/one-second test/i);
+    expect(request.system).toMatch(/tree, Tree of Life.*lungs.*sun.*recognizable animal/i);
+    expect(request.system).toMatch(/woven systems.*biological topology.*collective emergence/i);
+    expect(request.system).toMatch(/novelty 4, originality 4, scientific ambiguity 3, and narrative clarity 4/i);
   });
 
   test('makes one injected generation call and does not pass visual direction fields', async () => {

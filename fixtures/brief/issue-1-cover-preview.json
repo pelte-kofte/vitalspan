@@ -18,9 +18,10 @@
     {
       "visualStory": "Distinct lifestyle rhythms enter one aging neural terrain and become a coordinated pattern without losing all traces of their separate origins.",
       "relationship": "Multiple intervention domains converge around cognitive improvement while the contribution of each domain remains unresolved.",
-      "visualEvent": "Several differently textured biological currents braid into a broad neural canopy, but faint separations persist inside the new growth.",
+      "visualEvent": "Four differently textured living currents interpenetrate one adaptive topology, while faint seams preserve their separate origins without resolving into a named object.",
       "scientificAnchor": "LatAm-FINGERS randomized four lifestyle domains and reported cognitive improvement.",
-      "whyMemorable": "A single flourishing canopy that still reveals four internal currents creates an immediate silhouette and rewards a second, scientific look.",
+      "whyMemorable": "An unfamiliar field whose internal tensions reveal four independent currents makes coordination legible only after the first glance.",
+      "editorialScores": { "novelty": 5, "originality": 5, "scientificAmbiguity": 4, "narrativeClarity": 4 },
       "suitableVisualFamilies": ["Living Tapestry", "Landscape"],
       "prohibitedImplications": [
         "Do not imply that the intervention prevents dementia or reverses aging.",
@@ -33,6 +34,7 @@
       "visualEvent": "Four seasonal flows reach the same highland basin and trigger an irregular thaw that stops before the entire terrain changes.",
       "scientificAnchor": "The trial's multidomain program produced a cognitive difference, while the abstract leaves clinical magnitude and persistence uncertain.",
       "whyMemorable": "An incomplete thaw makes improvement visible without turning a statistical result into total restoration.",
+      "editorialScores": { "novelty": 4, "originality": 4, "scientificAmbiguity": 4, "narrativeClarity": 4 },
       "suitableVisualFamilies": ["Landscape"],
       "prohibitedImplications": [
         "Do not imply complete recovery, prevention of dementia, or permanent benefit.",
@@ -45,6 +47,7 @@
       "visualEvent": "Branching rhythms cross a folded tissue-like field, briefly synchronizing at several junctions before diverging again.",
       "scientificAnchor": "The multidomain intervention is evaluated as a package, so the randomized result cannot isolate the biological contribution of movement, nutrition, training, or vascular care.",
       "whyMemorable": "Momentary synchrony across a layered field communicates coordination and unresolved mechanism at once.",
+      "editorialScores": { "novelty": 5, "originality": 5, "scientificAmbiguity": 4, "narrativeClarity": 4 },
       "suitableVisualFamilies": ["Living Tapestry"],
       "prohibitedImplications": [
         "Do not present the synchronized junctions as proven neural pathways.",
@@ -57,6 +60,7 @@
       "visualEvent": "Several permeable boundaries open into one protected inner region at different widths, with no single opening becoming the entrance.",
       "scientificAnchor": "LatAm-FINGERS tests a coordinated package rather than isolated components, and reports improvement without component-specific attribution.",
       "whyMemorable": "A protected region with several unequal openings turns multidomain access into a specific structural question.",
+      "editorialScores": { "novelty": 4, "originality": 4, "scientificAmbiguity": 4, "narrativeClarity": 4 },
       "suitableVisualFamilies": ["Architecture", "Living Tapestry"],
       "prohibitedImplications": [
         "Do not imply a literal brain barrier or a proven route into neural tissue.",
@@ -69,6 +73,7 @@
       "visualEvent": "Successive wavefronts reorganize a fibrous field into clearer folds, then lose definition before reaching the far boundary.",
       "scientificAnchor": "The randomized intervention reports cognitive improvement, but the abstract does not establish how long the observed difference persists.",
       "whyMemorable": "The transition from coherent folds to fading traces makes durability the unresolved visual event rather than a footnote.",
+      "editorialScores": { "novelty": 5, "originality": 4, "scientificAmbiguity": 4, "narrativeClarity": 5 },
       "suitableVisualFamilies": ["Living Tapestry", "Landscape"],
       "prohibitedImplications": [
         "Do not imply permanent neuroplastic change or structural brain repair.",
@@ -81,6 +86,7 @@
       "visualEvent": "A flexible woven membrane changes curvature where several tensions meet, with every strand remaining visibly independent.",
       "scientificAnchor": "The multidomain randomized design estimates the combined program's effect and does not isolate the effect of each lifestyle domain.",
       "whyMemorable": "One altered curvature made by independent tensions is a concise physical expression of package-level evidence.",
+      "editorialScores": { "novelty": 5, "originality": 5, "scientificAmbiguity": 4, "narrativeClarity": 5 },
       "suitableVisualFamilies": ["Living Tapestry", "Living Still"],
       "prohibitedImplications": [
         "Do not imply equal contribution from each intervention domain.",

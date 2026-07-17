@@ -1,3 +1,5 @@
+import { reviewEditorialDistinctiveness } from "./briefCoverEditorialDistinctiveness.ts";
+
 export const COVER_CONCEPT_MIN_CANDIDATES = 4;
 export const COVER_CONCEPT_MAX_CANDIDATES = 6;
 export const COVER_CONCEPT_RETURN_COUNT = 2;
@@ -53,6 +55,12 @@ export interface CoverVisualConcept {
   visualEvent: string;
   scientificAnchor: string;
   whyMemorable: string;
+  editorialScores: {
+    novelty: number;
+    originality: number;
+    scientificAmbiguity: number;
+    narrativeClarity: number;
+  };
   suitableVisualFamilies: Array<"Living Tapestry" | "Landscape" | "Architecture" | "Living Still">;
   prohibitedImplications: string[];
 }
@@ -86,7 +94,7 @@ const STORY_FIELDS = [
 ] as const;
 const CONCEPT_FIELDS = [
   "visualStory", "relationship", "visualEvent", "scientificAnchor", "whyMemorable",
-  "suitableVisualFamilies", "prohibitedImplications",
+  "editorialScores", "suitableVisualFamilies", "prohibitedImplications",
 ] as const;
 const VISUAL_FAMILIES = ["Living Tapestry", "Landscape", "Architecture", "Living Still"] as const;
 
@@ -108,7 +116,10 @@ export const COVER_METAPHOR_SYSTEM_PROMPT = [
   "Evaluate all five selected articles explicitly. Choose one cover story using scientific significance, visual potential, reader curiosity, longevity relevance, credible evidence, freshness or surprise, and capacity for a memorable visual story without overstatement.",
   "The deterministic cover article is a nomination to confirm or overturn with a reason; never select randomly.",
   "Extract the chosen article's central finding, importance, editorial question, principal uncertainty, prohibited claims, and one vivid visualStorySentence.",
-  "Then generate four to six genuinely different, strongest-first concepts for that single story. Each concept must specify visualStory, relationship, visualEvent, scientificAnchor, whyMemorable, suitableVisualFamilies, and prohibitedImplications.",
+  "Then generate four to six genuinely different, strongest-first concepts for that single story. Each concept must specify visualStory, relationship, visualEvent, scientificAnchor, whyMemorable, editorialScores, suitableVisualFamilies, and prohibitedImplications.",
+  "Every concept must self-score from 1 to 5 for novelty, originality, scientificAmbiguity, and narrativeClarity. Score honestly: editorial quality requires novelty 4, originality 4, scientific ambiguity 3, and narrative clarity 4 or higher.",
+  "Apply the one-second test before returning a concept. Reject any primary silhouette that reads immediately as a tree, Tree of Life, bonsai, flower, leaf, brain, neuron icon, DNA helix, heart, lungs, eye, butterfly, bird, hands, globe, planet, mountain, river, sun, roots, coral, blood vessel, mushroom, or recognizable animal. Such forms may exist only as microscopic internal references.",
+  "Prefer woven systems, living fabrics, emergent structures, interconnected fields, dynamic gradients, layered ecologies, biological topology, adaptive geometries, network tension, and collective emergence. The scientific relationship must resolve before any named object does.",
   "Concepts must be article-specific scientific stories, not generic evidence metaphors, decorative abstractions, object inventories, unexplained architecture, tasteful still lifes, or copies of the founding artwork.",
   "Do not force the other four articles into the composition. They are selection context only after the cover story is chosen.",
   "Return strict structured data only.",
@@ -149,6 +160,17 @@ export const COVER_METAPHOR_OUTPUT_SCHEMA: Record<string, unknown> = {
           visualEvent: boundedString,
           scientificAnchor: boundedString,
           whyMemorable: boundedString,
+          editorialScores: {
+            type: "object",
+            additionalProperties: false,
+            required: ["novelty", "originality", "scientificAmbiguity", "narrativeClarity"],
+            properties: {
+              novelty: { type: "integer", minimum: 1, maximum: 5 },
+              originality: { type: "integer", minimum: 1, maximum: 5 },
+              scientificAmbiguity: { type: "integer", minimum: 1, maximum: 5 },
+              narrativeClarity: { type: "integer", minimum: 1, maximum: 5 },
+            },
+          },
           suitableVisualFamilies: {
             type: "array", minItems: 1, maxItems: 4, uniqueItems: true,
             items: { type: "string", enum: [...VISUAL_FAMILIES] },
@@ -181,6 +203,10 @@ function requireText(value: unknown, label: string, minimum = 1): string {
 function cleanStrings(value: unknown, label: string): string[] {
   if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} must contain at least one value`);
   return value.map((item, index) => requireText(item, `${label}[${index}]`, 8));
+}
+function cleanEditorialScore(value: unknown, label: string): number {
+  if (!Number.isInteger(value) || Number(value) < 1 || Number(value) > 5) throw new Error(`${label} must be an integer from 1 to 5`);
+  return Number(value);
 }
 
 function cleanArticle(article: CoverStoryArticle): CoverStoryArticle {
@@ -282,6 +308,12 @@ function cleanConcept(value: unknown, story: CoverStoryExtraction, article: Cove
       visualEvent: requireText(record.visualEvent, "visualEvent", 8),
       scientificAnchor: requireText(record.scientificAnchor, "scientificAnchor", 8),
       whyMemorable: requireText(record.whyMemorable, "whyMemorable", 8),
+      editorialScores: {
+        novelty: cleanEditorialScore((record.editorialScores as Record<string, unknown>)?.novelty, "editorialScores.novelty"),
+        originality: cleanEditorialScore((record.editorialScores as Record<string, unknown>)?.originality, "editorialScores.originality"),
+        scientificAmbiguity: cleanEditorialScore((record.editorialScores as Record<string, unknown>)?.scientificAmbiguity, "editorialScores.scientificAmbiguity"),
+        narrativeClarity: cleanEditorialScore((record.editorialScores as Record<string, unknown>)?.narrativeClarity, "editorialScores.narrativeClarity"),
+      },
       suitableVisualFamilies: [...new Set(families)] as CoverVisualConcept["suitableVisualFamilies"],
       prohibitedImplications: cleanStrings(record.prohibitedImplications, "prohibitedImplications"),
     };
@@ -289,6 +321,7 @@ function cleanConcept(value: unknown, story: CoverStoryExtraction, article: Cove
     if (GENERIC_EVIDENCE_METAPHOR.test(mainText) || DECORATIVE_OR_VAGUE.test(mainText)
       || DEFAULT_PROP_RECIPE.test(mainText) || OBJECT_INVENTORY.test(concept.visualEvent)
       || UNSUPPORTED_CERTAINTY.test(mainText)) return null;
+    if (!reviewEditorialDistinctiveness({ phase: "4A", concept }).passed) return null;
     const grounding = tokens(`${article.title} ${article.sourcePhrase} ${article.abstract ?? ""} ${story.centralFinding} ${story.visualStorySentence}`);
     if (overlap(tokens(`${concept.scientificAnchor} ${concept.relationship}`), grounding) < 1) return null;
     return concept;

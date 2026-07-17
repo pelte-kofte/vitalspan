@@ -14,7 +14,7 @@ import type { Biomarker } from '../data/biomarkers';
 import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { buildHealthExperience, formatHealthDate } from '../lib/healthExperience';
-import { computePhenoAge, createPhenoAgeInputsFromEntries } from '../lib/phenoAge';
+import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { Colors, Radius, Spacing, Typography } from '../theme';
 import type { StoredEntry } from '../types/biomarkerEntry';
@@ -55,7 +55,7 @@ export default function HealthSystemScreen() {
     }
     return map;
   }, [entries]);
-  const result = useMemo(() => computePhenoAge(createPhenoAgeInputsFromEntries(age, latestMap)), [age, latestMap]);
+  const result = useMemo(() => getClinicalPhenoAgePresentation(age, latestMap), [age, latestMap]);
   const experience = useMemo(
     () => buildHealthExperience({ biomarkers, entries, phenoAge: result, healthData: null }),
     [biomarkers, entries, result],

@@ -179,6 +179,12 @@ interface CoverVisualConcept {
   visualEvent: string
   scientificAnchor: string
   whyMemorable: string
+  editorialScores: {
+    novelty: number
+    originality: number
+    scientificAmbiguity: number
+    narrativeClarity: number
+  }
   suitableVisualFamilies: Array<
     'Living Tapestry' | 'Landscape' | 'Architecture' | 'Living Still'
   >
@@ -201,6 +207,11 @@ A hero object is not required.
 - No object inventory.
 - No vague decorative abstraction.
 - No exact or conservative near-duplicate.
+- Every concept self-scores from 1–5 for novelty, originality, productive scientific ambiguity, and narrative clarity.
+- Minimum scores are 4 novelty, 4 originality, 3 scientific ambiguity, and 4 narrative clarity.
+- The concept-level one-second test rejects a familiar primary object before ranking. Microscopic internal references do not fail this test.
+
+The Phase 4A editor prefers woven systems, living fabrics, emergent structures, interconnected fields, dynamic gradients, layered ecologies, biological topology, adaptive geometries, network tension, and collective emergence. A concept is discarded if readers would recognize a named object before decoding its scientific relationship. Discarded concepts are not repaired, promoted, or silently reworded; the next action is to generate a different concept.
 
 At least two concepts must survive. Generator order is the editorial ranking, so the first two survivors are returned as `strongestTwo`, and the first survivor is the default `selectedConcept` unless an editor explicitly chooses the other survivor.
 
@@ -288,6 +299,20 @@ The direction may describe an integrated field with no central object. `optional
 - No object inventory or default still-life family.
 - Recent-world repetition produces a warning.
 
+### Phase 4B editorial distinctiveness gate
+
+After Phase 4B direction validation and before Phase 4C prompt compilation, the editor applies one additional acceptance gate to `macroComposition` and `silhouettePlan`:
+
+> If a reader saw this image for one second, would they immediately identify the dominant object?
+
+If yes, the selected concept is rejected and the next action is `reject_concept_and_generate_replacement`. It cannot proceed to prompt compilation or render acceptance.
+
+The gate rejects familiar primary silhouettes including trees, Tree of Life, bonsai, flowers, leaves, brains, neuron icons, DNA helices, hearts, lungs, eyes, hands, butterflies, globes, planets, mountains, rivers, suns, coral, roots, blood vessels, mushrooms, and recognizable animals. The list is not exhaustive. Tree-like canopy/crown constructions and brain-like paired neural lobes are also rejected even when the literal object name is omitted.
+
+Familiar biological forms may remain as subtle internal references in `visualWorld` or `microDetailLanguage`. They fail only when they control the macro composition or one-second silhouette. Preferred dominant reads are unfamiliar woven living systems, adaptive tissue, emergent biological topology, interconnected ecological structures, layered neural fabrics, and dynamic cellular fields.
+
+This is a deterministic editorial filter. It does not alter article scoring, cover-story selection, visual-family selection, prompt architecture, provider parameters, persistence, or production behavior.
+
 ---
 
 ## 9. Phase 4C prompt compiler
@@ -350,6 +375,14 @@ The compiled provider request is fixed:
 ```
 
 The image provider realizes the direction. It does not choose the cover story, invent the concept, or merge the other four articles into the composition.
+
+### Phase 4D final render gate
+
+Immediately before a provider request plan is accepted, the immutable concept, direction, and compiled prompt receive one final editorial review. The package is rejected when the primary silhouette is recognizable, the metaphor is familiar, or its declared treatment resembles stock illustration, AI concept art, educational textbook art, wellness branding, or Tree of Life imagery.
+
+This gate never edits the direction, refines the prompt, or retries the same concept. A rejection returns `discard_and_generate_different_concept`; only a clean package returns `accept_for_single_render`. The local `render-review` command exposes the complete decision without invoking an image provider.
+
+Phase 4A, the Phase 4B-to-4C boundary, and Phase 4D all use the phase-discriminated reviewer in `briefCoverEditorialDistinctiveness.ts`. Its shared object rules and dominant-silhouette evaluator are the single canonical implementation; phase adapters do not duplicate rejection criteria.
 
 Generated assets remain private until separate human approval. Provider credentials, response bodies, and image bytes are not stored in editorial metadata.
 
@@ -435,11 +468,14 @@ Implementation is complete when:
 - The deterministic cover nomination is explicitly evaluated.
 - The cover-story extraction contains all eight required fields.
 - Four to six article-specific concepts are generated.
+- Every concept carries the four required editorial self-scores and clears the score floor before ranking.
 - The strongest two and one selected concept are explicit.
 - All four visual families are supported after concept selection.
 - Living Tapestry is preferred when grounded.
 - Architecture and Living Still have their special proof requirements.
 - The compiler has four concise branches and starts with the scientific story.
+- The one-second editorial distinctiveness gate blocks familiar dominant-object silhouettes before Phase 4C.
+- The final Phase 4D review rejects familiar metaphors and generic stock, AI-concept-art, textbook, or wellness treatments without refinement.
 - Prompts remain between 170 and 260 words.
 - The local Issue 1 preview reports all thirteen required outputs.
 - TypeScript, Jest, Deno checks, and `git diff --check` pass.

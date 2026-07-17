@@ -4,6 +4,10 @@ import { readFile } from 'node:fs/promises'
 import { PROVIDER_CATALOG, buildProviderRequestPlan, estimateWeeklyCost } from '../supabase/functions/_shared/briefCover.ts'
 import { DEFAULT_COVER_CONCEPT_BOUNDARIES, selectCoverMetaphorCandidates } from '../supabase/functions/_shared/briefCoverConcept.ts'
 import { validateVisualDirection } from '../supabase/functions/_shared/briefCoverDirection.ts'
+import {
+  assertEditorialDistinctiveness,
+  reviewEditorialDistinctiveness,
+} from '../supabase/functions/_shared/briefCoverEditorialDistinctiveness.ts'
 import { compileGptImage2CoverPrompt } from '../supabase/functions/_shared/briefCoverPromptCompiler.ts'
 
 const DEFAULT_FIXTURE = 'fixtures/brief/issue-1-draft.json'
@@ -30,6 +34,7 @@ Commands:
   npm run brief:cover -- concepts [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
   npm run brief:cover -- direction [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
   npm run brief:cover -- prompt [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
+  npm run brief:cover -- render-review [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
   npm run brief:cover -- providers
   npm run brief:cover -- plan --provider openai|google|stability [--fixture ${DEFAULT_FIXTURE}] [--preview ${DEFAULT_PREVIEW}]
 
@@ -76,13 +81,34 @@ async function loadPreview() {
   if (!directionResult.validation.passed) {
     throw new Error(`Preview direction failed validation: ${directionResult.validation.errors.join(', ')}`)
   }
-  const promptResult = compileGptImage2CoverPrompt({
-    coverStory: selection.coverStory,
-    selectedConcept: selection.selectedConcept,
-    visualDirection: directionResult.direction,
-    ...governance,
+  const editorialDistinctivenessReview = reviewEditorialDistinctiveness({
+    phase: '4B',
+    direction: directionResult.direction,
   })
-  return { fixturePath, previewPath, fixture, selection, directionResult, promptResult }
+  const promptResult = editorialDistinctivenessReview.passed
+    ? compileGptImage2CoverPrompt({
+      coverStory: selection.coverStory,
+      selectedConcept: selection.selectedConcept,
+      visualDirection: directionResult.direction,
+      ...governance,
+    })
+    : null
+  const finalRenderEditorialReview = reviewEditorialDistinctiveness({
+    phase: '4D',
+    concept: selection.selectedConcept,
+    direction: directionResult.direction,
+    compiledPrompt: promptResult?.compiled.finalPrompt ?? '',
+  })
+  return {
+    fixturePath,
+    previewPath,
+    fixture,
+    selection,
+    directionResult,
+    editorialDistinctivenessReview,
+    finalRenderEditorialReview,
+    promptResult,
+  }
 }
 
 async function main() {
@@ -103,7 +129,14 @@ async function main() {
   }
 
   const loaded = await loadPreview()
-  const { fixture, selection, directionResult, promptResult } = loaded
+  const {
+    fixture,
+    selection,
+    directionResult,
+    editorialDistinctivenessReview,
+    finalRenderEditorialReview,
+    promptResult,
+  } = loaded
   if (command === 'concepts' || command === 'concept') {
     return print({
       localOnly: true,
@@ -116,11 +149,27 @@ async function main() {
       selectedConcept: selection.selectedConcept,
     })
   }
-  if (command === 'direction') return print({ direction: directionResult.direction, validation: directionResult.validation })
-  if (command === 'prompt') return print({
-    exactCompiledPrompt: promptResult.compiled.finalPrompt,
-    wordCount: promptResult.compiled.promptWordCount,
-    validation: promptResult.validation,
+  if (command === 'direction') return print({
+    direction: directionResult.direction,
+    validation: directionResult.validation,
+    editorialDistinctivenessReview,
+    acceptedForPhase4C: editorialDistinctivenessReview.passed,
+  })
+  if (command === 'prompt') {
+    assertEditorialDistinctiveness({ phase: '4B', direction: directionResult.direction })
+    return print({
+      editorialDistinctivenessReview,
+      exactCompiledPrompt: promptResult.compiled.finalPrompt,
+      wordCount: promptResult.compiled.promptWordCount,
+      validation: promptResult.validation,
+    })
+  }
+  if (command === 'render-review') return print({
+    localOnly: true,
+    productionSupabaseCalled: false,
+    providerInvoked: false,
+    imageGenerated: false,
+    finalRenderEditorialReview,
   })
   if (command === 'preview') {
     const selectedArticle = fixture.sources.find((article) => article.candidateId === selection.coverStory.coverStoryCandidateId)
@@ -146,11 +195,21 @@ async function main() {
       selectedVisualFamily: directionResult.direction.selectedVisualFamily,
       familyJustification: directionResult.direction.familyJustification,
       fullVisualDirection: directionResult.direction,
-      exactCompiledPrompt: promptResult.compiled.finalPrompt,
-      promptWordCount: promptResult.compiled.promptWordCount,
+      editorialDistinctivenessReview,
+      finalRenderEditorialReview,
+      phase4cBlocked: !editorialDistinctivenessReview.passed,
+      phase4dBlocked: !finalRenderEditorialReview.passed,
+      exactCompiledPrompt: promptResult?.compiled.finalPrompt ?? null,
+      promptWordCount: promptResult?.compiled.promptWordCount ?? null,
     })
   }
   if (command === 'plan') {
+    assertEditorialDistinctiveness({
+      phase: '4D',
+      concept: selection.selectedConcept,
+      direction: directionResult.direction,
+      compiledPrompt: promptResult?.compiled.finalPrompt ?? '',
+    })
     const provider = option('provider')
     if (!provider || !(provider in PROVIDER_CATALOG)) throw new Error('--provider must be openai, google, or stability')
     return print(buildProviderRequestPlan(provider, promptResult.compiled.finalPrompt))

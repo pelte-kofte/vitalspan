@@ -9,24 +9,30 @@ import {
   TREND_TONES,
   freshnessLabel,
 } from '../lib/healthExperience';
-import type { PhenoAgeResult } from '../lib/phenoAge';
+import type { ClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
 import type { StoredEntry } from '../types/biomarkerEntry';
 
 const NOW = new Date('2026-07-16T12:00:00.000Z');
 
-function result(status: PhenoAgeResult['status'], presentCount: number): PhenoAgeResult {
+function result(status: ClinicalPhenoAgePresentation['status'], presentCount: number): ClinicalPhenoAgePresentation {
   return {
     status,
-    bloodPhenotypicAge: status === 'calculated' ? 38.4 : null,
-    chronologicalAge: 40,
+    valueYears: status === 'available' ? 38.4 : null,
+    formattedValue: status === 'available' ? '38.4' : null,
+    chronologicalAgeYears: 40,
     ageValid: true,
     requirements: [],
     presentCount,
-    totalRequired: 9,
+    totalRequired: 9 as const,
     missingCount: 9 - presentCount,
-    missingBiomarkers: [],
-    calculatedAt: status === 'calculated' ? NOW.toISOString() : null,
-    modelLimitations: ['Blood measurements only.'],
+    unavailableMeasurements: [],
+    calculatedAt: status === 'available' ? NOW.toISOString() : null,
+    limitations: ['Blood measurements only.'],
+    failure: status === 'available' ? null : {
+      code: 'missing_biomarkers', title: 'More laboratory data required', detail: 'Complete inputs.',
+    },
+    modelVersion: 'clinical-phenoage/1.0.0',
+    evidenceConfidence: status === 'available' ? 'very_high' : 'insufficient',
   };
 }
 
@@ -49,14 +55,14 @@ describe('Health Operating System experience model', () => {
   });
 
   test('supports every requested source-completeness state', () => {
-    const base = { biomarkers: BIOMARKERS, phenoAge: result('insufficient_data', 0), now: NOW };
+    const base = { biomarkers: BIOMARKERS, phenoAge: result('unavailable', 0), now: NOW };
     expect(buildHealthExperience({ ...base, entries: [], healthData: null }).inputState).toBe('no_labs');
     expect(buildHealthExperience({ ...base, entries: [], healthData: { hrv: 50 }, healthDataSource: 'healthkit' }).inputState).toBe('only_healthkit');
     expect(buildHealthExperience({ ...base, entries: [], healthData: { hrv: 50 }, healthDataSource: 'wearable' }).inputState).toBe('only_wearables');
     expect(buildHealthExperience({ ...base, entries: [entry({ id: 'manual', biomarkerId: 'apob', value: 70, source: 'Manual entry' })], healthData: null }).inputState).toBe('only_manual');
     expect(buildHealthExperience({ ...base, entries: [entry({ id: 'partial', biomarkerId: 'apob', value: 70 })], healthData: null }).inputState).toBe('partial_labs');
     expect(buildHealthExperience({ ...base, entries: [entry({ id: 'old', biomarkerId: 'apob', value: 70, date: '2024-01-01' })], healthData: null }).inputState).toBe('old_labs');
-    expect(buildHealthExperience({ ...base, phenoAge: result('calculated', 9), entries: [entry({ id: 'complete', biomarkerId: 'apob', value: 70 })], healthData: null }).inputState).toBe('complete');
+    expect(buildHealthExperience({ ...base, phenoAge: result('available', 9), entries: [entry({ id: 'complete', biomarkerId: 'apob', value: 70 })], healthData: null }).inputState).toBe('complete');
   });
 
   test('keeps multimodal domains extensible without calculating a multimodal age', () => {
@@ -67,14 +73,14 @@ describe('Health Operating System experience model', () => {
     const experience = buildHealthExperience({
       biomarkers: BIOMARKERS,
       entries: [],
-      phenoAge: result('insufficient_data', 0),
+      phenoAge: result('unavailable', 0),
       healthData: { source: 'wearable', sleepHours: 7.4, vo2max: 42 },
       now: NOW,
     });
     expect(experience.domains.find(domain => domain.id === 'sleep')).toMatchObject({ status: 'available', signalCount: 1 });
     expect(experience.domains.find(domain => domain.id === 'fitness')).toMatchObject({ status: 'available', signalCount: 1 });
     expect(experience.overview.completeness).toBe(0);
-    expect(experience.overview.bloodPhenotypicAge.status).toBe('insufficient_data');
+    expect(experience.overview.bloodPhenotypicAge.status).toBe('unavailable');
   });
 
   test('each empty state explains knowledge, uncertainty, and a next action', () => {
@@ -96,7 +102,7 @@ describe('Health Operating System experience model', () => {
     const experience = buildHealthExperience({
       biomarkers: BIOMARKERS,
       entries: [apob],
-      phenoAge: result('insufficient_data', 0),
+      phenoAge: result('unavailable', 0),
       healthData: null,
       now: NOW,
     });
@@ -109,7 +115,7 @@ describe('Health Operating System experience model', () => {
     const experience = buildHealthExperience({
       biomarkers: BIOMARKERS,
       entries: [],
-      phenoAge: result('insufficient_data', 0),
+      phenoAge: result('unavailable', 0),
       healthData: null,
       now: NOW,
     });
@@ -123,7 +129,7 @@ describe('Health Operating System experience model', () => {
     const experience = buildHealthExperience({
       biomarkers: BIOMARKERS,
       entries: [entry({ id: 'apob-review', biomarkerId: 'apob', value: 120, sourceLabRange: { upperBound: 100, unit: 'mg/dL' } })],
-      phenoAge: result('insufficient_data', 0),
+      phenoAge: result('unavailable', 0),
       healthData: null,
       now: NOW,
     });

@@ -4,8 +4,8 @@
 
 ---
 
-## Bug 1 — PhenoAge Formula Returns "1" (CRITICAL)
-**File:** `src/lib/phenoAge.ts`
+## Bug 1 — PhenoAge Formula Returned "1" (CRITICAL; historical)
+**Status:** The affected legacy calculator was retired in Phase 3.4B. Production now uses the versioned, validated scientific engine.
 
 Root cause: Levine 2018 coefficients are calibrated for US lab units (albumin g/dL, creatinine mg/dL, glucose mg/dL). The code was converting to SI units (×10, ×88.42, ×0.0555) before applying them, causing `xb ≈ −10.7` → `mortProb ≈ 0` → `Math.log(0) = −Infinity` → clamped to 1.
 

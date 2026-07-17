@@ -12,48 +12,58 @@ import {
   TODAY_HOME_ORDER,
   type TodayExperienceInput,
 } from '../lib/todayExperience';
-import type { PhenoAgeResult, PhenoAgeRequirement } from '../lib/phenoAge';
-import { PHENO_AGE_MODEL_LIMITATIONS } from '../lib/phenoAge';
+import { CLINICAL_PHENOAGE_LIMITATIONS } from '../domain/scientificModels';
+import type { ClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
+import type { ClinicalPhenoAgeRequirementPresentationSource } from '../lib/clinicalPhenoAgeProduct';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import { EMPTY_PROTOCOL, type ProtocolState } from '../types/protocol';
 
 const NOW = new Date('2026-07-16T12:00:00.000Z');
 
-function requirements(presentCount: number, staleKey?: string): PhenoAgeRequirement[] {
+function requirements(presentCount: number, staleKey?: string): ClinicalPhenoAgeRequirementPresentationSource[] {
   const definitions = [
     ['albumin', 'albumin', 'Albumin', 'g/L'],
     ['creatinine', 'creatinine', 'Creatinine', 'μmol/L'],
     ['glucose', 'fastingglucose', 'Fasting Glucose', 'mmol/L'],
     ['crp', 'hscrp', 'hsCRP / CRP', 'mg/dL'],
-    ['lymphocytePct', 'lymphocytepct', 'Lymphocyte %', '%'],
-    ['mcv', 'mcv', 'MCV', 'fL'],
-    ['rdw', 'rdw', 'RDW', '%'],
-    ['alkalinePhosphatase', 'alp', 'Alkaline Phosphatase', 'U/L'],
-    ['wbc', 'wbc', 'WBC', '10^3/μL'],
+    ['lymphocyte_percent', 'lymphocytepct', 'Lymphocyte %', '%'],
+    ['mean_cell_volume', 'mcv', 'MCV', 'fL'],
+    ['red_cell_distribution_width', 'rdw', 'RDW', '%'],
+    ['alkaline_phosphatase', 'alp', 'Alkaline Phosphatase', 'U/L'],
+    ['white_blood_cell_count', 'wbc', 'WBC', '10^3/μL'],
   ] as const;
-  return definitions.map(([key, biomarkerId, label, publishedUnit], index) => ({
-    key,
+  return definitions.map(([inputId, biomarkerId, label, canonicalUnit], index) => ({
+    inputId,
     biomarkerId,
     label,
-    publishedUnit,
-    status: key === staleKey ? 'stale' : index < presentCount ? 'present' : 'missing',
-    collectedAt: key === staleKey ? '2024-01-01T00:00:00.000Z' : undefined,
+    canonicalUnit,
+    status: inputId === staleKey ? 'stale' : index < presentCount ? 'present' : 'missing',
+    measurementId: index < presentCount ? `measurement-${inputId}` : null,
+    reportedUnit: index < presentCount ? canonicalUnit : null,
+    collectedAt: inputId === staleKey ? '2024-01-01T00:00:00.000Z' : null,
   }));
 }
 
-function phenoResult(presentCount: number, calculated = false, staleKey?: string): PhenoAgeResult {
+function phenoResult(presentCount: number, calculated = false, staleKey?: string): ClinicalPhenoAgePresentation {
   return {
-    status: calculated ? 'calculated' : 'insufficient_data',
-    bloodPhenotypicAge: calculated ? 42.1 : null,
-    chronologicalAge: 45,
+    status: calculated ? 'available' : 'unavailable',
+    valueYears: calculated ? 42.1 : null,
+    formattedValue: calculated ? '42.1' : null,
+    chronologicalAgeYears: 45,
     ageValid: true,
     requirements: requirements(presentCount, staleKey),
     presentCount,
-    totalRequired: 9,
+    totalRequired: 9 as const,
     missingCount: 9 - presentCount,
-    missingBiomarkers: requirements(presentCount, staleKey).filter(item => item.status !== 'present').map(item => item.label),
+    unavailableMeasurements: requirements(presentCount, staleKey).filter(item => item.status !== 'present').map(item => item.label),
     calculatedAt: calculated ? NOW.toISOString() : null,
-    modelLimitations: PHENO_AGE_MODEL_LIMITATIONS,
+    limitations: CLINICAL_PHENOAGE_LIMITATIONS,
+    failure: calculated ? null : {
+      code: 'missing_biomarkers', title: 'More laboratory data required',
+      detail: 'All nine required blood measurements are needed before calculation.',
+    },
+    modelVersion: 'clinical-phenoage/1.0.0',
+    evidenceConfidence: calculated ? 'very_high' : 'insufficient',
   };
 }
 
@@ -144,7 +154,7 @@ describe('Vitalspan Today deterministic experience', () => {
     const invalid = buildHealthState({ age: 45 }, phenoResult(3), false);
     expect(invalid.status).toBe('insufficient_data');
     expect(invalid.bloodPhenotypicAge).toBeNull();
-    expect(invalid.summary).toMatch(/all 9/i);
+    expect(invalid.summary).toMatch(/all (9|nine)/i);
     expect(invalid.wearableSummary).toMatch(/cannot be interpreted/i);
   });
 

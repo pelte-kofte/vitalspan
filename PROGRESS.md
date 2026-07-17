@@ -74,14 +74,14 @@ This hits 60fps because the only animated prop is `opacity` on a native View —
 - Fully offline — no network requests
 - "+ Add manually" fallback preserved
 
-#### Biological Age (src/lib/phenoAge.ts)
-- Full Levine PhenoAge formula (Aging Cell, 2018 — DOI: 10.1111/acel.12748)
+#### Biological Age (historical implementation; retired in Phase 3.4B)
+- The original product calculator was superseded by the validated Clinical PhenoAge v1.0.0 engine
 - 9 required biomarkers: albumin, creatinine, glucose, hsCRP, lymphocyte %, MCV, RDW, ALP, WBC
-- Confidence tiers: high (all 9 logged), medium (7-8), low (4-6), insufficient (<4)
+- Historical confidence tiers were removed; the production engine requires complete eligible evidence
 - Dashboard bio age card: shows real PhenoAge OR shows missing biomarkers CTA
 - LongevityScore sphere shows real PhenoAge
 - Profile screen no longer shows fake stored biologicalAge — computed live
-- Confidence indicator shown on Dashboard when medium confidence
+- Evidence confidence is now supplied by the Scientific Eligibility Engine
 
 #### 7 New Biomarkers (src/data/biomarkers.ts)
 All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline phosphatase, WBC
@@ -240,11 +240,11 @@ All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline
 
 ### 6 critical bugs fixed:
 
-#### BUG 1 & 2: PhenoAge count wrong / never unlocks
-- Added `console.log` in `computePhenoAge` logging which fields are present vs missing
+#### BUG 1 & 2: PhenoAge count wrong / never unlocks (historical; calculator retired)
+- Added temporary legacy calculation diagnostics (removed during the production cutover)
 - Added `console.log` in Dashboard and LongevityScore entryMap keys for runtime diagnosis
 - Added `profile.age > 0` guard (was just `!profile`) — prevents NaN computation
-- Exported `PHENO_BIOMARKER_LIST` from `phenoAge.ts` (single source of truth)
+- Exported a legacy biomarker list (removed during the production cutover)
 - Removed duplicate local `PHENO_BIOMARKER_LABELS` from `LongevityScoreScreen`
 - Fixed sphere label: was hardcoded "LOG 4+ BMs" → now dynamic: "{N} MORE BMs" or "LOG BIOMARKERS"
 - Dashboard "to unlock" copy: now shows specific biomarker names e.g. "Need: Albumin, hsCRP +5 more"
@@ -282,7 +282,7 @@ All required for PhenoAge: albumin, creatinine, lymphocyte %, MCV, RDW, alkaline
 ### Also fixed:
 - Bell icon on Dashboard: now navigates to Settings (was a dead button)
 - Goal 'Track & understand': NMN, CoQ10, Berberine now recommended for this goal
-- `PHENO_BIOMARKER_LIST` exported from `phenoAge.ts` — eliminates ID duplication across screens
+- Legacy biomarker-list export eliminated during the Phase 3.4B scientific-engine cutover
 
 ---
 

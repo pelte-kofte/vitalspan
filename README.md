@@ -26,13 +26,26 @@
 
 ## Key features
 
-### Biological Age (Levine PhenoAge)
-Biological age is computed using the validated PhenoAge formula (Levine et al., Aging Cell 2018).
-Requires 9 standard blood markers: albumin, creatinine, glucose, hsCRP, lymphocyte %, MCV, RDW, ALP, WBC.
-- `high` confidence: all 9 logged
-- `medium` confidence: 7-8 logged (uses medians for missing)
-- `low` confidence: 4-6 logged
-- `insufficient`: <4 logged — shows CTA to log more
+### Clinical Phenotypic Age v1.0.0
+Production calculation uses the validated, versioned scientific engine. It requires
+chronological age plus all nine source-attributed blood measurements: albumin,
+creatinine, glucose, hsCRP/CRP, lymphocyte %, MCV, RDW, ALP, and WBC.
+
+The execution path is mandatory and has no fallback:
+
+```text
+User measurements
+  -> Scientific Eligibility Engine
+  -> integrity-bound execution authorization
+  -> Clinical PhenoAge v1.0.0 engine
+  -> typed scientific result
+  -> presentation adapter
+  -> product UI
+```
+
+Missing, stale, invalid, mixed-context, or unit-incompatible evidence produces a
+typed unavailable state. Values are never imputed. The engine retains full
+precision; rounding occurs only in the presentation adapter.
 
 ### Medication Search
 200-drug local database with Levenshtein fuzzy search.
@@ -85,7 +98,8 @@ src/
   data/           # biomarkers.ts (19 biomarkers incl. PhenoAge set), medications.ts (200 drugs), supplementTimings.ts
   theme/          # Colors, Typography, Spacing, Radius, Gradients, Motion, Elevation
   hooks/          # useBreathing.ts
-  lib/            # phenoAge.ts (Levine formula), healthkit.ts (stub), labParser.ts
+  lib/            # scientific product adapter, healthkit.ts (stub), labParser.ts
+  domain/         # health domains and versioned scientific model architecture
 assets/           # Icons, fonts (DM Sans, DM Serif Display)
 ```
 
@@ -103,7 +117,8 @@ All ranges are **longevity-optimized**, not standard lab normals.
 
 ## References
 
-- Levine ME et al. "An epigenetic biomarker of aging for lifespan and healthspan." *Aging Cell*. 2018;17(4):e12748. DOI: 10.1111/acel.12748
+- Levine ME et al. "An epigenetic biomarker of aging for lifespan and healthspan." *Aging*. 2018;10(4):573–591. DOI: 10.18632/aging.101414
+- [Clinical PhenoAge production cutover](docs/CLINICAL_PHENOAGE_PRODUCTION_CUTOVER.md)
 
 ## Next Steps
 - [ ] RevenueCat paywall integration

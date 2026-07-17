@@ -48,7 +48,7 @@ Several everyday streams converge into a more resilient cognitive landscape, whi
 
 ## 8. Six concepts
 
-1. **Braided neural canopy.** Four distinct lifestyle rhythms braid into a broader biological canopy while hairline separations preserve unresolved component attribution. Suitable families: Living Tapestry, Landscape.
+1. **Adaptive interpenetrating topology.** Four distinct lifestyle currents interpenetrate one unfamiliar living field while faint seams preserve unresolved component attribution. Suitable families: Living Tapestry, Landscape.
 2. **Incomplete highland thaw.** Several seasonal flows produce an uneven thaw that makes improvement visible without implying total or durable restoration. Suitable family: Landscape.
 3. **Momentary synchrony.** Separate adaptive signals briefly synchronize across a folded neural ecology, then diverge without establishing one common pathway. Suitable family: Living Tapestry.
 4. **Several permeable boundaries.** Multiple openings provide access to one protected region without naming a single entrance or causal component. Suitable families: Architecture, Living Tapestry.
@@ -59,12 +59,12 @@ The full concept records, including scientific anchors and prohibited implicatio
 
 ## 9. Strongest two concepts
 
-1. Braided neural canopy
+1. Adaptive interpenetrating topology
 2. Incomplete highland thaw
 
 ## 10. Selected concept
 
-**Braided neural canopy.** It provides the strongest immediate silhouette, preserves the four domains as distinguishable rhythms, supports close-view biological discovery, and keeps their separate contributions unresolved.
+**Adaptive interpenetrating topology.** It withholds a named object, preserves the four domains as distinguishable tensions, supports close-view biological discovery, and keeps their separate contributions unresolved.
 
 ## 11. Selected visual family
 
@@ -90,29 +90,9 @@ The full concept records, including scientific anchors and prohibited implicatio
 - `prohibitedImplications`: No dementia-prevention or age-reversal claim; no proven shared mechanism or equal component contribution; no assumption that the cognitive difference is clinically meaningful or durable.
 - `optionalForms`: none
 
-## 13. Exact compiled prompt
+## 13. Editorial gate result
 
-Word count: 256
-
-```text
-Scientific visual story: Several everyday streams converge into a more resilient cognitive landscape, while their individual contributions and the durability of the change remain unresolved.
-
-Scientific anchor: LatAm-FINGERS randomized four lifestyle domains and reported cognitive improvement. Relationship: Multiple lifestyle domains converge around cognitive improvement while their separate contributions and shared mechanism remain unresolved.
-
-Living Tapestry: one continuous visual language for integrated organic systems, macro-to-micro transitions, transformed symbolic biology, and scientific linework embedded in material texture. Keep disciplined detail with Nature, Scientific American, NYT Science, and Guardian Science sensibility.
-
-Visual world: A continuous biological-poetic highland grows into a folded neural canopy. Event: Four differently textured currents braid upward into a broader, more coherent canopy.
-
-Silhouette: One memorable asymmetric canopy remains legible at thumbnail size. Close-view discovery: Close viewing reveals capillary linework, synaptic forks, fibrous muscle-like striations.
-
-Finish: Opaque gouache foundations, thin translucent glazing, cold-press paper tooth. A restrained mineral and botanical palette. Cool morning daylight enters from the upper-left.
-
-Evidence limitation: The abstract does not establish the clinical importance, durability, contribution of each intervention component. Visual uncertainty: The braid never becomes seamless, the newest canopy edge remains partly unresolved.
-
-Portrait 3:4. Keep upper 18% quiet, meaning in central 70%, lower 12–15% nonessential. Hand-painted gouache, translucent glaze, cold-press tooth, dry brush; symbolic rather than textbook science.
-
-Exclusions: No text, labels, numbers, logo, signature, watermark, literal anatomy, medical infographic, stock wellness imagery, neon, glossy 3D, or decorative AI abstraction. Do not copy the founding gut–heart–brain arrangement, ground, or palette. Do not imply program prevents dementia or reverses brain aging.
-```
+The stored Phase 4B direction is rejected before prompt compilation. Its canopy/crown construction fails the one-second test as a `tree-like canopy`, so Phase 4C and Phase 4D remain blocked. The package is discarded with the next action `discard_and_generate_different_concept`; no prompt refinement or render attempt is permitted.
 
 Reproduce this report locally with:
 

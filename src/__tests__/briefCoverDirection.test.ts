@@ -40,6 +40,8 @@ describe('Phase 4B four-family visual direction engine', () => {
     expect(result.direction.selectedVisualFamily).toBe('Living Tapestry');
     expect(result.validation).toEqual({ passed: true, errors: [], warnings: [] });
     expect(buildVisualDirectionRequest(input()).system).toMatch(/preference.*Living Tapestry, Landscape, Architecture, Living Still/i);
+    expect(buildVisualDirectionRequest(input()).system).toMatch(/one-second test.*Never use a tree.*lungs.*sun.*primary silhouette/i);
+    expect(buildVisualDirectionRequest(input()).system).toMatch(/woven systems.*biological topology.*collective emergence/i);
   });
 
   test('uses exactly the requested visual-direction fields', () => {
@@ -50,6 +52,22 @@ describe('Phase 4B four-family visual direction engine', () => {
       'prohibitedImplications', 'selectedVisualFamily', 'silhouettePlan', 'structuralContinuity',
       'uncertaintyTreatment', 'visualEvent', 'visualWorld',
     ]);
+  });
+
+  test('does not allow a manually supplied rejected Phase 4A concept into Phase 4B', () => {
+    expect(() => buildVisualDirectionRequest(input({
+      selectedConcept: {
+        ...preview.concepts[0],
+        editorialScores: { ...preview.concepts[0].editorialScores, narrativeClarity: 2 },
+      },
+    }))).toThrow(/editorial score below threshold/i);
+
+    expect(() => buildVisualDirectionRequest(input({
+      selectedConcept: {
+        ...preview.concepts[0],
+        visualEvent: 'The primary event resolves into a single brain-shaped object.',
+      },
+    }))).toThrow(/familiar primary silhouette/i);
   });
 
   test('requires the selected concept to support the family', () => {

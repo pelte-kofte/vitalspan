@@ -2,7 +2,8 @@ import { BIOMARKERS } from '../data/biomarkers';
 import type { ExerciseLogEntry } from '../data/exercises';
 import type { AdvisorContext } from './advisorContext';
 import { classifyStoredEntry } from './biomarkerInterpretation';
-import type { PhenoAgeResult, PhenoAgeRequirement } from './phenoAge';
+import type { ClinicalPhenoAgePresentation } from './clinicalPhenoAgePresentation';
+import type { ClinicalPhenoAgeRequirementPresentationSource } from './clinicalPhenoAgeProduct';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import type { ProtocolState, TimeSlot } from '../types/protocol';
 
@@ -112,7 +113,7 @@ export interface TodayHealthState {
 export interface TodayExperienceInput {
   profile: { age?: number; medications?: string[] } | null;
   entries: StoredEntry[];
-  phenoResult: PhenoAgeResult | null;
+  phenoResult: ClinicalPhenoAgePresentation | null;
   protocol: ProtocolState;
   exerciseLogs: ExerciseLogEntry[];
   advisorContext: AdvisorContext | null;
@@ -219,8 +220,8 @@ function valueLabel(entry: StoredEntry): string {
   return `${value}${entryUnit(entry) ? ` ${entryUnit(entry)}` : ''}`;
 }
 
-function requirementPriority(requirements: PhenoAgeRequirement[]): PhenoAgeRequirement | undefined {
-  const order: Record<PhenoAgeRequirement['status'], number> = {
+function requirementPriority(requirements: readonly ClinicalPhenoAgeRequirementPresentationSource[]): ClinicalPhenoAgeRequirementPresentationSource | undefined {
+  const order: Record<ClinicalPhenoAgeRequirementPresentationSource['status'], number> = {
     stale: 0,
     unit_incompatible: 1,
     invalid: 2,
@@ -359,13 +360,13 @@ export function buildPriorityCandidates(
   const nextRequirement = requirementPriority(unmet);
   if (nextRequirement?.status === 'stale') {
     candidates.push({
-      id: `stale-lab:${nextRequirement.key}`,
+      id: `stale-lab:${nextRequirement.inputId}`,
       kind: 'repeat_stale_lab',
       rank: TODAY_PRIORITY_RANKING.repeatStaleLab,
       title: `Update ${nextRequirement.label}`,
       reason: 'This required Blood phenotypic age input is outside the current freshness window.',
       sourceLabel: 'Blood phenotypic age input requirements',
-      freshnessLabel: freshnessLabel(nextRequirement.collectedAt, now),
+      freshnessLabel: freshnessLabel(nextRequirement.collectedAt ?? now.toISOString(), now),
       confidenceLanguage: 'Certain about data freshness; no clinical deterioration is inferred.',
       whyThis: 'A stale required input prevents a current Blood phenotypic age calculation.',
       evidence: 'Vitalspan currently requires every input to be no more than 365 days old. This is a conservative product freshness rule.',
@@ -383,7 +384,7 @@ export function buildPriorityCandidates(
       rank: TODAY_PRIORITY_RANKING.completeLabs,
       title: `Complete ${missingCount} required blood ${missingCount === 1 ? 'input' : 'inputs'}`,
       reason: `Blood phenotypic age cannot be calculated from ${input.phenoResult.presentCount} of ${input.phenoResult.totalRequired} required inputs.`,
-      sourceLabel: 'Levine PhenoAge input requirements',
+      sourceLabel: 'Clinical PhenoAge v1.0.0 input requirements',
       freshnessLabel: `${input.phenoResult.presentCount}/${input.phenoResult.totalRequired} current and compatible`,
       confidenceLanguage: 'High confidence about data completeness; no age estimate is inferred.',
       whyThis: 'Completing the validated input set is more useful than showing a partial or speculative score.',
@@ -550,7 +551,7 @@ export function buildChangedSignals(entries: StoredEntry[], now = new Date()): C
 
 export function buildHealthState(
   profile: TodayExperienceInput['profile'],
-  phenoResult: PhenoAgeResult | null,
+  phenoResult: ClinicalPhenoAgePresentation | null,
   wearableConnected = false,
 ): TodayHealthState {
   const wearableFields = {
@@ -573,7 +574,7 @@ export function buildHealthState(
     };
   }
 
-  if (!phenoResult || phenoResult.status !== 'calculated' || phenoResult.bloodPhenotypicAge === null) {
+  if (!phenoResult || phenoResult.status !== 'available' || phenoResult.valueYears === null) {
     return {
       ...wearableFields,
       status: 'insufficient_data',
@@ -583,14 +584,15 @@ export function buildHealthState(
       presentCount: phenoResult?.presentCount ?? 0,
       totalRequired: phenoResult?.totalRequired ?? 9,
       historyLabel: 'Insufficient longitudinal history',
-      summary: `Blood phenotypic age needs all ${phenoResult?.totalRequired ?? 9} current, valid, unit-compatible inputs.`,
+      summary: phenoResult?.failure?.detail
+        ?? `Blood phenotypic age needs all ${phenoResult?.totalRequired ?? 9} current, valid, unit-compatible inputs.`,
     };
   }
 
   return {
     ...wearableFields,
     status: 'valid',
-    bloodPhenotypicAge: phenoResult.bloodPhenotypicAge,
+    bloodPhenotypicAge: phenoResult.valueYears,
     chronologicalAge: profile.age,
     lastCalculated: phenoResult.calculatedAt,
     presentCount: phenoResult.presentCount,
@@ -611,7 +613,7 @@ function buildBrief(
     : signals[0]?.title ?? 'No meaningful laboratory change is available to review.';
   const opportunity = !input.wearableConnected
     ? 'Wearable data is not connected; no recovery or sleep interpretation is shown.'
-    : input.phenoResult?.status !== 'calculated'
+    : input.phenoResult?.status !== 'available'
       ? 'Completing the blood input set would unlock a valid Blood phenotypic age estimate.'
       : 'Continue measuring before drawing conclusions about change over time.';
   return {

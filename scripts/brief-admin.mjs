@@ -9,6 +9,10 @@ import {
   generateAnthropicVisualDirection,
   selectConceptFromPhase4AResult,
 } from '../supabase/functions/_shared/briefCoverDirection.ts'
+import {
+  assertEditorialDistinctiveness,
+  reviewEditorialDistinctiveness,
+} from '../supabase/functions/_shared/briefCoverEditorialDistinctiveness.ts'
 import { compileGptImage2CoverPrompt } from '../supabase/functions/_shared/briefCoverPromptCompiler.ts'
 
 const args = process.argv.slice(2)
@@ -222,6 +226,7 @@ async function main() {
         silhouettePlan: cover.hero_description,
       })),
     }, apiKey, fetch, process.env.BRIEF_AI_MODEL)
+    const editorialDistinctivenessReview = reviewEditorialDistinctiveness({ phase: '4B', direction: result.direction })
     print({
       draftId,
       conceptId,
@@ -231,6 +236,8 @@ async function main() {
       previousCoverCount: previousRows.length,
       coverStory,
       selectedConcept,
+      editorialDistinctivenessReview,
+      acceptedForPhase4C: editorialDistinctivenessReview.passed,
       ...result,
     })
     return
@@ -250,6 +257,8 @@ async function main() {
     if (!coverStory || !selectedConcept || !visualDirection) {
       throw new Error('Direction file must contain coverStory, selectedConcept, and direction from Phase 4B')
     }
+    const conceptEditorialReview = assertEditorialDistinctiveness({ phase: '4A', concept: selectedConcept })
+    const editorialDistinctivenessReview = assertEditorialDistinctiveness({ phase: '4B', direction: visualDirection })
     const draft = await checked(supabase.from('editorial_drafts')
       .select('id,status,editorial_thesis,theme_confidence')
       .eq('id', draftId).single())
@@ -285,6 +294,8 @@ async function main() {
         dominantScientificRelationship: visualDirection.dominantScientificRelationship,
         silhouettePlan: visualDirection.silhouettePlan,
       },
+      conceptEditorialReview,
+      editorialDistinctivenessReview,
       exactFinalPrompt: result.compiled.finalPrompt,
       exactExclusions: result.compiled.exclusionPrompt,
       parameters: result.compiled.providerParameters,

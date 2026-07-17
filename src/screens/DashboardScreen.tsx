@@ -41,7 +41,7 @@ import type { ExerciseLogEntry } from '../data/exercises';
 import { useIssue } from '../hooks/useIssue';
 import { assembleAdvisorContext, type AdvisorContext } from '../lib/advisorContext';
 import { loadHealthData, type HealthData } from '../lib/healthkit';
-import { computePhenoAge, createPhenoAgeInputsFromEntries } from '../lib/phenoAge';
+import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
 import { supabase, resendVerificationEmail } from '../lib/supabase';
 import {
   buildTodayExperience,
@@ -292,18 +292,17 @@ export default function DashboardScreen() {
   }, [entries]);
 
   const phenoResult = useMemo(() => {
-    if (!profile?.age || profile.age <= 0) return null;
-    return computePhenoAge(createPhenoAgeInputsFromEntries(profile.age, entryMap));
+    return getClinicalPhenoAgePresentation(profile?.age, entryMap);
   }, [entryMap, profile?.age]);
 
   useEffect(() => {
-    if (!profile || !phenoResult) return;
+    if (!profile) return;
     const nextProfile = { ...profile };
     delete nextProfile.biologicalAge;
-    if (phenoResult.bloodPhenotypicAge === null) delete nextProfile.bloodPhenotypicAge;
-    else nextProfile.bloodPhenotypicAge = phenoResult.bloodPhenotypicAge;
+    if (phenoResult.valueYears === null) delete nextProfile.bloodPhenotypicAge;
+    else nextProfile.bloodPhenotypicAge = phenoResult.valueYears;
     AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(nextProfile)).catch(() => null);
-  }, [phenoResult?.bloodPhenotypicAge, phenoResult?.status, profile]);
+  }, [phenoResult.status, phenoResult.valueYears, profile]);
 
   const experience = useMemo(() => buildTodayExperience({
     profile,
