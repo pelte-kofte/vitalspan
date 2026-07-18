@@ -39,6 +39,16 @@ The production adapter, cutover decisions, safe failure mapping, and intentional
 remaining references are documented in
 [`docs/CLINICAL_PHENOAGE_PRODUCTION_CUTOVER.md`](../../../docs/CLINICAL_PHENOAGE_PRODUCTION_CUTOVER.md).
 
+The architecture-only contracts for future multimodal component roles, construct
+compatibility, overlap, temporal alignment, uncertainty, and governance are in
+[`multimodal/README.md`](./multimodal/README.md). They contain no formula, weight,
+composite calculation, or permission to relabel Clinical PhenoAge as multimodal.
+
+The formal qualitative evaluation, risks, and evidence-based implementation roadmap
+for current future candidates are in
+[`candidateEvaluation/README.md`](./candidateEvaluation/README.md). The evaluation
+contains no numeric score and authorizes no new production implementation.
+
 ## Calculation boundary
 
 ```text

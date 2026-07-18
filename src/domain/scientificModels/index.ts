@@ -11,3 +11,5 @@ export * from './eligibilityValidation';
 export * from './eligibility';
 export * from './sha256';
 export * from './clinicalPhenoAge';
+export * from './multimodal';
+export * from './candidateEvaluation';
