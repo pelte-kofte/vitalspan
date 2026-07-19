@@ -1,130 +1,145 @@
-# Vitalspan 🌿
+# Vitalspan
 
-> Science-backed longevity tracking. Built by a licensed pharmacist.
+Vitalspan is a React Native / Expo longevity and health platform built around governed scientific domains, auditable health evaluation, personalized health insights, and premium product experiences.
 
-## Stack
-- **React Native** (Expo SDK 54) — iOS & Android
-- **TypeScript** (strict mode, 0 errors)
-- **React Navigation** — stack + tab navigation
-- **Expo Linear Gradient, Haptics**
-- **react-native-svg 15** — NeuralGrid animations, orbit visualization
-- **react-native-reanimated 4** — breathing card, entrance animations
+Scientific decisions belong exclusively to the Scientific Platform. Application services integrate authoritative outputs, presentation displays them, and Advisor or AI capabilities may explain them without calculating or redefining science.
 
-## Screens
-- `LandingScreen` — marketing landing with pharmacist badge
-- `OnboardingScreen` — 5-step onboarding (goal, age/sex, conditions, medications, success)
-- `DashboardScreen` — biological age (PhenoAge), biomarkers, protocol tracker, pull-to-refresh
-- `LongevityScoreScreen` — cinematic dark sphere, animated orbit, PhenoAge calculation
-- `BiomarkerDetailScreen` — all biomarkers by category, history log, about + how-to-improve
-- `BiomarkerEntryScreen` — manual biomarker logging with unit conversion (mmol/L ↔ mg/dL)
-- `InteractionCheckerScreen` — pharmacist-verified drug-supplement interactions
-- `ProtocolScreen` — medication tracking + evidence-graded supplement recommendations
-- `ProfileScreen` — read + edit mode, conditions, medications
-- `SettingsScreen` — notifications, units, sign out, clear data
-- `AboutScreen` — version, PhenoAge citation, longevity ranges, evidence grades, disclaimer
-- `LabUploadScreen` — import biomarkers from PDF
+## Project Status
 
-## Key features
+- **Clinical Biological Age / Clinical PhenoAge:** production active through the existing legacy product path.
+- **Cardiorespiratory Fitness / VO₂max:** governed scientific domain; inactive under the standardized production contract.
+- **Functional Capacity:** governed scientific domain; inactive under the standardized production contract.
+- **Cardiometabolic Health:** governed scientific domain; inactive under the standardized production contract.
+- **Scientific Baseline v1.0:** prepared and awaiting completion of its release-baseline prerequisites.
+- **Production Platform:** Phase 8 work is in progress. The Phase 8.0A contract architecture is prepared, but its domain adapters and feature flags are not wired.
 
-### Clinical Phenotypic Age v1.0.0
-Production calculation uses the validated, versioned scientific engine. It requires
-chronological age plus all nine source-attributed blood measurements: albumin,
-creatinine, glucose, hsCRP/CRP, lymphocyte %, MCV, RDW, ALP, and WBC.
+Code presence does not imply production activation.
 
-The execution path is mandatory and has no fallback:
+## Architecture
 
-```text
-User measurements
-  -> Scientific Eligibility Engine
-  -> integrity-bound execution authorization
-  -> Clinical PhenoAge v1.0.0 engine
-  -> typed scientific result
-  -> presentation adapter
-  -> product UI
-```
+Vitalspan separates scientific authority from integration and presentation:
 
-Missing, stale, invalid, mixed-context, or unit-incompatible evidence produces a
-typed unavailable state. Values are never imputed. The engine retains full
-precision; rounding occurs only in the presentation adapter.
+1. **Scientific Platform** — validates evidence and produces deterministic, versioned scientific decisions, reasons, limitations, provenance, and audit metadata.
+2. **Scientific Production Contract** — defines the domain-neutral request and authoritative result boundary.
+3. **Production Integration** — will transport, validate, cache, and persist scientific outputs without changing them.
+4. **Presentation** — formats authorized output for the product without calculating or reinterpreting science.
+5. **Advisor / AI explanation layer** — may explain, summarize, translate, or simplify governed read models; it may not make scientific decisions.
 
-### Medication Search
-200-drug local database with Levenshtein fuzzy search.
-- Includes TR/US/UK brand names (Glucophage, Coumadin, Glifor, etc.)
-- Works fully offline — no network requests
-- Drug class shown as subtitle
+Only scientific domains make scientific decisions. Unknown or unsupported states fail closed instead of falling back to inferred conclusions.
 
-### Navigation (production-safe)
-- App checks `@vitalspan_user_profile` on launch → routes to Main if onboarding complete
-- Landing/Onboarding screens: `gestureEnabled: false` — no back-swipe
-- `nav.reset()` after onboarding — clears full navigation stack
+## Governance
 
-### Data (local-first)
-All data stored in AsyncStorage. No auth, no backend required for v1.
+- [Vitalspan Engineering Standard](docs/VITALSPAN_ENGINEERING_STANDARD.md)
+- [Scientific Baseline v1.0](docs/SCIENTIFIC_BASELINE_V1_0.md)
+- [Phase 8.0A Production Contract & Activation Architecture](docs/PHASE_8_0A_PRODUCTION_CONTRACT_ACTIVATION_ARCHITECTURE.md)
+- [Clinical PhenoAge production cutover](docs/CLINICAL_PHENOAGE_PRODUCTION_CUTOVER.md)
 
-```
-@vitalspan_user_profile     — profile, conditions, medications, goal
-@vitalspan_biomarkers       — all logged biomarker entries (array)
-@vitalspan_protocol         — supplement selections + timing assignments
-@vitalspan_protocol_today   — today's taken state
-@vitalspan_health_data      — HealthKit snapshot (stub)
-```
+Contributors and coding agents must read [AGENTS.md](AGENTS.md) and the engineering standard before material work.
+
+## Scientific Domains
+
+| Domain | Scientific status | Standardized production-contract status |
+|---|---|---|
+| Clinical Biological Age / Clinical PhenoAge | Validated; legacy product path active | Inactive and not wired |
+| Cardiorespiratory Fitness / VO₂max | Governed scientific domain | Inactive and not wired |
+| Functional Capacity | Governed scientific domain | Inactive and not wired |
+| Cardiometabolic Health | Governed scientific domain | Inactive and not wired |
+
+Clinical PhenoAge v1.0.0 requires chronological age and its complete governed measurement set. Missing, stale, invalid, mixed-context, or unit-incompatible evidence produces a typed unavailable state. Values are not imputed, and presentation rounding is kept outside the scientific engine.
+
+The other domains remain independently governed. Vitalspan does not create a parent scientific score or merge them into an unvalidated composite.
+
+## Development Principles
+
+- Deterministic, reproducible science
+- Fail-closed validation
+- Explicit scientific, registry, policy, and contract versioning
+- Complete provenance and audit preservation
+- Independent scientific-domain isolation
+- Backward compatibility by default
+- AI explains but does not decide
+- Inactive-by-default production activation
+- User trust over feature count or release speed
+
+## Technology
+
+- React Native 0.81 with Expo SDK 54
+- TypeScript in strict mode
+- React Navigation
+- AsyncStorage for local application state
+- Supabase for configured authentication, content, and cloud data flows
+- Apple HealthKit integration
+- Adapty premium entitlement integration
+- Jest with ts-jest
+
+## Product Areas
+
+The repository includes onboarding and identity flows, health and biomarker experiences, the Clinical PhenoAge product path, protocol and medication tools, exercise experiences, editorial content, premium entitlement surfaces, HealthKit connectivity, and an Advisor experience.
+
+Product UI is not scientific authority. Biomarker display ranges, colors, advice, and copy must not be treated as diagnostic thresholds, treatment targets, or universal “optimal longevity” ranges unless an authorized scientific policy explicitly supplies that meaning.
 
 ## Setup
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 npm install
 
-# 2. Start Expo dev server
-npx expo start
+# Start the Expo development server
+npm start
 
-# 3. Run on iOS simulator (requires Xcode)
-npx expo run:ios
+# Run an iOS native build
+npm run ios
 
-# 4. Run on physical iPhone
-# Install Expo Go from App Store, scan QR code
+# Run an Android native build
+npm run android
+```
 
-# 5. Type check
+Environment-dependent services use the repository's `.env.example` as the public configuration reference. Never commit real secrets, service-role keys, tokens, or private health data.
+
+## Validation
+
+```bash
+# Full repository test suite
+npm test -- --runInBand
+
+# TypeScript
 npx tsc --noEmit
 ```
 
+Material changes may require additional focused tests, scientific regressions, build validation, migration checks, and VES gate evidence.
+
 ## Project Structure
 
-```
+```text
 src/
-  screens/        # All app screens
-  components/     # NeuralGrid, BreathingCard, FutureSelf, SupplementRow, RangeBar, MedicationSearch
-  navigation/     # AppNavigator.tsx
-  data/           # biomarkers.ts (19 biomarkers incl. PhenoAge set), medications.ts (200 drugs), supplementTimings.ts
-  theme/          # Colors, Typography, Spacing, Radius, Gradients, Motion, Elevation
-  hooks/          # useBreathing.ts
-  lib/            # scientific product adapter, healthkit.ts (stub), labParser.ts
-  domain/         # health domains and versioned scientific model architecture
-assets/           # Icons, fonts (DM Sans, DM Serif Display)
+  components/                 Product and shared presentation components
+  screens/                    Application screens
+  navigation/                 Navigation contracts and routes
+  context/                    Application and entitlement contexts
+  lib/                        Integration and presentation services
+  services/                   External and application services
+  domain/
+    scientificModels/         Clinical Biological Age and scientific-model governance
+    scientificDomains/        Independently governed scientific domains
+    scientificProduction/     Standardized production contracts and inactive activation metadata
+  __tests__/                  Focused, regression, governance, and product tests
+docs/                         Phase specifications, scientific evidence, and governance
+fixtures/scientific/          Scientific reference and validation fixtures
+supabase/                     Database migrations and edge-function sources
 ```
 
-## Biomarker ranges
+## Repository Safety
 
-All ranges are **longevity-optimized**, not standard lab normals.
+Before a material change:
 
-| Biomarker | Longevity target | Standard lab |
-|-----------|------------------|--------------|
-| ApoB | <70 mg/dL | <100 mg/dL |
-| Fasting Glucose | <90 mg/dL | <100 mg/dL |
-| hsCRP | <1.0 mg/L | <3.0 mg/L |
-| HbA1c | <5.3% | <5.7% |
-| Vitamin D | 50-80 ng/mL | 30-100 ng/mL |
+1. Read [AGENTS.md](AGENTS.md).
+2. Read the [Vitalspan Engineering Standard](docs/VITALSPAN_ENGINEERING_STANDARD.md).
+3. Read the Scientific Baseline and relevant phase documents when science or production integration is involved.
+4. Inspect and preserve unrelated working-tree changes.
+5. Complete focused validation, full regression, TypeScript, repository audits, and the applicable VES review.
 
-## References
+Do not commit, push, tag, migrate, release, or activate production behavior without explicit authorization.
 
-- Levine ME et al. "An epigenetic biomarker of aging for lifespan and healthspan." *Aging*. 2018;10(4):573–591. DOI: 10.18632/aging.101414
-- [Clinical PhenoAge production cutover](docs/CLINICAL_PHENOAGE_PRODUCTION_CUTOVER.md)
+## Scientific Reference
 
-## Next Steps
-- [ ] RevenueCat paywall integration
-- [ ] Supabase backend (auth + cloud sync)
-- [ ] Apple HealthKit — `expo-health` (stub at `src/lib/healthkit.ts`)
-- [ ] Push notifications — `expo-notifications`
-- [ ] Protocol adherence chart (weekly, react-native-svg)
-- [ ] BiomarkerDetail trend chart
-- [ ] TestFlight build via EAS
+Clinical PhenoAge is based on Levine ME et al., “An epigenetic biomarker of aging for lifespan and healthspan.” *Aging*. 2018;10(4):573–591. DOI: 10.18632/aging.101414. The repository's governed implementation and validation documentation controls product behavior.
