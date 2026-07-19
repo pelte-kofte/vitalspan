@@ -870,13 +870,25 @@ describe('Phase 8.0B scientific persistence architecture', () => {
   });
 
   describe('dependency direction, baseline, and activation', () => {
-    test('keeps science, production, application, and UI free of persistence dependencies', () => {
+    test('keeps science, production, application, and UI free while allowing approved Phase 8.0C infrastructure', () => {
       const persistenceDirectory = resolve(PERSISTENCE_ROOT);
+      const approvedInfrastructureDirectory = resolve(
+        SRC_ROOT,
+        'infrastructure',
+        'scientificPersistence',
+      );
       const outsideProductionReferences = sourceFiles(SRC_ROOT)
         .filter(path => !resolve(path).startsWith(persistenceDirectory))
+        .filter(path => !resolve(path).startsWith(approvedInfrastructureDirectory))
         .filter(path => !path.includes(`${join('src', '__tests__')}`))
         .filter(path => /(?:from|require\()\s*['"][^'"]*scientificPersistence/.test(source(path)));
       expect(outsideProductionReferences).toEqual([]);
+
+      sourceFiles(approvedInfrastructureDirectory).forEach(path => {
+        moduleSpecifiers(path)
+          .filter(specifier => specifier.includes('scientificPersistence'))
+          .forEach(specifier => expect(specifier).toBe('../../domain/scientificPersistence'));
+      });
 
       const scientificRoots = [
         join(SRC_ROOT, 'domain', 'scientificDomains'),
