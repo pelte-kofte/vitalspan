@@ -3,25 +3,28 @@
 ## 1. Record Status
 
 - Phase: 8.0D — Real Supabase Staging Validation
-- Sprint: 0 — Governance and Staging Safety
+- Current gate: 3 — Live Staging Safety Verification
 - Date: 2026-07-20
-- Document type: Sprint 0 governance evidence and later-phase evidence scaffold
+- Document type: Governance, live read-only staging safety evidence, and later-phase evidence scaffold
 - Reviewed branch: `main`
 - Implementation-start commit: `527f52dcbf22dd1132b800ad9989f4efe7cfdec8`
 - Local `origin/main` at Sprint 0 start: `527f52dcbf22dd1132b800ad9989f4efe7cfdec8`
 - Primary Phase 8.0D classification: Non-behavioral implementation
 - Sprint 0 repository change: Documentation only
 - Gate 1: Approved — Sprint 0 only
-- Gate 2: Not obtained
-- Gate 3: Not obtained
+- Sprint 0 decision: Passed by phase owner
+- Gate 2: Approved for the recorded staging target identity; no external execution authorized
+- Gate 3: NOT READY after live read-only safety verification
+- Staging-foundation recovery decision: APPROVED by static local review; execution not authorized
 - Sprint 1 and later: Unauthorized
-- External-system access or mutation: None
+- External-system access: Approved staging only, read-only CLI inspection
+- External-system mutation: None
 - Migration execution: None
 - Runtime activation: None
 - Production access, migration, deployment, release, or activation: Unauthorized and not performed
 - Formal Phase 8.0D VES review: Not yet eligible; no PASS is claimed
 
-This record closes only the authorized repository-artifact work for Sprint 0. It does not claim that all Phase 8.0D Sprint 0 exit criteria involving a real staging target have passed. Target approval, read-only target/history evidence, migration approval, and every staging validation remain pending and blocked by the current no-connection/no-mutation instruction.
+Sprint 0 governance has passed and Gate 2 approves the recorded staging target identity. Gate 3 live read-only verification resolved uniquely to that staging target and excluded production, but staging migration history is empty and the actual pending set contains six migrations rather than the single approved Phase 8.0C migration. Gate 3 therefore remains NOT READY. A subsequent static recovery review approved those six migrations as the exact ordered foundation chain for empty staging, but it grants no execution authority. No migration or external mutation occurred.
 
 ## 2. Governing Authority
 
@@ -196,38 +199,81 @@ Evidence is the Gate 1 Governance Approval Record in the approved Phase 8.0D spe
 
 ### 8.2 Gate 2 — Staging target approval
 
-Status: **NOT READY / NOT OBTAINED**.
+Status: **GATE 2 APPROVED**.
 
-The approval schema and verification procedure are complete. The following required evidence was not supplied or collected in Sprint 0:
+| Approval field | Recorded evidence |
+| --- | --- |
+| Approval date | 2026-07-20 |
+| Target alias | `vitalspan-staging` |
+| Target type | Dedicated Supabase staging project |
+| Staging fingerprint | `093e366a5999fd2981b37164daef0eb3819e3b0099ab7fa820f6d35b6ae65dca` |
+| Target owner | bekir cem |
+| Non-production proof | Phase owner designated `vitalspan-staging` as staging and separately identified `vitalspan` as the only known production project; the canonical identities and SHA-256 fingerprints are distinct |
+| Production denylist count | 1 |
+| Production fingerprint denylist | `3cb786c198df3bcf84bdfd94f5d33ce4bb2b776ff4713532fd04a0dfdbb997d3` |
+| Denylist result | Passed; staging differs from the complete supplied production set |
+| `AUTHORIZED_DATABASE_OPERATOR` | bekir cem |
+| `SECURITY_REVIEWER` | bekir cem |
+| `EVIDENCE_REVIEWER` | bekir cem |
+| `CLEANUP_AUTHORITY` | bekir cem |
+| Execution ownership | Single-person governance; no additional reviewer invented |
+| Cleanup method | Disable the exact RPC, delete only correlated synthetic staging rows under authorized privilege, delete synthetic Auth users after rows, destroy sessions/credentials/workspace, and reverify final disablement |
+| Final-disable strategy | Exact-signature authenticated execute revocation and denial/row-count verification under the kill-switch runbook |
+| Approved execution window | Governance finalization on 2026-07-20 only; external execution window closed |
+| Verifier and approver | bekir cem |
 
-- exact target alias and staging fingerprint;
-- target owner;
-- independent non-production proof;
-- no-production-data and no-production-traffic attestations;
-- URL/API/database/command-target identity agreement;
-- complete production denylist and passed comparison;
-- cleanup/destruction authority and method;
-- final-disable strategy; and
-- approved execution window and approver.
+Fingerprint calculation used the approved canonicalization: lowercase ASCII project reference, UTF-8, no trailing newline, SHA-256, and 64 lowercase hexadecimal characters. The staging and production fingerprints were compared using exact equality and do not match.
 
-No Supabase project was accessed to fill these fields. Absence is a blocker, not a passing result.
+This is an offline target-identity approval. No credential, API configuration, URL, database endpoint, command target, project contents, traffic state, migration history, or deployed object was accessed. Before any later external action, those dynamic identities must equal the approved staging identity, staging credential ownership and target cleanliness must be proven, and every stop condition must pass. Gate 2 authorizes neither Sprint 1 nor migration execution.
 
 ### 8.3 Gate 3 — Migration execution approval
 
-Status: **NOT READY / NOT OBTAINED**.
+Status: **GATE 3 NOT READY**.
 
-The approval schema and migration allowlist procedure are complete. Gate 3 remains blocked by absent Gate 2 approval and absent read-only staging evidence, including:
+| Verification field | Sanitized result |
+| --- | --- |
+| Verification date | 2026-07-20 |
+| Supabase CLI | `2.109.1` |
+| Repository branch | `main` |
+| Repository HEAD | `5db644b72b40e7782b8276cf027f0aaf127d222d` |
+| Isolated workspace | Verified copy of the six committed migrations; repository `.env` and tracked link state excluded |
+| Resolved target alias | `vitalspan-staging` |
+| Resolved staging fingerprint | `093e366a5999fd2981b37164daef0eb3819e3b0099ab7fa820f6d35b6ae65dca` |
+| Production denylist fingerprint | `3cb786c198df3bcf84bdfd94f5d33ce4bb2b776ff4713532fd04a0dfdbb997d3` |
+| Target resolution | Passed; isolated CLI state contained the staging identity and no production identity |
+| Local production-reference finding | Repository `.env` and tracked `supabase/.temp/` resolve to production; both were excluded and remain prohibited for Phase 8.0D targeting |
+| CLI credential | Present, operator-owned under the approved single-developer CLI context, and valid; value not printed or recorded |
+| Database credential | Valid for staging read-only inspection through the CLI-generated authenticated connection; password/URL/login value not printed or recorded |
+| Remote history | Readable; zero migration versions recorded |
+| Local history | Six committed migrations |
+| Unexpected remote migrations | None |
+| Remote duplicates/conflicts | None observed |
+| Missing prerequisite history | Five migrations preceding Phase 8.0C |
+| Phase 8.0C recorded remotely | No |
+| Actual complete pending set | Six migrations; listed below |
+| Approved pending allowlist | Only `20260719000000_scientific_persistence_records.sql` |
+| Pending allowlist result | Failed; five additional prerequisite migrations are pending |
+| Target table conflict | Absent |
+| Target RPC/function conflict | Absent |
+| Writer-role conflict | Absent |
+| Policy/index/trigger conflict | Absent because the target table is absent and no matching schema metadata exists |
+| Custom type conflict | Absent |
+| Containment documentation | Ready |
+| External mutation | None |
+| Migration execution window | Closed |
 
-- exact approved target fingerprint;
-- sanitized observed pre-migration history;
-- proof that the complete pending set contains only `20260719000000_scientific_persistence_records.sql`;
-- proof that Phase 8.0C is not already applied;
-- conflicting-object absence;
-- exact executor/tool/version/command/window;
-- named containment and recovery authority; and
-- actual Gate 3 decision.
+The exact actual pending set is:
 
-The local migration filename and SHA-256 are frozen, but local evidence alone cannot authorize a staging migration.
+1. `20260614002200_ai_usage.sql`
+2. `20260709000000_ai_usage_search_count.sql`
+3. `20260714000000_brief_editorial_pipeline.sql`
+4. `20260715000000_brief_cover_pipeline.sql`
+5. `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`
+6. `20260719000000_scientific_persistence_records.sql`
+
+Object absence was checked through read-only table statistics, role statistics, and generated public-schema type metadata. The CLI schema-dump path could not run because Docker Desktop is unavailable; no dump was produced. The substitute evidence found no `scientific_persistence` table, function, role, policy-bound table, or schema metadata.
+
+The original Gate 3 review could not approve a six-migration pending set. The separately governed recovery decision in `docs/PHASE_8_0D_STAGING_FOUNDATION_RECOVERY.md` now approves the six-file chain as a future empty-staging foundation allowlist, but it does not retroactively approve Gate 3 or authorize execution. No repair, reset, history insertion, migration execution, manual schema action, rollback, or forward fix occurred.
 
 ## 9. Repository Audit
 
@@ -255,21 +301,19 @@ The diff from HEAD under scientific-domain and Scientific Baseline implementatio
 
 ## 10. External-System and Command Evidence
 
-No command targeting an external system was executed.
+Approved read-only CLI actions accessed only `vitalspan-staging` from a disposable isolated workspace:
 
-Specifically:
+- explicit staging link and resolved-target verification;
+- remote/local migration-list comparison;
+- table-statistics inspection;
+- role-statistics inspection; and
+- generated public-schema type metadata inspection.
 
-- no Supabase CLI command was executed;
-- no database client was executed;
-- no HTTP/API/RPC/Auth request was made;
-- no credential was loaded or requested;
-- no staging or production project was inspected;
-- no temporary external execution workspace was created;
-- no migration-history read occurred;
-- no staging user or data was created; and
-- no staging or production privilege, schema, role, or data changed.
+The CLI schema-dump attempt made no database change but could not run because Docker Desktop is unavailable. No schema dump was created or used as passing evidence.
 
-Command examples in the runbooks are unexecuted future templates and are not evidence of an external action.
+Credential values, database URLs, generated login values, access tokens, and passwords were never printed or recorded. Authentication presence and validity were inferred only from successful explicitly staging-targeted read-only commands under the approved operator's local CLI context.
+
+No production project was accessed. No migration, SQL mutation, Auth-setting change, schema change, function deployment, data write, privilege change, RPC invocation, or runtime activation occurred.
 
 ## 11. Tests and Local Validation
 
@@ -284,8 +328,8 @@ Material runtime tests are not required to prove a documentation-only diff, but 
 | Frozen hash comparison | Passed for the migration, Phase 8.0A/8.0B contracts, activation registry, Scientific Baseline, and Phase 8.0C implementation |
 | Runtime activation/import audit | Passed: no non-test application/production reference to `runtimeComposition` or `SCIENTIFIC_PERSISTENCE_SERVICE` |
 | `git diff --check` | Passed after the final evidence update |
-| Trailing whitespace/final newline | Passed for all three new Sprint 0 documents |
-| Final authorized-file/status audit | Passed: only the pre-existing approved specification and three authorized new documents are modified/untracked |
+| Trailing whitespace/final newline | Passed for all four governance documents in the working tree |
+| Final authorized-file/status audit | Passed: working-tree changes are limited to the four expressly permitted governance documents |
 
 The test command emitted the existing Watchman recrawl warning. It did not affect the successful result.
 
@@ -325,7 +369,7 @@ This is an implementer evidence assessment, not an independent VES approval.
 | VES-01 Architecture Integrity | No architecture change observed | Documentation only; dependency direction and public surfaces unchanged; final Phase 8.0D review pending |
 | VES-02 Scientific Integrity | No scientific change observed | Scientific paths and frozen hashes unchanged; no staging serialization evidence yet |
 | VES-03 Engineering Quality | Governance artifacts prepared | Final local checks recorded in Section 11; staging harness and executable cases belong to later sprints |
-| VES-04 Production Safety | Production and runtime remain inactive | No external contact or mutation; Gate 2/3 absent; kill switch not executed |
+| VES-04 Production Safety | Production and runtime remain inactive | Live read-only Gate 3 verification accessed only approved staging and ended NOT READY; no mutation occurred; kill switch not executed |
 | VES-05 AI Governance | Not applicable to Sprint 0 | No AI module, prompt, tool, read model, or AI flow changed |
 | VES-06 Product Experience | Not applicable to Sprint 0 | No UI, copy, accessibility, entitlement, navigation, or user-visible state changed |
 | VES-07 Release Readiness | BLOCKED | No staging validation, security review, production prerequisites, release approval, or activation authority |
@@ -336,22 +380,21 @@ Overall Phase 8.0D VES outcome: **not issued**. Production release readiness rem
 
 ## 14. Remaining Blockers and Risks
 
-- Gate 2 evidence and approval are absent.
-- Gate 3 evidence and approval are absent.
-- No staging target or complete production denylist was provided.
-- No staging migration-history or conflicting-object evidence exists.
-- No migration executor, security reviewer, evidence reviewer, containment owner, or recovery authority is recorded for external work.
-- No external execution window is approved.
+- Gate 3 is NOT READY and no approval is granted.
+- Remote staging migration history is empty.
+- All six local migrations remain pending; the recovery decision approves their exact order for a future foundation action but does not authorize that action.
+- The five prerequisite migration versions are absent from remote history.
+- The staging-foundation recovery plan is approved only as a static governance decision; its target, hashes, prerequisites, executor, command, clean tree, containment plan, and execution window still require separate authorization and verification.
+- No migration containment/recovery execution record exists because no migration was authorized or run.
+- No external execution window is open.
 - Tracked Supabase CLI link metadata remains intentionally untrusted and unchanged.
 - Real Auth, JWT, PostgREST, RPC, RLS, lineage, database identity/time, serialization, update/delete denial, kill-switch, repeatability, cleanup, and final-containment evidence does not exist.
 - Phase 8.0D does not prove idempotency, application integration, monitoring, incident response, retention, deletion, export, privacy lifecycle, production migration safety, release readiness, or activation readiness.
 
 ## 15. Sprint 0 Closure Decision
 
-The three authorized Governance and Staging Safety artifacts are prepared. The repository remains implementation-inactive and no external system was contacted or changed.
+Sprint 0 has passed, Gate 2 remains approved for `vitalspan-staging`, and live read-only target/object verification passed. Gate 3 remains NOT READY because remote history is empty and no staging-foundation execution has been authorized or performed.
 
-Sprint 0 is closed only for documentation preparation. It is not closed against the specification's target-dependent completion criteria because Gate 2, read-only target/history verification, and Gate 3 are absent. Those omissions are explicit blockers.
-
-The recommended next action is human review of these three artifacts. After review, a new explicit authorization would be required to obtain Gate 2 evidence or perform any read-only Supabase target/history inspection. Gate 3 can be considered only after Gate 2 and compatible read-only history evidence. Sprint 1 remains unauthorized.
+The owner selected and approved the exact six-migration staging-foundation recovery chain through a documentation-only review. The next possible action requires a new, explicit execution authorization satisfying every safeguard in `docs/PHASE_8_0D_STAGING_FOUNDATION_RECOVERY.md`; this record does not supply it or open a window. Gate 3 must be repeated after any separately authorized foundation action is safely completed and evidenced. Sprint 1 remains unauthorized.
 
 No migration, deployment, release, commit, push, tag, application integration, runtime activation, staging mutation, or production action is authorized by this record.

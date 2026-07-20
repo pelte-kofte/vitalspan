@@ -2,8 +2,8 @@
 
 # Real Supabase Staging Validation
 
-**Version:** 1.0.0
-**Status:** Approved — Sprint 0 Authorized
+**Version:** 1.1.1
+**Status:** Governance consistency repaired — renewed Gate 1, renewed Staging Foundation Recovery approval, Gate 3 with an opened bounded execution window, and explicit Sprint 1 authorization required; execution unauthorized
 **Phase:** 8.0D
 **Objective:** Validate the approved, inactive Phase 8.0C scientific-persistence implementation against one explicitly approved, isolated Supabase staging environment using real Supabase Auth, authenticated JWT transport, PostgREST RPC, PostgreSQL Row Level Security, lineage constraints, database-generated identity and time, exact serialization round trips, and an executable RPC kill switch.
 **Production activation:** Not authorized
@@ -13,11 +13,18 @@
 
 ---
 
+## Changelog
+
+- **1.1.1 — 2026-07-20 — Execution-order consistency:** Made the governance-first sequence explicit: Gate 1, Gate 2, Staging Foundation Recovery approval, Gate 3, separate Sprint 1 authorization, six-migration foundation execution, Phase 8.0D validation, and closure. Clarified that Gate 3 does not itself authorize Sprint 1 or execution. No migration, implementation, test, production access, runtime activation, or scientific behavior is changed or authorized.
+- **1.1.0 — 2026-07-20 — Staging foundation alignment:** Replaced the disproven assumption that the first five repository migrations were already established in staging. The specification now treats the verified empty remote migration history and the exact six-file ordered migration chain as a governed Staging Foundation Recovery prerequisite to Phase 8.0D validation. No migration, Sprint 1 execution, production access, runtime activation, or application change is authorized by this amendment.
+
+---
+
 ## 1. Purpose
 
 Phase 8.0D is a staging-validation phase only.
 
-It shall determine whether the existing Phase 8.0C migration and inactive Supabase persistence adapter behave as approved when exercised through a real Supabase staging project rather than an embedded PostgreSQL substitute.
+It shall first establish the approved repository migration foundation in the verified empty staging project through a separately approved and executed Staging Foundation Recovery, then determine whether the existing Phase 8.0C migration and inactive Supabase persistence adapter behave as approved when exercised through real Supabase infrastructure rather than an embedded PostgreSQL substitute.
 
 Phase 8.0D shall validate:
 
@@ -32,9 +39,24 @@ Phase 8.0D shall validate:
 - revocation and restoration of RPC execution permission; and
 - repeatable, sanitized evidence capture.
 
-Phase 8.0D does not create a production consumer, change persistence behavior, correct the migration, or authorize activation.
+Phase 8.0D does not create a production consumer, change persistence behavior, correct any migration, or authorize activation.
 
 The existing Phase 8.0C runtime composition remains inactive before, during, and after this phase.
+
+### 1.1 Canonical governance and execution order
+
+Every Phase 8.0D governance artifact and runbook shall use exactly this order:
+
+1. Gate 1 specification approval;
+2. Gate 2 staging-target approval;
+3. Staging Foundation Recovery approval for the exact six-migration chain;
+4. Gate 3 migration-execution approval for the exact target, commit, hashes, executor, command, containment plan, recovery authority, and bounded window;
+5. separate Sprint 1 authorization;
+6. Staging Foundation Migration Execution of the six approved migrations, unchanged and in order;
+7. Phase 8.0D validation; and
+8. Phase 8.0D closure.
+
+No completed step authorizes the next step automatically. Gate 3 approval is a prerequisite to Sprint 1 authorization, and Sprint 1 authorization is a prerequisite to migration execution. This document records neither Gate 3 approval nor Sprint 1 authorization and opens no execution window.
 
 ---
 
@@ -62,7 +84,7 @@ This specification does not supersede Phase 8.0A scientific authority, Phase 8.0
 
 **Primary VES classification:** Non-behavioral implementation.
 
-**Rationale:** Phase 8.0D adds staging-only validation artifacts and executes the already-approved Phase 8.0C migration in an isolated non-production environment. It changes no scientific result, public contract, application path, production schema, or production activation state.
+**Rationale:** Phase 8.0D adds staging-only validation artifacts and, because the approved staging project has no remote migration history, requires the existing approved migration chain to establish its staging foundation before Phase 8.0D migration validation begins. It changes no migration file, scientific result, public contract, application path, production schema, or production activation state.
 
 The external staging schema change is material and requires explicit target and migration-execution approval even though production behavior remains unchanged.
 
@@ -83,6 +105,11 @@ The external staging schema change is material and requires explicit target and 
 - All Phase 8.0B public persistence contracts
 - The eleven Phase 8.0B public exports
 - All Phase 8.0C production implementation files
+- `supabase/migrations/20260614002200_ai_usage.sql`
+- `supabase/migrations/20260709000000_ai_usage_search_count.sql`
+- `supabase/migrations/20260714000000_brief_editorial_pipeline.sql`
+- `supabase/migrations/20260715000000_brief_cover_pipeline.sql`
+- `supabase/migrations/20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`
 - `supabase/migrations/20260719000000_scientific_persistence_records.sql`
 - `src/infrastructure/scientificPersistence/runtimeComposition.ts`
 - `src/domain/scientificProduction/activationRegistry.ts`
@@ -119,7 +146,7 @@ Phase 8.0D includes only:
 1. isolated Supabase staging environment preparation;
 2. explicit staging project-reference verification;
 3. staging migration-history verification;
-4. exact application of the existing Phase 8.0C migration in staging;
+4. governed Staging Foundation Recovery through exact ordered application of the six existing migrations to the verified empty staging project;
 5. creation of synthetic staging Auth users with no health or production data;
 6. real Supabase Auth sign-in and session validation;
 7. authenticated JWT transport through the Supabase client and PostgREST;
@@ -282,43 +309,68 @@ No command may be run with:
 - a production user session; or
 - a generic credential whose environment ownership is unknown.
 
-### 5.4 Migration-history verification
+### 5.4 Staging Foundation Recovery
 
-Before application, the staging migration history shall prove:
+Staging Foundation Recovery means:
 
-- all prerequisite repository migrations are in the expected order;
-- no unexpected remote-only migration exists;
-- no migration-history divergence exists;
-- the complete pending-migration allowlist contains exactly `20260719000000_scientific_persistence_records.sql` and no other migration;
-- `20260719000000_scientific_persistence_records.sql` is not yet recorded as applied;
-- `public.scientific_persistence_records` does not already exist;
-- `public.insert_scientific_persistence_record` does not already exist; and
-- the `scientific_persistence_writer` role does not already exist.
+> Apply the existing ordered migration chain to an empty staging project before Phase 8.0D migration validation may begin.
 
-If any additional pending migration exists, implementation shall stop before migration execution.
+The verified staging pre-state is an empty remote migration history with six committed local migrations pending. The only approved recovery chain is exactly:
+
+1. `20260614002200_ai_usage.sql`
+2. `20260709000000_ai_usage_search_count.sql`
+3. `20260714000000_brief_editorial_pipeline.sql`
+4. `20260715000000_brief_cover_pipeline.sql`
+5. `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`
+6. `20260719000000_scientific_persistence_records.sql`
+
+The order shall not change. No additional migration, seed, manual statement, backfill invocation, history entry, or schema repair is part of Staging Foundation Recovery. Approval of the recovery design does not authorize execution.
+
+Sprint 1 shall not begin until all of the following are recorded for this exact chain and target:
+
+- Staging Foundation Recovery approval;
+- Gate 3 migration-execution approval; and
+- an opened, bounded execution window.
+
+After those prerequisites pass, Sprint 1 still requires a separate explicit authorization. Gate 3 approval and an open window do not authorize Sprint 1 or migration execution by themselves.
+
+### 5.5 Migration-history verification
+
+Before application, the staging migration history and object inspection shall prove:
+
+- remote migration history is empty;
+- no unexpected remote-only migration, duplicate, version conflict, or history divergence exists;
+- the complete pending-migration set contains exactly the six files in Section 5.4, once each and in that order;
+- every migration filename and SHA-256 matches the exact approved committed artifact;
+- no migration in the chain is already recorded as applied;
+- no conflicting application table, function, RPC, policy, index, trigger, role, type, constraint, privilege, or governed storage-bucket configuration exists; and
+- the target otherwise contains only the expected standard Supabase platform foundation.
+
+If a migration is missing, additional, duplicated, reordered, hash-mismatched, unexpectedly recorded, or in conflict with an existing object, implementation shall stop before migration execution.
 
 Schema changes through the Supabase Dashboard, SQL Editor, Table Editor, or ad-hoc SQL are prohibited. The only authorized direct SQL operations are the already-approved validation assertions, the exact kill-switch `REVOKE` and `GRANT` operations, and the narrowly scoped synthetic-data cleanup in Section 7.11; none may create, alter, replace, or drop a schema object.
 
-After application, the history shall prove:
+After application, the history and object inspection shall prove:
 
-- the exact Phase 8.0C migration is recorded once;
-- its timestamp and filename match the repository;
+- all six migrations are recorded exactly once in the approved order;
+- every timestamp, filename, and SHA-256 matches the repository;
 - no additional migration was applied;
+- the objects and privileges created or altered by each migration match its committed SQL;
 - no migration file was generated or rewritten; and
 - no history-repair operation occurred.
 
-### 5.5 Clean-target requirement
+### 5.6 Clean-target requirement
 
 The staging target is clean for Phase 8.0D only when:
 
 - it is independently classified as staging;
 - it contains no production or copied production data;
-- its pre-Phase-8.0C schema matches the expected prerequisite migration state;
-- no conflicting scientific-persistence table, function, policy, grant, or role exists;
+- its remote migration history and application schema are empty before Staging Foundation Recovery, apart from standard Supabase platform objects;
+- no object conflicts with any table, function, RPC, policy, index, trigger, role, type, constraint, privilege, or governed storage-bucket configuration in the approved chain;
 - no prior Phase 8.0D synthetic users or records remain unless explicitly part of a repeatability test; and
 - cleanup authority and method are approved before test data is created.
 
-### 5.6 Tracked Supabase CLI link metadata
+### 5.7 Tracked Supabase CLI link metadata
 
 The repository currently tracks Supabase CLI-generated files under `supabase/.temp/`, including project-link metadata. Phase 8.0D shall treat every such file as untrusted for environment selection.
 
@@ -337,7 +389,7 @@ The operator shall not run a link-dependent migration command from the repositor
 
 Resolution of tracked CLI metadata in the repository belongs to a separate repository-hygiene change.
 
-### 5.7 Credential safety
+### 5.8 Credential safety
 
 - Credentials shall enter only through protected runner secrets or interactive secure input.
 - Public client credentials may be used only for the approved staging project.
@@ -348,23 +400,26 @@ Resolution of tracked CLI metadata in the repository belongs to a separate repos
 - Request and result payloads shall not be printed even though fixtures are synthetic.
 - No `.env` file shall be created or modified by Phase 8.0D.
 
-### 5.8 Mandatory stop conditions
+### 5.9 Mandatory stop conditions
 
 Implementation shall stop before migration if:
 
 - specification approval is absent;
 - staging-target approval is absent;
-- migration-execution approval is absent;
+- Staging Foundation Recovery approval is absent;
+- Gate 3 migration-execution approval is absent;
+- separate Sprint 1 authorization is absent;
+- the bounded execution window is not open;
 - the target cannot be proven non-production;
 - project-reference checks disagree;
 - implicit CLI link state would select the target;
-- migration history diverges from the repository;
-- the Phase 8.0C migration appears already applied;
-- a conflicting table, function, role, policy, or grant exists;
+- migration history is not empty or the six-file pending set diverges from the exact Section 5.4 order;
+- any migration in the chain appears already applied;
+- an object or privilege conflicts with any migration in the chain;
 - the target contains production data;
 - cleanup authority is unavailable;
 - required secrets can only be exposed in logs or repository files; or
-- the exact committed migration hash cannot be proven.
+- any exact committed migration hash cannot be proven.
 
 Implementation shall stop after migration and disable the RPC if:
 
@@ -451,21 +506,23 @@ The implementation shall follow this order. A later step may not begin until the
 8. Copy the committed migration tree into that workspace and verify hashes.
 9. Verify staging migration history and conflicting-object absence.
 10. Save sanitized pre-migration evidence.
+11. Confirm Staging Foundation Recovery approval, Gate 3 approval for the exact six-file chain, separate Sprint 1 authorization, and an opened execution window are all current and mutually consistent.
 
 Failure at any step stops before migration.
 
 ### 7.2 Migration application
 
-1. Obtain explicit migration-execution approval for the verified staging target and exact commit.
-2. Prove that the complete pending-migration set contains exactly `20260719000000_scientific_persistence_records.sql`.
-3. Stop if any additional pending migration exists.
-4. Execute only the allowlisted `20260719000000_scientific_persistence_records.sql` migration using the explicit staging target in the isolated workspace.
-5. Apply that existing Phase 8.0C migration without editing, wrapping, reformatting, or repairing it.
-6. Record the exact command with secret values redacted.
-7. Record start time, completion time, exit status, and migration-tool version.
-8. Re-read migration history.
-9. Verify the table, function, role, policies, grants, constraints, and defaults created by the exact migration.
-10. Verify no unexpected schema object or migration was introduced.
+1. Verify the previously recorded Gate 3 migration-execution approval for the verified staging target, exact commit, exact six migration hashes, executor, containment plan, recovery authority, and command form.
+2. Verify separate Sprint 1 authorization is recorded and the approved bounded execution window is open.
+3. Prove that the complete pending-migration set contains exactly the six migrations in Section 5.4, once each and in the approved order.
+4. Stop if any migration is missing, additional, duplicated, reordered, hash-mismatched, or unexpectedly recorded.
+5. Execute only the approved chain, unchanged and in exact order, using the explicit staging target in the isolated workspace.
+6. Stop immediately on the first error. Do not continue to a later migration, retry, repair, manipulate history, squash, or complete schema manually.
+7. Record the exact command with secret values redacted.
+8. After each migration, capture sanitized filename, hash, start time, completion time, exit status, migration-tool version, resulting history, and expected-object evidence before continuing.
+9. Re-read the complete migration history after the chain finishes.
+10. Verify the tables, functions, RPCs, roles, policies, grants, constraints, indexes, triggers, defaults, types, and governed storage configuration created or altered by the chain.
+11. Verify no unexpected schema object or migration was introduced.
 
 If application is partial, ambiguous, or failed, stop; do not rerun, repair, or manually complete it without a new approved recovery plan.
 
@@ -580,14 +637,14 @@ This privileged staging cleanup is not a product deletion workflow and does not 
 
 Repeatability shall mean exactly one of these two approved modes:
 
-1. create a fresh disposable staging target, obtain new staging-target and migration-execution approvals for that target, apply the allowlisted migration once, and repeat the required validation with fresh synthetic identities; or
+1. create a fresh disposable staging target, obtain new staging-target, Staging Foundation Recovery, Gate 3, separate applicable-sprint authorization, and execution-window approvals for that target in the canonical order, apply the allowlisted six-file chain once in exact order, and repeat the required validation with fresh synthetic identities; or
 2. after cleanup on the existing staging target, rerun only the non-migration validation cases using fresh synthetic Auth users, fresh request IDs, and fresh lineage identities while proving that migration history remains unchanged.
 
-The Phase 8.0C migration shall never be rerun against the same database. Repeatability shall not use migration repair, schema reset, manual schema completion, or automatic retry.
+The approved migration chain, including the Phase 8.0C migration, shall never be rerun against the same database. Repeatability shall not use migration repair, schema reset, manual schema completion, or automatic retry.
 
 Repeatability evidence shall record the selected mode, target fingerprint, renewed approvals where applicable, fresh synthetic identity proof, migration history before and after, validation results, cleanup result, and mandatory final RPC execute revocation.
 
-If neither repeatability mode can be executed without rerunning the migration against the same database, using ambiguous target state, or weakening cleanup and containment, the repeatability step shall stop and technical closure shall remain unavailable.
+If neither repeatability mode can be executed without rerunning the migration chain against the same database, using ambiguous target state, or weakening cleanup and containment, the repeatability step shall stop and technical closure shall remain unavailable.
 
 ---
 
@@ -692,12 +749,14 @@ Record:
 
 Capture sanitized migration history immediately before and after application, proving:
 
-- expected prerequisite state;
-- Phase 8.0C absent before;
-- Phase 8.0C present once after;
+- empty remote migration history before recovery;
+- the exact six-file pending set before recovery;
+- each approved migration recorded once in order after recovery;
 - no unexpected migration;
 - no repair action; and
 - no migration-file change.
+
+Capture the required sanitized history and object evidence after each migration as well as after the complete chain.
 
 ### 9.5 Sanitized Auth evidence
 
@@ -798,7 +857,7 @@ Sprint completion does not authorize the next sprint automatically. Each sprint 
 
 **Objective**
 
-Freeze the repository, contracts, migration hash, target-selection process, approvals, and safe execution boundary before any external mutation.
+Freeze the repository, contracts, migration hashes, target-selection process, approvals, and safe execution boundary before any external mutation.
 
 **Authorized files**
 
@@ -826,7 +885,7 @@ Freeze the repository, contracts, migration hash, target-selection process, appr
 **Tests/evidence**
 
 - branch, commit, status, and file inventory;
-- migration and frozen-contract hashes;
+- migration-chain and frozen-contract hashes;
 - staging-versus-production identity comparison;
 - target owner and approval records;
 - temporary-workspace isolation proof; and
@@ -837,7 +896,7 @@ Freeze the repository, contracts, migration hash, target-selection process, appr
 - specification approved;
 - exact staging target approved;
 - production denylist comparison passed;
-- migration history is compatible;
+- migration history is verified and any empty-target foundation requirement is explicitly governed;
 - cleanup path approved;
 - all operators/reviewers named; and
 - no external mutation occurred.
@@ -851,11 +910,20 @@ Freeze the repository, contracts, migration hash, target-selection process, appr
 - cleanup is unavailable; or
 - implicit linked-project state cannot be excluded.
 
-### Sprint 1 — Staging Environment and Migration
+### Sprint 1 — Staging Foundation Recovery and Migration Verification
 
 **Objective**
 
-Apply the exact existing Phase 8.0C migration once to the explicitly approved isolated staging target and verify deployed objects and history.
+Apply the exact existing six-file ordered migration chain once to the verified empty, explicitly approved isolated staging target, then verify deployed objects, privileges, storage configuration, and history before Phase 8.0D Auth/RPC validation may begin.
+
+**Entry prerequisites**
+
+- the Staging Foundation Recovery design is approved for the exact target, commit, chain, order, and hashes;
+- Gate 3 is approved for the exact execution action; and
+- the bounded execution window is open; and
+- Sprint 1 is separately and explicitly authorized after those approvals.
+
+If any prerequisite is absent, invalid, expired, or mismatched, Sprint 1 shall not begin.
 
 **Authorized files**
 
@@ -865,7 +933,8 @@ Apply the exact existing Phase 8.0C migration once to the explicitly approved is
 **Authorized external actions**
 
 - explicit staging migration-history reads;
-- one approved migration application;
+- one controlled, ordered application of the exact six-file approved chain;
+- sanitized evidence capture after each migration and after the complete chain;
 - deployed-object and privilege inspection; and
 - staging containment if application fails.
 
@@ -875,7 +944,9 @@ Apply the exact existing Phase 8.0C migration once to the explicitly approved is
 - migration repair or squash;
 - manual schema completion;
 - schema changes through the Supabase Dashboard, SQL Editor, Table Editor, or ad-hoc SQL;
-- execution when any pending migration other than `20260719000000_scientific_persistence_records.sql` exists;
+- execution of any migration outside the six-file Section 5.4 allowlist;
+- execution when the complete pending set differs from that allowlist in membership, order, filename, version, or hash;
+- continuation after the first error;
 - reapplication after ambiguous failure;
 - Auth test execution before object verification;
 - production access; and
@@ -884,18 +955,19 @@ Apply the exact existing Phase 8.0C migration once to the explicitly approved is
 **Tests/evidence**
 
 - history before and after;
-- proof that the complete pending set contained only `20260719000000_scientific_persistence_records.sql`;
-- exact migration hash;
+- proof that the complete pending set contained exactly the six migrations in Section 5.4 and no others;
+- exact hash for every migration;
 - command/tool/version record;
-- table, function, role, constraint, policy, grant, and default inspection;
+- per-migration exit status, history, and expected-object evidence;
+- final table, function, RPC, role, constraint, policy, grant, index, trigger, default, type, and governed storage-configuration inspection;
 - absence of unexpected objects; and
 - external-action approval.
 
 **Completion criteria**
 
-- migration recorded exactly once;
-- no migration other than `20260719000000_scientific_persistence_records.sql` was pending or applied;
-- expected objects match the committed SQL;
+- all six allowlisted migrations recorded exactly once in the approved order;
+- no migration outside the allowlist was pending or applied;
+- expected objects and privileges from every migration match the committed SQL;
 - no extra migration or schema change exists;
 - Phase 8.0C code remains unchanged and inactive; and
 - evidence is sanitized and complete.
@@ -903,9 +975,10 @@ Apply the exact existing Phase 8.0C migration once to the explicitly approved is
 **Stop conditions**
 
 - partial or ambiguous application;
-- any additional pending migration;
+- any missing, additional, duplicated, reordered, or hash-mismatched migration;
+- the first migration or evidence-capture error;
 - unexpected object or privilege;
-- migration hash mismatch;
+- any migration hash mismatch;
 - history divergence;
 - target identity changes; or
 - any production indicator.
@@ -1022,7 +1095,7 @@ Prove deployed ownership isolation, application-role update/delete denial, same-
 - unexpected SQLSTATE suggesting a different boundary;
 - lineage ambiguity;
 - raw row disclosure; or
-- need to change the migration.
+- need to change any migration.
 
 ### Sprint 4 — Serialization and Transport Validation
 
@@ -1104,7 +1177,7 @@ Prove immediate staging RPC disablement and controlled restoration, prove repeat
 - table, function, role, or policy redesign;
 - persistent feature-flag creation;
 - leaving the RPC enabled at closure;
-- rerunning the Phase 8.0C migration against the same database;
+- rerunning any migration in the approved chain against the same database;
 - using any repeatability procedure other than the two modes in Section 7.12;
 - broad or unresolved deletion targets; and
 - deletion of non-test data.
@@ -1124,7 +1197,7 @@ Prove immediate staging RPC disablement and controlled restoration, prove repeat
 - revoke blocks RPC execution;
 - restore permits a new call;
 - no bypass exists;
-- one exact repeatability mode completes without rerunning the migration against the same database;
+- one exact repeatability mode completes without rerunning the migration chain against the same database;
 - `EXECUTE` on the exact RPC signature is revoked from `authenticated` as the final state;
 - synthetic users/data are removed or the disposable project is destroyed;
 - temporary secrets/workspace are destroyed; and
@@ -1135,7 +1208,7 @@ Prove immediate staging RPC disablement and controlled restoration, prove repeat
 - revoke does not block execution;
 - unexpected bypass exists;
 - restore changes more than the exact grant;
-- repeatability would rerun the migration against the same database;
+- repeatability would rerun the migration chain against the same database;
 - repeatability cannot use either exact mode in Section 7.12;
 - cleanup target is ambiguous;
 - non-test data could be affected; or
@@ -1186,7 +1259,7 @@ Assemble final evidence, run repository and regression checks, perform the VES r
 
 - all required real staging cases pass;
 - every limitation and deferred item is explicit;
-- the migration and frozen contracts are unchanged;
+- all migrations and frozen contracts are unchanged;
 - Phase 8.0C remains inactive;
 - staging cleanup and containment are complete;
 - no production project was touched;
@@ -1342,9 +1415,11 @@ Any change to this specification after Gate 1 approval immediately invalidates t
 - **Decision:** APPROVED — SPRINT 0 AUTHORIZED
 - **Authorized work:** Sprint 0 — Governance and Staging Safety only
 - **Unauthorized work:** Sprint 1 and every later sprint
-- **Migration execution:** Not authorized; migration execution still requires separate Gate 2 staging-target approval and Gate 3 migration-execution approval after the required read-only target and migration-history verification
+- **Migration execution:** Not authorized; the current specification requires Gate 1, Gate 2, Staging Foundation Recovery approval, Gate 3, separate Sprint 1 authorization, and an opened bounded execution window in that order
 - **Production:** Migration, deployment, release, activation, and production-readiness claims remain unauthorized
 - **VES:** No VES PASS is claimed or granted by this approval
+
+**Approval-record effect:** The approval record above predates Versions 1.1.0 and 1.1.1. Under this section's change rule, it does not approve the current corrected text. Version 1.1.1 requires renewed Gate 1 approval before any later gate or authorization can be relied upon. This correction itself authorizes no execution.
 
 ### Gate 2 — Staging target approval
 
@@ -1365,15 +1440,17 @@ Required after read-only target/history verification and before migration applic
 
 Approval must identify:
 
-- exact commit and migration SHA-256;
+- exact commit and SHA-256 for every migration in the six-file Section 5.4 chain;
 - exact target fingerprint;
-- expected pre-migration history;
-- proof that the complete pending-migration allowlist contains only `20260719000000_scientific_persistence_records.sql`;
+- expected empty pre-migration history and clean standard-Supabase object state;
+- proof that the complete pending-migration allowlist contains exactly the six migrations in Section 5.4, once each and in order;
 - migration executor;
 - containment plan; and
-- recovery authority.
+- recovery authority;
+- exact command form; and
+- bounded execution window.
 
-Target approval alone does not grant migration-execution approval.
+Target approval or Staging Foundation Recovery approval alone does not grant migration-execution approval. Gate 3 cannot precede Staging Foundation Recovery approval. After Gate 3 approval and confirmation of an opened bounded execution window, Sprint 1 must still receive separate explicit authorization. None of these steps authorizes the next step automatically.
 
 ### Gate 4 — Security review
 
@@ -1507,7 +1584,7 @@ Evidence shall prove:
 
 - the target was staging;
 - production was never accessed;
-- the migration was unchanged;
+- every migration was unchanged;
 - runtime composition remained inactive;
 - no production flag or configuration was added;
 - RPC revocation works;
@@ -1543,9 +1620,11 @@ Phase 8.0D may receive technical closure only when all statements below are true
 - [ ] The approved staging target was explicitly and independently identified.
 - [ ] The target was proven different from production.
 - [ ] No production data, users, traffic, credentials, or project were used.
+- [ ] Gate 1, Gate 2, Staging Foundation Recovery approval, Gate 3, and the execution window were confirmed in order before Sprint 1 was separately authorized.
+- [ ] Sprint 1 authorization was recorded before the six-migration execution began.
 - [ ] Migration history was verified before and after application.
-- [ ] The exact existing Phase 8.0C migration was applied once.
-- [ ] The Phase 8.0C migration remained byte-for-byte unchanged.
+- [ ] The exact existing six-file migration chain was applied once in the approved order.
+- [ ] Every migration remained byte-for-byte unchanged.
 - [ ] Real Supabase Auth sessions were validated for two synthetic users.
 - [ ] Authenticated JWT transport to PostgREST was validated.
 - [ ] Missing-JWT and anon-session calls were refused.
@@ -1565,7 +1644,7 @@ Phase 8.0D may receive technical closure only when all statements below are true
 - [ ] RPC execute revocation blocked authenticated invocation.
 - [ ] Exact execute restoration was proven.
 - [ ] `EXECUTE` on the exact RPC signature was revoked from `authenticated` as the final staging state.
-- [ ] Repeatability was proven through one exact mode in Section 7.12 without rerunning the migration against the same database.
+- [ ] Repeatability was proven through one exact mode in Section 7.12 without rerunning the migration chain against the same database.
 - [ ] Synthetic staging data/users were removed or the disposable project was destroyed.
 - [ ] Temporary credentials, sessions, and execution workspace were destroyed.
 - [ ] Phase 8.0A behavior and contracts remained unchanged.
@@ -1620,7 +1699,7 @@ The Phase 8.0D completion report shall state:
 - implementation-start and reviewed commit SHAs;
 - branch and repository state;
 - files created and modified;
-- exact migration hash before and after;
+- exact hash for every allowlisted migration before and after;
 - staging target verification result;
 - confirmation that no production project was touched;
 - migration-history results;
@@ -1650,8 +1729,8 @@ The report shall not claim production readiness, release readiness, VES PASS, de
 
 The complete Phase 8.0D implementation boundary is:
 
-> In one explicitly approved, isolated Supabase staging environment, apply the existing Phase 8.0C migration unchanged; validate real Auth sessions, authenticated JWT transport, PostgREST RPC behavior, executable RLS ownership isolation, same-owner and cross-owner lineage, database-generated persistence identity and time, exact request/result serialization preservation, direct update/delete denial, and RPC execute revocation/restoration; capture sanitized evidence; clean up and leave staging contained; modify only the six authorized Phase 8.0D files; keep Phase 8.0C inactive; and touch no production environment.
+> In one explicitly approved, isolated, empty Supabase staging environment, establish the governed staging foundation by applying the exact existing six-file migration chain unchanged and in order only after Gate 1, Gate 2, Staging Foundation Recovery approval, Gate 3 approval with an opened bounded execution window, and separate Sprint 1 authorization have occurred in that order; stop on the first error; capture sanitized evidence after each migration; then validate real Auth sessions, authenticated JWT transport, PostgREST RPC behavior, executable RLS ownership isolation, same-owner and cross-owner lineage, database-generated persistence identity and time, exact request/result serialization preservation, direct update/delete denial, and RPC execute revocation/restoration; clean up and leave staging contained; modify only the authorized Phase 8.0D files; keep Phase 8.0C inactive; and touch no production environment.
 
-**Specification status:** Approved — Sprint 0 Authorized.
+**Specification status:** Governance consistency repaired — renewed Gate 1 required; execution unauthorized.
 
-Gate 1 authorizes Sprint 0 only. Sprint 1 and every later sprint remain unauthorized. Migration execution requires later, separate Gate 2 and Gate 3 approvals after staging target and migration history have been verified. Production remains unauthorized.
+The prior Gate 1 record does not approve Version 1.1.1. Sprint 1 and every later sprint remain unauthorized. Migration execution requires renewed Gate 1 approval, valid Gate 2 target approval, Staging Foundation Recovery approval, Gate 3 approval for the exact six-file action with an opened bounded execution window, and separate Sprint 1 authorization after staging target and migration history have been verified. Production remains unauthorized.

@@ -4,7 +4,7 @@
 
 - Phase: 8.0D — Real Supabase Staging Validation
 - Document role: Staging RPC containment, controlled restoration, and final-disable procedure
-- Current authorization: Sprint 0 documentation only
+- Current authorization: Gate 2 approved; Gate 3 live safety verification NOT READY; kill-switch execution and Sprint 1 unauthorized
 - Kill-switch execution: Not authorized by Sprint 0
 - Staging mutation: Not authorized by Sprint 0
 - Production privilege inspection or mutation: Prohibited

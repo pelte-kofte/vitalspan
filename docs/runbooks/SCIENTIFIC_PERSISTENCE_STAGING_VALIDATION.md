@@ -5,14 +5,18 @@
 - Phase: 8.0D — Real Supabase Staging Validation
 - Document role: Governance and staging-safety procedure
 - Specification: `docs/specifications/PHASE_8_0D_IMPLEMENTATION_SPECIFICATION_v1.0.0.md`
-- Current authorization: Sprint 0 only
+- Current authorization: Version 1.1.1 requires renewed Gate 1; Gate 2 evidence remains recorded; Staging Foundation Recovery requires renewed approval; Gate 3 remains NOT READY; Sprint 1 unauthorized
 - Production migration: Not authorized
 - Production access: Not authorized
 - Staging mutation: Not authorized by Sprint 0
-- Migration execution: Not authorized until separate Gate 2 and Gate 3 approvals are recorded
+- Migration execution: Not authorized; neither this repair nor any earlier approval opens an execution window, approves Gate 3, or authorizes Sprint 1
 - Application integration and runtime activation: Not authorized
 
 This runbook prepares the future staging-validation path. It is not an execution approval. A later sprint may use only the portions expressly authorized for that sprint, after every prerequisite gate and stop-condition review passes.
+
+### Changelog
+
+- **2026-07-20 — Governance consistency repair:** Removed the superseded migration route and replaced every pending-set, Gate 3, stop-condition, and ordered-flow reference with the exact six-migration Staging Foundation Recovery path. Made separate Sprint 1 authorization mandatory after Gate 3 and before execution. Preserved immutable migrations, production prohibition, isolated targeting, stop-on-first-error, containment, cleanup, and per-migration evidence capture. No external action is authorized.
 
 ## 2. Governing Boundaries
 
@@ -38,16 +42,18 @@ Before external access, assign the following opaque labels and record the real n
 | `AUTHORIZED_DATABASE_OPERATOR` | Named operator allowed to perform the later approved database actions |
 | `SECURITY_REVIEWER` | Named reviewer for Auth, RLS, ownership, privileges, and evidence handling |
 | `EVIDENCE_REVIEWER` | Named reviewer for the sanitized evidence set |
+| `CLEANUP_AUTHORITY` | Named authority for exact synthetic cleanup or approved staging-project destruction |
 | `AUTH_USER_A` | Future synthetic, non-anonymous staging user owned by no real person |
 | `AUTH_USER_B` | Future distinct synthetic, non-anonymous staging user owned by no real person |
 | `UNAUTHENTICATED_CLIENT` | Public-key client with no Auth session or user access JWT |
 
 Required operator records are:
 
-- Gate 1 approval for specification version 1.0.0;
+- Gate 1 approval for specification version 1.1.1;
 - Gate 2 staging-target approval;
-- Gate 3 migration-execution approval;
-- approved execution window;
+- Staging Foundation Recovery approval for the exact six-migration chain;
+- Gate 3 migration-execution approval, including the bounded execution window;
+- separate Sprint 1 authorization after Gate 3;
 - cleanup authority and method;
 - containment owner and recovery authority;
 - exact migration executor and version; and
@@ -61,7 +67,7 @@ Before each future external session, record locally:
 
 1. branch, exact commit SHA, and complete working-tree status;
 2. every modified and untracked path, including unrelated user work;
-3. the SHA-256 of `supabase/migrations/20260719000000_scientific_persistence_records.sql`;
+3. the SHA-256 of every migration in the exact six-file Staging Foundation Recovery chain;
 4. SHA-256 values for the frozen Phase 8.0A production contracts and serializers;
 5. SHA-256 values for the frozen Phase 8.0B public persistence files;
 6. SHA-256 values for `src/domain/scientificProduction/activationRegistry.ts` and `src/domain/scientificDomains/scientificBaseline.ts`;
@@ -173,37 +179,43 @@ The complete local repository order at the Sprint 0 baseline is:
 5. `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`
 6. `20260719000000_scientific_persistence_records.sql`
 
-The only migration allowed to be pending for Phase 8.0D is:
+The complete and only migration allowlist for the verified empty staging target is the six-file list above, once each and in that exact order. The approved hashes are:
 
-`20260719000000_scientific_persistence_records.sql`
+| Order | Migration | SHA-256 |
+| --- | --- | --- |
+| 1 | `20260614002200_ai_usage.sql` | `1014f492f7b77be2a259c717ee9226a6afbbabd0b74799fda45ea69f98f93e2e` |
+| 2 | `20260709000000_ai_usage_search_count.sql` | `5435cf6e017e9eaedf63396727d5e066a3cf55c6f5356d336f0041a6b1ea0a61` |
+| 3 | `20260714000000_brief_editorial_pipeline.sql` | `954bfc186fa6c5f5d2054bf68298d037d647a8c7072eb676828b547442d9bc12` |
+| 4 | `20260715000000_brief_cover_pipeline.sql` | `f95fee86e5e2e6ad40710ab70cb8df3e904772cf8c82466902a8edb4c39065d7` |
+| 5 | `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql` | `cf33bd683e488812efbdc25991fcb84bb096908ec94d8f757f88afb6c2e88205` |
+| 6 | `20260719000000_scientific_persistence_records.sql` | `4dbf80f61c7cbc2adf6e5c9933bbc173944e31c83def36dc140ecf5e0113a354` |
 
-Its Sprint 0 SHA-256 is:
-
-`4dbf80f61c7cbc2adf6e5c9933bbc173944e31c83def36dc140ecf5e0113a354`
+No additional migration, seed, manual statement, backfill invocation, history entry, repair, squash, or schema completion is allowlisted.
 
 After Gate 2 and under separately authorized read-only inspection:
 
 1. capture the complete remote migration history without repair or mutation;
-2. verify the first five repository migrations above are present once and in the expected order;
-3. verify no unexpected remote-only migration, missing prerequisite, duplicate, or history divergence exists;
-4. verify the Phase 8.0C migration is absent from applied history;
-5. calculate the complete pending set by comparing repository and remote histories;
-6. require that pending set to contain exactly the single allowlisted filename above;
-7. verify the migration timestamp, filename, and SHA-256 match the committed repository artifact;
-8. verify `public.scientific_persistence_records`, `public.insert_scientific_persistence_record`, and `scientific_persistence_writer` do not already exist; and
-9. record sanitized history identities, the one-item pending set, object-absence booleans, verifier, and timestamp.
+2. require remote migration history to be empty;
+3. verify no unexpected remote-only migration, duplicate, version conflict, or history divergence exists;
+4. calculate the complete pending set by comparing repository and remote histories;
+5. require the pending set to contain exactly the six allowlisted files above, once each and in order;
+6. verify every migration timestamp, filename, and SHA-256 against the committed repository artifact;
+7. verify no migration in the chain is already recorded as applied;
+8. verify no conflicting application table, function, RPC, policy, index, trigger, role, type, constraint, privilege, or governed `brief-covers` bucket configuration exists;
+9. verify the target otherwise contains only the expected standard Supabase platform foundation; and
+10. record sanitized history identities, the six-item pending set, hashes, object-absence booleans, verifier, and timestamp.
 
-Any additional pending migration, remote-only entry, missing prerequisite, pre-existing Phase 8.0C object, applied Phase 8.0C identity, hash mismatch, or need for history repair stops the phase before migration.
+Any missing, additional, duplicated, reordered, hash-mismatched, unexpectedly applied, remote-only, or conflicting migration/object state, or any need for history repair, stops the phase before migration.
 
-The later migration executor may use only an explicit target from the isolated workspace and only after Gate 3. The command template is:
+The later migration executor may use only an explicit target from the isolated workspace and only after Gate 3 approval and separate Sprint 1 authorization. The command template is:
 
 ```text
 supabase db push --db-url "<protected PHASE_8_0D_DATABASE_URL>"
 ```
 
-Before execution, the operator must replace the transcript argument with `<REDACTED_STAGING_DATABASE_URL>`, record the installed tool version, reconfirm that the verified pending set contains exactly the allowlisted migration, and obtain Gate 3 approval for that exact command form. `--include-all`, `--include-roles`, migration repair, reset, dashboard execution, SQL Editor execution, and any implicit-link mode are prohibited.
+Before execution, the operator must replace the transcript argument with `<REDACTED_STAGING_DATABASE_URL>`, record the installed tool version, reconfirm that the verified pending set contains exactly the six allowlisted migrations in order, obtain Gate 3 approval for that exact command form, and then obtain separate Sprint 1 authorization. `--include-all`, `--include-roles`, migration repair, reset, dashboard execution, SQL Editor execution, and any implicit-link mode are prohibited.
 
-The command above is a future template, not Sprint 0 execution authority.
+The command is a future template only. This runbook does not approve Gate 3, authorize Sprint 1, open an execution window, or authorize Staging Foundation Migration Execution.
 
 ## 10. Gate 2 Approval Evidence
 
@@ -225,20 +237,54 @@ Gate 2 is ready for decision only when one record contains:
 - approval timestamp; and
 - evidence references containing no raw secret or project reference.
 
+An offline Gate 2 target-identity decision may mark dynamic API-, URL-, database-, command-target-, and credential-ownership checks as deferred only when its external execution window is explicitly closed. Such a decision authorizes no connection or mutation. Every deferred dynamic check remains mandatory before any later network or database action and before Gate 3 can be requested.
+
 Gate 2 approval alone does not authorize migration execution. A target change, fingerprint change, execution-window expiry, ownership change, denylist change, or loss of cleanup authority invalidates the approval.
+
+### 10.1 Gate 2 Target Identity and Safety Approval Record
+
+- **Decision:** GATE 2 APPROVED
+- **Approval date:** 2026-07-20
+- **Target alias:** `vitalspan-staging`
+- **Target type:** Dedicated Supabase staging project
+- **Staging project-reference fingerprint:** `093e366a5999fd2981b37164daef0eb3819e3b0099ab7fa820f6d35b6ae65dca`
+- **Target owner:** bekir cem
+- **Non-production proof:** The phase owner explicitly designated `vitalspan-staging` as staging and separately identified `vitalspan` as the only known production project; their canonical project references are distinct and their calculated SHA-256 fingerprints do not match
+- **Production denylist entry count:** 1
+- **Production fingerprint denylist:** `3cb786c198df3bcf84bdfd94f5d33ce4bb2b776ff4713532fd04a0dfdbb997d3`
+- **Denylist comparison:** Passed; the staging fingerprint differs from every supplied production fingerprint
+- **Execution governance:** Single-person governance; no additional reviewer is required or recorded
+- **`AUTHORIZED_DATABASE_OPERATOR`:** bekir cem
+- **`SECURITY_REVIEWER`:** bekir cem
+- **`EVIDENCE_REVIEWER`:** bekir cem
+- **`CLEANUP_AUTHORITY`:** bekir cem
+- **Cleanup method:** For this dedicated staging project, leave the exact RPC disabled, remove only correlated Phase 8.0D synthetic rows through the authorized staging operator, remove synthetic Auth users only after dependent rows, destroy sessions, protected credentials, and the temporary execution workspace, and verify final RPC disablement
+- **Final-disable strategy:** Revoke `EXECUTE` from `authenticated` on the exact Phase 8.0C RPC signature and verify denial/unchanged row counts under the kill-switch runbook
+- **Credential ownership evidence:** Not applicable to this offline approval; no credential was supplied, loaded, or used. Any future credential must be proven staging-owned before connection
+- **Dynamic identity checks:** API-, URL-, database-, and command-target-derived identities were not accessed in this offline approval and must all equal the approved staging identity before any external action
+- **Approved execution window:** Governance finalization on 2026-07-20 only; external execution window closed
+- **Verifier:** bekir cem
+- **Approver:** bekir cem
+- **Approval scope:** Target identity and Gate 2 safety governance only
+- **Sprint 1:** Not authorized
+- **Migration execution:** Not authorized
+- **Gate 3:** Not approved; subsequent live read-only verification resolved to staging but failed the migration-history allowlist
+- **Production:** Access, migration, privilege inspection/mutation, deployment, release, and activation remain unauthorized
+
+This approval remains valid only while the target alias, project-reference fingerprint, production denylist, single-person ownership, and cleanup authority remain unchanged. It does not satisfy or waive any deferred dynamic identity, target-cleanliness, migration-history, conflicting-object, command, execution-window, containment, or recovery check required before Gate 3 or external execution.
 
 ## 11. Gate 3 Approval Evidence
 
-Gate 3 may be requested only after Gate 2 approval and completed read-only target/history verification. One record must contain:
+Gate 3 may be requested only after Gate 1, Gate 2, and Staging Foundation Recovery approvals and completed read-only target/history verification. One record must contain:
 
 - decision: approved or rejected;
 - exact repository commit;
-- exact migration filename and SHA-256;
+- exact filename and SHA-256 for every migration in the six-file chain;
 - exact Gate 2 target fingerprint;
 - expected pre-migration history and sanitized observed-history match;
-- proof the complete pending set contains only `20260719000000_scientific_persistence_records.sql`;
-- proof the migration is not already applied;
-- proof the table, RPC, and writer role do not already exist;
+- proof the complete pending set contains exactly the six approved migrations, once each and in order;
+- proof none of the six migrations is already applied;
+- proof no conflicting table, function, RPC, policy, index, trigger, role, type, constraint, privilege, or governed storage-bucket configuration exists;
 - exact migration tool, version, and redacted command form;
 - named migration executor;
 - execution window;
@@ -247,31 +293,74 @@ Gate 3 may be requested only after Gate 2 approval and completed read-only targe
 - named recovery authority;
 - cleanup authority;
 - approver name/role and timestamp; and
-- explicit statement that production, Sprint 2+, application integration, deployment, release, and activation remain unauthorized.
+- explicit statement that Sprint 1 requires separate authorization after Gate 3 and that production, Sprint 2+, application integration, deployment, release, and activation remain unauthorized.
 
-Gate 3 is target-, fingerprint-, commit-, migration-hash-, command-, executor-, and time-window-specific. A change to any one of those facts invalidates approval. Target approval alone is never migration approval.
+Gate 3 is target-, fingerprint-, commit-, six-migration-hash-, command-, executor-, and time-window-specific. A change to any one of those facts invalidates approval. Gate 3 follows Staging Foundation Recovery approval and precedes separate Sprint 1 authorization. Target or recovery approval alone is never migration approval, and Gate 3 alone never authorizes Sprint 1 or execution.
+
+### 11.1 Historical Gate 3 Readiness Record — Superseded, No Approval
+
+- **Verification date:** 2026-07-20
+- **Decision:** GATE 3 NOT READY
+- **Supabase CLI version:** `2.109.1`
+- **Repository branch:** `main`
+- **Repository HEAD:** `5db644b72b40e7782b8276cf027f0aaf127d222d`
+- **Unauthorized implementation/test/migration diff:** None
+- **Execution workspace:** Disposable isolated workspace containing only the six committed migration files; repository `.env` and tracked `supabase/.temp/` metadata were not loaded or used
+- **Resolved target:** `vitalspan-staging`
+- **Resolved staging fingerprint:** `093e366a5999fd2981b37164daef0eb3819e3b0099ab7fa820f6d35b6ae65dca`
+- **Production denylist fingerprint:** `3cb786c198df3bcf84bdfd94f5d33ce4bb2b776ff4713532fd04a0dfdbb997d3`
+- **Dynamic target result:** Passed; the isolated CLI link resolved only to the approved staging identity and no isolated link file contained the production reference
+- **Local production-reference finding:** The repository `.env` and tracked `supabase/.temp/` metadata resolve to the denylisted production project and remain prohibited/untrusted for Phase 8.0D targeting
+- **CLI authentication:** Present and valid through the authorized developer's local CLI context; no access token was printed or recorded
+- **Database authentication:** Present and valid for the approved staging read-only CLI operations; no database password, URL, or generated login credential was printed or recorded
+- **Remote migration history:** Readable and empty
+- **Local migration count:** 6
+- **Actual complete pending set:** `20260614002200_ai_usage.sql`, `20260709000000_ai_usage_search_count.sql`, `20260714000000_brief_editorial_pipeline.sql`, `20260715000000_brief_cover_pipeline.sql`, `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`, and `20260719000000_scientific_persistence_records.sql`
+- **Current six-file governance result:** The observed empty remote history and exact six-item pending set require Staging Foundation Recovery approval followed by a new Gate 3 decision under the current specification
+- **Unexpected remote migrations:** None
+- **Remote duplicates or version conflicts:** None observed
+- **Phase 8.0C migration recorded remotely:** No
+- **Phase 8.0C migration SHA-256:** `4dbf80f61c7cbc2adf6e5c9933bbc173944e31c83def36dc140ecf5e0113a354`
+- **Target table conflict:** Absent
+- **Target RPC/function conflict:** Absent
+- **Writer-role conflict:** Absent
+- **Policy/index/trigger conflict:** Absent because the target table is absent and no `scientific_persistence` metadata was discovered
+- **Custom type conflict:** Absent
+- **Inspection methods:** Read-only migration list, table statistics, role statistics, and generated public-schema type metadata
+- **Schema-dump limitation:** The CLI schema-dump path required unavailable Docker Desktop; no dump was produced. Read-only table/role statistics and generated schema metadata provided the object-absence substitute evidence
+- **Containment readiness:** Ready in documentation; exact kill switch, stop-on-unknown behavior, cleanup authority, evidence redaction, and production prohibition are recorded
+- **External mutation:** None; no migration, schema change, SQL mutation, Auth-setting change, function deployment, data write, privilege change, or production access occurred
+- **Sprint 1:** Unauthorized
+- **Migration execution window:** Closed
+- **Gate 3 approval:** Not granted; this historical record cannot approve the current six-file action
+
+### 11.2 Staging-Foundation Recovery Decision
+
+The phase owner selected the separately governed staging-foundation path. Historical static local inspection concluded that the existing six migrations form a coherent chain for a genuinely empty, standard Supabase staging project in exactly this order; the corrected recovery document now requires renewed approval:
+
+1. `20260614002200_ai_usage.sql`
+2. `20260709000000_ai_usage_search_count.sql`
+3. `20260714000000_brief_editorial_pipeline.sql`
+4. `20260715000000_brief_cover_pipeline.sql`
+5. `20260715120000_backfill_issue_one_editorial_intelligence_rpc.sql`
+6. `20260719000000_scientific_persistence_records.sql`
+
+The complete review, file hashes, platform assumptions, privilege analysis, containment concerns, and future safeguards are recorded in `docs/PHASE_8_0D_STAGING_FOUNDATION_RECOVERY.md`.
+
+This recovery record does not repair or normalize history and does not authorize any command. Renewed Staging Foundation Recovery approval must precede a new Gate 3 decision for the exact six-file action. Only after Gate 3 may Sprint 1 be separately authorized. The execution window remains closed; Sprint 1 and production access remain unauthorized.
 
 ## 12. Future Ordered Validation Flow
 
-Only a separately authorized later sprint may execute the applicable step. Each step requires the prior step to pass.
+Every step requires the prior step to pass. No step authorizes the next automatically, and this runbook authorizes none of them.
 
-1. Freeze repository identities and hashes.
-2. Verify Gate 1, then collect Gate 2 target approval.
-3. Perform approved read-only staging identity and history inspection.
-4. Verify the production denylist and one-item migration allowlist.
-5. Create and verify the isolated execution workspace.
-6. Collect Gate 3 for the exact target, commit, migration hash, command, and window.
-7. Apply the unchanged migration once; never rerun after a partial, failed, or unknown outcome.
-8. Verify history and deployed objects before Auth activity.
-9. Create two synthetic staging-only Auth users.
-10. Validate real sessions, JWT project/issuer/subject/expiry/role claims in memory, and PostgREST transport.
-11. Run D-STG-001 through D-STG-015 with unique synthetic operation identities and no automatic retry.
-12. Run the governed kill-switch drill in `docs/runbooks/SCIENTIFIC_PERSISTENCE_KILL_SWITCH.md`.
-13. Prove one exact repeatability mode without rerunning the migration against the same database.
-14. Revoke authenticated execution on the exact RPC signature as the mandatory final state.
-15. Destroy the disposable project or clean only exact synthetic records and users under approved authority.
-16. Destroy sessions, credentials, and the isolated workspace.
-17. Record sanitized evidence and perform security and VES review without inventing approval.
+1. **Gate 1:** Approve the current implementation specification.
+2. **Gate 2:** Approve and verify the exact isolated staging target and production denylist.
+3. **Staging Foundation Recovery approval:** Approve the exact six-file chain, order, hashes, assumptions, containment, and evidence boundaries.
+4. **Gate 3:** Approve the exact target, commit, six hashes, executor, command, containment plan, recovery authority, and bounded execution window after read-only verification proves the empty clean target and exact pending set.
+5. **Sprint 1 authorization:** Separately authorize Sprint 1 after Gate 3; Gate 3 alone is insufficient.
+6. **Staging Foundation Migration Execution:** Apply the six approved migrations unchanged and in order from the isolated workspace; stop on the first error, never retry or repair, and capture sanitized evidence after every migration and after the chain.
+7. **Phase 8.0D validation:** Verify deployed objects before Auth activity, then run real Auth/JWT/PostgREST/RPC/RLS/lineage/serialization/identity-time/kill-switch/repeatability cases, final containment, and synthetic cleanup.
+8. **Phase 8.0D closure:** Assemble final evidence and perform security and VES review without inventing approval or production readiness.
 
 ## 13. Expected Results and Failure Evidence
 
@@ -296,14 +385,14 @@ If an insert may have reached PostgreSQL before a timeout or connection loss, do
 
 Stop before migration when:
 
-- specification, Gate 2, or Gate 3 approval is absent, invalid, expired, or does not match the exact action;
+- Gate 1, Gate 2, Staging Foundation Recovery approval, Gate 3, or separate Sprint 1 authorization is absent, invalid, expired, out of order, or does not match the exact action;
 - target identity is ambiguous, sources disagree, or non-production status cannot be proven;
 - a proposed credential, user, endpoint, or project may be production-owned;
 - the production denylist is empty, incomplete, invalid, or matches staging;
 - tracked or implicit CLI link state could select the target;
-- the exact committed migration hash cannot be proven;
-- remote history diverges, Phase 8.0C appears applied, or any migration besides the allowlisted file is pending;
-- the table, function, writer role, policy, or grant conflicts with the clean-target requirement;
+- any exact committed migration hash cannot be proven;
+- remote history is not empty, any migration in the chain appears applied, or the pending set differs from the exact six-file allowlist in membership or order;
+- any table, function, RPC, role, policy, grant, index, trigger, constraint, type, privilege, or governed storage-bucket configuration conflicts with the clean-target requirement;
 - target data/traffic status or cleanup authority is unavailable;
 - the isolated workspace cannot exclude tracked link metadata; or
 - evidence would expose a secret, raw project reference, JWT, user identity, or payload.
