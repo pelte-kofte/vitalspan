@@ -88,19 +88,47 @@ BEGIN
     RAISE EXCEPTION 'scientific_persistence_writer role already exists';
   END IF;
 
-  CREATE ROLE scientific_persistence_writer
-    NOLOGIN
-    NOINHERIT
-    NOSUPERUSER
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION
-    NOBYPASSRLS;
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_roles
+    WHERE rolname = 'scientific_persistence_migration_owner'
+  ) THEN
+    RAISE EXCEPTION 'scientific_persistence_migration_owner role already exists';
+  END IF;
 END
 $role$;
 
-GRANT USAGE ON SCHEMA auth TO scientific_persistence_writer;
-GRANT EXECUTE ON FUNCTION auth.uid() TO scientific_persistence_writer;
+-- Supabase protects memberships of its managed postgres role from GRANT and
+-- REVOKE. Use a disposable CREATEROLE bridge so the writer can be created with
+-- SET capability, then remove the entire bridge after ownership is transferred.
+SET createrole_self_grant = 'set';
+
+CREATE ROLE scientific_persistence_migration_owner
+  NOLOGIN
+  NOINHERIT
+  NOSUPERUSER
+  NOCREATEDB
+  CREATEROLE
+  NOREPLICATION
+  NOBYPASSRLS;
+
+RESET createrole_self_grant;
+
+SET ROLE scientific_persistence_migration_owner;
+SET createrole_self_grant = 'set';
+
+CREATE ROLE scientific_persistence_writer
+  NOLOGIN
+  NOINHERIT
+  NOSUPERUSER
+  NOCREATEDB
+  NOCREATEROLE
+  NOREPLICATION
+  NOBYPASSRLS;
+
+RESET createrole_self_grant;
+RESET ROLE;
+
 GRANT USAGE, CREATE ON SCHEMA public TO scientific_persistence_writer;
 GRANT INSERT ON TABLE public.scientific_persistence_records TO scientific_persistence_writer;
 GRANT SELECT (persistence_id, persisted_at)
@@ -114,13 +142,29 @@ CREATE POLICY scientific_persistence_writer_insert_own
   ON public.scientific_persistence_records
   FOR INSERT
   TO scientific_persistence_writer
-  WITH CHECK (owner_id = auth.uid());
+  WITH CHECK (
+    owner_id = COALESCE(
+      NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', true), ''),
+      (
+        NULLIF(pg_catalog.current_setting('request.jwt.claims', true), '')::pg_catalog.jsonb
+        ->> 'sub'
+      )
+    )::pg_catalog.uuid
+  );
 
 CREATE POLICY scientific_persistence_writer_return_own
   ON public.scientific_persistence_records
   FOR SELECT
   TO scientific_persistence_writer
-  USING (owner_id = auth.uid());
+  USING (
+    owner_id = COALESCE(
+      NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', true), ''),
+      (
+        NULLIF(pg_catalog.current_setting('request.jwt.claims', true), '')::pg_catalog.jsonb
+        ->> 'sub'
+      )
+    )::pg_catalog.uuid
+  );
 
 CREATE FUNCTION public.insert_scientific_persistence_record(
   p_parent_persistence_id uuid,
@@ -151,8 +195,16 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $function$
+DECLARE
+  caller_owner_id pg_catalog.uuid := COALESCE(
+    NULLIF(pg_catalog.current_setting('request.jwt.claim.sub', true), ''),
+    (
+      NULLIF(pg_catalog.current_setting('request.jwt.claims', true), '')::pg_catalog.jsonb
+      ->> 'sub'
+    )
+  )::pg_catalog.uuid;
 BEGIN
-  IF auth.uid() IS NULL THEN
+  IF caller_owner_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required for scientific persistence'
       USING ERRCODE = '28000';
   END IF;
@@ -180,7 +232,7 @@ BEGIN
     validation_status,
     validation_issue_codes
   ) VALUES (
-    auth.uid(),
+    caller_owner_id,
     p_parent_persistence_id,
     p_envelope_contract_version,
     p_input_contract_version,
@@ -249,13 +301,6 @@ GRANT EXECUTE ON FUNCTION public.insert_scientific_persistence_record(
   jsonb
 ) TO authenticated;
 
--- PostgreSQL 17 gives a non-superuser CREATEROLE executor ADMIN TRUE but
--- SET FALSE on a role it creates. Add a separate, non-inheriting SET-enabled
--- grant only for this transactional ownership handoff.
-GRANT scientific_persistence_writer TO CURRENT_USER
-  WITH SET TRUE, INHERIT FALSE, ADMIN FALSE
-  GRANTED BY CURRENT_USER;
-
 ALTER FUNCTION public.insert_scientific_persistence_record(
   uuid,
   text,
@@ -280,5 +325,4 @@ ALTER FUNCTION public.insert_scientific_persistence_record(
 
 REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
 
-REVOKE scientific_persistence_writer FROM CURRENT_USER
-  GRANTED BY CURRENT_USER;
+DROP ROLE scientific_persistence_migration_owner;

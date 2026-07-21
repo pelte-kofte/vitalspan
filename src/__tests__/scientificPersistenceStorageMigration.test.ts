@@ -152,11 +152,11 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     expect(statements).toMatch(
       /create role scientific_persistence_writer nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls/,
     );
-    expect(statements).toContain(
-      'create policy scientific_persistence_writer_insert_own on public.scientific_persistence_records for insert to scientific_persistence_writer with check (owner_id = auth.uid())',
+    expect(statements).toMatch(
+      /create policy scientific_persistence_writer_insert_own on public\.scientific_persistence_records for insert to scientific_persistence_writer with check \( owner_id = coalesce\([\s\S]*?current_setting\('request\.jwt\.claim\.sub', true\)[\s\S]*?current_setting\('request\.jwt\.claims', true\)[\s\S]*?->> 'sub'[\s\S]*?\)::pg_catalog\.uuid \)/,
     );
-    expect(statements).toContain(
-      'create policy scientific_persistence_writer_return_own on public.scientific_persistence_records for select to scientific_persistence_writer using (owner_id = auth.uid())',
+    expect(statements).toMatch(
+      /create policy scientific_persistence_writer_return_own on public\.scientific_persistence_records for select to scientific_persistence_writer using \( owner_id = coalesce\([\s\S]*?current_setting\('request\.jwt\.claim\.sub', true\)[\s\S]*?current_setting\('request\.jwt\.claims', true\)[\s\S]*?->> 'sub'[\s\S]*?\)::pg_catalog\.uuid \)/,
     );
     const policies = [...statements.matchAll(/create policy[^;]+;/g)]
       .map(match => match[0]);
@@ -166,6 +166,7 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
       'revoke all on table public.scientific_persistence_records from public, anon, authenticated',
     );
     expect(statements).not.toMatch(/grant (?:select|insert|update|delete)[^;]* to authenticated/);
+    expect(statements).not.toMatch(/grant (?:usage on schema auth|execute on function auth\.uid\(\))/);
   });
 
   test('provides one authenticated internal insertion operation', () => {
@@ -174,7 +175,7 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     expect(statements).toContain('security definer');
     expect(statements).toContain("set search_path = ''");
     expect(statements).toContain('owner to scientific_persistence_writer');
-    expect(statements).not.toMatch(/\bset role\b/);
+    expect(insertionFunctionBody()).not.toMatch(/\bset role\b/);
     expect(statements).toMatch(
       /revoke all on function public\.insert_scientific_persistence_record\([\s\S]*?\) from public, anon/,
     );
@@ -183,24 +184,34 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     );
   });
 
-  test('uses a transaction-scoped PostgreSQL 17 ownership handoff', () => {
-    const temporaryGrant =
-      'grant scientific_persistence_writer to current_user with set true, inherit false, admin false granted by current_user';
+  test('uses a disposable PostgreSQL 17 CREATEROLE ownership bridge', () => {
+    const bridgeCreation = 'create role scientific_persistence_migration_owner';
+    const bridgeActivation = 'set role scientific_persistence_migration_owner';
+    const roleCreation = 'create role scientific_persistence_writer';
     const ownershipTransfer = 'owner to scientific_persistence_writer';
-    const temporaryRevoke =
-      'revoke scientific_persistence_writer from current_user granted by current_user';
+    const bridgeRemoval = 'drop role scientific_persistence_migration_owner';
 
-    expect(statements).toContain(temporaryGrant);
-    expect(statements).toContain(temporaryRevoke);
-    expect(statements.indexOf(temporaryGrant)).toBeLessThan(statements.indexOf(ownershipTransfer));
-    expect(statements.indexOf(ownershipTransfer)).toBeLessThan(statements.indexOf(temporaryRevoke));
+    expect(occurrences(statements, /set createrole_self_grant = 'set'/g)).toBe(2);
+    expect(occurrences(statements, /reset createrole_self_grant/g)).toBe(2);
+    expect(statements).toContain(bridgeCreation);
+    expect(statements).toContain(bridgeActivation);
+    expect(statements).toContain(bridgeRemoval);
+    expect(statements).not.toMatch(/grant scientific_persistence_writer to current_user/);
+    expect(statements).not.toMatch(/revoke scientific_persistence_writer from current_user/);
+    expect(statements.indexOf(bridgeCreation)).toBeLessThan(statements.indexOf(bridgeActivation));
+    expect(statements.indexOf(bridgeActivation)).toBeLessThan(statements.indexOf(roleCreation));
+    expect(statements.indexOf(roleCreation)).toBeLessThan(statements.indexOf(ownershipTransfer));
+    expect(statements.indexOf(ownershipTransfer)).toBeLessThan(statements.indexOf(bridgeRemoval));
   });
 
   test('derives the owner from authenticated context and fails closed without it', () => {
     const body = insertionFunctionBody();
-    expect(body).toContain('if auth.uid() is null then');
+    expect(statements).toMatch(
+      /caller_owner_id pg_catalog\.uuid := coalesce\([\s\S]*?current_setting\('request\.jwt\.claim\.sub', true\)[\s\S]*?current_setting\('request\.jwt\.claims', true\)[\s\S]*?->> 'sub'[\s\S]*?\)::pg_catalog\.uuid/,
+    );
+    expect(body).toContain('if caller_owner_id is null then');
     expect(body).toContain("using errcode = '28000'");
-    expect(body).toMatch(/insert into public\.scientific_persistence_records[\s\S]*?values \( auth\.uid\(\),/);
+    expect(body).toMatch(/insert into public\.scientific_persistence_records[\s\S]*?values \( caller_owner_id,/);
   });
 
   test('executes exactly one insert and returns only generated identity and time', () => {
