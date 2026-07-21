@@ -149,7 +149,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = ''
 AS $function$
 BEGIN
   IF auth.uid() IS NULL THEN
@@ -205,30 +205,6 @@ BEGIN
 END
 $function$;
 
-ALTER FUNCTION public.insert_scientific_persistence_record(
-  uuid,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  jsonb
-) OWNER TO scientific_persistence_writer;
-
-REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
-
 REVOKE ALL ON FUNCTION public.insert_scientific_persistence_record(
   uuid,
   text,
@@ -272,3 +248,37 @@ GRANT EXECUTE ON FUNCTION public.insert_scientific_persistence_record(
   text,
   jsonb
 ) TO authenticated;
+
+-- PostgreSQL 17 gives a non-superuser CREATEROLE executor ADMIN TRUE but
+-- SET FALSE on a role it creates. Add a separate, non-inheriting SET-enabled
+-- grant only for this transactional ownership handoff.
+GRANT scientific_persistence_writer TO CURRENT_USER
+  WITH SET TRUE, INHERIT FALSE, ADMIN FALSE
+  GRANTED BY CURRENT_USER;
+
+ALTER FUNCTION public.insert_scientific_persistence_record(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+) OWNER TO scientific_persistence_writer;
+
+REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
+
+REVOKE scientific_persistence_writer FROM CURRENT_USER
+  GRANTED BY CURRENT_USER;

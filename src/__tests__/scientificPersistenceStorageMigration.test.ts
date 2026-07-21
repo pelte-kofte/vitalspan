@@ -172,14 +172,28 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     expect(occurrences(statements, /\bcreate function public\.insert_scientific_persistence_record\b/g))
       .toBe(1);
     expect(statements).toContain('security definer');
-    expect(statements).toContain('set search_path = pg_catalog, public');
+    expect(statements).toContain("set search_path = ''");
     expect(statements).toContain('owner to scientific_persistence_writer');
+    expect(statements).not.toMatch(/\bset role\b/);
     expect(statements).toMatch(
       /revoke all on function public\.insert_scientific_persistence_record\([\s\S]*?\) from public, anon/,
     );
     expect(statements).toMatch(
       /grant execute on function public\.insert_scientific_persistence_record\([\s\S]*?\) to authenticated/,
     );
+  });
+
+  test('uses a transaction-scoped PostgreSQL 17 ownership handoff', () => {
+    const temporaryGrant =
+      'grant scientific_persistence_writer to current_user with set true, inherit false, admin false granted by current_user';
+    const ownershipTransfer = 'owner to scientific_persistence_writer';
+    const temporaryRevoke =
+      'revoke scientific_persistence_writer from current_user granted by current_user';
+
+    expect(statements).toContain(temporaryGrant);
+    expect(statements).toContain(temporaryRevoke);
+    expect(statements.indexOf(temporaryGrant)).toBeLessThan(statements.indexOf(ownershipTransfer));
+    expect(statements.indexOf(ownershipTransfer)).toBeLessThan(statements.indexOf(temporaryRevoke));
   });
 
   test('derives the owner from authenticated context and fails closed without it', () => {

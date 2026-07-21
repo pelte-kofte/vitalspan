@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "supabase-phase-8-0d-staging-read-only": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=kviqeyikngigcmwlgazh&read_only=true&features=database"
+    }
+  }
+}
