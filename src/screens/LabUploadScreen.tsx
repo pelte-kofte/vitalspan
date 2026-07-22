@@ -12,6 +12,8 @@ import { SearchIcon, SuccessCheckIcon, ClipboardIcon, CameraIcon } from '../comp
 import { parseLabPDF, ParsedBiomarker } from '../lib/labParser';
 import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
 import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
+import { markBiomarkerHistoryDirty } from '../lib/biomarkerWriteService';
 
 type Phase = 'idle' | 'analyzing' | 'results' | 'noResults' | 'noMatch' | 'success';
 
@@ -70,12 +72,15 @@ export default function LabUploadScreen() {
   };
 
   const save = useCallback(async () => {
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     const toSave = items.filter(i => i.selected);
     if (toSave.length === 0) { Alert.alert('Select at least one biomarker'); return; }
 
     const existing: StoredEntry[] = JSON.parse(
       (await AsyncStorage.getItem('@vitalspan_biomarkers')) ?? '[]'
     );
+    if (!isAuthRequestScopeCurrent(scope)) return;
 
     const today = new Date().toISOString().slice(0, 10);
     const newEntries: StoredEntry[] = toSave.map(item => createStoredBiomarkerEntry({
@@ -92,6 +97,9 @@ export default function LabUploadScreen() {
     }));
 
     await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify([...existing, ...newEntries]));
+    if (!isAuthRequestScopeCurrent(scope)) return;
+    await markBiomarkerHistoryDirty(scope);
+    if (!isAuthRequestScopeCurrent(scope)) return;
     setSavedCount(toSave.length);
     setSavedNames(toSave.map(i => i.name));
     setPhase('success');

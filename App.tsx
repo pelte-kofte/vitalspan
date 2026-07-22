@@ -3,17 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, initSupabaseSession } from './src/lib/supabase';
+import { isAuthRequestScopeCurrent } from './src/lib/supabase';
 import { migrateHistory } from './src/lib/biomarkerWriteService';
 import { pruneExpiredCache } from './src/services/rxnav';
 import { StoredEntry } from './src/screens/BiomarkerEntryScreen';
 import AppNavigator from './src/navigation/AppNavigator';
 import MedicalDisclaimer from './src/components/MedicalDisclaimer';
 import BootLoadingScreen from './src/components/BootLoadingScreen';
-import { identifyAdaptyUser } from './src/lib/adapty';
 import { PremiumProvider } from './src/context/PremiumContext';
+import { AuthSessionProvider, useAuthSession } from './src/context/AuthSessionContext';
 import * as Notifications from 'expo-notifications';
 import { loadNotificationPrefs, rescheduleAll } from './src/lib/notifications';
+import { BIOMARKER_PERSISTENCE_MIGRATION_KEY } from './src/lib/storageKeys';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -25,94 +26,108 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
-  const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Onboarding' | 'Main' | null>(null);
+  return (
+    <AuthSessionProvider>
+      <VitalspanApp />
+    </AuthSessionProvider>
+  );
+}
+
+function VitalspanApp() {
+  const auth = useAuthSession();
+  const [routeState, setRouteState] = useState<{
+    route: 'Welcome' | 'Onboarding' | 'Main';
+    generation: number;
+  } | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const init = async () => {
-      // 10-second safety net: if any boot step hangs (e.g. SDK network call with
-      // no internal timeout), we fall through to the catch and show Welcome rather
-      // than leaving the user on the loading spinner forever.
-      const bootTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('[App] Boot timed out after 10s')), 10_000),
-      );
-
-      const boot = async () => {
-        await initSupabaseSession();
-        // activationPromise (Adapty SDK init) is intentionally NOT awaited here.
-        // adapty.activate() can stall indefinitely on some network conditions and
-        // is not required for routing. identifyAdaptyUser() awaits it internally
-        // when called below; PremiumContext handles it for premium gating.
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.id) {
-          identifyAdaptyUser(user.id).catch(() => null);
-        }
-        // Anonymous (guest) sessions are routed exactly like authenticated ones —
-        // a guest who finished onboarding must not be bounced back to Welcome on
-        // every relaunch. Welcome is reserved for the true no-session case; this
-        // runs once at boot and does not conflict with WelcomeScreen's
-        // onAuthStateChange listener, which only reacts to SIGNED_IN transitions
-        // after mount, not the INITIAL_SESSION event fired on mount.
-        let sessionKind: 'none' | 'anon' | 'auth' = 'none';
-        let onboardingComplete = false;
-        let route: 'Welcome' | 'Onboarding' | 'Main' = 'Welcome';
-        if (user) {
-          sessionKind = user.is_anonymous ? 'anon' : 'auth';
-          const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
-          const profile = profileRaw ? JSON.parse(profileRaw) : null;
-          onboardingComplete = !!profile?.onboardingComplete;
-          route = onboardingComplete ? 'Main' : 'Onboarding';
-        }
-        console.log(`[Boot] session=${sessionKind} onboarding=${onboardingComplete} → route=${route}`);
-        setInitialRoute(route);
-      };
-
-      try {
-        await Promise.race([boot(), bootTimeout]);
-      } catch (error) {
-        console.error('[App] Boot error:', error);
-        setInitialRoute('Welcome');
+      if (auth.status === 'initializing') {
+        setRouteState(null);
+        return;
       }
-      // Fire-and-forget: cache pruning + data migration (non-blocking)
-      pruneExpiredCache().catch(() => null);
-      // Migration chain: only runs after session is established
-      void (async () => {
-        const migrated = await AsyncStorage.getItem('@vitalspan_migrated_v2').catch(() => null);
-        if (!migrated) {
+
+      if (auth.status === 'signedOut') {
+        await Notifications.cancelAllScheduledNotificationsAsync().catch(() => null);
+        if (!cancelled) setRouteState({ route: 'Welcome', generation: auth.generation });
+        return;
+      }
+
+      const scope = { userId: auth.userId!, generation: auth.generation };
+      try {
+        const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile');
+        if (!isAuthRequestScopeCurrent(scope) || cancelled) return;
+        const profile = profileRaw ? JSON.parse(profileRaw) as { onboardingComplete?: boolean } : null;
+        const route = profile?.onboardingComplete ? 'Main' : 'Onboarding';
+        const sessionKind = auth.session?.user.is_anonymous ? 'anon' : 'auth';
+        console.log(`[Boot] session=${sessionKind} onboarding=${Boolean(profile?.onboardingComplete)} → route=${route}`);
+        setRouteState({ route, generation: auth.generation });
+
+        const migrated = await AsyncStorage.getItem(BIOMARKER_PERSISTENCE_MIGRATION_KEY)
+          .catch(() => null);
+        if (!migrated && isAuthRequestScopeCurrent(scope)) {
           const biomarkersRaw = await AsyncStorage.getItem('@vitalspan_biomarkers').catch(() => null);
           const entries: StoredEntry[] = biomarkersRaw ? JSON.parse(biomarkersRaw) : [];
-          migrateHistory(entries)
-            .then(() => AsyncStorage.setItem('@vitalspan_migrated_v2', 'true'))
-            .catch(() => null);
+          const migrationSucceeded = await migrateHistory(entries, scope);
+          const latestBiomarkersRaw = migrationSucceeded
+            ? await AsyncStorage.getItem('@vitalspan_biomarkers').catch(() => null)
+            : null;
+          if (
+            migrationSucceeded
+            && latestBiomarkersRaw === biomarkersRaw
+            && isAuthRequestScopeCurrent(scope)
+          ) {
+            await AsyncStorage.setItem(BIOMARKER_PERSISTENCE_MIGRATION_KEY, 'true')
+              .catch(() => null);
+          }
         }
-      })();
+      } catch (error) {
+        console.error('[App] Boot error:', error);
+        if (!cancelled && isAuthRequestScopeCurrent(scope)) {
+          setRouteState({ route: 'Onboarding', generation: auth.generation });
+        }
+      }
     };
-    init();
+
+    void init();
+    return () => { cancelled = true; };
+  // Session token refreshes keep the same generation and must not remount data.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.generation, auth.status, auth.userId]);
+
+  useEffect(() => {
+    pruneExpiredCache().catch(() => null);
   }, []);
 
   useEffect(() => {
+    if (auth.status !== 'authenticated' || !auth.userId) return;
+    const scope = { userId: auth.userId, generation: auth.generation };
     void (async () => {
       try {
         const prefs = await loadNotificationPrefs();
         const protocolRaw = await AsyncStorage.getItem('@vitalspan_protocol').catch(() => null);
+        if (!isAuthRequestScopeCurrent(scope)) return;
         const protocol = protocolRaw
           ? (JSON.parse(protocolRaw) as { supplements?: Array<{ id: string; name: string; reminderEnabled?: boolean; reminderSlot?: import('./src/types/protocol').TimeSlot }>; medReminders?: Record<string, { enabled: boolean; slot: import('./src/types/protocol').TimeSlot }> })
           : undefined;
-        await rescheduleAll(prefs, protocol);
+        await rescheduleAll(prefs, protocol, scope);
       } catch (error) {
         console.error('[App] Notification reschedule failed:', error);
       }
     })();
-  }, []);
+  }, [auth.generation, auth.status, auth.userId]);
 
-  if (!initialRoute) {
+  if (!routeState || routeState.generation !== auth.generation) {
     return <BootLoadingScreen />;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="auto" />
-      <PremiumProvider>
-        <AppNavigator initialRoute={initialRoute} />
+      <PremiumProvider key={auth.generation}>
+        <AppNavigator key={auth.generation} initialRoute={routeState.route} />
       </PremiumProvider>
       <MedicalDisclaimer />
     </GestureHandlerRootView>

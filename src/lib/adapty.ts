@@ -593,14 +593,36 @@ export function retryActivation(): Promise<void> {
  *
  * Never throws — errors are absorbed and warned.
  */
-export async function identifyAdaptyUser(userId: string): Promise<void> {
+let identifiedAdaptyUserId: string | null = null
+
+export async function identifyAdaptyUser(userId: string): Promise<boolean> {
+  if (identifiedAdaptyUserId === userId) return true
   await activationPromise
   try {
+    if (identifiedAdaptyUserId !== null && identifiedAdaptyUserId !== userId) {
+      await adapty.logout()
+      identifiedAdaptyUserId = null
+    }
     await adapty.identify(userId)
+    identifiedAdaptyUserId = userId
     console.log('[Adapty] identify() succeeded')
+    return true
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.warn('[Adapty] identify() failed:', message, err)
+    return false
+  }
+}
+
+/** Removes the prior Supabase-to-Adapty association on a signed-out device. */
+export async function logoutAdaptyUser(): Promise<void> {
+  await activationPromise
+  try {
+    await adapty.logout()
+    identifiedAdaptyUserId = null
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.warn('[Adapty] logout() failed:', message)
   }
 }
 

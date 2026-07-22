@@ -9,6 +9,7 @@ import {
   Exercise, ExerciseIntensity, ExerciseLogEntry, SetRecord, CATEGORY_MET,
 } from '../data/exercises';
 import { Colors, Spacing, Radius, Typography } from '../theme';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
 
 export interface QuickLogModalProps {
   exercise: Exercise | null;
@@ -75,6 +76,8 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
 
   async function handleSave() {
     if (!exercise) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     const setsNum = Math.min(parseInt(sets) || 1, 20);
     const repsNum = parseInt(repsPerSet.replace(',', '.')) || 0;
     const weightNum = parseFloat(weightKg.replace(',', '.')) || undefined;
@@ -100,8 +103,10 @@ export default function QuickLogModal({ exercise, visible, onClose }: QuickLogMo
     };
     try {
       const raw = await AsyncStorage.getItem('@vitalspan_exercise_log');
+      if (!isAuthRequestScopeCurrent(scope)) return;
       const existing: ExerciseLogEntry[] = raw ? JSON.parse(raw) : [];
       await AsyncStorage.setItem('@vitalspan_exercise_log', JSON.stringify([entry, ...existing]));
+      if (!isAuthRequestScopeCurrent(scope)) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       onClose();
     } catch (err) {

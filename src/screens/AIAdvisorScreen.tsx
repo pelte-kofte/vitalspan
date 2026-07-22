@@ -14,6 +14,7 @@ import ReportCard, { ReportItem } from '../components/advisor/ReportCard';
 import ChatThread from '../components/advisor/ChatThread';
 import { assembleAdvisorContext, AdvisorContext } from '../lib/advisorContext';
 import { generateReport, sendChatMessage, LongevityReport, ChatMessage } from '../lib/advisorService';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -35,10 +36,14 @@ export default function AIAdvisorScreen(): React.JSX.Element {
 
   async function handleGenerate() {
     if (isReportLoading) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     setIsReportLoading(true); setGenerationError(null);
     const ctx = await assembleAdvisorContext();
+    if (!isAuthRequestScopeCurrent(scope)) return;
     setAdvisorCtx(ctx);
-    const result = await generateReport(ctx);
+    const result = await generateReport(ctx, scope);
+    if (!isAuthRequestScopeCurrent(scope)) return;
     if (result.error) { setGenerationError(result.error.message); setIsReportLoading(false); return; }
     setReport(result.data);
     AsyncStorage.setItem('@vitalspan_last_report_ts', new Date().toISOString()).catch(() => null);
@@ -49,11 +54,15 @@ export default function AIAdvisorScreen(): React.JSX.Element {
     const content = (suggestedPrompt ?? chatInput).trim();
     if (!content || isChatLoading) return;
     const userMsg: ChatMessage = { role: 'user', content };
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages); setChatInput(''); setIsChatLoading(true);
     const freshCtx = await assembleAdvisorContext();
+    if (!isAuthRequestScopeCurrent(scope)) return;
     setAdvisorCtx(freshCtx);
-    const result = await sendChatMessage(nextMessages, reportSummary, freshCtx);
+    const result = await sendChatMessage(nextMessages, reportSummary, freshCtx, scope);
+    if (!isAuthRequestScopeCurrent(scope)) return;
     const reply = result.error
       ? 'Sorry, something went wrong. Please try again.'
       : result.data!;

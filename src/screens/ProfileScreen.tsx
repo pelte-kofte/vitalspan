@@ -16,7 +16,7 @@ import AnimatedPressable from '../components/AnimatedPressable';
 import StaggerIn from '../components/StaggerIn';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
-import { signOutUser, supabase } from '../lib/supabase';
+import { authSessionCoordinator, signOutUser } from '../lib/supabase';
 import { CONDITIONS } from '../constants/conditions';
 
 type Nav = CompositeNavigationProp<
@@ -61,7 +61,7 @@ export default function ProfileScreen() {
         }
         const perms = await loadPermissionStatus();
         setHealthConnected(perms?.granted ?? false);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = authSessionCoordinator.getSnapshot().session?.user ?? null;
         setIsAnonymous(user?.is_anonymous ?? null);
       })
       .catch(console.error);
@@ -87,8 +87,7 @@ export default function ProfileScreen() {
       Alert.alert('Logout failed', error);
       return;
     }
-    // signOutUser() clears local AsyncStorage too — sign-out is always a fresh start.
-    (nav as unknown as NativeStackNavigationProp<RootStackParamList>).reset({ index: 0, routes: [{ name: 'Welcome' }] });
+    // Root navigation is driven by the centralized auth coordinator.
   }
 
   function startEdit() {

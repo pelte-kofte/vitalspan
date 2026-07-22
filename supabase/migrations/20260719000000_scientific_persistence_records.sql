@@ -325,4 +325,6 @@ ALTER FUNCTION public.insert_scientific_persistence_record(
 
 REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
 
-DROP ROLE scientific_persistence_migration_owner;
+-- Retain the NOLOGIN ownership bridge until the immediately following
+-- idempotency migration replaces the writer-owned RPC. That migration removes
+-- the bridge after restoring the writer's least-privilege schema access.

@@ -11,7 +11,7 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import { Colors, Spacing, Radius, Typography, Motion, Elevation } from '../theme';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
-import { syncEntry } from '../lib/biomarkerWriteService';
+import { markBiomarkerHistoryDirty, syncEntry } from '../lib/biomarkerWriteService';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import RangeBar from '../components/RangeBar';
 import BreathingCard from '../components/BreathingCard';
@@ -19,6 +19,7 @@ import { FIRST_RUN_CONTENT_MAP } from '../data/firstRunContent';
 import { BIOMARKER_STATUS_LABELS, classifyBiomarkerValue } from '../lib/biomarkerInterpretation';
 import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
 import type { SourceLabRange } from '../types/biomarkerKnowledge';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
 
 export type { StoredEntry } from '../types/biomarkerEntry';
 
@@ -120,10 +121,13 @@ export default function BiomarkerEntryScreen() {
 
   async function save() {
     if (!selected || !isValidValue || saving) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     setSaving(true);
     try {
       const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
+      if (!isAuthRequestScopeCurrent(scope)) return;
       const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
       entries.push(createStoredBiomarkerEntry({
         biomarkerId: selected.id,
@@ -137,6 +141,9 @@ export default function BiomarkerEntryScreen() {
         sourceLabRange,
       }));
       await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
+      if (!isAuthRequestScopeCurrent(scope)) return;
+      await markBiomarkerHistoryDirty(scope);
+      if (!isAuthRequestScopeCurrent(scope)) return;
       syncEntry(entries[entries.length - 1]);  // fire-and-forget — void return intentional
       nav.goBack();
     } catch (e) {

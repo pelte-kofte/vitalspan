@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   Dimensions, Animated, KeyboardAvoidingView, Platform,
@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import NeuralGrid from '../components/NeuralGrid';
 import SheetForm, { SheetFormField } from '../components/auth/SheetForm';
-import { signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase, signInWithApple, signInWithGoogle } from '../lib/supabase';
+import { authSessionCoordinator, captureAuthRequestScope, signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase, signInWithApple, signInWithGoogle } from '../lib/supabase';
 import { migrateHistory } from '../lib/biomarkerWriteService';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import { Colors, Spacing, Radius, Typography } from '../theme';
@@ -29,26 +29,6 @@ export default function WelcomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const sheetAnim = useRef(new Animated.Value(SCREEN_H)).current;
 
-  // Single source of truth for post-sign-in navigation. Email, Google, and
-  // Apple sign-in all end up calling a Supabase auth method that fires a
-  // SIGNED_IN event on this listener — so all three land here instead of each
-  // needing its own nav call. Anonymous (guest) sign-ins are explicitly
-  // excluded: guest navigates itself in handleGuest, and must never be
-  // redirected by this effect.
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const provider = session?.user?.app_metadata?.provider ?? 'none';
-      const anonymous = session?.user?.is_anonymous ?? 'n/a';
-      console.log(`[Auth] state change: ${event} (provider: ${provider}, anonymous: ${anonymous})`);
-      if (event === 'SIGNED_IN' && session?.user && !session.user.is_anonymous) {
-        const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
-        const profile = raw ? JSON.parse(raw) : {};
-        nav.reset({ index: 0, routes: [{ name: profile.onboardingComplete ? 'Main' : 'Onboarding' }] });
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [nav]);
-
   function openSheet(type: 'signup' | 'login') {
     setEmail(''); setPassword(''); setConfirmPassword(''); setError(null);
     setSheet(type);
@@ -66,7 +46,7 @@ export default function WelcomeScreen() {
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     setLoading(true); setError(null);
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const currentUser = authSessionCoordinator.getSnapshot().session?.user ?? null;
       let result: { user: import('@supabase/supabase-js').User | null; error: string | null };
       if (currentUser?.is_anonymous) {
         result = await convertAnonymousToEmail(email, password);
@@ -76,14 +56,19 @@ export default function WelcomeScreen() {
           if (linked !== 'true') {
             const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
             const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
-            await migrateHistory(entries);
-            await AsyncStorage.setItem('@vitalspan_identity_linked', 'true');
+            const scope = captureAuthRequestScope();
+            if (scope) {
+              const migrationSucceeded = await migrateHistory(entries, scope);
+              if (migrationSucceeded) {
+                await AsyncStorage.setItem('@vitalspan_identity_linked', 'true');
+              }
+            }
           }
         } else {
           // convertAnonymousToEmail failed (e.g. anonymous auth disabled in Supabase,
           // or the anonymous session expired). Fall back to a direct signUp so the
-          // user can still create an account — their local data is preserved in
-          // AsyncStorage regardless.
+          // user can still create an account. The coordinator treats the new
+          // user ID as a clean identity; guest data is not copied implicitly.
           result = await signUpWithEmail(email, password);
         }
       } else {
@@ -107,7 +92,7 @@ export default function WelcomeScreen() {
       if (result.error) { setError(result.error); setLoading(false); return; }
       setLoading(false);
       closeSheet();
-      // Navigation to Home is handled by the onAuthStateChange listener above.
+      // Root navigation is driven by the centralized auth coordinator.
     } catch (e: unknown) {
       setError(mapAuthError(e instanceof Error ? e.message : String(e)));
       setLoading(false);
@@ -118,16 +103,15 @@ export default function WelcomeScreen() {
     // This is the ONLY place in the app that creates an anonymous session —
     // an explicit "Continue as guest" tap. initSupabaseSession() (boot) never
     // creates one; it only restores an already-persisted session.
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = authSessionCoordinator.getSnapshot().session;
     if (!session) {
       const { error } = await supabase.auth.signInAnonymously();
       console.log('[Auth] guest: no session found, created anonymous session', error ? `(failed: ${error.message})` : '(ok)');
     } else {
       console.log('[Auth] guest: continuing with existing session', session.user.is_anonymous ? '(anonymous)' : '(signed in)');
     }
-    const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
-    const profile = raw ? JSON.parse(raw) : {};
-    nav.reset({ index: 0, routes: [{ name: profile.onboardingComplete ? 'Main' : 'Onboarding' }] });
+    // Root navigation changes only after the coordinator has cleared any prior
+    // identity and published the anonymous session.
   }
 
   const signupFields = useMemo<SheetFormField[]>(() => [
@@ -157,7 +141,7 @@ export default function WelcomeScreen() {
             console.log('[Auth] Apple sign-in tapped');
             const { error } = await signInWithApple();
             if (error) { Alert.alert('Sign in failed', error); }
-            // Navigation to Home on success is handled by the onAuthStateChange listener above.
+            // Root navigation is driven by the centralized auth coordinator.
           }}>
             <Text style={s.btnAppleTxt}> Sign in with Apple</Text>
           </TouchableOpacity>
@@ -166,7 +150,7 @@ export default function WelcomeScreen() {
             console.log('[Auth] Google sign-in tapped');
             const { error } = await signInWithGoogle();
             if (error) { Alert.alert('Sign in failed', error); }
-            // Navigation to Home on success is handled by the onAuthStateChange listener above.
+            // Root navigation is driven by the centralized auth coordinator.
           }}>
             <Text style={s.btnGoogleTxt}>G  Sign in with Google</Text>
           </TouchableOpacity>

@@ -14,6 +14,8 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TimeSlot } from '../types/protocol';
+import type { AuthRequestScope } from './authSessionCoordinator';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from './supabase';
 
 // ─── Storage key ──────────────────────────────────────────────────────────────
 
@@ -45,8 +47,11 @@ export const DEFAULT_PREFS: NotificationPrefs = {
  * Returns DEFAULT_PREFS on missing key or parse error (T-23-01 mitigation).
  */
 export async function loadNotificationPrefs(): Promise<NotificationPrefs> {
+  const scope = captureAuthRequestScope();
+  if (!scope) return DEFAULT_PREFS;
   try {
     const raw = await AsyncStorage.getItem(NOTIFICATION_PREFS_KEY);
+    if (!isAuthRequestScopeCurrent(scope)) return DEFAULT_PREFS;
     return raw ? (JSON.parse(raw) as NotificationPrefs) : DEFAULT_PREFS;
   } catch (e) {
     console.error('[notifications] loadNotificationPrefs failed:', e);
@@ -59,6 +64,8 @@ export async function loadNotificationPrefs(): Promise<NotificationPrefs> {
  * Swallows errors silently — non-critical write.
  */
 export async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
+  const scope = captureAuthRequestScope();
+  if (!scope || !isAuthRequestScopeCurrent(scope)) return;
   try {
     await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(prefs));
   } catch (e) {
@@ -96,7 +103,12 @@ export async function ensurePermission(): Promise<boolean> {
  * @param slot - TimeSlot key (morning | afternoon | evening | night)
  * @param time - "HH:MM" 24-hour time string
  */
-export async function scheduleSlot(slot: TimeSlot, time: string): Promise<void> {
+export async function scheduleSlot(
+  slot: TimeSlot,
+  time: string,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<void> {
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return;
   const [hour, minute] = time.split(':').map(Number);
   await Notifications.scheduleNotificationAsync({
     identifier: `vitalspan-${slot}`,
@@ -111,6 +123,9 @@ export async function scheduleSlot(slot: TimeSlot, time: string): Promise<void> 
       minute,
     },
   });
+  if (!isAuthRequestScopeCurrent(expectedScope)) {
+    await Notifications.cancelScheduledNotificationAsync(`vitalspan-${slot}`).catch(() => null);
+  }
 }
 
 /**
@@ -142,7 +157,9 @@ export async function scheduleItemReminder(
   slot: TimeSlot,
   name: string,
   prefs: NotificationPrefs,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
 ): Promise<void> {
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return;
   const time = prefs[slot]?.time ?? SLOT_DEFAULT_TIMES[slot];
   const [hour, minute] = time.split(':').map(Number);
   await Notifications.scheduleNotificationAsync({
@@ -158,6 +175,9 @@ export async function scheduleItemReminder(
       minute,
     },
   });
+  if (!isAuthRequestScopeCurrent(expectedScope)) {
+    await Notifications.cancelScheduledNotificationAsync(`vitalspan-item-${id}`).catch(() => null);
+  }
 }
 
 /**
@@ -178,16 +198,20 @@ export async function rescheduleAll(
     supplements?: Array<{ id: string; name: string; reminderEnabled?: boolean; reminderSlot?: TimeSlot }>;
     medReminders?: Record<string, { enabled: boolean; slot: TimeSlot }>;
   },
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
 ): Promise<void> {
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   for (const item of protocol?.supplements ?? []) {
+    if (!isAuthRequestScopeCurrent(expectedScope)) return;
     if (item.reminderEnabled && item.reminderSlot) {
-      await scheduleItemReminder(item.id, item.reminderSlot, item.name, prefs).catch(() => null);
+      await scheduleItemReminder(item.id, item.reminderSlot, item.name, prefs, expectedScope).catch(() => null);
     }
   }
   for (const [medName, config] of Object.entries(protocol?.medReminders ?? {})) {
+    if (!isAuthRequestScopeCurrent(expectedScope)) return;
     if (config.enabled) {
-      await scheduleItemReminder(`med_${medName}`, config.slot, medName, prefs).catch(() => null);
+      await scheduleItemReminder(`med_${medName}`, config.slot, medName, prefs, expectedScope).catch(() => null);
     }
   }
 }

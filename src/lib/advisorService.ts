@@ -1,5 +1,10 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import {
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+  supabase,
+} from './supabase';
+import type { AuthRequestScope } from './authSessionCoordinator';
 import type { AdvisorContext } from './advisorContext';
 import type { BiomarkerStatus } from './advisorContext';
 
@@ -74,11 +79,22 @@ function mapInvokeError(err: unknown): { code: AdvisorErrorCode; message: string
   return { code: 'UNKNOWN', message: 'Something went wrong' };
 }
 
-export async function generateReport(context: AdvisorContext): Promise<ReportResult> {
+const STALE_AUTH_ERROR = { code: 'UNAUTHORIZED' as const, message: 'Session changed — please try again' };
+
+export async function generateReport(
+  context: AdvisorContext,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<ReportResult> {
   try {
+    if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) {
+      return { data: null, error: STALE_AUTH_ERROR };
+    }
     const { data, error } = await supabase.functions.invoke('ai-advisor', {
       body: { action: 'report', context },
     });
+    if (!isAuthRequestScopeCurrent(expectedScope)) {
+      return { data: null, error: STALE_AUTH_ERROR };
+    }
     if (error) {
       return { data: null, error: mapInvokeError(error) };
     }
@@ -96,11 +112,18 @@ export async function sendChatMessage(
   messages: ChatMessage[],
   reportSummary: string,
   context?: AdvisorContext,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
 ): Promise<ChatResult> {
   try {
+    if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) {
+      return { data: null, error: STALE_AUTH_ERROR };
+    }
     const { data, error } = await supabase.functions.invoke('ai-advisor', {
       body: { action: 'chat', messages, reportSummary, context },
     });
+    if (!isAuthRequestScopeCurrent(expectedScope)) {
+      return { data: null, error: STALE_AUTH_ERROR };
+    }
     if (error) {
       return { data: null, error: mapInvokeError(error) };
     }

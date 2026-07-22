@@ -13,6 +13,7 @@ import { GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon, CheckmarkIcon
 import { RootStackParamList } from '../navigation/AppNavigator';
 import MedicationSearch from '../components/MedicationSearch';
 import { CONDITIONS } from '../constants/conditions';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,6 +74,8 @@ export default function OnboardingScreen() {
   }
 
   async function finish() {
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     const profile = {
       name: name.trim() || 'Friend',
       age,
@@ -84,6 +87,7 @@ export default function OnboardingScreen() {
     };
     try {
       await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
+      if (!isAuthRequestScopeCurrent(scope)) return;
     } catch {
       Alert.alert('Save failed', 'Could not save your profile. Please try again.');
       return;

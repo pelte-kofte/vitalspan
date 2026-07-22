@@ -184,24 +184,22 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     );
   });
 
-  test('uses a disposable PostgreSQL 17 CREATEROLE ownership bridge', () => {
+  test('opens the PostgreSQL 17 ownership bridge for the following migration', () => {
     const bridgeCreation = 'create role scientific_persistence_migration_owner';
     const bridgeActivation = 'set role scientific_persistence_migration_owner';
     const roleCreation = 'create role scientific_persistence_writer';
     const ownershipTransfer = 'owner to scientific_persistence_writer';
-    const bridgeRemoval = 'drop role scientific_persistence_migration_owner';
 
     expect(occurrences(statements, /set createrole_self_grant = 'set'/g)).toBe(2);
     expect(occurrences(statements, /reset createrole_self_grant/g)).toBe(2);
     expect(statements).toContain(bridgeCreation);
     expect(statements).toContain(bridgeActivation);
-    expect(statements).toContain(bridgeRemoval);
+    expect(statements).not.toContain('drop role scientific_persistence_migration_owner');
     expect(statements).not.toMatch(/grant scientific_persistence_writer to current_user/);
     expect(statements).not.toMatch(/revoke scientific_persistence_writer from current_user/);
     expect(statements.indexOf(bridgeCreation)).toBeLessThan(statements.indexOf(bridgeActivation));
     expect(statements.indexOf(bridgeActivation)).toBeLessThan(statements.indexOf(roleCreation));
     expect(statements.indexOf(roleCreation)).toBeLessThan(statements.indexOf(ownershipTransfer));
-    expect(statements.indexOf(ownershipTransfer)).toBeLessThan(statements.indexOf(bridgeRemoval));
   });
 
   test('derives the owner from authenticated context and fails closed without it', () => {

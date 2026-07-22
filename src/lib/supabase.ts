@@ -17,7 +17,8 @@ import * as AppleAuthentication from 'expo-apple-authentication'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
-import { STORAGE_KEYS } from './storageKeys'
+import { AuthSessionCoordinator, type AuthRequestScope } from './authSessionCoordinator'
+import { AUTH_OWNER_STORAGE_KEY, USER_SCOPED_STORAGE_KEYS } from './storageKeys'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
@@ -45,6 +46,26 @@ export const supabase = createClient(
   },
 }
 )
+
+export const authSessionCoordinator = new AuthSessionCoordinator({
+  auth: supabase.auth,
+  storage: {
+    getItem: (key) => AsyncStorage.getItem(key),
+    setItem: (key, value) => AsyncStorage.setItem(key, value),
+    removeItem: (key) => AsyncStorage.removeItem(key),
+    multiRemove: (keys) => AsyncStorage.multiRemove([...keys]),
+  },
+  ownerStorageKey: AUTH_OWNER_STORAGE_KEY,
+  userScopedStorageKeys: USER_SCOPED_STORAGE_KEYS,
+})
+
+export function captureAuthRequestScope(): AuthRequestScope | null {
+  return authSessionCoordinator.captureRequestScope()
+}
+
+export function isAuthRequestScopeCurrent(scope: AuthRequestScope): boolean {
+  return authSessionCoordinator.isScopeCurrent(scope)
+}
 
 // Stored to prevent duplicate listeners on Fast Refresh in development.
 let _appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null
@@ -79,7 +100,7 @@ if (Platform.OS !== 'web' && !_appStateSubscription) {
  */
 export async function initSupabaseSession(): Promise<void> {
   try {
-    await supabase.auth.getSession()
+    await authSessionCoordinator.initialize()
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.warn('[Supabase] initSupabaseSession error:', message)
@@ -191,8 +212,8 @@ export async function signInWithEmail(
  * Uses updateUser (not linkIdentity — linkIdentity is OAuth-only).
  * Call after verifying user.is_anonymous before sign-up.
  * This is the Supabase-approved method for anonymous→email promotion (D-16).
- * After success, call migrateHistory() guarded by @vitalspan_identity_linked
- * to prevent duplicate migration runs.
+ * After success, call migrateHistory() guarded by @vitalspan_identity_linked.
+ * The marker is written only after a confirmed remote migration.
  *
  * Returns { user, error: null } on success.
  * Returns { user: null, error } with a user-facing message on failure.
@@ -251,12 +272,8 @@ export async function sendPasswordResetEmail(
  */
 export async function signOutUser(): Promise<{ error: string | null }> {
   try {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      return { error: mapAuthError(error.message) }
-    }
-    await AsyncStorage.multiRemove([...STORAGE_KEYS]).catch(() => null)
-    return { error: null }
+    const result = await authSessionCoordinator.signOut()
+    return result.error ? { error: mapAuthError(result.error) } : result
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)
     return { error: mapAuthError(message) }

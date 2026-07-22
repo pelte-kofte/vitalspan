@@ -42,7 +42,13 @@ import { useIssue } from '../hooks/useIssue';
 import { assembleAdvisorContext, type AdvisorContext } from '../lib/advisorContext';
 import { loadHealthData, type HealthData } from '../lib/healthkit';
 import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
-import { supabase, resendVerificationEmail } from '../lib/supabase';
+import {
+  authSessionCoordinator,
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+  resendVerificationEmail,
+  supabase,
+} from '../lib/supabase';
 import {
   buildTodayExperience,
   getTodayLayout,
@@ -190,6 +196,8 @@ export default function DashboardScreen() {
   }, []);
 
   const loadData = useCallback(async () => {
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     try {
       const [profileRaw, entriesRaw, protocolRaw, exerciseRaw, loadedHealth, dismissedRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
@@ -200,6 +208,8 @@ export default function DashboardScreen() {
         AsyncStorage.getItem(TODAY_DISMISSED_KEY),
       ]);
 
+      if (!isAuthRequestScopeCurrent(scope)) return;
+
       const nextProfile = profileRaw ? JSON.parse(profileRaw) as UserProfile : null;
       const localEntries = entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : [];
       const localEntryMap = new Map(localEntries.map(entry => [entry.id, entry]));
@@ -209,20 +219,14 @@ export default function DashboardScreen() {
       setHealthData(loadedHealth);
       setDismissedPriorityIds(parseDismissed(dismissedRaw, new Date().toISOString().slice(0, 10)));
 
-      let currentUser: import('@supabase/supabase-js').User | null = null;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        currentUser = user;
-      } catch {
-        // Local data remains available when the auth refresh is unavailable.
-      }
+      const currentUser = authSessionCoordinator.getSnapshot().session?.user ?? null;
 
       if (currentUser) {
         try {
           const { data: remoteEntries, error } = await supabase
             .from('biomarker_entries')
-            .select('id, biomarker_id, value, date, source, notes')
-            .eq('user_id', currentUser.id);
+            .select('id, biomarker_id, value, date, source, notes');
+          if (!isAuthRequestScopeCurrent(scope)) return;
           if (!error && remoteEntries && remoteEntries.length > 0) {
             setEntries(remoteEntries.map(row => ({
               ...localEntryMap.get(row.id as string),
@@ -244,7 +248,9 @@ export default function DashboardScreen() {
       }
 
       try {
-        setAdvisorContext(await assembleAdvisorContext());
+        const context = await assembleAdvisorContext();
+        if (!isAuthRequestScopeCurrent(scope)) return;
+        setAdvisorContext(context);
       } catch {
         setAdvisorContext(null);
       }
@@ -256,6 +262,7 @@ export default function DashboardScreen() {
         } else {
           setShowVerificationBanner(false);
           const notified = await AsyncStorage.getItem('@vitalspan_email_verified_notified').catch(() => null);
+          if (!isAuthRequestScopeCurrent(scope)) return;
           if (!notified) {
             await AsyncStorage.setItem('@vitalspan_email_verified_notified', 'true').catch(() => null);
             setShowVerifiedToast(true);
@@ -265,10 +272,11 @@ export default function DashboardScreen() {
         }
       }
     } catch (error) {
+      if (!isAuthRequestScopeCurrent(scope)) return;
       console.error('[Today] data load failed', error);
       Alert.alert('Data error', 'Some saved data could not be read. Pull to refresh or review Settings if this continues.');
     } finally {
-      if (!hasLoadedOnce.current) {
+      if (isAuthRequestScopeCurrent(scope) && !hasLoadedOnce.current) {
         hasLoadedOnce.current = true;
         setInitialLoading(false);
       }

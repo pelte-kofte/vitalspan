@@ -13,6 +13,9 @@ import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarker
 import { BIOMARKERS } from '../data/biomarkers';
 import ExplanationCard from '../components/ExplanationCard';
 import { FIRST_RUN_CONTENT } from '../data/firstRunContent';
+import type { AuthRequestScope } from '../lib/authSessionCoordinator';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
+import { markBiomarkerHistoryDirty } from '../lib/biomarkerWriteService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,7 +43,7 @@ export default function GuidedFirstRunScreen() {
   const [focused, setFocused] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  async function saveEntry(stepIndex: number): Promise<void> {
+  async function saveEntry(stepIndex: number, scope: AuthRequestScope): Promise<void> {
     const parsed = parseFloat(inputValue.replace(',', '.'));
     if (isNaN(parsed) || parsed <= 0) {
       setInputError('Enter a number to continue');
@@ -48,6 +51,7 @@ export default function GuidedFirstRunScreen() {
     }
     setInputError('');
     const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
+    if (!isAuthRequestScopeCurrent(scope)) return Promise.reject();
     const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
     const definition = BIOMARKERS.find(item => item.id === STEP_BIOMARKERS[stepIndex]);
     entries.push(createStoredBiomarkerEntry({
@@ -61,13 +65,16 @@ export default function GuidedFirstRunScreen() {
       notes: '',
     }));
     await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
+    await markBiomarkerHistoryDirty(scope);
   }
 
   async function handleStepAdvance() {
     if (saving) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     setSaving(true);
     try {
-      await saveEntry(step);
+      await saveEntry(step, scope);
     } catch {
       setSaving(false);
       return;
@@ -80,19 +87,24 @@ export default function GuidedFirstRunScreen() {
 
   async function handleFinish() {
     if (saving) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     setSaving(true);
     try {
-      await saveEntry(step);
+      await saveEntry(step, scope);
     } catch {
       setSaving(false);
       return;
     }
+    if (!isAuthRequestScopeCurrent(scope)) return;
     await AsyncStorage.setItem('@vitalspan_first_run_complete', 'true');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
     nav.reset({ index: 0, routes: [{ name: 'Main' }] });
   }
 
   async function handleSkip() {
+    const scope = captureAuthRequestScope();
+    if (!scope || !isAuthRequestScopeCurrent(scope)) return;
     await AsyncStorage.setItem('@vitalspan_first_run_complete', 'true');
     nav.reset({ index: 0, routes: [{ name: 'Main' }] });
   }

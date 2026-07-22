@@ -69,6 +69,11 @@ export interface ClinicalPhenoAgeProductEvaluation {
   limitations: readonly string[];
 }
 
+export interface ClinicalPhenoAgeProductEvaluationOptions {
+  readonly chronologicalAgeMeasurementId?: string;
+  readonly chronologicalAgeMeasuredAt?: string;
+}
+
 interface NormalizedMeasurement {
   input: ClinicalPhenoAgeInput;
   eligibility: ScientificEligibilityInput;
@@ -320,6 +325,7 @@ export function evaluateClinicalPhenoAgeForProduct(
   chronologicalAgeYears: number | null | undefined,
   latestEntries: ReadonlyMap<string, StoredEntry>,
   assessedAt = new Date(),
+  options: ClinicalPhenoAgeProductEvaluationOptions = {},
 ): ClinicalPhenoAgeProductEvaluation {
   const assessedAtMs = assessedAt.getTime();
   const evaluatedAt = Number.isFinite(assessedAtMs)
@@ -342,9 +348,13 @@ export function evaluateClinicalPhenoAgeForProduct(
   const completeContext = eligibleMeasurements.length === BLOOD_INPUTS.length
     && collectionDays.size === 1
     && sourceNames.size === 1;
+  const chronologicalAgeMeasurementId = age === null
+    ? 'missing:chronological_age'
+    : options.chronologicalAgeMeasurementId?.trim() || `profile-age:${age}`;
+  const chronologicalAgeMeasuredAt = options.chronologicalAgeMeasuredAt ?? evaluatedAt;
   const ageInput: ScientificEligibilityInput = {
     id: 'chronological_age',
-    measurementId: age === null ? 'missing:chronological_age' : `profile-age:${age}`,
+    measurementId: chronologicalAgeMeasurementId,
     present: age !== null,
     source: 'chronological_record',
     unit: 'years',
@@ -352,7 +362,7 @@ export function evaluateClinicalPhenoAgeForProduct(
     freshness: 'current',
     assayCompatibility: 'supported',
     confidence: 'very_high',
-    measuredAt: evaluatedAt,
+    measuredAt: chronologicalAgeMeasuredAt,
   };
   const evidenceIds = eligibleMeasurements.map(item => item.input.measurementId).sort();
   const eligibility = evaluateScientificEligibility({

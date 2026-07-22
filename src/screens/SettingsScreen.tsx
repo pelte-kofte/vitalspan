@@ -15,7 +15,7 @@ import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, T
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { STORAGE_KEYS } from '../lib/storageKeys';
 import { loadNotificationPrefs, saveNotificationPrefs, rescheduleAll, DEFAULT_PREFS, NotificationPrefs } from '../lib/notifications';
-import { signOutUser } from '../lib/supabase';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent, signOutUser } from '../lib/supabase';
 import { getAdaptyDebugInfo, AdaptyDebugInfo } from '../lib/adapty';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -138,7 +138,6 @@ export default function SettingsScreen() {
               return;
             }
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => null);
-            nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
           },
         },
       ],
@@ -157,8 +156,9 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await AsyncStorage.multiRemove([...STORAGE_KEYS]);
+              const { error } = await signOutUser();
+              if (error) throw new Error(error);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
-              nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
             } catch {
               Alert.alert('Clear failed', 'Could not delete all data. Please try again.');
             }
@@ -169,8 +169,11 @@ export default function SettingsScreen() {
   }
 
   async function handleExportData() {
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     try {
       const pairs = await AsyncStorage.multiGet([...STORAGE_KEYS]);
+      if (!isAuthRequestScopeCurrent(scope)) return;
       const data: Record<string, unknown> = {};
       for (const [key, value] of pairs) {
         data[key] = value ? JSON.parse(value) : null;
@@ -191,13 +194,16 @@ export default function SettingsScreen() {
         {
           text: 'Reset',
           onPress: async () => {
+            const scope = captureAuthRequestScope();
+            if (!scope) return;
             const raw = await AsyncStorage.getItem('@vitalspan_user_profile');
+            if (!isAuthRequestScopeCurrent(scope)) return;
             if (raw) {
               const profile = JSON.parse(raw);
               delete profile.onboardingComplete;
               await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
             }
-            nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+            nav.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
           },
         },
       ],

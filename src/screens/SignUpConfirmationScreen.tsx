@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { authSessionCoordinator, isAuthRequestScopeCurrent } from '../lib/supabase';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'SignUpConfirmation'>;
@@ -21,7 +22,13 @@ export default function SignUpConfirmationScreen() {
   const { email } = useRoute<Route>().params;
 
   async function handleContinue() {
+    const scope = authSessionCoordinator.captureRequestScope();
+    if (!scope) {
+      nav.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+      return;
+    }
     const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
+    if (!isAuthRequestScopeCurrent(scope)) return;
     const profile = raw ? JSON.parse(raw) : null;
     if (profile?.onboardingComplete) {
       nav.reset({ index: 0, routes: [{ name: 'Main' }] });

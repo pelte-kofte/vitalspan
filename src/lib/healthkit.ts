@@ -16,6 +16,8 @@ import {
   CategoryValueSleepAnalysis,
 } from '@kingstinct/react-native-healthkit';
 import type { ObjectTypeIdentifier } from '@kingstinct/react-native-healthkit';
+import type { AuthRequestScope } from './authSessionCoordinator';
+import { captureAuthRequestScope, isAuthRequestScopeCurrent } from './supabase';
 
 const STORAGE_KEY = '@vitalspan_health_data';
 const PERMISSIONS_KEY = '@vitalspan_health_permissions';
@@ -75,19 +77,30 @@ export function isHealthKitAvailable(): boolean {
 }
 
 export async function loadPermissionStatus(): Promise<PermissionStatus | null> {
+  const scope = captureAuthRequestScope();
+  if (!scope) return null;
   try {
     const raw = await AsyncStorage.getItem(PERMISSIONS_KEY);
+    if (!isAuthRequestScopeCurrent(scope)) return null;
     return raw ? (JSON.parse(raw) as PermissionStatus) : null;
   } catch {
     return null;
   }
 }
 
-async function savePermissionStatus(status: PermissionStatus): Promise<void> {
+async function savePermissionStatus(status: PermissionStatus, scope: AuthRequestScope): Promise<void> {
+  if (!isAuthRequestScopeCurrent(scope)) return;
   await AsyncStorage.setItem(PERMISSIONS_KEY, JSON.stringify(status)).catch(() => null);
 }
 
-export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
+export async function requestHealthKitPermissions(
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<PermissionStatus> {
+  const unavailable: PermissionStatus = {
+    granted: false,
+    categories: { heart: false, sleep: false, activity: false, glucose: false },
+  };
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return unavailable;
   try {
     await requestAuthorization({ toRead: READ_TYPES });
     const status: PermissionStatus = {
@@ -96,7 +109,7 @@ export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
       requestedAt: new Date().toISOString(),
       hasRequestedHealthKit: true,
     };
-    await savePermissionStatus(status);
+    await savePermissionStatus(status, expectedScope);
     return status;
   } catch (e) {
     console.error('[healthkit requestHealthKitPermissions]', e);
@@ -106,12 +119,17 @@ export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
       requestedAt: new Date().toISOString(),
       hasRequestedHealthKit: true,
     };
-    await savePermissionStatus(denied);
+    await savePermissionStatus(denied, expectedScope);
     return denied;
   }
 }
 
-export async function syncHealthData(): Promise<SyncResult> {
+export async function syncHealthData(
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<SyncResult> {
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) {
+    return { success: false, error: 'Authentication session changed' };
+  }
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -211,6 +229,9 @@ export async function syncHealthData(): Promise<SyncResult> {
       lastSynced: now.toISOString(),
     };
 
+    if (!isAuthRequestScopeCurrent(expectedScope)) {
+      return { success: false, error: 'Authentication session changed' };
+    }
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return { success: true, data };
   } catch (e) {
@@ -220,13 +241,21 @@ export async function syncHealthData(): Promise<SyncResult> {
 }
 
 export async function connectAndSync(): Promise<SyncResult> {
-  await requestHealthKitPermissions();
-  return syncHealthData();
+  const scope = captureAuthRequestScope();
+  if (!scope) return { success: false, error: 'Authentication required' };
+  await requestHealthKitPermissions(scope);
+  if (!isAuthRequestScopeCurrent(scope)) {
+    return { success: false, error: 'Authentication session changed' };
+  }
+  return syncHealthData(scope);
 }
 
 export async function loadHealthData(): Promise<HealthData | null> {
+  const scope = captureAuthRequestScope();
+  if (!scope) return null;
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!isAuthRequestScopeCurrent(scope)) return null;
     return raw ? (JSON.parse(raw) as HealthData) : null;
   } catch {
     return null;

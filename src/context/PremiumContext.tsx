@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { adapty } from 'react-native-adapty';
 import type { AdaptyProfile } from 'react-native-adapty';
-import { fetchPremiumStatus } from '../lib/adapty';
+import { fetchPremiumStatus, identifyAdaptyUser, logoutAdaptyUser } from '../lib/adapty';
+import { useAuthSession } from './AuthSessionContext';
+import { isAuthRequestScopeCurrent } from '../lib/supabase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -39,23 +41,54 @@ const PremiumContext = createContext<PremiumContextValue>({
  * Security: default is false (T-16-02). No AsyncStorage persistence (T-16-03).
  */
 export function PremiumProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const auth = useAuthSession();
+  const identifiedScopeRef = useRef<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [isPremiumLoading, setIsPremiumLoading] = useState(true);
 
   const refreshPremium = async (): Promise<void> => {
+    if (auth.status !== 'authenticated' || !auth.userId) {
+      setIsPremium(false);
+      setIsPremiumLoading(false);
+      return;
+    }
+    const scope = { userId: auth.userId, generation: auth.generation };
+    const identified = await identifyAdaptyUser(scope.userId);
+    if (!isAuthRequestScopeCurrent(scope)) return;
+    if (!identified) {
+      setIsPremium(false);
+      setIsPremiumLoading(false);
+      return;
+    }
+    identifiedScopeRef.current = `${scope.generation}:${scope.userId}`;
     const result = await fetchPremiumStatus();
+    if (!isAuthRequestScopeCurrent(scope)) return;
     setIsPremium(result);
     setIsPremiumLoading(false);
   };
 
   useEffect(() => {
+    if (auth.status !== 'authenticated' || !auth.userId) {
+      setIsPremium(false);
+      setIsPremiumLoading(false);
+      identifiedScopeRef.current = null;
+      void logoutAdaptyUser();
+      return;
+    }
+    const scope = { userId: auth.userId, generation: auth.generation };
+    const scopeKey = `${scope.generation}:${scope.userId}`;
+    identifiedScopeRef.current = null;
+    setIsPremium(false);
+    setIsPremiumLoading(true);
+
     // Initial load
-    refreshPremium();
+    void refreshPremium();
 
     // Listen for Adapty profile pushes (purchases, restores, server-side grants)
     const listener = adapty.addEventListener(
       'onLatestProfileLoad',
       (profile: AdaptyProfile) => {
+        if (!isAuthRequestScopeCurrent(scope) || identifiedScopeRef.current !== scopeKey) return;
         const active = profile.accessLevels?.['premium']?.isActive ?? false;
         setIsPremium(active);
         setIsPremiumLoading(false);
@@ -73,8 +106,9 @@ export function PremiumProvider({ children }: { children: React.ReactNode }): Re
       listener.remove();
       sub.remove();
     };
+  // refreshPremium intentionally closes over this exact authenticated generation.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [auth.generation, auth.status, auth.userId]);
 
   return (
     <PremiumContext.Provider value={{ isPremium, isPremiumLoading, refreshPremium }}>

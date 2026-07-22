@@ -1,5 +1,12 @@
-import { supabase } from './supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+  supabase,
+} from './supabase';
+import type { AuthRequestScope } from './authSessionCoordinator';
 import type { StoredEntry } from '../types/biomarkerEntry';
+import { BIOMARKER_PERSISTENCE_MIGRATION_KEY } from './storageKeys';
 
 /**
  * Write service for biomarker entries in Supabase.
@@ -9,11 +16,25 @@ import type { StoredEntry } from '../types/biomarkerEntry';
  *
  * Functions:
  *   - syncEntry(entry): fire-and-forget insert for a single entry after AsyncStorage write.
- *   - migrateHistory(entries): bulk upsert for one-time migration on app start.
+ *   - migrateHistory(entries): retry-safe bulk insert for local history migration.
+ *   - markBiomarkerHistoryDirty(): schedules an idempotent startup retry.
  *
- * Both functions catch all errors internally, warn via console.warn, and never
+ * All functions catch their operational errors internally and never
  * throw or reject to callers.
  */
+
+export async function markBiomarkerHistoryDirty(
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<void> {
+  if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return;
+  try {
+    await AsyncStorage.removeItem(BIOMARKER_PERSISTENCE_MIGRATION_KEY);
+  } catch (err: unknown) {
+    if (!isAuthRequestScopeCurrent(expectedScope)) return;
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[biomarkerWriteService] failed to schedule history retry:', message);
+  }
+}
 
 /**
  * Fire-and-forget write of a single biomarker entry to Supabase.
@@ -27,9 +48,8 @@ import type { StoredEntry } from '../types/biomarkerEntry';
 export function syncEntry(entry: StoredEntry): void {
   async function _sync(): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+      const scope = captureAuthRequestScope();
+      if (!scope) {
         console.warn('[biomarkerWriteService] syncEntry: no authenticated user');
         return;
       }
@@ -38,7 +58,6 @@ export function syncEntry(entry: StoredEntry): void {
         [
           {
             id: entry.id,
-            user_id: user.id,
             biomarker_id: entry.biomarkerId,
             value: entry.value,
             date: entry.date,
@@ -46,7 +65,11 @@ export function syncEntry(entry: StoredEntry): void {
             notes: entry.notes,
           },
         ],
-        { onConflict: 'id' }
+        {
+          onConflict: 'id',
+          ignoreDuplicates: true,
+          defaultToNull: false,
+        }
       );
 
       if (error) {
@@ -65,31 +88,32 @@ export function syncEntry(entry: StoredEntry): void {
 }
 
 /**
- * Bulk upsert of all local biomarker entries into Supabase.
+ * Retry-safe bulk insert of all local biomarker entries into Supabase.
  *
  * Designed for the one-time migration on first app launch after Supabase is
- * provisioned. Safe to retry: upsert with onConflict: 'id' is idempotent.
+ * provisioned. Duplicate IDs are ignored rather than updated, preserving the
+ * append-only database contract.
  *
- * - Returns immediately (resolves) when entries array is empty.
- * - Warns and returns (resolves) when no authenticated user is present.
- * - Catches all errors, warns, and resolves (never rejects).
+ * - Returns true for an empty array or a confirmed successful insert.
+ * - Returns false for missing/stale auth scope or a remote failure.
+ * - Catches all errors and never rejects.
  */
-export async function migrateHistory(entries: StoredEntry[]): Promise<void> {
+export async function migrateHistory(
+  entries: StoredEntry[],
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<boolean> {
   try {
     if (entries.length === 0) {
-      return;
+      return true;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) {
       console.warn('[biomarkerWriteService] migrateHistory: no authenticated user');
-      return;
+      return false;
     }
 
     const rows = entries.map((e) => ({
       id: e.id,
-      user_id: user.id,
       biomarker_id: e.biomarkerId,
       value: e.value,
       date: e.date,
@@ -97,15 +121,25 @@ export async function migrateHistory(entries: StoredEntry[]): Promise<void> {
       notes: e.notes,
     }));
 
+    if (!isAuthRequestScopeCurrent(expectedScope)) return false;
     const { error } = await supabase
       .from('biomarker_entries')
-      .upsert(rows, { onConflict: 'id' });
+      .upsert(rows, {
+        onConflict: 'id',
+        ignoreDuplicates: true,
+        defaultToNull: false,
+      });
+
+    if (!isAuthRequestScopeCurrent(expectedScope)) return false;
 
     if (error) {
       console.warn('[biomarkerWriteService] migrateHistory failed:', error.message);
+      return false;
     }
+    return true;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn('[biomarkerWriteService] migrateHistory unexpected error:', message);
+    return false;
   }
 }
