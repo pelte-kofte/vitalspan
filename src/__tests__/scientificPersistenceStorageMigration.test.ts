@@ -7,9 +7,21 @@ const MIGRATION_PATH = join(
   'migrations',
   '20260719000000_scientific_persistence_records.sql',
 );
+const IDEMPOTENCY_MIGRATION_PATH = join(
+  process.cwd(),
+  'supabase',
+  'migrations',
+  '20260721000000_scientific_persistence_idempotency.sql',
+);
 
 const migration = readFileSync(MIGRATION_PATH, 'utf8');
+const idempotencyMigration = readFileSync(IDEMPOTENCY_MIGRATION_PATH, 'utf8');
 const statements = migration
+  .replace(/--.*$/gm, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
+const idempotencyStatements = idempotencyMigration
   .replace(/--.*$/gm, ' ')
   .replace(/\s+/g, ' ')
   .trim()
@@ -188,6 +200,9 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     const bridgeCreation = 'create role scientific_persistence_migration_owner';
     const bridgeActivation = 'set role scientific_persistence_migration_owner';
     const roleCreation = 'create role scientific_persistence_writer';
+    const ownerRestore = 'set role postgres';
+    const tableGrant =
+      'grant insert on table public.scientific_persistence_records to scientific_persistence_writer';
     const ownershipTransfer = 'owner to scientific_persistence_writer';
 
     expect(occurrences(statements, /set createrole_self_grant = 'set'/g)).toBe(2);
@@ -197,9 +212,43 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     expect(statements).not.toContain('drop role scientific_persistence_migration_owner');
     expect(statements).not.toMatch(/grant scientific_persistence_writer to current_user/);
     expect(statements).not.toMatch(/revoke scientific_persistence_writer from current_user/);
+    expect(statements).not.toContain('reset role');
     expect(statements.indexOf(bridgeCreation)).toBeLessThan(statements.indexOf(bridgeActivation));
     expect(statements.indexOf(bridgeActivation)).toBeLessThan(statements.indexOf(roleCreation));
+    expect(statements.indexOf(roleCreation)).toBeLessThan(statements.indexOf(ownerRestore));
+    expect(statements.indexOf(ownerRestore)).toBeLessThan(statements.indexOf(tableGrant));
     expect(statements.indexOf(roleCreation)).toBeLessThan(statements.indexOf(ownershipTransfer));
+  });
+
+  test('models Supabase CLI session and effective roles for both ownership transitions', () => {
+    const sessionUser = 'cli_login_postgres';
+    const tableOwner = 'postgres';
+    let currentUser = 'postgres';
+
+    expect(currentUser).toBe(tableOwner);
+
+    currentUser = 'scientific_persistence_migration_owner';
+    expect(currentUser).not.toBe(tableOwner);
+
+    const resetRole = (): string => sessionUser;
+    expect(resetRole()).toBe('cli_login_postgres');
+    expect(resetRole()).not.toBe(tableOwner);
+
+    expect(statements).toContain('set role postgres');
+    expect(statements).not.toContain('reset role');
+    currentUser = 'postgres';
+    expect(currentUser).toBe(tableOwner);
+    const migration190Completed = currentUser === tableOwner;
+    expect(migration190Completed).toBe(true);
+
+    currentUser = 'scientific_persistence_writer';
+    expect(currentUser).not.toBe(tableOwner);
+    expect(idempotencyStatements).toContain('set role postgres');
+    expect(idempotencyStatements).not.toContain('reset role');
+    currentUser = 'postgres';
+    expect(currentUser).toBe(tableOwner);
+    const migration210Completed = currentUser === tableOwner;
+    expect(migration210Completed).toBe(true);
   });
 
   test('derives the owner from authenticated context and fails closed without it', () => {

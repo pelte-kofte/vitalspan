@@ -127,7 +127,7 @@ CREATE ROLE scientific_persistence_writer
   NOBYPASSRLS;
 
 RESET createrole_self_grant;
-RESET ROLE;
+SET ROLE postgres;
 
 GRANT USAGE, CREATE ON SCHEMA public TO scientific_persistence_writer;
 GRANT INSERT ON TABLE public.scientific_persistence_records TO scientific_persistence_writer;

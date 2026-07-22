@@ -337,6 +337,6 @@ BEGIN
 END
 $function$;
 
-RESET ROLE;
+SET ROLE postgres;
 REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
 DROP ROLE scientific_persistence_migration_owner;

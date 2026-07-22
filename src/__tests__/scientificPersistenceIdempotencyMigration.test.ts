@@ -215,14 +215,15 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
     const ownerActivation = 'set role scientific_persistence_writer';
     const replacement =
       'create or replace function public.insert_scientific_persistence_record';
-    const ownerReset = 'reset role';
+    const ownerRestore = 'set role postgres';
     const createRevoke =
       'revoke create on schema public from scientific_persistence_writer';
     const bridgeRemoval = 'drop role scientific_persistence_migration_owner';
 
     expect(statements).toContain(createGrant);
     expect(statements).toContain(ownerActivation);
-    expect(statements).toContain(ownerReset);
+    expect(statements).toContain(ownerRestore);
+    expect(statements).not.toContain('reset role');
     expect(statements).toContain(createRevoke);
     expect(statements).toContain(bridgeRemoval);
     expect(statements.indexOf(createGrant)).toBeLessThan(
@@ -232,9 +233,9 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
       statements.indexOf(replacement),
     );
     expect(statements.indexOf(replacement)).toBeLessThan(
-      statements.lastIndexOf(ownerReset),
+      statements.lastIndexOf(ownerRestore),
     );
-    expect(statements.lastIndexOf(ownerReset)).toBeLessThan(
+    expect(statements.lastIndexOf(ownerRestore)).toBeLessThan(
       statements.indexOf(createRevoke),
     );
     expect(statements.indexOf(createRevoke)).toBeLessThan(
