@@ -1,15 +1,16 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, RefreshControl, Alert,
+  StyleSheet, RefreshControl, Alert, useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
-import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { Colors, ProductLayout, Spacing, Radius, Typography } from '../theme';
 import { RunnerIcon } from '../components/DesignSystemIcons';
 import {
   EXERCISE_CATEGORIES, Exercise, ExerciseCategory, ExerciseLogEntry,
@@ -24,6 +25,12 @@ import EditLogSheet from '../components/EditLogSheet';
 import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
 import StaggerIn from '../components/StaggerIn';
 import AnimatedPressable from '../components/AnimatedPressable';
+import ProductScreenHeader from '../components/ProductScreenHeader';
+import {
+  estimateZone2HeartRate,
+  summarizeLongevityWeek,
+  ZONE_2_EXERCISE,
+} from '../lib/exerciseLongevity';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -134,6 +141,8 @@ function getLastSessionSummary(logs: ExerciseLogEntry[], exerciseId: string): st
 
 export default function ExerciseScreen() {
   const nav = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
+  const compact = width < ProductLayout.compactBreakpoint;
   const [selectedCat, setSelectedCat] = useState<ExerciseCategory | 'All'>('All');
   const [logModal, setLogModal] = useState<Exercise | null>(null);
   const [logs, setLogs] = useState<ExerciseLogEntry[]>([]);
@@ -149,6 +158,7 @@ export default function ExerciseScreen() {
   const [editRepsPerSet, setEditRepsPerSet] = useState('10');
   const [editWeightKg, setEditWeightKg] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
+  const [profileAge, setProfileAge] = useState<number | null>(null);
   const hasLoadedOnceRef = useRef(false);
 
   const loadData = useCallback(() => {
@@ -156,12 +166,19 @@ export default function ExerciseScreen() {
       AsyncStorage.getItem('@vitalspan_exercise_log'),
       getExercises(),
       AsyncStorage.getItem('@vitalspan_exercise_routine'),
-    ]).then(([rawLogs, exs, rawRoutine]) => {
+      AsyncStorage.getItem('@vitalspan_user_profile'),
+    ]).then(([rawLogs, exs, rawRoutine, rawProfile]) => {
       if (rawLogs) setLogs(JSON.parse(rawLogs));
       setExercises(exs);
       const parsedRoutine: string[] = rawRoutine ? JSON.parse(rawRoutine) : [];
       setRoutine(parsedRoutine);
       setActiveTab(parsedRoutine.length > 0 ? 'routine' : 'discover');
+      if (rawProfile) {
+        const parsed = JSON.parse(rawProfile) as { age?: number };
+        setProfileAge(Number.isFinite(parsed.age) ? parsed.age ?? null : null);
+      } else {
+        setProfileAge(null);
+      }
     }).catch(console.error).finally(() => {
       if (!hasLoadedOnceRef.current) {
         hasLoadedOnceRef.current = true;
@@ -247,6 +264,11 @@ export default function ExerciseScreen() {
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const mondayStr = useMemo(() => getMondayStr(new Date()), []);
+  const nextMondayStr = useMemo(() => {
+    const next = new Date(`${mondayStr}T00:00:00`);
+    next.setDate(next.getDate() + 7);
+    return next.toISOString().slice(0, 10);
+  }, [mondayStr]);
   const historyStartStr = useMemo(() => {
     const d = new Date(getMondayStr(new Date()));
     d.setDate(d.getDate() - 14);
@@ -262,146 +284,149 @@ export default function ExerciseScreen() {
     totalCal: todayLogs.reduce((sum, l) => sum + (l.caloriesEstimated ?? 0), 0),
     count: todayLogs.length,
   }), [todayLogs]);
+  const longevityWeek = useMemo(
+    () => summarizeLongevityWeek(logs, mondayStr, nextMondayStr),
+    [logs, mondayStr, nextMondayStr],
+  );
+  const estimatedZone2 = useMemo(() => estimateZone2HeartRate(profileAge), [profileAge]);
 
   return (
     <SafeAreaView style={s.safe}>
-      <View style={s.topBar}>
-        <View>
-          <Text style={s.title}>Exercise</Text>
-          <Text style={s.subtitle}>Longevity movement library</Text>
-        </View>
-        {todayLogs.length > 0 && (
-          <View style={s.todayPill}>
-            <Text style={s.todayPillTxt}>{todayLogs.length} today</Text>
-          </View>
-        )}
-      </View>
-
-      {/* My Routine / Discover segmented control */}
-      <View style={s.segmentedControl}>
-        <TouchableOpacity
-          style={[s.segment, activeTab === 'routine' && s.segmentActive]}
-          onPress={() => { setActiveTab('routine'); Haptics.selectionAsync().catch(() => null); }}
-        >
-          <Text style={[s.segmentTxt, activeTab === 'routine' && s.segmentTxtActive]}>My Routine</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.segment, activeTab === 'discover' && s.segmentActive]}
-          onPress={() => { setActiveTab('discover'); Haptics.selectionAsync().catch(() => null); }}
-        >
-          <Text style={[s.segmentTxt, activeTab === 'discover' && s.segmentTxtActive]}>Discover</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Today's activity summary card */}
-      <View style={s.activityCard}>
-        <Text style={s.activityLabel}>TODAY'S ACTIVITY</Text>
-        {todayTotals.count > 0 ? (
-          <View style={s.activityRow}>
-            <View style={s.activityStat}>
-              <Text style={s.activityStatVal}>{todayTotals.count}</Text>
-              <Text style={s.activityStatLbl}>exercises</Text>
-            </View>
-            <View style={s.activityDivider} />
-            <View style={s.activityStat}>
-              <Text style={s.activityStatVal}>{todayTotals.totalMin}</Text>
-              <Text style={s.activityStatLbl}>minutes</Text>
-            </View>
-            <View style={s.activityDivider} />
-            <View style={s.activityStat}>
-              <Text style={s.activityStatVal}>{todayTotals.totalCal}</Text>
-              <Text style={s.activityStatLbl}>kcal est.</Text>
-            </View>
-          </View>
-        ) : (
-          <Text style={s.activityEmpty}>Log a workout below to track today's movement</Text>
-        )}
-      </View>
-
-      {/* Category tabs — Kesfet only */}
-      {activeTab === 'discover' && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.tabsScroll}
-          style={s.tabsBar}
-        >
-          <TouchableOpacity
-            style={[s.tab, selectedCat === 'All' && s.tabActive]}
-            onPress={() => { setSelectedCat('All'); Haptics.selectionAsync().catch(() => null); }}
-          >
-            <Text style={[s.tabTxt, selectedCat === 'All' && s.tabTxtActive]}>All</Text>
-          </TouchableOpacity>
-          {EXERCISE_CATEGORIES.map(cat => (
-            <TouchableOpacity
-              key={cat}
-              style={[s.tab, selectedCat === cat && s.tabActive]}
-              onPress={() => { setSelectedCat(cat); Haptics.selectionAsync().catch(() => null); }}
-            >
-              <Text style={[s.tabTxt, selectedCat === cat && s.tabTxtActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Muscle map filter — Kesfet only */}
-      {activeTab === 'discover' && (
-        <>
-          <TouchableOpacity
-            style={s.muscleFilterToggle}
-            onPress={() => {
-              Haptics.selectionAsync().catch(() => null);
-              setMuscleMapOpen(prev => !prev);
-            }}
-            activeOpacity={0.75}
-          >
-            <Text style={s.muscleFilterToggleTxt}>
-              {selectedMuscle
-                ? `Muscle: ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}`
-                : 'Muscle Group Filter'}
-            </Text>
-            <Text style={s.muscleFilterChevron}>{muscleMapOpen ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-
-          {muscleMapOpen && (
-            <View style={s.muscleFilterPanel}>
-              <MuscleMapView
-                interactive={true}
-                view={muscleMapView}
-                onViewToggle={() => setMuscleMapView(v => v === 'front' ? 'back' : 'front')}
-                onMusclePress={(regionId) => {
-                  Haptics.selectionAsync().catch(() => null);
-                  setSelectedMuscle(prev => prev === regionId ? null : regionId);
-                }}
-                primaryMuscles={selectedMuscle ? [selectedMuscle] : []}
-                secondaryMuscles={[]}
-              />
-              {selectedMuscle && (
-                <TouchableOpacity
-                  style={s.clearFilterBtn}
-                  onPress={() => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(null); }}
-                  activeOpacity={0.75}
-                >
-                  <Text style={s.clearFilterTxt}>
-                    Clear filter: {MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </>
-      )}
+      <ProductScreenHeader
+        eyebrow="VITALSPAN / EXERCISE"
+        title="Move for the long run."
+        subtitle="Build aerobic capacity, preserve strength, and keep daily movement sustainable."
+        compact={compact}
+        action={todayLogs.length > 0 ? (
+          <View style={s.todayPill}><Text style={s.todayPillTxt}>{todayLogs.length} today</Text></View>
+        ) : undefined}
+      />
 
       {initialLoading ? <ExerciseSkeleton /> : (
       <ScrollView
         style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { width: Math.min(width, ProductLayout.maxContentWidth) }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.viz.bioGreen} />
         }
       >
+        <View style={[s.zone2Hero, compact && s.zone2HeroCompact]}>
+          <Text style={s.zone2Eyebrow}>PRIMARY AEROBIC FOUNDATION</Text>
+          <Text style={s.zone2Title}>Zone 2 cardio</Text>
+          <Text style={s.zone2Body}>
+            Steady aerobic work helps build an aerobic base and supports metabolic health without turning every session into a maximal effort.
+          </Text>
+          {estimatedZone2 ? (
+            <View style={s.estimatePanel}>
+              <Text style={s.estimateLabel}>ESTIMATED FROM PROFILE AGE</Text>
+              <Text style={s.estimateValue}>{estimatedZone2.lowBpm}–{estimatedZone2.highBpm} bpm</Text>
+              <Text style={s.estimateNote}>A broad age-based estimate, not a clinical threshold. Laboratory testing can establish a different individual range.</Text>
+            </View>
+          ) : (
+            <View style={s.estimatePanel}>
+              <Text style={s.estimateLabel}>PERCEIVED-EFFORT GUIDE</Text>
+              <Text style={s.estimateGuide}>Steady pace · breathing deeper but controlled · short sentences remain possible · sustainable for an extended period</Text>
+            </View>
+          )}
+          <AnimatedPressable
+            style={s.zone2Cta}
+            onPress={() => setLogModal(ZONE_2_EXERCISE)}
+            accessibilityRole="button"
+            accessibilityLabel="Log Zone 2 cardio"
+          >
+            <Text style={s.zone2CtaText}>Log Zone 2</Text>
+          </AnimatedPressable>
+        </View>
+
+        <Text style={s.sectionLabel}>This week</Text>
+        <View style={[s.weekCard, compact && s.weekCardCompact]} accessibilityLabel={`${longevityWeek.zone2Minutes} Zone 2 minutes, ${longevityWeek.strengthSessions} strength sessions, ${longevityWeek.vo2Sessions} VO2 max sessions this week`}>
+          <View style={s.weekStat}><Text style={s.weekValue}>{longevityWeek.zone2Minutes}</Text><Text style={s.weekLabel}>Zone 2 min</Text></View>
+          <View style={s.weekDivider} />
+          <View style={s.weekStat}><Text style={s.weekValue}>{longevityWeek.strengthSessions}</Text><Text style={s.weekLabel}>Strength sessions</Text></View>
+          <View style={s.weekDivider} />
+          <View style={s.weekStat}><Text style={s.weekValue}>{longevityWeek.vo2Sessions}</Text><Text style={s.weekLabel}>VO₂ max sessions</Text></View>
+        </View>
+
+        <View style={s.hierarchyCard}>
+          <Text style={s.hierarchyTitle}>Longevity movement hierarchy</Text>
+          {[
+            ['01', 'Zone 2 cardio', 'Build the steady aerobic base.'],
+            ['02', 'Strength training', 'Preserve muscle, bone, and function.'],
+            ['03', 'VO₂ max intervals', 'Keep higher-intensity work distinct.'],
+            ['04', 'Daily movement', 'Walk and break up sedentary time.'],
+            ['05', 'Mobility & recovery', 'Maintain comfortable range and readiness.'],
+          ].map(([rank, label, detail], index) => (
+            <View key={rank} style={[s.hierarchyRow, index > 0 && s.hierarchyRule]}>
+              <Text style={s.hierarchyRank}>{rank}</Text>
+              <View style={s.hierarchyCopy}><Text style={s.hierarchyLabel}>{label}</Text><Text style={s.hierarchyDetail}>{detail}</Text></View>
+            </View>
+          ))}
+        </View>
+
+        <Text style={s.sectionLabel}>Training log</Text>
+        <View style={s.segmentedControl}>
+          <TouchableOpacity
+            style={[s.segment, activeTab === 'routine' && s.segmentActive]}
+            onPress={() => { setActiveTab('routine'); Haptics.selectionAsync().catch(() => null); }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === 'routine' }}
+          >
+            <Text style={[s.segmentTxt, activeTab === 'routine' && s.segmentTxtActive]}>My Routine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.segment, activeTab === 'discover' && s.segmentActive]}
+            onPress={() => { setActiveTab('discover'); Haptics.selectionAsync().catch(() => null); }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === 'discover' }}
+          >
+            <Text style={[s.segmentTxt, activeTab === 'discover' && s.segmentTxtActive]}>Discover</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.activityCard}>
+          <Text style={s.activityLabel}>TODAY</Text>
+          {todayTotals.count > 0 ? (
+            <View style={s.activityRow}>
+              <View style={s.activityStat}><Text style={s.activityStatVal}>{todayTotals.count}</Text><Text style={s.activityStatLbl}>exercises</Text></View>
+              <View style={s.activityDivider} />
+              <View style={s.activityStat}><Text style={s.activityStatVal}>{todayTotals.totalMin}</Text><Text style={s.activityStatLbl}>minutes</Text></View>
+              <View style={s.activityDivider} />
+              <View style={s.activityStat}><Text style={s.activityStatVal}>{todayTotals.totalCal}</Text><Text style={s.activityStatLbl}>kcal est.</Text></View>
+            </View>
+          ) : <Text style={s.activityEmpty}>Choose the most useful movement for today, then log it below.</Text>}
+        </View>
+
+        {activeTab === 'discover' && (
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabsScroll} style={s.tabsBar}>
+              <TouchableOpacity style={[s.tab, selectedCat === 'All' && s.tabActive]} onPress={() => { setSelectedCat('All'); Haptics.selectionAsync().catch(() => null); }}>
+                <Text style={[s.tabTxt, selectedCat === 'All' && s.tabTxtActive]}>All</Text>
+              </TouchableOpacity>
+              {EXERCISE_CATEGORIES.map(cat => (
+                <TouchableOpacity key={cat} style={[s.tab, selectedCat === cat && s.tabActive]} onPress={() => { setSelectedCat(cat); Haptics.selectionAsync().catch(() => null); }}>
+                  <Text style={[s.tabTxt, selectedCat === cat && s.tabTxtActive]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={s.muscleFilterToggle}
+              onPress={() => { Haptics.selectionAsync().catch(() => null); setMuscleMapOpen(prev => !prev); }}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: muscleMapOpen }}
+            >
+              <Text style={s.muscleFilterToggleTxt}>{selectedMuscle ? `Muscle: ${MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}` : 'Muscle group filter'}</Text>
+              <Text style={s.muscleFilterChevron}>{muscleMapOpen ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {muscleMapOpen && (
+              <View style={s.muscleFilterPanel}>
+                <MuscleMapView interactive view={muscleMapView} onViewToggle={() => setMuscleMapView(v => v === 'front' ? 'back' : 'front')} onMusclePress={(regionId) => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(prev => prev === regionId ? null : regionId); }} primaryMuscles={selectedMuscle ? [selectedMuscle] : []} secondaryMuscles={[]} />
+                {selectedMuscle && <TouchableOpacity style={s.clearFilterBtn} onPress={() => { Haptics.selectionAsync().catch(() => null); setSelectedMuscle(null); }}><Text style={s.clearFilterTxt}>Clear filter: {MUSCLE_REGIONS.find(r => r.id === selectedMuscle)?.label ?? selectedMuscle}</Text></TouchableOpacity>}
+              </View>
+            )}
+          </>
+        )}
         {/* My Routine tab: empty state or routine cards */}
         {activeTab === 'routine' && routine.length === 0 && (
           <StaggerIn index={0}>
@@ -473,10 +498,10 @@ export default function ExerciseScreen() {
             </Text>
             <AnimatedPressable
               style={s.emptyStateCta}
-              onPress={() => setLogModal(exercises[0] ?? null)}
-              accessibilityLabel="Log a workout"
+              onPress={() => setLogModal(ZONE_2_EXERCISE)}
+              accessibilityLabel="Log Zone 2 cardio"
             >
-              <Text style={s.emptyStateCtaTxt}>Log a Workout</Text>
+              <Text style={s.emptyStateCtaTxt}>Log Zone 2</Text>
             </AnimatedPressable>
           </View>
           </StaggerIn>
@@ -622,15 +647,6 @@ export default function ExerciseScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.dark.bg },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    padding: Spacing.base,
-    paddingTop: Spacing.md,
-  },
-  title: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
-  subtitle: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
   todayPill: {
     backgroundColor: Colors.dark.statusOptimalBg,
     borderRadius: Radius.full,
@@ -641,8 +657,8 @@ const s = StyleSheet.create({
   },
   todayPillTxt: { fontSize: Typography.sizes.xs, color: Colors.viz.bioGreen, fontWeight: '600' },
 
-  tabsBar: { maxHeight: 44 },
-  tabsScroll: { paddingHorizontal: Spacing.base, gap: 8, paddingBottom: 8 },
+  tabsBar: { maxHeight: 52, marginBottom: Spacing.sm },
+  tabsScroll: { paddingHorizontal: Spacing.base, gap: Spacing.sm, paddingBottom: Spacing.sm },
   tab: {
     paddingHorizontal: 14, /* intentional — no Spacing.* equivalent */
     paddingVertical: 7, /* intentional — no Spacing.* equivalent */
@@ -659,6 +675,114 @@ const s = StyleSheet.create({
   tabTxtActive: { color: Colors.dark.bg, fontWeight: '600' },
 
   scroll: { flex: 1 },
+  scrollContent: {
+    alignSelf: 'center',
+    paddingBottom: ProductLayout.bottomClearance,
+  },
+  zone2Hero: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
+    padding: ProductLayout.cardPadding,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.dark.bgCard,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.accentBorder,
+    overflow: 'hidden',
+  },
+  zone2HeroCompact: { padding: Spacing.base },
+  zone2Eyebrow: {
+    color: Colors.dark.ctaPrimary,
+    fontSize: Typography.sizes.captionSmall,
+    lineHeight: Typography.lineHeights.captionSmall,
+    fontWeight: Typography.weights.label,
+    letterSpacing: Typography.letterSpacing.wider,
+  },
+  zone2Title: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.h1,
+    lineHeight: Typography.lineHeights.h1,
+    fontWeight: Typography.weights.title,
+    marginTop: Spacing.sm,
+  },
+  zone2Body: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    marginTop: Spacing.sm,
+  },
+  estimatePanel: {
+    backgroundColor: Colors.dark.accentBg,
+    borderRadius: Radius.card,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  estimateLabel: {
+    color: Colors.dark.ctaPrimary,
+    fontSize: Typography.sizes.captionSmall,
+    fontWeight: Typography.weights.label,
+    letterSpacing: Typography.letterSpacing.wider,
+  },
+  estimateValue: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.h2,
+    lineHeight: Typography.lineHeights.h2,
+    fontWeight: Typography.weights.headline,
+    marginTop: Spacing.xs,
+  },
+  estimateNote: {
+    color: Colors.dark.textMuted,
+    fontSize: Typography.sizes.caption,
+    lineHeight: Typography.lineHeights.caption,
+    marginTop: Spacing.xs,
+  },
+  estimateGuide: {
+    color: Colors.dark.text,
+    fontSize: Typography.sizes.bodySmall,
+    lineHeight: Typography.lineHeights.bodySmall,
+    marginTop: Spacing.sm,
+  },
+  zone2Cta: {
+    minHeight: ProductLayout.controlMinHeight,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.dark.ctaPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  zone2CtaText: { color: Colors.dark.bg, fontSize: Typography.sizes.body, fontWeight: Typography.weights.label },
+  weekCard: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+  },
+  weekCardCompact: { paddingVertical: Spacing.md },
+  weekStat: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xs },
+  weekValue: { color: Colors.dark.text, fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: Typography.weights.headline },
+  weekLabel: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, textAlign: 'center', marginTop: Spacing.xs },
+  weekDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.dark.border },
+  hierarchyCard: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+  },
+  hierarchyTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, paddingVertical: Spacing.lg },
+  hierarchyRow: { flexDirection: 'row', gap: Spacing.md, paddingVertical: Spacing.md },
+  hierarchyRule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border },
+  hierarchyRank: { color: Colors.dark.ctaPrimary, fontSize: Typography.sizes.caption, fontWeight: Typography.weights.label, width: Spacing.lg },
+  hierarchyCopy: { flex: 1 },
+  hierarchyLabel: { color: Colors.dark.text, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.headline },
+  hierarchyDetail: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
   sectionLabel: {
     fontSize: Typography.sizes.xs,
     fontWeight: '600',
@@ -667,7 +791,7 @@ const s = StyleSheet.create({
     letterSpacing: 1.5,
     paddingHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
-    marginTop: Spacing.base,
+    marginTop: Spacing.lg,
   },
   card: {
     marginHorizontal: Spacing.base,
@@ -751,7 +875,7 @@ const s = StyleSheet.create({
     borderRadius: Radius.xl,
     borderWidth: 0.5,
     borderColor: Colors.dark.cardBorder,
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   activityLabel: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: Spacing.sm },
   activityRow: { flexDirection: 'row', alignItems: 'center' },
@@ -807,7 +931,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.xs,
     marginHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
     backgroundColor: Colors.dark.cardBg,
     borderRadius: Radius.full,
     padding: 3,

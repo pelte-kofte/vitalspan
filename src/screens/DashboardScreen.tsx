@@ -43,12 +43,12 @@ import { useIssue } from '../hooks/useIssue';
 import { assembleAdvisorContext, type AdvisorContext } from '../lib/advisorContext';
 import { loadHealthData, type HealthData } from '../lib/healthkit';
 import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
+import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
 import {
   authSessionCoordinator,
   captureAuthRequestScope,
   isAuthRequestScopeCurrent,
   resendVerificationEmail,
-  supabase,
 } from '../lib/supabase';
 import {
   buildTodayExperience,
@@ -165,7 +165,7 @@ export default function DashboardScreen() {
   const { isPremium, isPremiumLoading } = usePremiumContext();
   const { width } = useWindowDimensions();
   const layout = getTodayLayout(width);
-  const { issue, onRefresh: refreshIssue } = useIssue();
+  const { issue, loading: issueLoading, error: issueError, onRefresh: refreshIssue } = useIssue();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [entries, setEntries] = useState<StoredEntry[]>([]);
@@ -196,13 +196,13 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceBiomarkerRefresh = false) => {
     const scope = captureAuthRequestScope();
     if (!scope) return;
     try {
-      const [profileRaw, entriesRaw, protocolRaw, exerciseRaw, loadedHealth, dismissedRaw] = await Promise.all([
+      const [profileRaw, loadedEntries, protocolRaw, exerciseRaw, loadedHealth, dismissedRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
-        AsyncStorage.getItem('@vitalspan_biomarkers'),
+        loadBiomarkerHistory(forceBiomarkerRefresh),
         AsyncStorage.getItem('@vitalspan_protocol'),
         AsyncStorage.getItem('@vitalspan_exercise_log'),
         loadHealthData(),
@@ -212,8 +212,6 @@ export default function DashboardScreen() {
       if (!isAuthRequestScopeCurrent(scope)) return;
 
       const nextProfile = profileRaw ? JSON.parse(profileRaw) as UserProfile : null;
-      const localEntries = entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : [];
-      const localEntryMap = new Map(localEntries.map(entry => [entry.id, entry]));
       setProfile(nextProfile);
       setProtocol(normalizeProtocol(protocolRaw));
       setExerciseLogs(exerciseRaw ? JSON.parse(exerciseRaw) as ExerciseLogEntry[] : []);
@@ -222,31 +220,7 @@ export default function DashboardScreen() {
 
       const currentUser = authSessionCoordinator.getSnapshot().session?.user ?? null;
 
-      if (currentUser) {
-        try {
-          const { data: remoteEntries, error } = await supabase
-            .from('biomarker_entries')
-            .select('id, biomarker_id, value, date, source, notes');
-          if (!isAuthRequestScopeCurrent(scope)) return;
-          if (!error && remoteEntries && remoteEntries.length > 0) {
-            setEntries(remoteEntries.map(row => ({
-              ...localEntryMap.get(row.id as string),
-              id: row.id as string,
-              biomarkerId: row.biomarker_id as string,
-              value: row.value as number,
-              date: row.date as string,
-              source: row.source as string,
-              notes: (row.notes ?? '') as string,
-            })));
-          } else {
-            setEntries(localEntries);
-          }
-        } catch {
-          setEntries(localEntries);
-        }
-      } else {
-        setEntries(localEntries);
-      }
+      setEntries(loadedEntries);
 
       try {
         const context = await assembleAdvisorContext();
@@ -379,7 +353,7 @@ export default function DashboardScreen() {
   async function refresh() {
     setRefreshing(true);
     try {
-      await Promise.all([loadData(), refreshIssue()]);
+      await Promise.all([loadData(true), refreshIssue()]);
     } finally {
       setRefreshing(false);
     }
@@ -501,8 +475,8 @@ export default function DashboardScreen() {
             ) : (
               <View style={styles.researchEmpty} testID="weekly-research">
                 <TodaySectionHeading eyebrow="Weekly research" title="One study worth your time" />
-                <Text style={styles.researchEmptyTitle}>The current issue is unavailable</Text>
-                <Text style={styles.researchEmptyBody}>No unreviewed research is substituted. Pull to refresh when the editorial issue is available.</Text>
+                <Text style={styles.researchEmptyTitle}>{issueLoading ? 'Loading weekly research' : issueError ? 'Weekly research could not refresh' : 'The next issue is being edited'}</Text>
+                <Text style={styles.researchEmptyBody}>{issueLoading ? 'Checking for the latest pharmacist-approved edition.' : issueError ? 'Check your connection and pull to refresh. No unreviewed research is substituted.' : 'The next pharmacist-approved edition will appear here after publication.'}</Text>
               </View>
             )}
           </StaggerIn>

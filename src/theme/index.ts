@@ -262,6 +262,20 @@ export const Spacing = {
   xxl: 32,
 };
 
+// Shared product-screen geometry. Home and Health establish these proportions:
+// restrained page insets, readable content widths, quiet card padding, and
+// enough bottom clearance for the persistent tab bar / home indicator.
+export const ProductLayout = {
+  maxContentWidth: 720,
+  compactBreakpoint: 360,
+  pageInset: 20,
+  compactPageInset: 14,
+  cardPadding: 20,
+  sectionGap: 32,
+  controlMinHeight: 44,
+  bottomClearance: 64,
+} as const;
+
 // Gradient palette for backgrounds and cards
 export const Gradients = {
   bioAge: ['#0A1628', '#1C3B2A'] as const,

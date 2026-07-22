@@ -83,7 +83,7 @@ const s = StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.bgCard,
   },
   card: {
     flex: 1,
@@ -96,7 +96,7 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.inputBg,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -105,22 +105,22 @@ const s = StyleSheet.create({
   thumbPlaceholder: {
     width: 44,
     height: 44,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.dark.inputBg,
   },
   info: { flex: 1 },
   name: {
     fontSize: Typography.sizes.base,
     fontWeight: '600',
-    color: Colors.onSurface,
+    color: Colors.dark.text,
   },
   meta: {
     fontSize: Typography.sizes.xs,
-    color: Colors.onSurfaceMuted,
+    color: Colors.dark.textMuted,
     marginTop: 2,
   },
   lastSession: {
     fontSize: Typography.sizes.sm,
-    color: Colors.primaryLight,
+    color: Colors.dark.ctaPrimary,
     fontWeight: '500',
     marginTop: 2,
   },

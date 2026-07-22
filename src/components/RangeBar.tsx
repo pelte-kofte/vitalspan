@@ -6,13 +6,14 @@ import { classifyBiomarkerValue, formatSourceLabRange } from '../lib/biomarkerIn
 
 interface Props {
   sourceLabRange?: SourceLabRange;
-  value: number;
+  value?: number;
   valueUnit?: string;
 }
 
 export default function RangeBar({ sourceLabRange, value, valueUnit }: Props) {
   const [barWidth, setBarWidth] = useState(0);
-  const status = classifyBiomarkerValue(value, valueUnit, sourceLabRange);
+  const hasValue = value !== undefined && Number.isFinite(value);
+  const status = hasValue ? classifyBiomarkerValue(value, valueUnit, sourceLabRange) : null;
   const lower = sourceLabRange?.lowerBound;
   const upper = sourceLabRange?.upperBound;
   const hasTwoSidedRange = lower !== undefined && upper !== undefined && upper > lower;
@@ -20,15 +21,20 @@ export default function RangeBar({ sourceLabRange, value, valueUnit }: Props) {
   const spread = hasTwoSidedRange ? (upper - lower) * 0.75 : 1;
   const displayMin = hasTwoSidedRange ? Math.max(0, lower - spread) : 0;
   const displayMax = hasTwoSidedRange ? upper + spread : 1;
-  const pct = hasTwoSidedRange && Number.isFinite(value)
+  const pct = hasTwoSidedRange && hasValue
     ? Math.max(0, Math.min(100, ((value - displayMin) / (displayMax - displayMin)) * 100))
     : -1;
   const markerLeft = pct >= 0 && barWidth > 0 ? (barWidth * pct) / 100 - 1.5 : -10;
 
   return (
-    <View style={s.wrapper}>
-      <Text style={s.label}>Reported laboratory range: {formatSourceLabRange(sourceLabRange)}</Text>
-      <View style={s.barOuter} onLayout={event => setBarWidth(event.nativeEvent.layout.width)}>
+    <View
+      style={s.wrapper}
+      accessible
+      accessibilityLabel={`Source laboratory interval ${formatSourceLabRange(sourceLabRange)}. ${status === null ? 'Enter a biomarker value to see your interpretation.' : status === 'within_reported_range' ? 'Within laboratory range.' : status === 'outside_reported_range' ? 'Outside laboratory range.' : 'Source-laboratory classification unavailable.'}`}
+    >
+      <Text style={s.label}>SOURCE LABORATORY INTERVAL</Text>
+      <Text style={s.rangeValue}>{formatSourceLabRange(sourceLabRange)}</Text>
+      <View style={s.barOuter} onLayout={event => setBarWidth(event.nativeEvent.layout.width)} accessible={false}>
         <View style={s.barInner}>
           {hasTwoSidedRange ? (
             <>
@@ -42,15 +48,23 @@ export default function RangeBar({ sourceLabRange, value, valueUnit }: Props) {
         </View>
         {pct >= 0 && <View style={[s.marker, { left: markerLeft }]} />}
       </View>
+      {hasTwoSidedRange && (
+        <View style={s.boundRow}>
+          <Text style={s.boundText}>LOW {lower}</Text>
+          <Text style={s.boundText}>HIGH {upper}</Text>
+        </View>
+      )}
       <View style={s.scaleRow}>
         <Text style={s.scaleTxt}>
-          {status === 'within_reported_range'
+          {status === null
+            ? 'Enter a biomarker value to see your interpretation'
+            : status === 'within_reported_range'
             ? 'Within reported range'
             : status === 'outside_reported_range'
               ? 'Outside reported range'
               : status === 'unable_to_classify'
-                ? 'Unable to classify'
-                : 'Needs laboratory context'}
+                ? 'Source-laboratory classification unavailable'
+                : 'Source-laboratory classification unavailable'}
         </Text>
       </View>
     </View>
@@ -58,32 +72,39 @@ export default function RangeBar({ sourceLabRange, value, valueUnit }: Props) {
 }
 
 const s = StyleSheet.create({
-  wrapper: { marginBottom: Spacing.base },
+  wrapper: { marginTop: Spacing.md },
   label: {
-    fontSize: Typography.sizes.xs,
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: Spacing.sm,
+    fontSize: Typography.sizes.captionSmall,
+    lineHeight: Typography.lineHeights.captionSmall,
+    color: Colors.health.inkTertiary,
+    fontWeight: Typography.weights.label,
+    letterSpacing: Typography.letterSpacing.wider,
   },
-  barOuter: { height: 28 },
+  rangeValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs, marginBottom: Spacing.sm },
+  barOuter: { height: 32 },
   barInner: {
     flexDirection: 'row',
-    height: 28,
-    borderRadius: Radius.sm,
+    height: 32,
+    borderRadius: Radius.card,
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.health.ruleStrong,
   },
-  zoneOutside: { flex: 25, backgroundColor: Colors.warningBg },
-  zoneReported: { flex: 50, backgroundColor: Colors.primaryBg },
-  zoneUnknown: { flex: 1, backgroundColor: Colors.border },
+  zoneOutside: { flex: 25, backgroundColor: Colors.health.neutralSoft },
+  zoneReported: { flex: 50, backgroundColor: Colors.health.accentSoft },
+  zoneUnknown: { flex: 1, backgroundColor: Colors.health.neutralSoft },
   marker: {
     position: 'absolute',
-    top: 3,
-    bottom: 3,
-    width: 3,
-    backgroundColor: Colors.primaryDark,
+    top: 2,
+    bottom: 2,
+    width: 4,
+    backgroundColor: Colors.health.ink,
+    borderWidth: 1,
+    borderColor: Colors.health.surfaceStrong,
     borderRadius: 2,
   },
-  scaleRow: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xs },
-  scaleTxt: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  boundRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs, paddingHorizontal: '25%' },
+  boundText: { fontSize: Typography.sizes.captionSmall, color: Colors.health.inkTertiary, fontWeight: Typography.weights.label },
+  scaleRow: { flexDirection: 'row', justifyContent: 'flex-start', marginTop: Spacing.sm },
+  scaleTxt: { fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, color: Colors.health.inkSecondary },
 });

@@ -8,6 +8,7 @@ export interface UseIssueResult {
   pastIssues: Issue[];
   loading: boolean;
   refreshing: boolean;
+  error: string | null;
   onRefresh: () => Promise<void>;
 }
 
@@ -17,26 +18,40 @@ export function useIssue(issueNumber?: number): UseIssueResult {
   const [pastIssues, setPastIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forceRefresh = false) => {
     if (issueNumber !== undefined) {
-      const result = await loadIssueWithArticles(issueNumber);
-      setIssue(result);
-      setPastIssues([]);
-      return;
+      const result = await loadIssueWithArticles(issueNumber, forceRefresh);
+      return { issue: result, pastIssues: [] as Issue[] };
     }
 
-    const all = await loadAllIssues(); // newest first
+    const all = await loadAllIssues(forceRefresh); // newest first
     const current = all.find((i) => i.issueNumber > 0) ?? null;
-    setPastIssues(all.filter((i) => i.issueNumber !== current?.issueNumber));
-    setIssue(current ? await loadIssueWithArticles(current.issueNumber) : null);
+    return {
+      issue: current
+        ? await loadIssueWithArticles(current.issueNumber, forceRefresh, current)
+        : null,
+      pastIssues: all.filter((i) => i.issueNumber !== current?.issueNumber),
+    };
   }, [issueNumber]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     load()
-      .catch((e) => console.error('[useIssue] load error', e))
+      .then(result => {
+        if (cancelled) return;
+        setIssue(result.issue);
+        setPastIssues(result.pastIssues);
+        setError(null);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('[useIssue] load error', message);
+        setError(message);
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [load]);
@@ -44,11 +59,18 @@ export function useIssue(issueNumber?: number): UseIssueResult {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await load();
+      const result = await load(true);
+      setIssue(result.issue);
+      setPastIssues(result.pastIssues);
+      setError(null);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error('[useIssue] refresh error', message);
+      setError(message);
     } finally {
       setRefreshing(false);
     }
   }, [load]);
 
-  return { issue, pastIssues, loading, refreshing, onRefresh };
+  return { issue, pastIssues, loading, refreshing, error, onRefresh };
 }

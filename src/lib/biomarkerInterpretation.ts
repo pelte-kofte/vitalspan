@@ -56,6 +56,19 @@ export function classifyStoredEntry(entry: StoredEntry): NeutralBiomarkerStatus 
   return classifyBiomarkerValue(value, unit, entry.sourceLabRange);
 }
 
+export function biomarkerInterpretationMessage(entry: StoredEntry | undefined): string {
+  if (!entry) return 'Enter a biomarker value to see your interpretation.';
+
+  const status = classifyStoredEntry(entry);
+  if (status === 'needs_context') {
+    return 'Add the reference interval from your laboratory report to compare this value.';
+  }
+  if (status === 'unable_to_classify') {
+    return 'The reported value and laboratory interval need compatible units before comparison.';
+  }
+  return BIOMARKER_STATUS_LABELS[status];
+}
+
 export function formatSourceLabRange(range: SourceLabRange | undefined): string {
   if (!range) return 'Not provided';
   if (range.reportedText) return `${range.reportedText} ${range.unit}`.trim();

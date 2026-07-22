@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,14 +12,17 @@ import Text from '../components/health/HealthText';
 import type { Biomarker } from '../data/biomarkers';
 import {
   BIOMARKER_STATUS_LABELS,
+  biomarkerInterpretationMessage,
   classifyStoredEntry,
   formatSourceLabRange,
 } from '../lib/biomarkerInterpretation';
 import { getBiomarkers } from '../lib/biomarkerService';
+import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
 import { deriveEntryTrend, formatHealthDate, freshnessLabel } from '../lib/healthExperience';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { Colors, Radius, Spacing, Typography } from '../theme';
 import type { StoredEntry } from '../types/biomarkerEntry';
+import RangeBar from '../components/RangeBar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ScreenRoute = RouteProp<RootStackParamList, 'BiomarkerDetail'>;
@@ -33,9 +35,9 @@ export default function BiomarkerDetailScreen() {
   const [entries, setEntries] = useState<StoredEntry[]>([]);
 
   const load = useCallback(async () => {
-    const [definitions, raw] = await Promise.all([getBiomarkers(), AsyncStorage.getItem('@vitalspan_biomarkers')]);
+    const [definitions, raw] = await Promise.all([getBiomarkers(), loadBiomarkerHistory()]);
     setBiomarkers(definitions);
-    setEntries(raw ? JSON.parse(raw) as StoredEntry[] : []);
+    setEntries(raw);
   }, []);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   useFocusEffect(useCallback(() => {
@@ -66,6 +68,11 @@ export default function BiomarkerDetailScreen() {
   const displayValue = latest?.reportedValue ?? latest?.value;
   const displayUnit = latest?.reportedUnit ?? latest?.unit ?? biomarker.unit;
   const status = latest ? classifyStoredEntry(latest) : null;
+  const laboratoryInterpretation = !latest
+    ? 'Enter a biomarker value to see your interpretation.'
+    : latest.sourceLabRange
+      ? (status ? BIOMARKER_STATUS_LABELS[status] : 'Needs laboratory context')
+      : 'Source-laboratory classification is unavailable.';
   const reviewedClinical = Boolean(biomarker.reviewer && biomarker.reviewedAt && biomarker.clinicalDecisionRules?.length);
   const reviewedEvidence = Boolean(biomarker.evidenceGrade && biomarker.evidenceGrade !== 'not_reviewed' && biomarker.citations?.length);
   return (
@@ -83,7 +90,7 @@ export default function BiomarkerDetailScreen() {
               <View style={s.valueRow}><Text maxFontSizeMultiplier={1.15} style={s.value}>{displayValue}</Text><Text style={s.unit}>{displayUnit}</Text></View>
               <TrendSignal trend={trend} />
             </>
-          ) : <Text style={s.noData}>No measurement available</Text>}
+          ) : <Text style={s.noData}>Enter a value to begin interpretation</Text>}
         </View>
 
         <View style={s.provenance}>
@@ -93,9 +100,33 @@ export default function BiomarkerDetailScreen() {
           <View style={s.provenanceItem}><Text style={s.metaLabel}>UNIT</Text><Text style={s.metaValue}>{displayUnit}</Text></View>
         </View>
 
-        <DisclosureSection title="Laboratory reference" summary={status ? BIOMARKER_STATUS_LABELS[status] : 'No measurement'} initiallyOpen>
-          <Text style={s.sectionLead}>{latest ? formatSourceLabRange(latest.sourceLabRange) : 'No source laboratory range was provided.'}</Text>
-          <Text style={s.body}>{status ? BIOMARKER_STATUS_LABELS[status] : 'Unable to classify without a measurement.'} This comparison uses the interval on the source report, not a Vitalspan target.</Text>
+        <View style={s.comparisonGrid}>
+          <View style={s.referenceCard}>
+            <Text style={s.referenceEyebrow}>LABORATORY REFERENCE</Text>
+            <Text style={s.referenceValue}>{latest?.sourceLabRange ? formatSourceLabRange(latest.sourceLabRange) : 'No interval provided'}</Text>
+            <Text style={s.referenceState}>{laboratoryInterpretation}</Text>
+            {latest?.sourceLabRange ? (
+              <RangeBar sourceLabRange={latest.sourceLabRange} value={latest.reportedValue ?? latest.value} valueUnit={latest.reportedUnit ?? latest.unit} />
+            ) : null}
+          </View>
+          <View style={[s.referenceCard, s.researchCard]}>
+            <Text style={s.referenceEyebrow}>RESEARCH TARGET</Text>
+            <Text style={s.referenceValue}>{biomarker.target}</Text>
+            <Text style={s.researchState}>Bundled research context · unreviewed · not used as the laboratory interval or for classification.</Text>
+          </View>
+        </View>
+
+        <DisclosureSection title="Interpretation details" summary={laboratoryInterpretation} initiallyOpen>
+          <Text style={s.sectionLead}>{latest?.sourceLabRange ? formatSourceLabRange(latest.sourceLabRange) : 'No source laboratory range provided'}</Text>
+          <Text style={s.body}>{biomarkerInterpretationMessage(latest)} A result is classified only against a compatible interval from its source report.</Text>
+        </DisclosureSection>
+        <DisclosureSection title="About" summary={`Scientific description · ${biomarker.unit}`}>
+          <Text style={s.body}>{biomarker.description}</Text>
+          <Text style={s.context}>Expected entry unit: {biomarker.unit}. Assay and specimen context may change comparability.</Text>
+        </DisclosureSection>
+        <DisclosureSection title="How to improve" summary="Educational context; clinical review pending">
+          <Text style={s.body}>{biomarker.howToImprove}</Text>
+          <Text style={s.context}>This bundled guidance is not individualized medical advice. Review supplements, medicines, and unexpected results with a qualified clinician.</Text>
         </DisclosureSection>
         <DisclosureSection title="Clinical significance" summary={reviewedClinical ? 'Reviewed clinical context available' : 'Clinical review pending'}>
           <Text style={s.body}>{reviewedClinical ? 'Reviewed clinical decision context is available for this measurement.' : 'Clinical interpretation has not been reviewed for this biomarker. Vitalspan does not infer diagnosis or treatment from the legacy marker description.'}</Text>
@@ -114,7 +145,7 @@ export default function BiomarkerDetailScreen() {
           <Text style={s.body}>{biomarker.citations?.length ? `${biomarker.citations.length} reviewed citations are recorded.` : 'No reviewed research links are available for this biomarker yet.'}</Text>
         </DisclosureSection>
         <Pressable onPress={() => navigation.navigate('BiomarkerEntry', { biomarkerId: biomarker.id })} style={s.primaryButton} accessibilityRole="button">
-          <Text style={s.primaryButtonText}>Add another result</Text>
+          <Text style={s.primaryButtonText}>{latest ? 'Add another result' : 'Enter biomarker value'}</Text>
         </Pressable>
         <Text style={s.disclaimer}>This screen separates the source laboratory reference, clinical significance, and longevity research. It does not promise treatment benefit.</Text>
       </ScrollView>
@@ -128,7 +159,14 @@ const s = StyleSheet.create({
   hero: { paddingVertical: Spacing.xxl }, kicker: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.widest }, title: { color: Colors.health.ink, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title, marginTop: Spacing.sm },
   valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm, marginTop: Spacing.xl, marginBottom: Spacing.lg }, value: { color: Colors.health.ink, fontSize: Typography.sizes.display1, lineHeight: Typography.lineHeights.display1, fontWeight: Typography.weights.displayHero }, unit: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, paddingBottom: Spacing.sm }, noData: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.h3, marginTop: Spacing.xl },
   provenance: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.lg, borderWidth: 1, borderColor: Colors.health.rule, borderRadius: Radius.card, backgroundColor: Colors.health.surface, padding: Spacing.lg, marginBottom: Spacing.xxl }, provenanceItem: { flexGrow: 1, flexBasis: 120 }, metaLabel: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider }, metaValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
-  sectionLead: { color: Colors.health.ink, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, marginBottom: Spacing.sm }, body: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body }, history: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.sm },
+  comparisonGrid: { gap: Spacing.md, marginBottom: Spacing.xxl },
+  referenceCard: { backgroundColor: Colors.health.surfaceStrong, borderWidth: 1, borderColor: Colors.health.rule, borderRadius: Radius.card, padding: Spacing.lg },
+  researchCard: { backgroundColor: Colors.health.surface },
+  referenceEyebrow: { color: Colors.health.accent, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
+  referenceValue: { color: Colors.health.ink, fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: Typography.weights.headline, marginTop: Spacing.sm },
+  referenceState: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm, marginBottom: Spacing.md },
+  researchState: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm },
+  sectionLead: { color: Colors.health.ink, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, marginBottom: Spacing.sm }, body: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body }, context: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.md }, history: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.sm },
   primaryButton: { minHeight: Spacing.xxl + Spacing.base, justifyContent: 'center', alignItems: 'center', borderRadius: Radius.card, backgroundColor: Colors.health.ink, paddingHorizontal: Spacing.base, marginTop: Spacing.xxl }, primaryButtonText: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label }, disclaimer: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, textAlign: 'center', marginTop: Spacing.lg },
   fallback: { flex: 1, justifyContent: 'center', padding: Spacing.xl }, fallbackTitle: { color: Colors.health.ink, fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1, fontWeight: Typography.weights.title, marginBottom: Spacing.sm },
 });

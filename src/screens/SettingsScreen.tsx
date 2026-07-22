@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Switch, Alert, Share,
+  StyleSheet, Switch, Alert, Share,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,7 +12,7 @@ import Constants from 'expo-constants';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, ProductLayout, Spacing, Radius, Typography } from '../theme';
 import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, TrashIcon, ClipboardIcon, RefreshIcon, StarIcon, InfoIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { STORAGE_KEYS } from '../lib/storageKeys';
@@ -49,6 +51,8 @@ function SettingsRow({ icon, title, subtitle, onPress, right, danger, topBorder 
       style={[s.row, topBorder && s.rowBorder]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
     >
       <View style={s.rowIconWrap}>
         {typeof icon === 'string' ? <Text style={s.rowIcon}>{icon}</Text> : icon}
@@ -65,6 +69,7 @@ function SettingsRow({ icon, title, subtitle, onPress, right, danger, topBorder 
 // ── Screen ───────────────────────────────────────────────────────────────────
 export default function SettingsScreen() {
   const nav = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [weeklyReport, setWeeklyReport] = useState(true);
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
@@ -232,13 +237,26 @@ export default function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { width: Math.min(width, ProductLayout.maxContentWidth) }]}
+        showsVerticalScrollIndicator={false}
+      >
 
-        {/* Account */}
-        <Text style={s.sectionLabel}>Account</Text>
+        <View style={s.hero}>
+          <Text style={s.heroEyebrow}>VITALSPAN / SETTINGS</Text>
+          <Text style={s.heroTitle}>Make Vitalspan yours.</Text>
+          <Text style={s.heroBody}>Manage preferences, privacy, subscription access, and account actions.</Text>
+        </View>
+
+        <Text style={s.sectionLabel}>Profile</Text>
         <View style={s.card}>
           <SettingsRow icon={<PersonIcon color={Colors.dark.text} size={20} />} title="Edit profile" subtitle="Go to Profile to edit" onPress={() => nav.navigate('Main', { screen: 'Profile' })} />
-          <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Sign out" subtitle="Returns to landing screen" onPress={handleSignOut} topBorder />
+        </View>
+
+        <Text style={s.sectionLabel}>Subscription</Text>
+        <View style={s.card}>
+          <SettingsRow icon={<StarIcon color={Colors.dark.ctaPrimary} size={20} />} title="Subscription & restore purchases" subtitle="View plans, manage access, or restore" onPress={() => nav.navigate('Paywall')} />
         </View>
 
         {/* Preferences */}
@@ -290,20 +308,27 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* Data */}
-        <Text style={s.sectionLabel}>Data</Text>
+        <Text style={s.sectionLabel}>Privacy & data</Text>
         <View style={s.card}>
           <SettingsRow icon={<ShareIcon color={Colors.dark.text} size={20} />} title="Export my data" subtitle="JSON file with all your health data" onPress={handleExportData} />
-          <SettingsRow icon={<TrashIcon color={Colors.viz.coral} size={20} />} title="Clear all data" danger onPress={handleClearData} topBorder />
         </View>
 
-        {/* About */}
-        <Text style={s.sectionLabel}>About</Text>
+        <Text style={s.sectionLabel}>Support & legal</Text>
         <View style={s.card}>
           <SettingsRow icon={<InfoIcon color={Colors.dark.text} size={20} />} title="About Vitalspan" subtitle="Mission, citations, evidence grading" onPress={() => nav.navigate('About')} />
           <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Privacy Policy" subtitle="How your data is used" topBorder onPress={() => {}} />
           <SettingsRow icon={<ClipboardIcon color={Colors.dark.text} size={20} />} title="Terms of Use" topBorder onPress={() => {}} />
           <SettingsRow icon={<StarIcon color={Colors.dark.text} size={20} />} title="Rate on App Store" subtitle="Help us grow" topBorder onPress={() => {}} />
+        </View>
+
+        <Text style={s.sectionLabel}>Account actions</Text>
+        <View style={s.card}>
+          <SettingsRow icon={<ShieldIcon color={Colors.dark.text} size={20} />} title="Sign out" subtitle="Clears this account from this device" onPress={handleSignOut} />
+        </View>
+
+        <Text style={[s.sectionLabel, s.dangerSectionLabel]}>Destructive actions</Text>
+        <View style={[s.card, s.dangerCard]}>
+          <SettingsRow icon={<TrashIcon color={Colors.viz.coral} size={20} />} title="Clear all data" subtitle="Permanently deletes supported account data" danger onPress={handleClearData} />
         </View>
 
         {/* Debug (dev only) */}
@@ -468,7 +493,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: ProductLayout.bottomClearance }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -479,25 +504,30 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.base, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
-    backgroundColor: Colors.dark.bgElevated,
+    backgroundColor: Colors.dark.bg,
   },
   closeBtn: { paddingVertical: Spacing.xs },
   closeTxt: { fontSize: Typography.sizes.base, color: Colors.dark.ctaPrimary, fontWeight: '600' },
   title: { fontSize: Typography.sizes.base, fontWeight: '600', color: Colors.dark.text },
   scroll: { flex: 1 },
+  scrollContent: { alignSelf: 'center' },
+  hero: { paddingHorizontal: ProductLayout.pageInset, paddingTop: Spacing.lg, paddingBottom: Spacing.lg },
+  heroEyebrow: { color: Colors.dark.ctaPrimary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.widest },
+  heroTitle: { color: Colors.dark.text, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, fontWeight: Typography.weights.title, marginTop: Spacing.xs },
+  heroBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.sm, maxWidth: 480 },
   sectionLabel: {
     fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.dark.textMuted,
     textTransform: 'uppercase', letterSpacing: Typography.letterSpacing.wider,
     paddingHorizontal: Spacing.base, marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   card: {
-    marginHorizontal: Spacing.base, backgroundColor: Colors.dark.cardBg,
-    borderRadius: Radius.xl, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
+    marginHorizontal: Spacing.base, backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card, overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.cardBorder,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, gap: Spacing.md,
+    minHeight: 64, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, gap: Spacing.md,
   },
   rowBorder: { borderTopWidth: 0.5, borderTopColor: Colors.dark.cardBorder },
   debugRow: {
@@ -516,7 +546,7 @@ const s = StyleSheet.create({
   },
   rowIconWrap: {
     width: 32, height: 32, borderRadius: 8, /* intentional — no Radius.* equivalent for 8 */
-    backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.dark.inputBg, alignItems: 'center', justifyContent: 'center',
   },
   rowIcon: { fontSize: Typography.sizes.lg },
   rowBody: { flex: 1 },
@@ -540,4 +570,6 @@ const s = StyleSheet.create({
   },
   disclaimerTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, lineHeight: 18 },
   versionTxt: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: Spacing.sm, textAlign: 'center' },
+  dangerSectionLabel: { color: Colors.viz.coral, marginTop: Spacing.xl },
+  dangerCard: { borderColor: Colors.dark.statusCritBorder },
 });

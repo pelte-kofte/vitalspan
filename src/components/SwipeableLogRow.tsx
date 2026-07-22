@@ -60,7 +60,7 @@ export function SwipeableLogRow({ log, onDelete, onEdit, showBorder }: Swipeable
     opacity: Math.min(1, Math.abs(translateX.value) / SWIPE_THRESHOLD),
   }));
 
-  const dotColor = log.intensity ? INTENSITY_DOT[log.intensity] : Colors.status.optimal;
+  const dotColor = log.intensity ? INTENSITY_DOT[log.intensity] : Colors.dark.textMuted;
 
   const setsMetaSegment = log.setsData && log.setsData.length > 0
     ? ` · ${log.setsData.length}×${log.setsData[0]?.reps ?? ''}${log.setsData[0]?.weightKg ? ` @ ${log.setsData[0].weightKg}kg` : ''}`
@@ -98,8 +98,8 @@ export function SwipeableLogRow({ log, onDelete, onEdit, showBorder }: Swipeable
 }
 
 const s = StyleSheet.create({
-  container: { overflow: 'hidden', backgroundColor: Colors.surface },
-  border: { borderBottomWidth: 0.5, borderBottomColor: Colors.borderLight },
+  container: { overflow: 'hidden', backgroundColor: Colors.dark.bgCard },
+  border: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.dark.border },
   deleteZone: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.status.critical,
@@ -107,9 +107,9 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: Spacing.base,
   },
-  deleteText: { color: Colors.surface, fontWeight: '600', fontSize: Typography.sizes.base },
+  deleteText: { color: Colors.dark.text, fontWeight: '600', fontSize: Typography.sizes.base },
   row: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.dark.bgCard,
   },
   rowInner: {
     flexDirection: 'row',
@@ -118,7 +118,7 @@ const s = StyleSheet.create({
     gap: Spacing.sm,
   },
   left: { flex: 1 },
-  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.onSurface },
-  meta: { fontSize: Typography.sizes.xs, color: Colors.onSurfaceMuted, marginTop: 2 /* intentional — no Spacing.* equivalent */ },
+  name: { fontSize: Typography.sizes.base, fontWeight: '500', color: Colors.dark.text },
+  meta: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 /* intentional — no Spacing.* equivalent */ },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.status.optimal },
 });

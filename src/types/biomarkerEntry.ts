@@ -21,9 +21,19 @@ export interface NewStoredEntry extends Omit<StoredEntry, 'id'> {
   id?: string;
 }
 
+const LEGACY_BIOMARKER_ID_ALIASES: Readonly<Record<string, string>> = {
+  trig: 'triglycerides',
+  freet4: 'freeT4',
+};
+
+export function canonicalBiomarkerId(id: string): string {
+  return LEGACY_BIOMARKER_ID_ALIASES[id] ?? id;
+}
+
 export function createStoredBiomarkerEntry(input: NewStoredEntry): StoredEntry {
   return {
     ...input,
+    biomarkerId: canonicalBiomarkerId(input.biomarkerId),
     id: input.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     ...(input.sourceLabRange
       ? { sourceLabRange: { ...input.sourceLabRange } }

@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert, RefreshControl,
   KeyboardAvoidingView, Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { setStatusBarStyle } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Colors, ProductLayout, Spacing, Radius, Typography } from '../theme';
 import { PersonIcon, GearIcon, InfoIcon } from '../components/DesignSystemIcons';
 import AnimatedPressable from '../components/AnimatedPressable';
 import StaggerIn from '../components/StaggerIn';
@@ -26,6 +28,8 @@ import {
   type UserProfile,
   userProfilePersistence,
 } from '../lib/userProfilePersistence';
+import ProductScreenHeader from '../components/ProductScreenHeader';
+import { usePremiumContext } from '../context/PremiumContext';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -34,6 +38,9 @@ type Nav = CompositeNavigationProp<
 
 export default function ProfileScreen() {
   const nav = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
+  const compact = width < ProductLayout.compactBreakpoint;
+  const { isPremium, isPremiumLoading } = usePremiumContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -268,9 +275,12 @@ export default function ProfileScreen() {
   // ── Read view ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.safe}>
-      <View style={s.topBar}>
-        <Text style={s.screenTitle}>Profile</Text>
-        <View style={s.topActions}>
+      <ProductScreenHeader
+        eyebrow="VITALSPAN / PROFILE"
+        title="Your health context."
+        subtitle="Identity, goals, connected sources, and account access in one place."
+        compact={compact}
+        action={<View style={s.topActions}>
           <TouchableOpacity style={s.editBtn} onPress={startEdit}>
             <Text style={s.editBtnTxt}>Edit</Text>
           </TouchableOpacity>
@@ -280,11 +290,12 @@ export default function ProfileScreen() {
           >
             <GearIcon color={Colors.dark.text} size={20} />
           </TouchableOpacity>
-        </View>
-      </View>
+        </View>}
+      />
 
       <ScrollView
         style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { width: Math.min(width, ProductLayout.maxContentWidth) }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.dark.ctaPrimary} />
@@ -314,7 +325,11 @@ export default function ProfileScreen() {
           <View style={s.avatar}>
             <Text style={s.avatarTxt}>{profile.name.charAt(0).toUpperCase()}</Text>
           </View>
-          <Text style={s.name}>{profile.name}</Text>
+          <View style={s.identityCopy}>
+            <Text style={s.identityEyebrow}>IDENTITY</Text>
+            <Text style={s.name}>{profile.name}</Text>
+            <Text style={s.identityMeta}>{profile.age} years · {capitalize(profile.sex)}</Text>
+          </View>
         </View>
 
         {/* Personal */}
@@ -350,6 +365,39 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        <Text style={s.sectionLabel}>Connected health sources</Text>
+        <TouchableOpacity
+          style={s.sourceCard}
+          onPress={() => {
+            if (!healthConnected) {
+              nav.navigate('LongevityScore');
+              return;
+            }
+            Alert.alert(
+              'Disconnect Apple Health',
+              'Orbitals will revert to manual-entry data. You can reconnect anytime.',
+              [
+                { text: 'Keep Connected', style: 'cancel' },
+                { text: 'Disconnect Health', style: 'destructive', onPress: handleDisconnect },
+              ],
+            );
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`Apple Health ${healthConnected ? 'connected' : 'not connected'}`}
+        >
+          <View style={s.sourceCopy}><Text style={s.sourceTitle}>Apple Health</Text><Text style={s.sourceMeta}>{healthConnected ? 'Connected · tap to manage' : 'Not connected · tap to connect'}</Text></View>
+          <View style={[s.sourceStatus, healthConnected && s.sourceStatusOn]}><Text style={[s.sourceStatusText, healthConnected && s.sourceStatusTextOn]}>{healthConnected ? 'Connected' : 'Not connected'}</Text></View>
+        </TouchableOpacity>
+
+        <Text style={s.sectionLabel}>Subscription</Text>
+        <TouchableOpacity style={s.subscriptionCard} onPress={() => nav.navigate('Paywall')} accessibilityRole="button" accessibilityLabel="Open subscription and restore purchases">
+          <View style={s.sourceCopy}>
+            <Text style={s.sourceTitle}>{isPremiumLoading ? 'Checking access…' : isPremium ? 'Vitalspan Premium' : 'Vitalspan Free'}</Text>
+            <Text style={s.sourceMeta}>{isPremium ? 'Premium access is active for this account' : 'View plans or restore a purchase'}</Text>
+          </View>
+          <Text style={s.settingsCardArrow}>›</Text>
+        </TouchableOpacity>
 
         {/* Conditions */}
         <Text style={s.sectionLabel}>Health conditions</Text>
@@ -403,27 +451,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
-        {healthConnected && (
-          <TouchableOpacity
-            style={s.disconnectCard}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
-              Alert.alert(
-                'Disconnect Apple Health',
-                'Orbitals will revert to manual-entry data. You can reconnect anytime.',
-                [
-                  { text: 'Keep Connected', style: 'cancel' },
-                  { text: 'Disconnect Health', style: 'destructive', onPress: handleDisconnect },
-                ],
-              );
-            }}
-          >
-            <Text style={[s.settingsCardTxt, { color: Colors.viz.coral }]}>Disconnect Apple Health</Text>
-            <Text style={[s.settingsCardArrow, { color: Colors.viz.coral }]}>›</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={{ height: 32 }} />
+        <View style={{ height: ProductLayout.bottomClearance }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -432,6 +460,7 @@ export default function ProfileScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
+  scrollContent: { alignSelf: 'center' },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -440,7 +469,7 @@ const s = StyleSheet.create({
     paddingTop: Spacing.md,
     backgroundColor: Colors.dark.bg,
   },
-  screenTitle: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text },
+  screenTitle: { fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1, fontWeight: Typography.weights.title, color: Colors.dark.text },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   editBtn: {
     backgroundColor: Colors.dark.cardBg,
@@ -452,7 +481,18 @@ const s = StyleSheet.create({
   },
   editBtnTxt: { fontSize: Typography.sizes.sm, fontWeight: '500', color: Colors.dark.textMuted },
   settingsBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  hero: { alignItems: 'center', padding: Spacing.xl, paddingBottom: Spacing.base },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.base,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    padding: ProductLayout.cardPadding,
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+  },
   avatar: {
     width: 72,
     height: 72,
@@ -462,10 +502,12 @@ const s = StyleSheet.create({
     borderColor: Colors.dark.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
   },
   avatarTxt: { fontSize: 28, color: Colors.dark.ctaPrimary, fontWeight: '500' },
-  name: { fontSize: Typography.sizes.xxl, fontWeight: '700', color: Colors.dark.text, marginBottom: Spacing.sm },
+  identityCopy: { flex: 1 },
+  identityEyebrow: { color: Colors.dark.ctaPrimary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
+  name: { fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: Typography.weights.headline, color: Colors.dark.text, marginTop: Spacing.xs },
+  identityMeta: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
   agePill: {
     backgroundColor: Colors.dark.accentBg,
     borderRadius: Radius.full,
@@ -487,10 +529,10 @@ const s = StyleSheet.create({
   },
   card: {
     marginHorizontal: Spacing.base,
-    backgroundColor: Colors.dark.cardBg,
-    borderRadius: Radius.xl,
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card,
     overflow: 'hidden',
-    borderWidth: 0.5,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.cardBorder,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
@@ -531,6 +573,37 @@ const s = StyleSheet.create({
   },
   settingsCardTxt: { fontSize: Typography.sizes.base, color: Colors.dark.text },
   settingsCardArrow: { fontSize: Typography.sizes.md, color: Colors.dark.textMuted },
+  sourceCard: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.base,
+    padding: Spacing.base,
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+  },
+  subscriptionCard: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.base,
+    padding: Spacing.base,
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.accentBorder,
+  },
+  sourceCopy: { flex: 1 },
+  sourceTitle: { color: Colors.dark.text, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.headline },
+  sourceMeta: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  sourceStatus: { borderRadius: Radius.full, backgroundColor: Colors.dark.inputBg, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs },
+  sourceStatusOn: { backgroundColor: Colors.dark.accentBg },
+  sourceStatusText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.captionSmall, fontWeight: Typography.weights.label },
+  sourceStatusTextOn: { color: Colors.dark.ctaPrimary },
 
   // Edit mode
   editHeader: {

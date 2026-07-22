@@ -8,6 +8,27 @@ import type { AuthRequestScope } from './authSessionCoordinator';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import { BIOMARKER_PERSISTENCE_MIGRATION_KEY } from './storageKeys';
 
+const PROVENANCE_ENRICHMENT_BATCH_SIZE = 1000;
+
+function toRemoteRow(entry: StoredEntry) {
+  return {
+    id: entry.id,
+    biomarker_id: entry.biomarkerId,
+    value: entry.value,
+    date: entry.date,
+    source: entry.source,
+    notes: entry.notes,
+    unit: entry.unit,
+    reported_value: entry.reportedValue,
+    reported_unit: entry.reportedUnit,
+    source_lab_range_lower: entry.sourceLabRange?.lowerBound,
+    source_lab_range_upper: entry.sourceLabRange?.upperBound,
+    source_lab_range_unit: entry.sourceLabRange?.unit,
+    source_lab_range_reported_text: entry.sourceLabRange?.reportedText,
+    source_lab_name: entry.sourceLabRange?.laboratoryName,
+  };
+}
+
 /**
  * Write service for biomarker entries in Supabase.
  *
@@ -56,14 +77,7 @@ export function syncEntry(entry: StoredEntry): void {
 
       const { error } = await supabase.from('biomarker_entries').upsert(
         [
-          {
-            id: entry.id,
-            biomarker_id: entry.biomarkerId,
-            value: entry.value,
-            date: entry.date,
-            source: entry.source,
-            notes: entry.notes,
-          },
+          toRemoteRow(entry),
         ],
         {
           onConflict: 'id',
@@ -112,14 +126,7 @@ export async function migrateHistory(
       return false;
     }
 
-    const rows = entries.map((e) => ({
-      id: e.id,
-      biomarker_id: e.biomarkerId,
-      value: e.value,
-      date: e.date,
-      source: e.source,
-      notes: e.notes,
-    }));
+    const rows = entries.map(toRemoteRow);
 
     if (!isAuthRequestScopeCurrent(expectedScope)) return false;
     const { error } = await supabase
@@ -135,6 +142,21 @@ export async function migrateHistory(
     if (error) {
       console.warn('[biomarkerWriteService] migrateHistory failed:', error.message);
       return false;
+    }
+
+    for (let offset = 0; offset < rows.length; offset += PROVENANCE_ENRICHMENT_BATCH_SIZE) {
+      if (!isAuthRequestScopeCurrent(expectedScope)) return false;
+      const { error: enrichmentError } = await supabase.rpc(
+        'enrich_biomarker_entry_provenance',
+        { p_entries: rows.slice(offset, offset + PROVENANCE_ENRICHMENT_BATCH_SIZE) },
+      );
+
+      if (!isAuthRequestScopeCurrent(expectedScope)) return false;
+
+      if (enrichmentError) {
+        console.warn('[biomarkerWriteService] provenance enrichment failed:', enrichmentError.message);
+        return false;
+      }
     }
     return true;
   } catch (err: unknown) {

@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   ScrollView, TextInput, KeyboardAvoidingView, ActivityIndicator, Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Typography, Radius } from '../theme';
+import { Colors, ProductLayout, Spacing, Typography, Radius } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ScoreSummaryCard from '../components/advisor/ScoreSummaryCard';
 import ReportCard, { ReportItem } from '../components/advisor/ReportCard';
@@ -22,6 +24,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AIAdvisorScreen(): React.JSX.Element {
   const nav = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
   const { isPremium, isPremiumLoading } = usePremiumContext();
   const accessState = getAIAdvisorAccessState(isPremium, isPremiumLoading);
   const [report, setReport] = useState<LongevityReport | null>(null);
@@ -131,11 +134,18 @@ export default function AIAdvisorScreen(): React.JSX.Element {
         >
           <ScrollView
             style={s.flex}
-            contentContainerStyle={s.scrollContent}
+            contentContainerStyle={[s.scrollContent, { width: Math.min(width, ProductLayout.maxContentWidth) }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           >
+            {!report && messages.length === 0 ? (
+              <View style={s.advisorHero}>
+                <Text style={s.advisorEyebrow}>PREMIUM / PRIVATE CONTEXT</Text>
+                <Text style={s.advisorTitle}>Ask from your health snapshot.</Text>
+                <Text style={s.advisorBody}>Generate a structured report or ask a focused question. Advisor responses remain informational and do not replace clinical care.</Text>
+              </View>
+            ) : null}
             {report && (
               <>
                 <ScoreSummaryCard scoreSummary={report.scoreSummary} />
@@ -197,14 +207,18 @@ const s = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
   flex: { flex: 1 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: ProductLayout.pageInset, paddingVertical: Spacing.md },
   backBtn: { minWidth: 76, minHeight: 44, padding: Spacing.sm, justifyContent: 'center' },
   backArrow: { color: Colors.dark.text, fontSize: 22 },
-  screenTitle: { color: Colors.dark.text, fontWeight: '600', letterSpacing: Typography.letterSpacing.widest, fontSize: Typography.sizes.base },
+  screenTitle: { color: Colors.dark.text, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider, fontSize: Typography.sizes.body },
   reportLink: { minWidth: 76, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
   regenerate: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },
   errorText: { color: Colors.viz.coral, fontSize: Typography.sizes.sm, textAlign: 'center', marginBottom: Spacing.md },
-  scrollContent: { flexGrow: 1, padding: Spacing.base, paddingBottom: Spacing.lg },
+  scrollContent: { flexGrow: 1, alignSelf: 'center', paddingHorizontal: ProductLayout.pageInset, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
+  advisorHero: { backgroundColor: Colors.dark.bgCard, borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.accentBorder, padding: ProductLayout.cardPadding, marginBottom: Spacing.xl },
+  advisorEyebrow: { color: Colors.dark.ctaPrimary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
+  advisorTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1, fontWeight: Typography.weights.title, marginTop: Spacing.sm },
+  advisorBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm },
   chatHeader: { fontSize: Typography.sizes.xs, fontWeight: '700', letterSpacing: Typography.letterSpacing.widest, color: Colors.dark.textMuted, textTransform: 'uppercase', marginTop: Spacing.md, marginBottom: Spacing.md },
   reportStatus: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
@@ -212,8 +226,8 @@ const s = StyleSheet.create({
     borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.md,
   },
   reportStatusText: { color: Colors.dark.textMuted, fontSize: Typography.sizes.sm },
-  chatRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.dark.border, backgroundColor: '#080D09', padding: Spacing.sm },
-  input: { flex: 1, minHeight: 44, color: Colors.dark.text, backgroundColor: Colors.dark.cardBg, borderRadius: Radius.md, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, marginRight: Spacing.sm, fontSize: Typography.sizes.base },
+  chatRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border, backgroundColor: '#080D09', padding: Spacing.sm },
+  input: { flex: 1, minHeight: ProductLayout.controlMinHeight, color: Colors.dark.text, backgroundColor: Colors.dark.bgCard, borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.cardBorder, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, marginRight: Spacing.sm, fontSize: Typography.sizes.body },
   sendButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sendBtn: { color: Colors.dark.text, fontSize: Typography.sizes.xl },
   disclaimer: {

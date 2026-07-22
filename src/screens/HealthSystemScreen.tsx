@@ -13,6 +13,7 @@ import Text from '../components/health/HealthText';
 import type { Biomarker } from '../data/biomarkers';
 import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
 import { getBiomarkers } from '../lib/biomarkerService';
+import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
 import { buildHealthExperience, formatHealthDate } from '../lib/healthExperience';
 import { getClinicalPhenoAgePresentation } from '../lib/clinicalPhenoAgePresentation';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -33,11 +34,11 @@ export default function HealthSystemScreen() {
   const load = useCallback(async () => {
     const [definitions, entriesRaw, profileRaw] = await Promise.all([
       getBiomarkers(),
-      AsyncStorage.getItem('@vitalspan_biomarkers'),
+      loadBiomarkerHistory(),
       AsyncStorage.getItem('@vitalspan_user_profile'),
     ]);
     setBiomarkers(definitions);
-    setEntries(entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : []);
+    setEntries(entriesRaw);
     setAge(profileRaw ? (JSON.parse(profileRaw) as { age?: number }).age ?? 0 : 0);
   }, []);
 
@@ -85,8 +86,8 @@ export default function HealthSystemScreen() {
           <Text style={s.caution}>System states organize data; they are not diagnoses.</Text>
         </DisclosureSection>
         {system.currentEntries.length === 0 && <Pressable onPress={() => navigation.navigate('LabUpload')} style={s.primaryButton} accessibilityRole="button" accessibilityLabel="Add relevant laboratory data"><Text style={s.primaryButtonText}>Add relevant laboratory data</Text></Pressable>}
-        <DisclosureSection title="Key biomarkers" summary={`${system.biomarkers.length} measurements can inform this system`} initiallyOpen={system.currentEntries.length > 0}>
-          {system.currentEntries.length === 0 ? <Text style={s.body}>Relevant biomarkers are listed here once data is available.</Text> : system.biomarkers.map((marker, index) => {
+        <DisclosureSection title="Key biomarkers" summary={`${system.biomarkers.length} measurements can inform this system`} initiallyOpen>
+          {system.biomarkers.map((marker, index) => {
             const entry = entriesByMarker.get(marker.id);
             return (
               <Pressable
@@ -96,8 +97,13 @@ export default function HealthSystemScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${marker.name}. ${entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'No data'}`}
               >
-                <View style={s.markerName}><Text style={s.markerTitle}>{marker.name}</Text><Text style={s.markerDate}>{entry ? formatHealthDate(entry.date) : 'No collection'}</Text></View>
-                <Text style={s.markerValue}>{entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'No collection'}</Text>
+                <View style={s.markerName}>
+                  <Text style={s.markerTitle}>{marker.name}</Text>
+                  <Text style={s.markerDate}>{entry ? formatHealthDate(entry.date) : `No measurement · ${marker.unit}`}</Text>
+                  <Text style={s.markerReference}>LABORATORY REFERENCE · {entry?.sourceLabRange ? formatSourceLabRange(entry.sourceLabRange) : 'No source interval'}</Text>
+                  <Text style={s.markerResearch}>RESEARCH TARGET · {marker.target} · unreviewed</Text>
+                </View>
+                <Text style={s.markerValue}>{entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'Enter value'}</Text>
               </Pressable>
             );
           })}
@@ -136,6 +142,6 @@ const s = StyleSheet.create({
   driver: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, marginTop: Spacing.sm, maxWidth: 520 }, heroMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg }, confidence: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption },
   body: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body }, caution: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.md },
   primaryButton: { minHeight: Spacing.xxl + Spacing.base, justifyContent: 'center', alignItems: 'center', borderRadius: Radius.card, backgroundColor: Colors.health.ink, paddingHorizontal: Spacing.base, marginBottom: Spacing.lg }, primaryButtonText: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
-  marker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, paddingVertical: Spacing.md, minHeight: Spacing.xxl + Spacing.xl }, markerRule: { borderTopWidth: 1, borderTopColor: Colors.health.rule }, markerName: { flex: 1 }, markerTitle: { color: Colors.health.ink, fontSize: Typography.sizes.body, fontWeight: Typography.weights.headline }, markerDate: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, marginTop: Spacing.xs }, markerValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label, textAlign: 'right' },
+  marker: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.md, paddingVertical: Spacing.base, minHeight: 96 }, markerRule: { borderTopWidth: 1, borderTopColor: Colors.health.rule }, markerName: { flex: 1 }, markerTitle: { color: Colors.health.ink, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.headline }, markerDate: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, marginTop: Spacing.xs }, markerReference: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, marginTop: Spacing.sm }, markerResearch: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, marginTop: Spacing.xs }, markerValue: { color: Colors.health.ink, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, fontWeight: Typography.weights.label, textAlign: 'right', maxWidth: 96 },
   reference: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginBottom: Spacing.sm },
 });

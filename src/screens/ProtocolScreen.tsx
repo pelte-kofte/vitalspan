@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, RefreshControl,
+  StyleSheet, RefreshControl,
   Modal, TextInput, Alert,
   KeyboardAvoidingView, Keyboard, Platform, Switch,
+  useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   NotificationPrefs,
   DEFAULT_PREFS,
@@ -18,7 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Spacing, Radius, Typography, Elevation } from '../theme';
+import { Colors, ProductLayout, Spacing, Radius, Typography, Elevation } from '../theme';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { INTERACTIONS } from '../data/biomarkers';
@@ -29,6 +31,7 @@ import { PillIcon } from '../components/DesignSystemIcons';
 import { SkeletonBlock, SkeletonPulse } from '../components/Skeleton';
 import StaggerIn from '../components/StaggerIn';
 import AnimatedPressable from '../components/AnimatedPressable';
+import ProductScreenHeader from '../components/ProductScreenHeader';
 import {
   ProtocolItem,
   ProtocolState,
@@ -801,6 +804,8 @@ function ProtocolSkeleton() {
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProtocolScreen() {
   const nav = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
+  const compact = width < ProductLayout.compactBreakpoint;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [protocol, setProtocol] = useState<ProtocolState>(EMPTY_PROTOCOL);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -902,7 +907,7 @@ export default function ProtocolScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { void loadData(); }, [loadData]));
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => { setStatusBarStyle('light'); return () => {}; }, []));
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -1125,32 +1130,17 @@ export default function ProtocolScreen() {
   }).length;
 
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const progress = totalItems > 0 ? Math.min(1, takenCount / totalItems) : 0;
 
   return (
     <SafeAreaView style={s.safe}>
-      <View style={s.header}>
-        <View>
-          <Text style={s.heading}>Today's Protocol</Text>
-          <Text style={s.date}>{dateStr}</Text>
-        </View>
-        {totalItems > 0 && (
-          <View style={s.progressPill}>
-            <Text style={s.progressTxt}>{takenCount} / {totalItems} taken</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Phase 22: Streak stat row */}
-      <View style={s.streakRow}>
-        <Text style={[s.streakTxt, (protocol.currentStreak ?? 0) > 0 ? s.streakActive : s.streakMuted]}>
-          {protocol.currentStreak ?? 0}-day streak
-        </Text>
-        {(protocol.bestStreak ?? 0) > 0 ? (
-          <Text style={s.streakBest}>Best: {protocol.bestStreak} days</Text>
-        ) : (protocol.currentStreak ?? 0) === 0 ? (
-          <Text style={s.streakHint}>Start your streak today</Text>
-        ) : null}
-      </View>
+      <ProductScreenHeader
+        eyebrow="VITALSPAN / PROTOCOL"
+        title="Your plan for today."
+        subtitle={dateStr}
+        compact={compact}
+        action={totalItems > 0 ? <View style={s.progressPill}><Text style={s.progressTxt}>{takenCount} / {totalItems}</Text></View> : undefined}
+      />
 
       {permDenied && (
         <Text style={s.permDeniedTxt}>
@@ -1161,11 +1151,24 @@ export default function ProtocolScreen() {
       {initialLoading ? <ProtocolSkeleton /> : (
       <ScrollView
         style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { width: Math.min(width, ProductLayout.maxContentWidth) }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
         }
       >
+        <View style={s.todayCard} accessibilityLabel={`${takenCount} of ${totalItems} protocol items completed today`}>
+          <View style={s.todayCardTop}>
+            <View style={s.todayCopy}>
+              <Text style={s.todayEyebrow}>TODAY</Text>
+              <Text style={s.todayTitle}>{totalItems > 0 ? `${takenCount} of ${totalItems} complete` : 'Your daily plan is ready to build'}</Text>
+            </View>
+            <Text style={[s.streakTxt, (protocol.currentStreak ?? 0) > 0 ? s.streakActive : s.streakMuted]}>{protocol.currentStreak ?? 0}-day streak</Text>
+          </View>
+          <View style={s.progressTrack}><View style={[s.progressFill, { width: `${progress * 100}%` }]} /></View>
+          <Text style={s.todayMeta}>{(protocol.bestStreak ?? 0) > 0 ? `Best streak: ${protocol.bestStreak} days` : 'Complete items as you take them. Tap any item for timing details.'}</Text>
+        </View>
+
         {totalItems === 0 && (
           <StaggerIn index={0}>
           <View style={s.emptyScreenCard}>
@@ -1184,6 +1187,16 @@ export default function ProtocolScreen() {
           </View>
           </StaggerIn>
         )}
+
+        <Text style={s.sectionLabel}>Daily foundations</Text>
+        <View style={s.foundationCard}>
+          <TouchableOpacity style={s.foundationRow} onPress={() => nav.navigate('Exercise')} accessibilityRole="button" accessibilityLabel="Open today's exercise actions">
+            <View style={s.foundationCopy}><Text style={s.foundationTitle}>Exercise actions</Text><Text style={s.foundationBody}>Zone 2, strength, intervals, and daily movement</Text></View><Text style={s.foundationArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.foundationRow, s.foundationRule]} onPress={() => nav.navigate('Biomarkers')} accessibilityRole="button" accessibilityLabel="Review health habits and health data">
+            <View style={s.foundationCopy}><Text style={s.foundationTitle}>Health habits</Text><Text style={s.foundationBody}>Review the data and habits supporting today</Text></View><Text style={s.foundationArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── Medications ───────────────────────────────────────── */}
         <View style={s.sectionHdrRow}>
@@ -1226,6 +1239,9 @@ export default function ProtocolScreen() {
                     onPress={e => { e.stopPropagation(); toggleTaken(med); }}
                     activeOpacity={0.75}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isTaken }}
+                    accessibilityLabel={`Mark ${med} ${isTaken ? 'not taken' : 'taken'}`}
                   >
                     <View style={[s.checkCircle, isTaken && s.checkCircleOn]}>
                       {isTaken && <Text style={s.checkMark}>✓</Text>}
@@ -1257,9 +1273,9 @@ export default function ProtocolScreen() {
           })
         )}
 
-        {/* ── Your Stack ────────────────────────────────────────── */}
+        {/* ── Supplements ───────────────────────────────────────── */}
         <View style={s.sectionHdrRow}>
-          <Text style={s.stackHdrTxt}>Your Stack</Text>
+          <Text style={s.stackHdrTxt}>Supplements</Text>
           <TouchableOpacity
             style={s.sectionAddBtn}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null); setShowRecommendedSheet(true); }}
@@ -1270,7 +1286,7 @@ export default function ProtocolScreen() {
 
         {protocol.supplements.length === 0 && (
           <View style={s.emptyCard}>
-            <Text style={s.emptyTxt}>No supplements in your stack yet</Text>
+            <Text style={s.emptyTxt}>No optional supplements added</Text>
           </View>
         )}
 
@@ -1300,6 +1316,9 @@ export default function ProtocolScreen() {
                     onPress={e => { e.stopPropagation(); toggleTaken(item.id); }}
                     activeOpacity={0.7}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: singleTaken }}
+                    accessibilityLabel={`Mark ${item.name} ${singleTaken ? 'not taken' : 'taken'}`}
                   >
                     <View style={[s.checkCircle, singleTaken && s.checkCircleOn]}>
                       {singleTaken && <Text style={s.checkMark}>✓</Text>}
@@ -1364,6 +1383,9 @@ export default function ProtocolScreen() {
                         style={s.doseTrack}
                         onPress={e => { e.stopPropagation(); toggleTaken(id); }}
                         activeOpacity={0.7}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: dt }}
+                        accessibilityLabel={`Mark ${item.name}, ${label}, ${dt ? 'not taken' : 'taken'}`}
                       >
                         <View style={[s.checkSm, dt && s.checkSmOn]}>
                           {dt && <Text style={s.checkSmTxt}>✓</Text>}
@@ -1386,7 +1408,7 @@ export default function ProtocolScreen() {
           onToggle={toggleSupplementByName}
         />
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: ProductLayout.bottomClearance }} />
       </ScrollView>
       )}
 
@@ -1460,6 +1482,7 @@ export default function ProtocolScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.dark.bg },
   scroll: { flex: 1 },
+  scrollContent: { alignSelf: 'center' },
 
   // ── Header ──────────────────────────────────────────────────
   header: {
@@ -1474,6 +1497,22 @@ const s = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.dark.statusOptimalBorder,
   },
   progressTxt: { fontSize: Typography.sizes.xs, fontWeight: '600', color: Colors.viz.bioGreen },
+  todayCard: {
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.lg,
+    padding: ProductLayout.cardPadding,
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+  },
+  todayCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.md },
+  todayCopy: { flex: 1 },
+  todayEyebrow: { color: Colors.dark.ctaPrimary, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
+  todayTitle: { color: Colors.dark.text, fontSize: Typography.sizes.h2, lineHeight: Typography.lineHeights.h2, fontWeight: Typography.weights.headline, marginTop: Spacing.xs },
+  progressTrack: { height: Spacing.xs, borderRadius: Radius.full, backgroundColor: Colors.dark.inputBg, overflow: 'hidden', marginTop: Spacing.lg },
+  progressFill: { height: '100%', borderRadius: Radius.full, backgroundColor: Colors.dark.ctaPrimary },
+  todayMeta: { color: Colors.dark.textMuted, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.sm },
   // Phase 22 streak row styles
   streakRow: {
     flexDirection: 'row',
@@ -1512,13 +1551,13 @@ const s = StyleSheet.create({
   // ── Item card ────────────────────────────────────────────────
   itemCard: {
     marginHorizontal: Spacing.base, marginBottom: 10,
-    backgroundColor: Colors.dark.cardBg,
-    borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Colors.dark.cardBorder,
-    padding: Spacing.md, overflow: 'hidden',
+    backgroundColor: Colors.dark.bgCard,
+    borderRadius: Radius.card, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.cardBorder,
+    padding: Spacing.base, overflow: 'hidden',
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   cardBody: { flex: 1 },
-  cardName: { fontSize: 15, fontWeight: '600', color: Colors.dark.text },
+  cardName: { fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.subheadline, color: Colors.dark.text },
   cardNameDone: { color: Colors.dark.textMuted, textDecorationLine: 'line-through' },
   cardSub: { fontSize: Typography.sizes.xs, color: Colors.dark.textMuted, marginTop: 2 },
 
@@ -1631,6 +1670,20 @@ const s = StyleSheet.create({
 
   // ── Library divider ──────────────────────────────────────────
   libDivider: { height: 1, backgroundColor: Colors.dark.border, marginHorizontal: Spacing.base, marginVertical: Spacing.lg },
+  foundationCard: {
+    marginHorizontal: Spacing.base,
+    backgroundColor: Colors.dark.cardBg,
+    borderRadius: Radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.cardBorder,
+    overflow: 'hidden',
+  },
+  foundationRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+  foundationRule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border },
+  foundationCopy: { flex: 1 },
+  foundationTitle: { color: Colors.dark.text, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.headline },
+  foundationBody: { color: Colors.dark.textMuted, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  foundationArrow: { color: Colors.dark.textMuted, fontSize: Typography.sizes.h2, fontWeight: Typography.weights.title },
 
   permDeniedTxt: {
     fontSize: Typography.sizes.xs,

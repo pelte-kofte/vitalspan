@@ -11,6 +11,7 @@ import HealthOverviewCard from '../components/health/HealthOverviewCard';
 import Text from '../components/health/HealthText';
 import type { Biomarker } from '../data/biomarkers';
 import { getBiomarkers } from '../lib/biomarkerService';
+import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
 import { buildHealthExperience, type BodySystemId } from '../lib/healthExperience';
 import { loadHealthData, type HealthData } from '../lib/healthkit';
 import { buildHealthLivingSphere } from '../lib/healthLivingSphere';
@@ -41,12 +42,12 @@ export default function HealthScreen() {
     try {
       const [loadedBiomarkers, entriesRaw, profileRaw, loadedHealth] = await Promise.all([
         getBiomarkers(),
-        AsyncStorage.getItem('@vitalspan_biomarkers'),
+        loadBiomarkerHistory(),
         AsyncStorage.getItem('@vitalspan_user_profile'),
         loadHealthData(),
       ]);
       setBiomarkers(loadedBiomarkers);
-      setEntries(entriesRaw ? JSON.parse(entriesRaw) as StoredEntry[] : []);
+      setEntries(entriesRaw);
       setProfile(profileRaw ? JSON.parse(profileRaw) as UserProfile : null);
       setHealthData(loadedHealth);
       setAssessmentAsOf(new Date().toISOString());

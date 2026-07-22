@@ -2,11 +2,13 @@
 export const AUTH_OWNER_STORAGE_KEY = '@vitalspan_auth_owner_id';
 
 /**
- * Versioned completion marker for the first governed Biomarker Persistence
- * migration. The previous v2 marker may contain false success from deployments
- * where the remote table did not exist.
+ * Versioned completion marker for governed Biomarker Persistence history sync.
+ * Version 2 replays existing local history once so the additive provenance
+ * migration can enrich rows created by older clients.
  */
 export const BIOMARKER_PERSISTENCE_MIGRATION_KEY =
+  '@vitalspan_biomarker_persistence_migrated_v2';
+const LEGACY_BIOMARKER_PERSISTENCE_MIGRATION_KEY =
   '@vitalspan_biomarker_persistence_migrated_v1';
 
 /**
@@ -16,6 +18,7 @@ export const BIOMARKER_PERSISTENCE_MIGRATION_KEY =
  */
 export const USER_SCOPED_STORAGE_KEYS = [
   '@vitalspan_articles_last_fetched',
+  LEGACY_BIOMARKER_PERSISTENCE_MIGRATION_KEY,
   BIOMARKER_PERSISTENCE_MIGRATION_KEY,
   '@vitalspan_biomarkers',
   '@vitalspan_disclaimer_accepted',

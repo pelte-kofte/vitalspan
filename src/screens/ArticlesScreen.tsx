@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, {
@@ -44,7 +44,7 @@ export default function ArticlesScreen() {
   const route = useRoute<RouteProps>();
   const issueNumber = route.params?.issueNumber;
   const isArchiveView = issueNumber === 0;
-  const { issue, pastIssues, loading, refreshing, onRefresh } = useIssue(issueNumber);
+  const { issue, pastIssues, loading, refreshing, error, onRefresh } = useIssue(issueNumber);
   const reduceMotion = useReducedMotion();
   const archiveScrollX = useSharedValue(0);
 
@@ -79,11 +79,30 @@ export default function ArticlesScreen() {
 
       {loading && !issue ? (
         <SkeletonLoader />
+      ) : error && !issue ? (
+        <View style={s.center}>
+          <Text style={s.emptyEyebrow}>THE VITALSPAN BRIEF</Text>
+          <Text style={s.emptyTitle} accessibilityRole="header">The issue could not be refreshed.</Text>
+          <Text style={s.emptySub}>Check your connection and try again. No unreviewed research will be substituted.</Text>
+          <TouchableOpacity style={s.retryButton} onPress={() => void onRefresh()} accessibilityRole="button">
+            <Text style={s.retryText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
       ) : !issue ? (
         <View style={s.center}>
           <Text style={s.emptyEyebrow}>THE VITALSPAN BRIEF</Text>
           <Text style={s.emptyTitle} accessibilityRole="header">The next issue is being edited.</Text>
           <Text style={s.emptySub}>Evidence-led longevity reporting returns here each week.</Text>
+          {pastIssues.length > 0 ? (
+            <TouchableOpacity
+              style={s.archiveButton}
+              onPress={() => openIssue(pastIssues[0].issueNumber)}
+              accessibilityRole="button"
+              accessibilityLabel="Open the Vitalspan Brief archive"
+            >
+              <Text style={s.archiveButtonText}>Read the archive</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : (
         <ScrollView
@@ -220,4 +239,8 @@ const s = StyleSheet.create({
   emptyEyebrow: { color: EditorialColors.copper, fontSize: 9, fontWeight: '700', letterSpacing: 1.8 },
   emptyTitle: { color: EditorialColors.text, fontFamily: Typography.displaySerif, fontSize: 31, lineHeight: 38, textAlign: 'center' },
   emptySub: { color: EditorialColors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 320 },
+  retryButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: EditorialColors.copper },
+  retryText: { color: EditorialColors.text, fontSize: 13, fontWeight: '600' },
+  archiveButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, marginTop: 10, backgroundColor: EditorialColors.copper },
+  archiveButtonText: { color: EditorialColors.ink, fontSize: 13, fontWeight: '700', letterSpacing: 0.4 },
 });

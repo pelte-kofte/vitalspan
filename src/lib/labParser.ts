@@ -36,9 +36,9 @@ const PATTERNS: Pattern[] = [
   // Common additional lab panels
   { id: 'ldl',           name: 'LDL Cholesterol', unit: 'mg/dL',   min: 20,   max: 400,  aliases: ['LDL Cholesterol', 'LDL-C', 'LDL', 'LDL Kolesterol'] },
   { id: 'hdl',           name: 'HDL Cholesterol', unit: 'mg/dL',   min: 10,   max: 200,  aliases: ['HDL Cholesterol', 'HDL-C', 'HDL', 'HDL Kolesterol'] },
-  { id: 'trig',          name: 'Triglycerides',   unit: 'mg/dL',   min: 20,   max: 2000, aliases: ['Triglycerides', 'Triglyceride', 'Trigliserit', 'TG'] },
+  { id: 'triglycerides', name: 'Triglycerides',   unit: 'mg/dL',   min: 20,   max: 2000, aliases: ['Triglycerides', 'Triglyceride', 'Trigliserit', 'TG'] },
   { id: 'tsh',           name: 'TSH',             unit: 'mIU/L',   min: 0.01, max: 30,   aliases: ['TSH', 'Thyroid Stimulating Hormone', 'Tiroid Uyarıcı Hormon', 'Tirotropin'] },
-  { id: 'freet4',        name: 'Free T4',         unit: 'ng/dL',   min: 0.3,  max: 10,   aliases: ['Free T4', 'FT4', 'Serbest T4', 'Free Thyroxine', 'Serbest Tiroksin'] },
+  { id: 'freeT4',        name: 'Free T4',         unit: 'ng/dL',   min: 0.3,  max: 10,   aliases: ['Free T4', 'FT4', 'Serbest T4', 'Free Thyroxine', 'Serbest Tiroksin'] },
   { id: 'cortisol',      name: 'Cortisol',        unit: 'μg/dL',   min: 2,    max: 100,  aliases: ['Cortisol', 'Kortizol', 'Serum Cortisol', 'Kortizol Serum'] },
   { id: 'albumin',       name: 'Albumin',         unit: 'g/dL',    min: 1,    max: 10,   aliases: ['Albumin', 'Serum Albumin', 'Albumin Serum'] },
   { id: 'creatinine',    name: 'Creatinine',      unit: 'mg/dL',   min: 0.3,  max: 20,   aliases: ['Creatinine', 'Kreatinin', 'Serum Creatinine', 'Kreatinin Serum'] },
