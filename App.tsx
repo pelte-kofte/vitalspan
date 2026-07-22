@@ -15,6 +15,11 @@ import { AuthSessionProvider, useAuthSession } from './src/context/AuthSessionCo
 import * as Notifications from 'expo-notifications';
 import { loadNotificationPrefs, rescheduleAll } from './src/lib/notifications';
 import { BIOMARKER_PERSISTENCE_MIGRATION_KEY } from './src/lib/storageKeys';
+import {
+  profileRouteForHydration,
+  userProfilePersistence,
+} from './src/lib/userProfilePersistence';
+import ProfileHydrationErrorScreen from './src/components/ProfileHydrationErrorScreen';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,9 +41,10 @@ export default function App() {
 function VitalspanApp() {
   const auth = useAuthSession();
   const [routeState, setRouteState] = useState<{
-    route: 'Welcome' | 'Onboarding' | 'Main';
+    route: 'Welcome' | 'Onboarding' | 'Main' | 'ProfileError';
     generation: number;
   } | null>(null);
+  const [profileRetry, setProfileRetry] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +63,16 @@ function VitalspanApp() {
 
       const scope = { userId: auth.userId!, generation: auth.generation };
       try {
-        const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile');
+        const registeredAccount = !auth.session?.user.is_anonymous;
+        const hydration = await userProfilePersistence.hydrate(scope, registeredAccount);
         if (!isAuthRequestScopeCurrent(scope) || cancelled) return;
-        const profile = profileRaw ? JSON.parse(profileRaw) as { onboardingComplete?: boolean } : null;
-        const route = profile?.onboardingComplete ? 'Main' : 'Onboarding';
+        const route = profileRouteForHydration(hydration);
+        if (route === 'loading') return;
         const sessionKind = auth.session?.user.is_anonymous ? 'anon' : 'auth';
-        console.log(`[Boot] session=${sessionKind} onboarding=${Boolean(profile?.onboardingComplete)} → route=${route}`);
+        console.log(`[Boot] session=${sessionKind} profile=${hydration.status} → route=${route}`);
         setRouteState({ route, generation: auth.generation });
+
+        if (route === 'ProfileError') return;
 
         const migrated = await AsyncStorage.getItem(BIOMARKER_PERSISTENCE_MIGRATION_KEY)
           .catch(() => null);
@@ -86,7 +95,7 @@ function VitalspanApp() {
       } catch (error) {
         console.error('[App] Boot error:', error);
         if (!cancelled && isAuthRequestScopeCurrent(scope)) {
-          setRouteState({ route: 'Onboarding', generation: auth.generation });
+          setRouteState({ route: 'ProfileError', generation: auth.generation });
         }
       }
     };
@@ -95,7 +104,7 @@ function VitalspanApp() {
     return () => { cancelled = true; };
   // Session token refreshes keep the same generation and must not remount data.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.generation, auth.status, auth.userId]);
+  }, [auth.generation, auth.status, auth.userId, profileRetry]);
 
   useEffect(() => {
     pruneExpiredCache().catch(() => null);
@@ -121,6 +130,17 @@ function VitalspanApp() {
 
   if (!routeState || routeState.generation !== auth.generation) {
     return <BootLoadingScreen />;
+  }
+
+  if (routeState.route === 'ProfileError') {
+    return (
+      <ProfileHydrationErrorScreen
+        onRetry={() => {
+          setRouteState(null);
+          setProfileRetry(value => value + 1);
+        }}
+      />
+    );
   }
 
   return (

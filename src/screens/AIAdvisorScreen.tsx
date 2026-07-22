@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
   ScrollView, TextInput, KeyboardAvoidingView, ActivityIndicator, Platform,
@@ -15,11 +15,15 @@ import ChatThread from '../components/advisor/ChatThread';
 import { assembleAdvisorContext, AdvisorContext } from '../lib/advisorContext';
 import { generateReport, sendChatMessage, LongevityReport, ChatMessage } from '../lib/advisorService';
 import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
+import { usePremiumContext } from '../context/PremiumContext';
+import { getAIAdvisorAccessState } from '../lib/premiumAccess';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AIAdvisorScreen(): React.JSX.Element {
   const nav = useNavigation<Nav>();
+  const { isPremium, isPremiumLoading } = usePremiumContext();
+  const accessState = getAIAdvisorAccessState(isPremium, isPremiumLoading);
   const [report, setReport] = useState<LongevityReport | null>(null);
   const [advisorCtx, setAdvisorCtx] = useState<AdvisorContext | null>(null);
   const [isReportLoading, setIsReportLoading] = useState(false);
@@ -33,6 +37,18 @@ export default function AIAdvisorScreen(): React.JSX.Element {
     return report.scoreSummary.headline + ' ' +
       report.priorityFindings.slice(0, 2).map(f => f.finding).join('. ');
   }, [report]);
+
+  useEffect(() => {
+    if (accessState === 'paywall') nav.replace('Paywall');
+  }, [accessState, nav]);
+
+  if (accessState !== 'allowed') {
+    return (
+      <SafeAreaView style={s.accessLoading}>
+        <ActivityIndicator color={Colors.dark.textMuted} size="small" />
+      </SafeAreaView>
+    );
+  }
 
   async function handleGenerate() {
     if (isReportLoading) return;
@@ -207,5 +223,11 @@ const s = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingBottom: Spacing.xs,
     opacity: 0.55,
+  },
+  accessLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.bg,
   },
 });

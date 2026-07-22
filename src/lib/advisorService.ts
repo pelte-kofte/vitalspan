@@ -43,6 +43,7 @@ export interface ChatMessage {
 
 export type AdvisorErrorCode =
   | 'RATE_LIMITED'
+  | 'PREMIUM_REQUIRED'
   | 'UNAUTHORIZED'
   | 'NETWORK_ERROR'
   | 'AI_ERROR'
@@ -66,6 +67,9 @@ function mapInvokeError(err: unknown): { code: AdvisorErrorCode; message: string
     }
     if (status === 401) {
       return { code: 'UNAUTHORIZED', message: 'Authentication required' };
+    }
+    if (status === 403) {
+      return { code: 'PREMIUM_REQUIRED', message: 'Premium subscription required' };
     }
     if (status === 500 || status === 502) {
       return { code: 'AI_ERROR', message: 'AI service error — please try again' };

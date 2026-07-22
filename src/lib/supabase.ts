@@ -19,6 +19,7 @@ import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
 import { AuthSessionCoordinator, type AuthRequestScope } from './authSessionCoordinator'
 import { AUTH_OWNER_STORAGE_KEY, USER_SCOPED_STORAGE_KEYS } from './storageKeys'
+import { logoutAdaptyUser } from './adapty'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
@@ -57,6 +58,7 @@ export const authSessionCoordinator = new AuthSessionCoordinator({
   },
   ownerStorageKey: AUTH_OWNER_STORAGE_KEY,
   userScopedStorageKeys: USER_SCOPED_STORAGE_KEYS,
+  onIdentityCleared: logoutAdaptyUser,
 })
 
 export function captureAuthRequestScope(): AuthRequestScope | null {

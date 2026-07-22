@@ -16,25 +16,21 @@ import AnimatedPressable from '../components/AnimatedPressable';
 import StaggerIn from '../components/StaggerIn';
 import { RootStackParamList, MainTabParamList } from '../navigation/AppNavigator';
 import { loadPermissionStatus } from '../lib/healthkit';
-import { authSessionCoordinator, signOutUser } from '../lib/supabase';
+import {
+  authSessionCoordinator,
+  captureAuthRequestScope,
+  signOutUser,
+} from '../lib/supabase';
 import { CONDITIONS } from '../constants/conditions';
+import {
+  type UserProfile,
+  userProfilePersistence,
+} from '../lib/userProfilePersistence';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-interface UserProfile {
-  name: string;
-  age: number;
-  sex: 'male' | 'female';
-  goal: string;
-  conditions: string[];
-  medications: string[];
-  biologicalAge?: number;
-  bloodPhenotypicAge?: number;
-  onboardingComplete?: boolean;
-}
 
 export default function ProfileScreen() {
   const nav = useNavigation<Nav>();
@@ -97,6 +93,8 @@ export default function ProfileScreen() {
 
   async function saveEdit() {
     if (!profile) return;
+    const scope = captureAuthRequestScope();
+    if (!scope) return;
     if (!editName.trim()) {
       Alert.alert('Name required', 'Please enter your name.');
       return;
@@ -109,8 +107,20 @@ export default function ProfileScreen() {
       conditions: editConditions,
     };
     try {
-      await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(updated));
-      setProfile(updated);
+      const registeredAccount = !authSessionCoordinator
+        .getSnapshot()
+        .session?.user.is_anonymous;
+      const saved = await userProfilePersistence.update(
+        scope,
+        {
+          name: updated.name,
+          age: updated.age,
+          sex: updated.sex,
+          conditions: updated.conditions,
+        },
+        registeredAccount,
+      );
+      setProfile(saved);
       setEditing(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
     } catch {

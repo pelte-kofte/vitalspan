@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchActivePremiumAccess } from "../_shared/adaptyPremium.ts";
 
 const REPORT_LIMIT = 5;
 const CHAT_LIMIT = 20;
@@ -21,6 +22,12 @@ function corsResponse(body: unknown, status: number): Response {
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
+}
+
+async function verifyPremiumAccess(userId: string): Promise<boolean> {
+  const secretKey = Deno.env.get("ADAPTY_SECRET_API_KEY");
+  if (!secretKey) throw new Error("ADAPTY_SECRET_API_KEY is not configured");
+  return fetchActivePremiumAccess(userId, secretKey);
 }
 
 serve(async (req) => {
@@ -55,6 +62,16 @@ serve(async (req) => {
     }
 
     const userId = user.id;
+    try {
+      if (!await verifyPremiumAccess(userId)) {
+        return corsResponse({ error: "Premium subscription required" }, 403);
+      }
+    } catch (error) {
+      console.error("Premium entitlement verification failed:",
+        error instanceof Error ? error.message : String(error));
+      return corsResponse({ error: "Subscription verification unavailable" }, 503);
+    }
+
     const todayUTC = new Date().toISOString().slice(0, 10);
     const counterField = action === "report" ? "report_count" : "chat_count";
     const limit = action === "report" ? REPORT_LIMIT : CHAT_LIMIT;

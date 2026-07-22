@@ -36,6 +36,8 @@ import {
   CustomSupplement,
   EMPTY_PROTOCOL,
 } from '../types/protocol';
+import { authSessionCoordinator, captureAuthRequestScope } from '../lib/supabase';
+import { userProfilePersistence } from '../lib/userProfilePersistence';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>,
@@ -1406,11 +1408,22 @@ export default function ProtocolScreen() {
         onClose={() => setShowAddMedModal(false)}
         existingMeds={medications}
         onAdd={async (medName) => {
-          const raw = await AsyncStorage.getItem('@vitalspan_user_profile').catch(() => null);
-          const prof = raw ? JSON.parse(raw) as { medications?: string[] } : {};
-          const updated = [...(prof.medications ?? []), medName];
-          await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify({ ...prof, medications: updated })).catch(console.error);
-          setProfile(p => p ? { ...p, medications: updated } : p);
+          const scope = captureAuthRequestScope();
+          if (!scope) return;
+          const updated = [...medications, medName];
+          try {
+            const registeredAccount = !authSessionCoordinator
+              .getSnapshot()
+              .session?.user.is_anonymous;
+            await userProfilePersistence.update(
+              scope,
+              { medications: updated },
+              registeredAccount,
+            );
+            setProfile(p => p ? { ...p, medications: updated } : p);
+          } catch {
+            Alert.alert('Save failed', 'Could not save this medication. Please try again.');
+          }
         }}
       />
       <EditSupplementSheet

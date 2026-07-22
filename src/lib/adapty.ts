@@ -616,10 +616,13 @@ export async function identifyAdaptyUser(userId: string): Promise<boolean> {
 
 /** Removes the prior Supabase-to-Adapty association on a signed-out device. */
 export async function logoutAdaptyUser(): Promise<void> {
+  // Clear the in-process association immediately. Even if the SDK logout
+  // fails, the next authenticated generation must identify explicitly rather
+  // than inheriting a cached success for the prior customer.
+  identifiedAdaptyUserId = null
   await activationPromise
   try {
     await adapty.logout()
-    identifiedAdaptyUserId = null
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.warn('[Adapty] logout() failed:', message)

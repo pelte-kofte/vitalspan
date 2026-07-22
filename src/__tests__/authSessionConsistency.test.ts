@@ -254,4 +254,31 @@ describe('Auth Session Consistency test matrix', () => {
     if (coordinator.isScopeCurrent(requestScope)) committed = true;
     expect(committed).toBe(false);
   });
+
+  test('premium identity is cleared before a different user becomes visible', async () => {
+    const auth = new FakeAuth(session('A'));
+    const storage = new MemoryStorage();
+    storage.values.set(OWNER_KEY, 'A');
+    let finishCleanup!: () => void;
+    const cleanup = jest.fn(() => new Promise<void>(resolve => {
+      finishCleanup = resolve;
+    }));
+    const coordinator = new AuthSessionCoordinator({
+      auth,
+      storage,
+      ownerStorageKey: OWNER_KEY,
+      userScopedStorageKeys: USER_KEYS,
+      onIdentityCleared: cleanup,
+    });
+    await coordinator.initialize();
+
+    auth.emit('SIGNED_IN', session('B'));
+    await settle();
+    expect(coordinator.getSnapshot()).toMatchObject({ status: 'initializing', userId: null });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+
+    finishCleanup();
+    await settle();
+    expect(coordinator.getSnapshot()).toMatchObject({ status: 'authenticated', userId: 'B' });
+  });
 });

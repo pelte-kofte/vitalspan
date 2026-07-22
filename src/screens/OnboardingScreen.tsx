@@ -7,13 +7,17 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { GoalTimerIcon, GoalSparkIcon, GoalDnaIcon, GoalChartIcon, CheckmarkIcon } from '../components/DesignSystemIcons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import MedicationSearch from '../components/MedicationSearch';
 import { CONDITIONS } from '../constants/conditions';
-import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
+import {
+  authSessionCoordinator,
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+} from '../lib/supabase';
+import { userProfilePersistence } from '../lib/userProfilePersistence';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -86,7 +90,10 @@ export default function OnboardingScreen() {
       onboardingComplete: true,
     };
     try {
-      await AsyncStorage.setItem('@vitalspan_user_profile', JSON.stringify(profile));
+      const registeredAccount = !authSessionCoordinator
+        .getSnapshot()
+        .session?.user.is_anonymous;
+      await userProfilePersistence.saveCompleted(scope, profile, registeredAccount);
       if (!isAuthRequestScopeCurrent(scope)) return;
     } catch {
       Alert.alert('Save failed', 'Could not save your profile. Please try again.');
@@ -279,7 +286,7 @@ export default function OnboardingScreen() {
           </View>
           <View style={s.privacyNote}>
             <Text style={s.privacyTxt}>
-              Your medication data is encrypted locally and never shared. Used only to protect you from supplement interactions.
+              Your medication data is stored with your account and used only to personalize safety checks and advisor context.
             </Text>
           </View>
         </ScrollView>

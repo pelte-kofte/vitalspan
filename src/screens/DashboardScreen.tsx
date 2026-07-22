@@ -37,6 +37,7 @@ import AnimatedPressable from '../components/AnimatedPressable';
 import { GearIcon } from '../components/DesignSystemIcons';
 import StaggerIn from '../components/StaggerIn';
 import { usePremiumContext } from '../context/PremiumContext';
+import { getAIAdvisorAccessState } from '../lib/premiumAccess';
 import type { ExerciseLogEntry } from '../data/exercises';
 import { useIssue } from '../hooks/useIssue';
 import { assembleAdvisorContext, type AdvisorContext } from '../lib/advisorContext';
@@ -161,7 +162,7 @@ function dateHeading(now: Date): string {
 
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
-  const { isPremium } = usePremiumContext();
+  const { isPremium, isPremiumLoading } = usePremiumContext();
   const { width } = useWindowDimensions();
   const layout = getTodayLayout(width);
   const { issue, onRefresh: refreshIssue } = useIssue();
@@ -327,6 +328,7 @@ export default function DashboardScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
     switch (action.destination) {
       case 'AIAdvisor':
+        if (getAIAdvisorAccessState(isPremium, isPremiumLoading) === 'loading') return;
         navigation.navigate(isPremium ? 'AIAdvisor' : 'Paywall');
         break;
       case 'BiomarkerDetail':
@@ -346,7 +348,7 @@ export default function DashboardScreen() {
         navigation.navigate(action.destination);
         break;
     }
-  }, [isPremium, navigation]);
+  }, [isPremium, isPremiumLoading, navigation]);
 
   async function dismissPriority() {
     const next = new Set(dismissedPriorityIds);

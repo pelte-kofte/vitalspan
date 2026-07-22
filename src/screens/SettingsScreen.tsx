@@ -15,8 +15,14 @@ import { PersonIcon, ShieldIcon, BellIcon, ChartBarIcon, RulerIcon, ShareIcon, T
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { STORAGE_KEYS } from '../lib/storageKeys';
 import { loadNotificationPrefs, saveNotificationPrefs, rescheduleAll, DEFAULT_PREFS, NotificationPrefs } from '../lib/notifications';
-import { captureAuthRequestScope, isAuthRequestScopeCurrent, signOutUser } from '../lib/supabase';
+import {
+  authSessionCoordinator,
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+  signOutUser,
+} from '../lib/supabase';
 import { getAdaptyDebugInfo, AdaptyDebugInfo } from '../lib/adapty';
+import { userProfilePersistence } from '../lib/userProfilePersistence';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -155,6 +161,12 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const scope = captureAuthRequestScope();
+              if (!scope) throw new Error('Session is unavailable');
+              const registeredAccount = !authSessionCoordinator
+                .getSnapshot()
+                .session?.user.is_anonymous;
+              await userProfilePersistence.delete(scope, registeredAccount);
               await AsyncStorage.multiRemove([...STORAGE_KEYS]);
               const { error } = await signOutUser();
               if (error) throw new Error(error);

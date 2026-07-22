@@ -13,6 +13,10 @@ import SheetForm, { SheetFormField } from '../components/auth/SheetForm';
 import { authSessionCoordinator, captureAuthRequestScope, signUpWithEmail, signInWithEmail, convertAnonymousToEmail, mapAuthError, supabase, signInWithApple, signInWithGoogle } from '../lib/supabase';
 import { migrateHistory } from '../lib/biomarkerWriteService';
 import type { StoredEntry } from '../types/biomarkerEntry';
+import {
+  isCompleteUserProfile,
+  userProfilePersistence,
+} from '../lib/userProfilePersistence';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -63,6 +67,14 @@ export default function WelcomeScreen() {
                 await AsyncStorage.setItem('@vitalspan_identity_linked', 'true');
               }
             }
+          }
+          const profileRaw = await AsyncStorage.getItem('@vitalspan_user_profile');
+          const profile: unknown = profileRaw ? JSON.parse(profileRaw) : null;
+          const profileScope = captureAuthRequestScope();
+          if (profileScope && isCompleteUserProfile(profile)) {
+            await userProfilePersistence
+              .saveCompleted(profileScope, profile, true)
+              .catch(error => console.warn('[Auth] profile promotion deferred:', error));
           }
         } else {
           // convertAnonymousToEmail failed (e.g. anonymous auth disabled in Supabase,
