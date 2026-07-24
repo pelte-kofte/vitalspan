@@ -7,6 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { SearchIcon, SuccessCheckIcon, ClipboardIcon, CameraIcon } from '../components/DesignSystemIcons';
 import { parseLabPDF, ParsedBiomarker } from '../lib/labParser';
@@ -14,13 +15,14 @@ import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarker
 import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
 import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
 import { markBiomarkerHistoryDirty } from '../lib/biomarkerWriteService';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type Phase = 'idle' | 'analyzing' | 'results' | 'noResults' | 'noMatch' | 'success';
 
 interface ResultItem extends ParsedBiomarker { selected: boolean }
 
 export default function LabUploadScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [phase, setPhase] = useState<Phase>('idle');
   const [fileName, setFileName] = useState('');
   const [items, setItems] = useState<ResultItem[]>([]);
@@ -63,7 +65,7 @@ export default function LabUploadScreen() {
     Alert.alert(
       'Photo received',
       'Text recognition from photos is coming soon. For now, please log your values manually.',
-      [{ text: 'Log manually', onPress: () => nav.goBack() }, { text: 'OK' }],
+      [{ text: 'Enter manually', onPress: () => nav.replace('BiomarkerEntry', { biomarkerId: undefined }) }, { text: 'OK' }],
     );
   }, [nav]);
 
@@ -110,7 +112,7 @@ export default function LabUploadScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => nav.goBack()}><Text style={s.close}>✕</Text></TouchableOpacity>
-        <Text style={s.headerTitle}>Upload Lab Results</Text>
+        <Text style={s.headerTitle}>Import laboratory PDF</Text>
         <View style={{ width: 28 }} />
       </View>
       <ScrollView contentContainerStyle={s.content}>
@@ -169,8 +171,8 @@ export default function LabUploadScreen() {
         <TouchableOpacity style={s.primaryBtn} onPress={() => setPhase('idle')}>
           <Text style={s.primaryBtnTxt}>Try another file</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.ghostBtn} onPress={() => nav.goBack()}>
-          <Text style={s.ghostBtnTxt}>Log manually instead</Text>
+        <TouchableOpacity style={s.ghostBtn} onPress={() => nav.replace('BiomarkerEntry', { biomarkerId: undefined })}>
+          <Text style={s.ghostBtnTxt}>Enter manually instead</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -193,8 +195,8 @@ export default function LabUploadScreen() {
         <TouchableOpacity style={s.primaryBtn} onPress={() => setPhase('idle')}>
           <Text style={s.primaryBtnTxt}>Try another file</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.ghostBtn} onPress={() => nav.goBack()}>
-          <Text style={s.ghostBtnTxt}>Log manually instead</Text>
+        <TouchableOpacity style={s.ghostBtn} onPress={() => nav.replace('BiomarkerEntry', { biomarkerId: undefined })}>
+          <Text style={s.ghostBtnTxt}>Enter manually instead</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

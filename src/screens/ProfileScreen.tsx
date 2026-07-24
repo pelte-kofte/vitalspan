@@ -277,8 +277,8 @@ export default function ProfileScreen() {
     <SafeAreaView style={s.safe}>
       <ProductScreenHeader
         eyebrow="VITALSPAN / PROFILE"
-        title="Your health context."
-        subtitle="Identity, goals, connected sources, and account access in one place."
+        title="Who am I?"
+        subtitle="Your identity, health context, and account."
         compact={compact}
         action={<View style={s.topActions}>
           <TouchableOpacity style={s.editBtn} onPress={startEdit}>

@@ -99,7 +99,7 @@ export default function HealthScreen() {
 
   const stateAction = useCallback(() => {
     if (experience.inputState === 'complete') openSystem('cardiovascular');
-    else navigation.navigate('LabUpload');
+    else navigation.navigate('AddResult');
   }, [experience.inputState, navigation, openSystem]);
 
   return (
@@ -113,11 +113,11 @@ export default function HealthScreen() {
         <View style={s.header}>
           <View style={s.headerText}>
             <Text maxFontSizeMultiplier={1.15} style={s.kicker}>VITALSPAN / HEALTH</Text>
-            <Text accessibilityRole="header" maxFontSizeMultiplier={1.2} style={s.title}>Your body, now.</Text>
-            <Text style={s.subtitle}>A clear view of what your data can say today.</Text>
+            <Text accessibilityRole="header" maxFontSizeMultiplier={1.2} style={s.title}>How healthy am I today?</Text>
+            <Text style={s.subtitle}>What your available data can say now.</Text>
           </View>
-          <Pressable onPress={() => navigation.navigate('LabUpload')} style={s.addButton} accessibilityRole="button" accessibilityLabel="Add health data">
-            <Text style={s.addButtonText}>Add data</Text>
+          <Pressable onPress={() => navigation.navigate('AddResult')} style={s.addButton} accessibilityRole="button" accessibilityLabel="Add a result">
+            <Text style={s.addButtonText}>Add result</Text>
           </Pressable>
         </View>
 

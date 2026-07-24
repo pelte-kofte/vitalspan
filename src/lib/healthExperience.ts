@@ -130,7 +130,7 @@ export const BODY_SYSTEMS: readonly BodySystemDefinition[] = [
 export const TREND_LABELS: Record<HealthTrend, string> = {
   improving: 'Improving',
   stable: 'Stable',
-  needs_review: 'Needs review',
+  needs_review: 'Needs attention',
   insufficient_history: 'Insufficient history',
 };
 
@@ -267,7 +267,7 @@ function systemModel(
   let state = 'No assessment yet';
   if (definition.researchOnly && current.length > 0) state = 'Research data only';
   else if (currentEntries.length > 0 && current.length === 0) state = 'Data out of date';
-  else if (outside.length > 0) state = 'Needs review';
+  else if (outside.length > 0) state = 'Needs attention';
   else if (classified.length > 0) state = 'Within reported ranges';
   else if (current.length > 0) state = 'Context incomplete';
 

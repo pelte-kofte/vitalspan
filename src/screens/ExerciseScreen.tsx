@@ -294,8 +294,8 @@ export default function ExerciseScreen() {
     <SafeAreaView style={s.safe}>
       <ProductScreenHeader
         eyebrow="VITALSPAN / EXERCISE"
-        title="Move for the long run."
-        subtitle="Build aerobic capacity, preserve strength, and keep daily movement sustainable."
+        title="What movement matters today?"
+        subtitle="Choose the next useful movement."
         compact={compact}
         action={todayLogs.length > 0 ? (
           <View style={s.todayPill}><Text style={s.todayPillTxt}>{todayLogs.length} today</Text></View>

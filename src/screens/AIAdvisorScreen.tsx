@@ -98,13 +98,25 @@ export default function AIAdvisorScreen(): React.JSX.Element {
   const recItems: ReportItem[] = (report?.recommendations ?? [])
     .map(r => ({ kind: 'recommendation' as const, action: r.action, category: r.category, timeframe: r.timeframe }));
   const sendDisabled = isChatLoading || chatInput.trim().length === 0;
+  const dismiss = () => {
+    if (nav.canGoBack()) {
+      nav.goBack();
+      return;
+    }
+    nav.navigate('Main', { screen: 'Home' });
+  };
 
   return (
     <LinearGradient colors={['#080D09', '#0C1410', '#0F1C14']} style={s.gradient}>
       <SafeAreaView style={s.safe}>
         <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => nav.goBack()}>
-            <Text style={s.backArrow}>←</Text>
+          <TouchableOpacity
+            style={s.backBtn}
+            onPress={dismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Close AI Advisor"
+          >
+            <Text style={s.closeText}>Close</Text>
           </TouchableOpacity>
           <Text style={s.screenTitle}>AI Advisor</Text>
           {report || messages.length > 0 ? (
@@ -142,7 +154,7 @@ export default function AIAdvisorScreen(): React.JSX.Element {
             {!report && messages.length === 0 ? (
               <View style={s.advisorHero}>
                 <Text style={s.advisorEyebrow}>PREMIUM / PRIVATE CONTEXT</Text>
-                <Text style={s.advisorTitle}>Ask from your health snapshot.</Text>
+                <Text style={s.advisorTitle}>What does my data mean?</Text>
                 <Text style={s.advisorBody}>Generate a structured report or ask a focused question. Advisor responses remain informational and do not replace clinical care.</Text>
               </View>
             ) : null}
@@ -209,7 +221,7 @@ const s = StyleSheet.create({
   flex: { flex: 1 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: ProductLayout.pageInset, paddingVertical: Spacing.md },
   backBtn: { minWidth: 76, minHeight: 44, padding: Spacing.sm, justifyContent: 'center' },
-  backArrow: { color: Colors.dark.text, fontSize: 22 },
+  closeText: { color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, fontWeight: Typography.weights.label },
   screenTitle: { color: Colors.dark.text, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider, fontSize: Typography.sizes.body },
   reportLink: { minWidth: 76, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
   regenerate: { fontSize: Typography.sizes.sm, color: Colors.dark.textMuted },

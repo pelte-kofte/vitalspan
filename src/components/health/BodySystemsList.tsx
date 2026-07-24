@@ -46,7 +46,7 @@ function SystemRow({ system, onOpen, last }: { system: BodySystemModel; onOpen: 
           <Text style={s.title}>{system.name}</Text>
           <Chevron />
         </View>
-        <Text style={[s.state, !hasData && s.stateNeutral, system.state === 'Needs review' && s.stateAttention]}>{system.state}</Text>
+        <Text style={[s.state, !hasData && s.stateNeutral, system.state === 'Needs attention' && s.stateAttention]}>{system.state}</Text>
         {hint && <Text style={[s.driver, !hasData && s.emptyHint]} numberOfLines={1}>{hint}</Text>}
         {hasData && (
           <View style={s.metaRow}>

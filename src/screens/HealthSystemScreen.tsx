@@ -11,7 +11,7 @@ import DisclosureSection from '../components/health/DisclosureSection';
 import TrendSignal from '../components/health/TrendSignal';
 import Text from '../components/health/HealthText';
 import type { Biomarker } from '../data/biomarkers';
-import { formatSourceLabRange } from '../lib/biomarkerInterpretation';
+import { laboratoryReferencePresentation } from '../lib/bundledLaboratoryReference';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
 import { buildHealthExperience, formatHealthDate } from '../lib/healthExperience';
@@ -76,7 +76,7 @@ export default function HealthSystemScreen() {
         <View style={s.hero}>
           <View style={s.icon}><BodySystemIcon system={system.id} color={Colors.health.ink} size={Spacing.xxl + Spacing.sm} /></View>
           <Text maxFontSizeMultiplier={1.2} style={s.title}>{system.name}</Text>
-          <Text style={[s.state, system.state === 'Needs review' && s.attention]}>{system.state}</Text>
+          <Text style={[s.state, system.state === 'Needs attention' && s.attention]}>{system.state}</Text>
           <Text style={s.driver}>{system.currentEntries.length > 0 ? system.driver : system.nextAction ?? 'Add a relevant laboratory result'}</Text>
           {system.currentEntries.length > 0 && <View style={s.heroMeta}><TrendSignal trend={system.trend} /><Text style={s.confidence}>{system.confidence} confidence</Text></View>}
         </View>
@@ -85,10 +85,11 @@ export default function HealthSystemScreen() {
           <Text style={s.body}>{system.currentEntries.length > 0 ? `${system.changed}. This view is based on ${system.currentEntries.length} available measurements.` : 'Add a relevant laboratory result to begin this system assessment.'}</Text>
           <Text style={s.caution}>System states organize data; they are not diagnoses.</Text>
         </DisclosureSection>
-        {system.currentEntries.length === 0 && <Pressable onPress={() => navigation.navigate('LabUpload')} style={s.primaryButton} accessibilityRole="button" accessibilityLabel="Add relevant laboratory data"><Text style={s.primaryButtonText}>Add relevant laboratory data</Text></Pressable>}
+        {system.currentEntries.length === 0 && <Pressable onPress={() => navigation.navigate('AddResult')} style={s.primaryButton} accessibilityRole="button" accessibilityLabel="Add a relevant result"><Text style={s.primaryButtonText}>Add a relevant result</Text></Pressable>}
         <DisclosureSection title="Key biomarkers" summary={`${system.biomarkers.length} measurements can inform this system`} initiallyOpen>
           {system.biomarkers.map((marker, index) => {
             const entry = entriesByMarker.get(marker.id);
+            const reference = laboratoryReferencePresentation(marker, entry?.sourceLabRange);
             return (
               <Pressable
                 key={marker.id}
@@ -100,7 +101,7 @@ export default function HealthSystemScreen() {
                 <View style={s.markerName}>
                   <Text style={s.markerTitle}>{marker.name}</Text>
                   <Text style={s.markerDate}>{entry ? formatHealthDate(entry.date) : `No measurement · ${marker.unit}`}</Text>
-                  <Text style={s.markerReference}>LABORATORY REFERENCE · {entry?.sourceLabRange ? formatSourceLabRange(entry.sourceLabRange) : 'No source interval'}</Text>
+                  <Text style={s.markerReference}>{reference.label} · {reference.value}</Text>
                   <Text style={s.markerResearch}>RESEARCH TARGET · {marker.target} · unreviewed</Text>
                 </View>
                 <Text style={s.markerValue}>{entry ? `${entry.reportedValue ?? entry.value} ${entry.reportedUnit ?? entry.unit ?? marker.unit}` : 'Enter value'}</Text>
@@ -111,11 +112,11 @@ export default function HealthSystemScreen() {
         <DisclosureSection title="Historical trends" summary="Detailed charts open from each biomarker">
           <Text style={s.body}>Vitalspan summarizes meaningful direction first. Open a biomarker to inspect its dated measurements and detailed chart.</Text>
         </DisclosureSection>
-        <DisclosureSection title="Clinical reference ranges" summary="Ranges preserved from source laboratories">
-          {system.biomarkers.filter(marker => entriesByMarker.has(marker.id)).map(marker => (
-            <Text key={marker.id} style={s.reference}>{marker.name}: {formatSourceLabRange(entriesByMarker.get(marker.id)?.sourceLabRange)}</Text>
-          ))}
-          {system.currentEntries.length === 0 && <Text style={s.body}>No source laboratory ranges are available.</Text>}
+        <DisclosureSection title="Laboratory references" summary="Source report ranges override bundled display references">
+          {system.biomarkers.map(marker => {
+            const reference = laboratoryReferencePresentation(marker, entriesByMarker.get(marker.id)?.sourceLabRange);
+            return <Text key={marker.id} style={s.reference}>{marker.name}: {reference.value}</Text>;
+          })}
         </DisclosureSection>
         <DisclosureSection title="Longevity evidence" summary="Kept separate from clinical significance">
           <Text style={s.body}>{withReviewedEvidence.length > 0 ? `${withReviewedEvidence.length} biomarkers have reviewed evidence metadata.` : 'No reviewed longevity evidence is linked to this system yet. Legacy targets are not presented as clinical truth.'}</Text>

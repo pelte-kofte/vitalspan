@@ -292,7 +292,7 @@ export default function AppNavigator({ initialRoute }: Props) {
         <Stack.Screen
           name="AIAdvisor"
           component={AIAdvisorScreen}
-          options={{ presentation: 'fullScreenModal', animation: 'fade_from_bottom' }}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom', gestureEnabled: true }}
         />
       </Stack.Navigator>
     </NavigationContainer>

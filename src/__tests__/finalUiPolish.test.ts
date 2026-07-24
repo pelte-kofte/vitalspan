@@ -85,18 +85,23 @@ describe('final product UI polish', () => {
     expect(settings).toContain('handleSignOut');
   });
 
-  test('biomarker UI keeps laboratory references distinct from research targets', () => {
+  test('biomarker V2 shows only measurement facts and report-specific references', () => {
     const detail = source('src/screens/BiomarkerDetailScreen.tsx');
     const entry = source('src/screens/BiomarkerEntryScreen.tsx');
-    const rangeBar = source('src/components/RangeBar.tsx');
-    expect(detail).toContain('LABORATORY REFERENCE');
-    expect(detail).toContain('RESEARCH TARGET');
-    expect(detail).toContain('Enter a biomarker value to see your interpretation.');
-    expect(detail).toContain('Source-laboratory classification is unavailable.');
-    expect(entry).toContain('never substituted for the source laboratory interval');
-    expect(rangeBar).toContain('SOURCE LABORATORY INTERVAL');
-    expect(rangeBar).toContain('Source-laboratory classification unavailable');
-    expect(rangeBar).not.toContain("'Unable to classify'");
+    const chart = source('src/components/health/BiomarkerHistoryChart.tsx');
+    expect(detail).toContain('Reference interval from this laboratory report');
+    expect(detail).toContain('hasImportedReportReference(latest)');
+    expect(detail).toContain('Measurement history');
+    expect(detail).toContain("entryId: entry.id");
+    expect(entry).toContain('Measurement date');
+    expect(entry).toContain('Result value');
+    expect(entry).not.toContain('placeholder="Low"');
+    expect(entry).not.toContain('placeholder="High"');
+    expect(chart).toContain('historical');
+    expect(chart).toContain('accessibilityState={{ selected:');
+    expect(`${detail}\n${entry}`).not.toMatch(
+      /\.optMin|\.optMax|\.target|\.howToImprove|\.insight/,
+    );
   });
 
   test('article empty state remains editorial and Advisor premium gate is untouched', () => {

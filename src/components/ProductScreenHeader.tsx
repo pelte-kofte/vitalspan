@@ -17,7 +17,7 @@ export default function ProductScreenHeader({ eyebrow, title, subtitle, action, 
     <View style={[s.header, compact && s.headerCompact]}>
       <View style={s.copy}>
         <Text style={s.eyebrow} maxFontSizeMultiplier={1.3}>{eyebrow}</Text>
-        <Text style={[s.title, compact && s.titleCompact]} maxFontSizeMultiplier={1.2}>{title}</Text>
+        <Text accessibilityRole="header" style={[s.title, compact && s.titleCompact]} maxFontSizeMultiplier={1.2}>{title}</Text>
         {subtitle ? <Text style={s.subtitle} maxFontSizeMultiplier={1.35}>{subtitle}</Text> : null}
       </View>
       {action ? <View style={s.action}>{action}</View> : null}

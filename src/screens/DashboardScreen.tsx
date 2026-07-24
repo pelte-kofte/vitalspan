@@ -343,7 +343,7 @@ export default function DashboardScreen() {
               <View style={styles.headerCopy}>
                 <Text style={styles.date}>{dateHeading(new Date()).toUpperCase()}</Text>
                 <Text style={styles.title} accessibilityRole="header">Today{profile?.name ? `, ${profile.name}` : ''}</Text>
-                <Text style={styles.subtitle}>Your daily longevity briefing</Text>
+                <Text style={styles.subtitle}>What matters most today.</Text>
               </View>
               <AnimatedPressable
                 style={styles.settingsButton}
