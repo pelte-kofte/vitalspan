@@ -37,6 +37,8 @@ function toRemoteRow(entry: StoredEntry) {
  *
  * Functions:
  *   - syncEntry(entry): fire-and-forget insert for a single entry after AsyncStorage write.
+ *   - updateEntry(entry): updates one user-owned entry without changing its identity.
+ *   - deleteEntry(id): deletes one user-owned entry.
  *   - migrateHistory(entries): retry-safe bulk insert for local history migration.
  *   - markBiomarkerHistoryDirty(): schedules an idempotent startup retry.
  *
@@ -99,6 +101,64 @@ export function syncEntry(entry: StoredEntry): void {
     const message = err instanceof Error ? err.message : String(err);
     console.warn('[biomarkerWriteService] syncEntry unhandled rejection:', message);
   });
+}
+
+/**
+ * Updates one existing, user-owned entry. The caller keeps the local and
+ * remote mutations coordinated and may roll back its local write when this
+ * operation fails.
+ */
+export async function updateEntry(
+  entry: StoredEntry,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<boolean> {
+  try {
+    if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return false;
+    const { error } = await supabase
+      .from('biomarker_entries')
+      .upsert([toRemoteRow(entry)], {
+        onConflict: 'id',
+        ignoreDuplicates: false,
+        defaultToNull: false,
+      });
+    if (!isAuthRequestScopeCurrent(expectedScope)) return false;
+    if (error) {
+      console.warn('[biomarkerWriteService] updateEntry failed:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[biomarkerWriteService] updateEntry unexpected error:', message);
+    return false;
+  }
+}
+
+/**
+ * Deletes one existing, user-owned entry. Row-level security verifies
+ * ownership from the authenticated session.
+ */
+export async function deleteEntry(
+  id: string,
+  expectedScope: AuthRequestScope | null = captureAuthRequestScope(),
+): Promise<boolean> {
+  try {
+    if (!expectedScope || !isAuthRequestScopeCurrent(expectedScope)) return false;
+    const { error } = await supabase
+      .from('biomarker_entries')
+      .delete()
+      .eq('id', id);
+    if (!isAuthRequestScopeCurrent(expectedScope)) return false;
+    if (error) {
+      console.warn('[biomarkerWriteService] deleteEntry failed:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('[biomarkerWriteService] deleteEntry unexpected error:', message);
+    return false;
+  }
 }
 
 /**

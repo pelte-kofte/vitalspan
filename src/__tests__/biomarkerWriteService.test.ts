@@ -3,7 +3,12 @@ import type { StoredEntry } from '../types/biomarkerEntry';
 
 const mockUpsert = jest.fn();
 const mockRpc = jest.fn();
-const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+const mockEq = jest.fn();
+const mockDelete = jest.fn(() => ({ eq: mockEq }));
+const mockFrom = jest.fn(() => ({
+  upsert: mockUpsert,
+  delete: mockDelete,
+}));
 const mockCaptureAuthRequestScope = jest.fn<AuthRequestScope | null, []>();
 const mockIsAuthRequestScopeCurrent = jest.fn<boolean, [AuthRequestScope]>();
 const mockRemoveItem = jest.fn();
@@ -20,9 +25,11 @@ jest.mock('../lib/supabase', () => ({
 }));
 
 import {
+  deleteEntry,
   markBiomarkerHistoryDirty,
   migrateHistory,
   syncEntry,
+  updateEntry,
 } from '../lib/biomarkerWriteService';
 import { BIOMARKER_PERSISTENCE_MIGRATION_KEY } from '../lib/storageKeys';
 
@@ -47,6 +54,7 @@ describe('biomarkerWriteService append-only persistence contract', () => {
     mockCaptureAuthRequestScope.mockReturnValue(scope);
     mockIsAuthRequestScopeCurrent.mockReturnValue(true);
     mockUpsert.mockResolvedValue({ error: null });
+    mockEq.mockResolvedValue({ error: null });
     mockRpc.mockResolvedValue({ error: null });
     mockRemoveItem.mockResolvedValue(undefined);
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -75,6 +83,49 @@ describe('biomarkerWriteService append-only persistence contract', () => {
         ignoreDuplicates: true,
         defaultToNull: false,
       },
+    );
+  });
+
+  test('updates an existing user-owned entry through its stable identity', async () => {
+    const edited = { ...entry, value: 93 };
+
+    await expect(updateEntry(edited, scope)).resolves.toBe(true);
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      [expect.objectContaining({
+        id: 'entry-1',
+        biomarker_id: 'fastingglucose',
+        value: 93,
+      })],
+      {
+        onConflict: 'id',
+        ignoreDuplicates: false,
+        defaultToNull: false,
+      },
+    );
+  });
+
+  test('deletes an existing user-owned entry through its stable identity', async () => {
+    await expect(deleteEntry(entry.id, scope)).resolves.toBe(true);
+
+    expect(mockDelete).toHaveBeenCalledTimes(1);
+    expect(mockEq).toHaveBeenCalledWith('id', 'entry-1');
+  });
+
+  test('fails closed when edit or delete persistence is unavailable', async () => {
+    mockUpsert.mockResolvedValue({ error: { message: 'network unavailable' } });
+    mockEq.mockResolvedValue({ error: { message: 'network unavailable' } });
+
+    await expect(updateEntry(entry, scope)).resolves.toBe(false);
+    await expect(deleteEntry(entry.id, scope)).resolves.toBe(false);
+
+    expect(console.warn).toHaveBeenCalledWith(
+      '[biomarkerWriteService] updateEntry failed:',
+      'network unavailable',
+    );
+    expect(console.warn).toHaveBeenCalledWith(
+      '[biomarkerWriteService] deleteEntry failed:',
+      'network unavailable',
     );
   });
 

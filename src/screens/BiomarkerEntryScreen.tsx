@@ -1,378 +1,589 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, KeyboardAvoidingView, Platform,
+  AccessibilityInfo,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  type RouteProp,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setStatusBarStyle } from 'expo-status-bar';
-import { Colors, ProductLayout, Spacing, Radius, Typography } from '../theme';
+
 import type { Biomarker } from '../data/biomarkers';
+import { loadBiomarkerHistory } from '../lib/biomarkerEntryService';
+import { persistBiomarkerEntryUpdate } from '../lib/biomarkerHistoryPersistence';
 import { getBiomarkers } from '../lib/biomarkerService';
 import { markBiomarkerHistoryDirty, syncEntry } from '../lib/biomarkerWriteService';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import RangeBar from '../components/RangeBar';
-import BreathingCard from '../components/BreathingCard';
-import { FIRST_RUN_CONTENT_MAP } from '../data/firstRunContent';
-import { BIOMARKER_STATUS_LABELS, classifyBiomarkerValue } from '../lib/biomarkerInterpretation';
-import { createStoredBiomarkerEntry, type StoredEntry } from '../types/biomarkerEntry';
-import type { SourceLabRange } from '../types/biomarkerKnowledge';
-import { captureAuthRequestScope, isAuthRequestScopeCurrent } from '../lib/supabase';
+import {
+  captureAuthRequestScope,
+  isAuthRequestScopeCurrent,
+} from '../lib/supabase';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import { Colors, ProductLayout, Radius, Spacing, Typography } from '../theme';
+import {
+  createStoredBiomarkerEntry,
+  type StoredEntry,
+} from '../types/biomarkerEntry';
 
 export type { StoredEntry } from '../types/biomarkerEntry';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Source = 'Blood test' | 'Home kit' | 'Hospital' | 'Private clinic';
-type InputUnit = 'native' | 'mmol/L';
+type InputUnitMode = 'catalog' | 'alternate';
+type EntryField = 'value' | 'unit' | 'date';
+type SaveState = 'idle' | 'loading' | 'success' | 'failure';
 
-const SOURCES: Source[] = ['Blood test', 'Home kit', 'Hospital', 'Private clinic'];
-
-// Biomarkers that have a common mmol/L alternate input unit
-const MMOL_CONVERTIBLE: Record<string, { altUnit: string; toNative: (value: number) => number }> = {
-  fastingglucose: { altUnit: 'mmol/L', toNative: value => value * 18.0182 },
-  // NGSP (%) = 0.09148 × IFCC (mmol/mol) + 2.152
-  hba1c: { altUnit: 'mmol/mol', toNative: value => 0.09148 * value + 2.152 },
+const MMOL_CONVERTIBLE: Readonly<Record<string, {
+  altUnit: string;
+  toCatalogUnit: (value: number) => number;
+}>> = {
+  fastingglucose: {
+    altUnit: 'mmol/L',
+    toCatalogUnit: value => value * 18.0182,
+  },
+  hba1c: {
+    altUnit: 'mmol/mol',
+    toCatalogUnit: value => 0.09148 * value + 2.152,
+  },
 };
 
-function convertToNative(val: number, biomarkerId: string, inputUnit: InputUnit): number {
-  if (inputUnit === 'native') return val;
-  const conv = MMOL_CONVERTIBLE[biomarkerId];
-  if (!conv) return val;
-  return Math.round(conv.toNative(val) * 100) / 100;
+function convertToCatalogUnit(
+  value: number,
+  biomarkerId: string,
+  inputUnitMode: InputUnitMode,
+): number {
+  if (inputUnitMode === 'catalog') return value;
+  const conversion = MMOL_CONVERTIBLE[biomarkerId];
+  if (!conversion) return value;
+  return Math.round(conversion.toCatalogUnit(value) * 100) / 100;
+}
+
+function dateForStoredEntry(selectedDate: Date, existingDate?: string): string {
+  const base = existingDate ? new Date(existingDate) : new Date();
+  const safeBase = Number.isNaN(base.getTime()) ? new Date() : base;
+  safeBase.setFullYear(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    selectedDate.getDate(),
+  );
+  return safeBase.toISOString();
+}
+
+function formatMeasurementDate(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function useReduceMotion(): boolean {
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+      if (mounted) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotion,
+    );
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+  return reduceMotion;
 }
 
 export default function BiomarkerEntryScreen() {
-  const nav = useNavigation<Nav>();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProp<RootStackParamList, 'BiomarkerEntry'>>();
   const paramId = route.params?.biomarkerId;
+  const editingEntryId = route.params?.entryId;
+  const reduceMotion = useReduceMotion();
+  const valueFocus = useRef(new Animated.Value(1)).current;
+  const unitFocus = useRef(new Animated.Value(0)).current;
+  const dateFocus = useRef(new Animated.Value(0)).current;
+  const saveInFlight = useRef(false);
 
   const [biomarkers, setBiomarkers] = useState<Biomarker[]>([]);
   const [selected, setSelected] = useState<Biomarker | null>(null);
+  const [editingEntry, setEditingEntry] = useState<StoredEntry | null>(null);
   const [search, setSearch] = useState('');
   const [value, setValue] = useState('');
-  const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'other'>('today');
-  const [customDate, setCustomDate] = useState('');
-  const [source, setSource] = useState<Source>('Blood test');
-  const [notes, setNotes] = useState('');
+  const [measurementDate, setMeasurementDate] = useState(new Date());
   const [saving, setSaving] = useState(false);
-  const [inputUnit, setInputUnit] = useState<InputUnit>('native');
-  const [labRangeLow, setLabRangeLow] = useState('');
-  const [labRangeHigh, setLabRangeHigh] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [inputUnitMode, setInputUnitMode] = useState<InputUnitMode>('catalog');
+  const [activeField, setActiveField] = useState<EntryField>('value');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    getBiomarkers().then(loaded => {
-      setBiomarkers(loaded);
-      // If a biomarkerId param was provided, set the selected biomarker once data is available
-      if (paramId && selected === null) {
-        const found = loaded.find(b => b.id === paramId) ?? null;
-        setSelected(found);
+    let active = true;
+    void Promise.all([
+      getBiomarkers(),
+      editingEntryId ? loadBiomarkerHistory() : Promise.resolve([] as StoredEntry[]),
+    ]).then(([definitions, history]) => {
+      if (!active) return;
+      setBiomarkers(definitions);
+      const existing = editingEntryId
+        ? history.find(entry => entry.id === editingEntryId) ?? null
+        : null;
+      const biomarkerId = existing?.biomarkerId ?? paramId;
+      const definition = biomarkerId
+        ? definitions.find(item => item.id === biomarkerId) ?? null
+        : null;
+      setSelected(definition);
+      setEditingEntry(existing);
+
+      if (existing && definition) {
+        setValue(String(existing.reportedValue ?? existing.value));
+        const parsedDate = new Date(existing.date);
+        if (!Number.isNaN(parsedDate.getTime())) setMeasurementDate(parsedDate);
+        const alternateUnit = MMOL_CONVERTIBLE[definition.id]?.altUnit;
+        setInputUnitMode(
+          alternateUnit && existing.reportedUnit === alternateUnit
+            ? 'alternate'
+            : 'catalog',
+        );
       }
-    }).catch(console.error);
-  // Run once on mount — paramId and selected are intentionally excluded from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      setLoading(false);
+    }).catch(error => {
+      console.error(error);
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [editingEntryId, paramId]);
 
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); return () => {}; }, []));
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle('dark');
+    return () => undefined;
+  }, []));
 
-  const rawVal = parseFloat(value.replace(',', '.'));
-  const numVal = selected ? convertToNative(rawVal, selected.id, inputUnit) : rawVal;
-  const isValidValue = !isNaN(rawVal) && rawVal > 0;
-  const canConvert = selected ? !!MMOL_CONVERTIBLE[selected.id] : false;
-  const altUnit = selected ? MMOL_CONVERTIBLE[selected.id]?.altUnit : undefined;
-  const reportedUnit = inputUnit === 'native' ? selected?.unit : altUnit;
-  const parsedRangeLow = labRangeLow.trim() === '' ? undefined : parseFloat(labRangeLow.replace(',', '.'));
-  const parsedRangeHigh = labRangeHigh.trim() === '' ? undefined : parseFloat(labRangeHigh.replace(',', '.'));
-  const rangeHasInvalidValue =
-    (parsedRangeLow !== undefined && !Number.isFinite(parsedRangeLow)) ||
-    (parsedRangeHigh !== undefined && !Number.isFinite(parsedRangeHigh)) ||
-    (parsedRangeLow !== undefined && parsedRangeHigh !== undefined && parsedRangeLow > parsedRangeHigh);
-  const sourceLabRange: SourceLabRange | undefined =
-    reportedUnit && !rangeHasInvalidValue && (parsedRangeLow !== undefined || parsedRangeHigh !== undefined)
-      ? {
-          lowerBound: parsedRangeLow,
-          upperBound: parsedRangeHigh,
-          unit: reportedUnit,
-          reportedText: parsedRangeLow !== undefined && parsedRangeHigh !== undefined
-            ? `${labRangeLow.trim()}–${labRangeHigh.trim()}`
-            : parsedRangeLow !== undefined
-              ? `≥${labRangeLow.trim()}`
-              : `≤${labRangeHigh.trim()}`,
-        }
-      : undefined;
-  const status = selected && isValidValue
-    ? classifyBiomarkerValue(rawVal, reportedUnit, sourceLabRange)
-    : null;
-
-  const filtered = biomarkers.filter(bm =>
-    bm.name.toLowerCase().includes(search.toLowerCase()) ||
-    bm.categoryLabel.toLowerCase().includes(search.toLowerCase())
+  const rawValue = Number.parseFloat(value.replace(',', '.'));
+  const validValue = Number.isFinite(rawValue) && rawValue > 0;
+  const catalogValue = selected
+    ? convertToCatalogUnit(rawValue, selected.id, inputUnitMode)
+    : rawValue;
+  const conversion = selected ? MMOL_CONVERTIBLE[selected.id] : undefined;
+  const reportedUnit = inputUnitMode === 'alternate'
+    ? conversion?.altUnit
+    : selected?.unit;
+  const filtered = biomarkers.filter(biomarker =>
+    biomarker.name.toLowerCase().includes(search.toLowerCase())
+    || biomarker.categoryLabel.toLowerCase().includes(search.toLowerCase()),
   );
 
-  function getEntryDate(): string {
-    if (dateMode === 'today') return new Date().toISOString();
-    if (dateMode === 'yesterday') {
-      const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString();
+  const focusField = useCallback((field: EntryField): void => {
+    setActiveField(field);
+    const duration = reduceMotion ? 120 : 180;
+    Animated.parallel([
+      [valueFocus, field === 'value' ? 1 : 0],
+      [unitFocus, field === 'unit' ? 1 : 0],
+      [dateFocus, field === 'date' ? 1 : 0],
+    ].map(([animation, target]) => Animated.timing(animation as Animated.Value, {
+      toValue: target as number,
+      duration,
+      useNativeDriver: true,
+    }))).start();
+  }, [dateFocus, reduceMotion, unitFocus, valueFocus]);
+
+  function clearFailureState(): void {
+    if (saveState === 'failure') {
+      setSaveState('idle');
+      setSaveMessage(null);
     }
-    const parsed = new Date(customDate);
-    return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
   }
 
-  async function save() {
-    if (!selected || !isValidValue || saving) return;
+  async function save(): Promise<void> {
+    if (
+      !selected
+      || !validValue
+      || !reportedUnit
+      || saving
+      || saveInFlight.current
+    ) {
+      return;
+    }
     const scope = captureAuthRequestScope();
     if (!scope) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+    saveInFlight.current = true;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     setSaving(true);
+    setSaveState('loading');
+    setSaveMessage(null);
+
+    const entry = createStoredBiomarkerEntry({
+      ...(editingEntry ? { id: editingEntry.id } : {}),
+      biomarkerId: selected.id,
+      value: catalogValue,
+      unit: selected.unit,
+      reportedValue: rawValue,
+      reportedUnit,
+      date: dateForStoredEntry(measurementDate, editingEntry?.date),
+      source: editingEntry?.source ?? 'Blood test',
+      notes: editingEntry?.notes ?? '',
+      ...(editingEntry?.sourceLabRange
+        ? { sourceLabRange: editingEntry.sourceLabRange }
+        : {}),
+    });
+
     try {
-      const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
-      if (!isAuthRequestScopeCurrent(scope)) return;
-      const entries: StoredEntry[] = raw ? JSON.parse(raw) : [];
-      entries.push(createStoredBiomarkerEntry({
-        biomarkerId: selected.id,
-        value: numVal,
-        unit: selected.unit,
-        reportedValue: rawVal,
-        reportedUnit,
-        date: getEntryDate(),
-        source,
-        notes: notes.trim(),
-        sourceLabRange,
-      }));
-      await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
-      if (!isAuthRequestScopeCurrent(scope)) return;
-      await markBiomarkerHistoryDirty(scope);
-      if (!isAuthRequestScopeCurrent(scope)) return;
-      syncEntry(entries[entries.length - 1]);  // fire-and-forget — void return intentional
-      nav.goBack();
-    } catch (e) {
-      console.error(e);
+      if (editingEntry) {
+        const saved = await persistBiomarkerEntryUpdate(entry, scope);
+        if (!isAuthRequestScopeCurrent(scope)) return;
+        if (!saved) {
+          setSaveState('failure');
+          setSaveMessage('Your previous result is unchanged. Try again.');
+          AccessibilityInfo.announceForAccessibility(
+            'Result not changed. Your previous result is unchanged.',
+          );
+          void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error,
+          ).catch(() => undefined);
+          Alert.alert(
+            'Result not changed',
+            'We could not save this edit. Your previous result is still available.',
+          );
+          return;
+        }
+      } else {
+        const raw = await AsyncStorage.getItem('@vitalspan_biomarkers');
+        if (!isAuthRequestScopeCurrent(scope)) return;
+        const parsed = raw ? JSON.parse(raw) as unknown : [];
+        const entries = Array.isArray(parsed) ? parsed as StoredEntry[] : [];
+        entries.push(entry);
+        await AsyncStorage.setItem('@vitalspan_biomarkers', JSON.stringify(entries));
+        if (!isAuthRequestScopeCurrent(scope)) return;
+        await markBiomarkerHistoryDirty(scope);
+        if (!isAuthRequestScopeCurrent(scope)) return;
+        syncEntry(entry);
+      }
+      setSaveState('success');
+      AccessibilityInfo.announceForAccessibility(
+        editingEntry ? 'Result changes saved' : 'Result saved',
+      );
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => undefined);
+      navigation.goBack();
+    } catch (error) {
+      console.error(error);
+      setSaveState('failure');
+      setSaveMessage('Nothing was changed. Try again.');
+      AccessibilityInfo.announceForAccessibility(
+        editingEntry ? 'Result not changed' : 'Result not saved',
+      );
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Error,
+      ).catch(() => undefined);
+      Alert.alert(
+        editingEntry ? 'Result not changed' : 'Result not saved',
+        'Please try again.',
+      );
+    } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   }
 
-  // ── Step 1: select biomarker ──────────────────────────────────────────────
+  if (loading) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.centered} accessible accessibilityLabel="Loading result form">
+          <Text style={s.loadingText}>Loading…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!selected) {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => nav.goBack()}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={s.headerAction}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel biomarker entry"
+          >
             <Text style={s.cancel}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={s.headerTitle}>Log Biomarker</Text>
+          <Text style={s.headerTitle} accessibilityRole="header">Add Result</Text>
           <View style={s.headerSpacer} />
         </View>
         <TextInput
           style={s.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search biomarkers..."
+          placeholder="Search biomarkers"
           placeholderTextColor={Colors.health.inkTertiary}
+          accessibilityLabel="Search biomarkers"
           autoFocus
         />
         <ScrollView showsVerticalScrollIndicator={false}>
-          {filtered.map((bm, i) => (
+          {filtered.map((biomarker, index) => (
             <TouchableOpacity
-              key={bm.id}
-              style={[s.pickRow, i < filtered.length - 1 && s.pickRowBorder]}
-              onPress={() => setSelected(bm)}
+              key={biomarker.id}
+              style={[
+                s.pickRow,
+                index < filtered.length - 1 && s.pickRowBorder,
+              ]}
+              onPress={() => {
+                setSelected(biomarker);
+                setValue('');
+                setMeasurementDate(new Date());
+                setInputUnitMode('catalog');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${biomarker.name}, ${biomarker.unit}`}
             >
               <View style={s.pickInfo}>
-                <Text style={s.pickName}>{bm.name}</Text>
-                <Text style={s.pickUnit}>{bm.unit}</Text>
+                <Text style={s.pickName}>{biomarker.name}</Text>
+                <Text style={s.pickUnit}>{biomarker.unit}</Text>
               </View>
-              <View style={s.catBadge}>
-                <Text style={s.catBadgeTxt}>{bm.categoryLabel}</Text>
+              <View style={s.categoryBadge}>
+                <Text style={s.categoryBadgeText}>{biomarker.categoryLabel}</Text>
               </View>
             </TouchableOpacity>
           ))}
-          <View style={{ height: 32 }} />
+          <View style={s.bottomSpace} />
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ── Step 2: enter value ───────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.headerRow}>
-        <TouchableOpacity onPress={() => { if (paramId) nav.goBack(); else { setSelected(null); setValue(''); } }}>
-          <Text style={s.cancel}>{paramId ? 'Cancel' : '← Back'}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (paramId || editingEntryId) navigation.goBack();
+            else {
+              setSelected(null);
+              setValue('');
+            }
+          }}
+          style={s.headerAction}
+          accessibilityRole="button"
+          accessibilityLabel={paramId || editingEntryId ? 'Cancel result' : 'Choose another biomarker'}
+        >
+          <Text style={s.cancel}>{paramId || editingEntryId ? 'Cancel' : 'Back'}</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{selected.name}</Text>
+        <Text style={s.headerTitle} accessibilityRole="header">
+          {editingEntry ? 'Edit Result' : 'Add Result'}
+        </Text>
         <View style={s.headerSpacer} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        {selected !== null && FIRST_RUN_CONTENT_MAP[selected.id] !== undefined && (
-          <BreathingCard style={s.explanationWrapper}>
-            <View style={s.explanationInner}>
-              <Text style={s.explanationIcon}>{FIRST_RUN_CONTENT_MAP[selected.id].icon}</Text>
-              <Text style={s.explanationHeadline}>{FIRST_RUN_CONTENT_MAP[selected.id].headline}</Text>
-              <Text style={s.explanationBody}>{FIRST_RUN_CONTENT_MAP[selected.id].body}</Text>
-            </View>
-          </BreathingCard>
-        )}
-        <View style={s.valueCard}>
-          <TextInput
-            style={s.valueInput}
-            value={value}
-            onChangeText={setValue}
-            keyboardType="decimal-pad"
-            placeholder="—"
-            placeholderTextColor={Colors.health.inkTertiary}
-            autoFocus
-          />
-          <Text style={s.valueUnit}>{inputUnit === 'native' ? selected.unit : (altUnit ?? selected.unit)}</Text>
-        </View>
-        {canConvert && altUnit && (
-          <View style={s.unitConvertRow}>
-            <Text style={s.unitConvertLabel}>Input in:</Text>
-            {(['native', 'mmol/L'] as InputUnit[]).map(u => (
-              <TouchableOpacity
-                key={u}
-                style={[s.unitChip, inputUnit === u && s.unitChipActive]}
-                onPress={() => {
-                  setInputUnit(u);
-                  setValue('');
-                  setLabRangeLow('');
-                  setLabRangeHigh('');
-                  Haptics.selectionAsync().catch(() => null);
-                }}
-              >
-                <Text style={[s.unitChipTxt, inputUnit === u && s.unitChipTxtActive]}>
-                  {u === 'native' ? selected.unit : altUnit}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {isValidValue && inputUnit !== 'native' && (
-              <Text style={s.convertedVal}>= {numVal} {selected.unit}</Text>
-            )}
-          </View>
-        )}
-
-        {status && (
-          <View style={[s.statusBadge,
-            status === 'within_reported_range' ? s.statusWithin :
-            status === 'outside_reported_range' ? s.statusOutside : s.statusNeutral,
-          ]}>
-            <Text style={[s.statusTxt,
-              status === 'within_reported_range' ? s.statusTxtWithin :
-              status === 'outside_reported_range' ? s.statusTxtOutside : s.statusTxtNeutral,
-            ]}>
-              {status === 'unable_to_classify' || status === 'needs_context'
-                ? 'Source-laboratory classification unavailable'
-                : BIOMARKER_STATUS_LABELS[status]}
-            </Text>
-          </View>
-        )}
-
-        <Text style={s.fieldLabel}>Reported laboratory range (optional)</Text>
-        <Text style={s.rangeNote}>
-          Enter the interval exactly as shown on the report, using {reportedUnit ?? selected.unit}.
-        </Text>
-        <View style={s.rangeInputRow}>
-          <TextInput
-            style={s.rangeInput}
-            value={labRangeLow}
-            onChangeText={setLabRangeLow}
-            keyboardType="decimal-pad"
-            placeholder="Low"
-            placeholderTextColor={Colors.health.inkTertiary}
-          />
-          <Text style={s.rangeDash}>–</Text>
-          <TextInput
-            style={s.rangeInput}
-            value={labRangeHigh}
-            onChangeText={setLabRangeHigh}
-            keyboardType="decimal-pad"
-            placeholder="High"
-            placeholderTextColor={Colors.health.inkTertiary}
-          />
-          <Text style={s.rangeUnit}>{reportedUnit ?? selected.unit}</Text>
-        </View>
-        {rangeHasInvalidValue && <Text style={s.rangeError}>Enter a valid laboratory interval.</Text>}
-
-        <View style={s.section}>
-          <RangeBar
-            sourceLabRange={sourceLabRange}
-            value={isValidValue ? rawVal : undefined}
-            valueUnit={reportedUnit}
-          />
-        </View>
-
-        <View style={s.knowledgeCard}>
-          <Text style={s.knowledgeEyebrow}>RESEARCH TARGET</Text>
-          <Text style={s.knowledgeValue}>{selected.target}</Text>
-          <Text style={s.knowledgeContext}>Bundled research context · unreviewed · never substituted for the source laboratory interval.</Text>
-          <View style={s.knowledgeRule} />
-          <Text style={s.knowledgeHeading}>About</Text>
-          <Text style={s.knowledgeBody}>{selected.description}</Text>
-          <Text style={s.knowledgeHeading}>How to improve</Text>
-          <Text style={s.knowledgeBody}>{selected.howToImprove}</Text>
-          <Text style={s.knowledgeContext}>Educational context only; not individualized medical advice.</Text>
-        </View>
-
-        <Text style={s.fieldLabel}>Date</Text>
-        <View style={s.chipRow}>
-          {(['today', 'yesterday', 'other'] as const).map(mode => (
-            <TouchableOpacity
-              key={mode}
-              style={[s.chip, dateMode === mode && s.chipActive]}
-              onPress={() => setDateMode(mode)}
-            >
-              <Text style={[s.chipTxt, dateMode === mode && s.chipTxtActive]}>
-                {mode === 'today' ? 'Today' : mode === 'yesterday' ? 'Yesterday' : 'Other date'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {dateMode === 'other' && (
-          <TextInput
-            style={s.customDateInput}
-            value={customDate}
-            onChangeText={setCustomDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.health.inkTertiary}
-          />
-        )}
-
-        <Text style={s.fieldLabel}>Source</Text>
-        <View style={s.chipRow}>
-          {SOURCES.map(src => (
-            <TouchableOpacity
-              key={src}
-              style={[s.chip, source === src && s.chipActive]}
-              onPress={() => setSource(src)}
-            >
-              <Text style={[s.chipTxt, source === src && s.chipTxtActive]}>{src}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={s.fieldLabel}>Notes (optional)</Text>
-        <TextInput
-          style={s.notesInput}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add a note..."
-          placeholderTextColor={Colors.health.inkTertiary}
-          multiline
-          numberOfLines={3}
-        />
-
-        <TouchableOpacity
-          style={[s.saveBtn, (!isValidValue || rangeHasInvalidValue || saving) && s.saveBtnDisabled]}
-          onPress={save}
-          disabled={!isValidValue || rangeHasInvalidValue || saving}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={s.flex}
+      >
+        <ScrollView
+          contentContainerStyle={s.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={s.saveBtnTxt}>{saving ? 'Saving…' : 'Save entry'}</Text>
-        </TouchableOpacity>
-        <View style={{ height: ProductLayout.bottomClearance }} />
-      </ScrollView>
+          <View style={s.biomarkerIdentity}>
+            <Text style={s.eyebrow}>BIOMARKER</Text>
+            <Text style={s.biomarkerName} accessibilityRole="header">{selected.name}</Text>
+          </View>
+
+          <Text style={[s.fieldLabel, activeField === 'value' && s.fieldLabelActive]}>
+            Result value
+          </Text>
+          <Animated.View
+            style={[
+              s.valueCard,
+              {
+                transform: [{
+                  scale: valueFocus.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [reduceMotion ? 1 : 0.995, 1],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, s.focusRing, { opacity: valueFocus }]}
+            />
+            <TextInput
+              style={s.valueInput}
+              value={value}
+              onChangeText={nextValue => {
+                setValue(nextValue);
+                clearFailureState();
+              }}
+              onFocus={() => focusField('value')}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={Colors.health.inkTertiary}
+              accessibilityLabel={`Result value for ${selected.name}`}
+              autoFocus
+            />
+          </Animated.View>
+
+          <Text style={[s.fieldLabel, activeField === 'unit' && s.fieldLabelActive]}>
+            Unit
+          </Text>
+          <Animated.View
+            onTouchStart={() => focusField('unit')}
+            style={[
+              s.unitField,
+              {
+                transform: [{
+                  scale: unitFocus.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [reduceMotion ? 1 : 0.995, 1],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, s.focusRing, { opacity: unitFocus }]}
+            />
+            {conversion ? (
+              <View style={s.unitOptions} accessibilityRole="radiogroup">
+                {(['catalog', 'alternate'] as const).map(mode => {
+                  const label = mode === 'catalog' ? selected.unit : conversion.altUnit;
+                  const active = inputUnitMode === mode;
+                  return (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[s.unitOption, active && s.unitOptionActive]}
+                      onPress={() => {
+                        focusField('unit');
+                        setInputUnitMode(mode);
+                        setValue('');
+                        clearFailureState();
+                        void Haptics.selectionAsync().catch(() => undefined);
+                      }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active }}
+                      accessibilityLabel={`Use ${label}`}
+                    >
+                      <Text style={[s.unitOptionText, active && s.unitOptionTextActive]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <View accessible accessibilityLabel={`Unit ${selected.unit}`}>
+                <Text style={s.fixedFieldText}>{selected.unit}</Text>
+              </View>
+            )}
+          </Animated.View>
+          {validValue && inputUnitMode === 'alternate' ? (
+            <Text style={s.conversionNote}>
+              Stored as {catalogValue} {selected.unit} for compatible history.
+            </Text>
+          ) : null}
+
+          <Text style={[s.fieldLabel, activeField === 'date' && s.fieldLabelActive]}>
+            Measurement date
+          </Text>
+          <Animated.View
+            onTouchStart={() => focusField('date')}
+            style={[
+              s.dateField,
+              {
+                transform: [{
+                  scale: dateFocus.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [reduceMotion ? 1 : 0.995, 1],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, s.focusRing, { opacity: dateFocus }]}
+            />
+            <Text style={s.dateText}>{formatMeasurementDate(measurementDate)}</Text>
+            <DateTimePicker
+              value={measurementDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'compact' : 'default'}
+              maximumDate={new Date()}
+              onChange={(_, nextDate) => {
+                focusField('date');
+                if (nextDate) {
+                  setMeasurementDate(nextDate);
+                  clearFailureState();
+                }
+              }}
+              accessibilityLabel="Choose measurement date"
+              themeVariant="light"
+            />
+          </Animated.View>
+
+          <Pressable
+            style={({ pressed }) => [
+              s.saveButton,
+              saveState === 'failure' && s.saveButtonFailure,
+              saveState === 'success' && s.saveButtonSuccess,
+              (!validValue || saving) && s.saveButtonDisabled,
+              pressed && validValue && !saving
+                && (reduceMotion ? s.saveButtonPressedReduced : s.saveButtonPressed),
+            ]}
+            onPress={() => void save()}
+            disabled={!validValue || saving}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !validValue || saving, busy: saving }}
+            accessibilityLabel={editingEntry ? 'Save result changes' : 'Save result'}
+          >
+            <Text style={s.saveButtonText}>
+              {saveState === 'loading'
+                ? 'Saving…'
+                : saveState === 'success'
+                  ? 'Saved'
+                  : saveState === 'failure'
+                    ? 'Try again'
+                    : editingEntry
+                      ? 'Save changes'
+                      : 'Save result'}
+            </Text>
+          </Pressable>
+          {saveMessage ? (
+            <Text
+              style={s.saveMessage}
+              accessibilityLiveRegion="assertive"
+            >
+              {saveMessage}
+            </Text>
+          ) : null}
+          <View style={s.bottomClearance} />
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -380,65 +591,241 @@ export default function BiomarkerEntryScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.health.background },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: Spacing.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.health.rule },
-  headerTitle: { fontSize: Typography.sizes.body, fontWeight: Typography.weights.label, color: Colors.health.ink },
-  cancel: { fontSize: Typography.sizes.body, color: Colors.health.accent, minWidth: 64, fontWeight: Typography.weights.label },
-  headerSpacer: { minWidth: 56 },
-  searchInput: { marginHorizontal: Spacing.lg, marginVertical: Spacing.md, backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.md, fontSize: Typography.sizes.body, color: Colors.health.ink, borderWidth: 1, borderColor: Colors.health.rule },
-  pickRow: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.health.background },
-  pickRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.health.rule },
-  pickInfo: { flex: 1 },
-  pickName: { fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.headline, color: Colors.health.ink },
-  pickUnit: { fontSize: Typography.sizes.caption, color: Colors.health.inkTertiary, marginTop: Spacing.xs },
-  catBadge: { backgroundColor: Colors.health.accentSoft, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs },
-  catBadgeTxt: { fontSize: Typography.sizes.captionSmall, color: Colors.health.accent, fontWeight: Typography.weights.label },
-  content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg },
-  valueCard: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.rule, padding: Spacing.lg, marginBottom: Spacing.md, gap: Spacing.sm },
-  valueInput: { flex: 1, fontSize: Typography.sizes.display2, lineHeight: Typography.lineHeights.display2, fontWeight: Typography.weights.title, color: Colors.health.ink },
-  valueUnit: { fontSize: Typography.sizes.body, color: Colors.health.inkSecondary, paddingBottom: Spacing.sm },
-  statusBadge: { alignSelf: 'flex-start', borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 1, marginBottom: Spacing.base, borderWidth: 0.5 },
-  statusWithin: { backgroundColor: Colors.health.accentSoft, borderColor: Colors.health.accent },
-  statusOutside: { backgroundColor: Colors.health.attentionSoft, borderColor: Colors.health.attention },
-  statusNeutral: { backgroundColor: Colors.health.neutralSoft, borderColor: Colors.health.ruleStrong },
-  statusTxt: { fontSize: Typography.sizes.sm, fontWeight: '600' },
-  statusTxtWithin: { color: Colors.health.accent },
-  statusTxtOutside: { color: Colors.health.attention },
-  statusTxtNeutral: { color: Colors.health.neutralInk },
-  section: { marginBottom: Spacing.base },
-  fieldLabel: { fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, color: Colors.health.inkTertiary, textTransform: 'uppercase', letterSpacing: Typography.letterSpacing.wider, marginBottom: Spacing.sm, marginTop: Spacing.md },
-  rangeNote: { fontSize: Typography.sizes.bodySmall, color: Colors.health.inkSecondary, lineHeight: Typography.lineHeights.bodySmall, marginBottom: Spacing.sm },
-  rangeInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
-  rangeInput: { flex: 1, backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.md, fontSize: Typography.sizes.body, color: Colors.health.ink, borderWidth: 1, borderColor: Colors.health.rule },
-  rangeDash: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.body },
-  rangeUnit: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.caption, maxWidth: 72 },
-  rangeError: { color: Colors.viz.coral, fontSize: Typography.sizes.xs, marginBottom: Spacing.sm },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
-  chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.rule, backgroundColor: Colors.health.surface },
-  chipActive: { backgroundColor: Colors.health.accentSoft, borderColor: Colors.health.accent },
-  chipTxt: { fontSize: Typography.sizes.bodySmall, color: Colors.health.inkSecondary },
-  chipTxtActive: { color: Colors.health.accent, fontWeight: Typography.weights.label },
-  customDateInput: { backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.md, fontSize: Typography.sizes.body, color: Colors.health.ink, borderWidth: 1, borderColor: Colors.health.rule, marginBottom: Spacing.md },
-  notesInput: { backgroundColor: Colors.health.surfaceStrong, borderRadius: Radius.card, padding: Spacing.md, fontSize: Typography.sizes.body, color: Colors.health.ink, borderWidth: 1, borderColor: Colors.health.rule, minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.xl },
-  saveBtn: { minHeight: ProductLayout.controlMinHeight, justifyContent: 'center', backgroundColor: Colors.health.ink, borderRadius: Radius.card, paddingHorizontal: Spacing.base, alignItems: 'center' },
-  saveBtnDisabled: { opacity: 0.4 },
-  saveBtnTxt: { color: Colors.health.surfaceStrong, fontSize: Typography.sizes.body, fontWeight: Typography.weights.label },
-  unitConvertRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
-  unitConvertLabel: { fontSize: Typography.sizes.caption, color: Colors.health.inkTertiary },
-  unitChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.health.rule, backgroundColor: Colors.health.surface },
-  unitChipActive: { backgroundColor: Colors.health.accentSoft, borderColor: Colors.health.accent },
-  unitChipTxt: { fontSize: Typography.sizes.caption, color: Colors.health.inkSecondary },
-  unitChipTxtActive: { color: Colors.health.accent, fontWeight: Typography.weights.label },
-  convertedVal: { fontSize: Typography.sizes.caption, color: Colors.health.accent, fontWeight: Typography.weights.headline },
-  explanationWrapper: { marginBottom: Spacing.md },
-  explanationInner: { backgroundColor: Colors.health.surface, borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.rule, padding: Spacing.base },
-  explanationIcon: { fontSize: 24, marginBottom: Spacing.sm }, /* intentional — no Typography.sizes match for 24; kept as-is */
-  explanationHeadline: { fontSize: Typography.sizes.h3, fontWeight: Typography.weights.headline, color: Colors.health.ink, marginBottom: Spacing.sm },
-  explanationBody: { fontSize: Typography.sizes.body, fontWeight: Typography.weights.body, color: Colors.health.inkSecondary, lineHeight: Typography.lineHeights.body },
-  knowledgeCard: { backgroundColor: Colors.health.surface, borderRadius: Radius.card, borderWidth: 1, borderColor: Colors.health.rule, padding: Spacing.lg, marginBottom: Spacing.lg },
-  knowledgeEyebrow: { color: Colors.health.accent, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.captionSmall, fontWeight: Typography.weights.label, letterSpacing: Typography.letterSpacing.wider },
-  knowledgeValue: { color: Colors.health.ink, fontSize: Typography.sizes.h3, lineHeight: Typography.lineHeights.h3, fontWeight: Typography.weights.headline, marginTop: Spacing.sm },
-  knowledgeContext: { color: Colors.health.inkTertiary, fontSize: Typography.sizes.caption, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.sm },
-  knowledgeRule: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.health.rule, marginVertical: Spacing.lg },
-  knowledgeHeading: { color: Colors.health.ink, fontSize: Typography.sizes.body, lineHeight: Typography.lineHeights.body, fontWeight: Typography.weights.label, marginTop: Spacing.md },
-  knowledgeBody: { color: Colors.health.inkSecondary, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall, marginTop: Spacing.xs },
+  flex: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: {
+    color: Colors.health.inkSecondary,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 56,
+    paddingHorizontal: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.health.rule,
+  },
+  headerAction: {
+    minWidth: 64,
+    minHeight: ProductLayout.controlMinHeight,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    fontWeight: Typography.weights.label,
+  },
+  cancel: {
+    color: Colors.health.accent,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    fontWeight: Typography.weights.label,
+  },
+  headerSpacer: { minWidth: 72 },
+  searchInput: {
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.md,
+    minHeight: ProductLayout.controlMinHeight,
+    backgroundColor: Colors.health.surfaceStrong,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.health.rule,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.body,
+  },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 64,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  pickRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.health.rule,
+  },
+  pickInfo: { flex: 1, minWidth: 0 },
+  pickName: {
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    fontWeight: Typography.weights.headline,
+  },
+  pickUnit: {
+    color: Colors.health.inkTertiary,
+    fontSize: Typography.sizes.caption,
+    lineHeight: Typography.lineHeights.caption,
+    marginTop: Spacing.xs,
+  },
+  categoryBadge: {
+    flexShrink: 1,
+    marginLeft: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.health.accentSoft,
+  },
+  categoryBadgeText: {
+    color: Colors.health.accent,
+    fontSize: Typography.sizes.captionSmall,
+    lineHeight: Typography.lineHeights.captionSmall,
+    fontWeight: Typography.weights.label,
+  },
+  content: {
+    width: '100%',
+    maxWidth: ProductLayout.maxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: ProductLayout.pageInset,
+    paddingTop: Spacing.xl,
+  },
+  biomarkerIdentity: { marginBottom: Spacing.xl },
+  eyebrow: {
+    color: Colors.health.inkTertiary,
+    fontSize: Typography.sizes.captionSmall,
+    lineHeight: Typography.lineHeights.captionSmall,
+    fontWeight: Typography.weights.label,
+    letterSpacing: Typography.letterSpacing.wider,
+  },
+  biomarkerName: {
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.h1,
+    lineHeight: Typography.lineHeights.h1,
+    fontWeight: Typography.weights.title,
+    marginTop: Spacing.xs,
+  },
+  fieldLabel: {
+    color: Colors.health.inkSecondary,
+    fontSize: Typography.sizes.bodySmall,
+    lineHeight: Typography.lineHeights.bodySmall,
+    fontWeight: Typography.weights.label,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.base,
+  },
+  fieldLabelActive: { color: Colors.health.accent },
+  focusRing: {
+    borderRadius: Radius.card,
+    borderWidth: 2,
+    borderColor: Colors.health.accent,
+  },
+  valueCard: {
+    minHeight: 92,
+    justifyContent: 'center',
+    backgroundColor: Colors.health.surfaceStrong,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.health.rule,
+    paddingHorizontal: Spacing.lg,
+  },
+  valueInput: {
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.display2,
+    lineHeight: Typography.lineHeights.display2,
+    fontWeight: Typography.weights.title,
+    paddingVertical: Spacing.md,
+  },
+  unitField: {
+    minHeight: ProductLayout.controlMinHeight,
+    justifyContent: 'center',
+    padding: Spacing.xs,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.health.rule,
+    backgroundColor: Colors.health.surfaceStrong,
+  },
+  unitOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  unitOption: {
+    minHeight: ProductLayout.controlMinHeight,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.base,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.health.rule,
+    backgroundColor: Colors.health.surfaceStrong,
+  },
+  unitOptionActive: {
+    borderColor: Colors.health.accent,
+    backgroundColor: Colors.health.accentSoft,
+  },
+  unitOptionText: {
+    color: Colors.health.inkSecondary,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+  },
+  unitOptionTextActive: {
+    color: Colors.health.accent,
+    fontWeight: Typography.weights.label,
+  },
+  fixedFieldText: {
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  conversionNote: {
+    color: Colors.health.inkTertiary,
+    fontSize: Typography.sizes.bodySmall,
+    lineHeight: Typography.lineHeights.bodySmall,
+    marginTop: Spacing.sm,
+  },
+  dateField: {
+    minHeight: 56,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: Colors.health.rule,
+    backgroundColor: Colors.health.surfaceStrong,
+  },
+  dateText: {
+    flexShrink: 1,
+    color: Colors.health.ink,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+  },
+  saveButton: {
+    minHeight: ProductLayout.controlMinHeight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xxl,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.health.ink,
+  },
+  saveButtonDisabled: { opacity: 0.4 },
+  saveButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.99 }],
+  },
+  saveButtonPressedReduced: { opacity: 0.82 },
+  saveButtonSuccess: { backgroundColor: Colors.health.accent },
+  saveButtonFailure: { backgroundColor: Colors.danger },
+  saveButtonText: {
+    color: Colors.health.surfaceStrong,
+    fontSize: Typography.sizes.body,
+    lineHeight: Typography.lineHeights.body,
+    fontWeight: Typography.weights.label,
+  },
+  saveMessage: {
+    color: Colors.danger,
+    fontSize: Typography.sizes.bodySmall,
+    lineHeight: Typography.lineHeights.bodySmall,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+  bottomSpace: { height: Spacing.xxl },
+  bottomClearance: { height: ProductLayout.bottomClearance },
 });

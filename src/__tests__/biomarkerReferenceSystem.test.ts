@@ -5,6 +5,15 @@ import {
   biomarkerInterpretationMessage,
   classifyBiomarkerValue,
 } from '../lib/biomarkerInterpretation';
+import {
+  bundledLaboratoryReference,
+  laboratoryReferencePresentation,
+} from '../lib/bundledLaboratoryReference';
+import {
+  generalReferenceRangeFor,
+  generalReferenceReviewFor,
+  type GeneralReferenceRangeContext,
+} from '../domain/biomarkers/generalReferenceRanges';
 import { canonicalBiomarkerId, createStoredBiomarkerEntry } from '../types/biomarkerEntry';
 
 const ROOT = process.cwd();
@@ -44,15 +53,85 @@ describe('biomarker reference information', () => {
     expect(classifyBiomarkerValue(55, 'mg/dL', undefined)).toBe('needs_context');
   });
 
-  test('detail presentation exposes existing content without using legacy targets for classification', () => {
+  test('active entry and detail surfaces exclude legacy biomarker knowledge', () => {
     const detail = source('src/screens/BiomarkerDetailScreen.tsx');
-    expect(detail).toContain('title="About"');
-    expect(detail).toContain('{biomarker.description}');
-    expect(detail).toContain('title="How to improve"');
-    expect(detail).toContain('{biomarker.howToImprove}');
-    expect(detail).toContain('LABORATORY REFERENCE');
-    expect(detail).toContain('RESEARCH TARGET');
-    expect(detail).toContain('not used as the laboratory interval or for classification');
+    const entry = source('src/screens/BiomarkerEntryScreen.tsx');
+    const activeExperience = `${detail}\n${entry}`;
+    expect(detail).toContain('Reference interval from this laboratory report');
+    expect(detail).toContain('CLINICAL DECISION CATEGORY');
+    expect(detail).toContain('REFERENCE COMPARISON');
+    expect(detail).toContain('Historical chart');
+    expect(detail).toContain('Measurement history');
+    expect(entry).toContain('Measurement date');
+    expect(entry).toContain('Result value');
+    expect(activeExperience).not.toMatch(
+      /\.optMin|\.optMax|\.target|\.howToImprove|\.insight/,
+    );
+    expect(activeExperience).not.toMatch(
+      /longevity research target|how to improve|supplement|dosage/i,
+    );
+  });
+
+  test('uses a fully matched governed general interval and lets source reports override it', () => {
+    const alt = BIOMARKERS.find(marker => marker.id === 'alt')!;
+    const context: GeneralReferenceRangeContext = {
+      unit: 'U/L',
+      ageYears: 40,
+      sex: 'male',
+      pregnancyContext: 'not_applicable',
+      specimen: 'serum',
+      assayTraceability: 'ifcc_reference_measurement_procedure_at_37_c',
+      fastingHours: 10.5,
+      populationGroup: 'international_multicenter_adults',
+    };
+    expect(bundledLaboratoryReference(alt, context)).toEqual({
+      lowerBound: 9,
+      upperBound: 59,
+      unit: 'U/L',
+      reportedText: '9–59',
+    });
+    expect(
+      laboratoryReferencePresentation(alt, undefined, context).value,
+    ).toBe('9–59 U/L');
+    expect(generalReferenceRangeFor(alt.id, context)).toMatchObject({
+      reviewStatus: 'reviewed',
+      approvedUse: 'general_reference_display',
+      lowerBound: 9,
+      upperBound: 59,
+      unit: 'U/L',
+    });
+
+    const sourceRange = {
+      lowerBound: 5,
+      upperBound: 40,
+      unit: 'U/L',
+      laboratoryName: 'Example Lab',
+    };
+    expect(
+      laboratoryReferencePresentation(alt, sourceRange, context),
+    ).toMatchObject({
+      label: 'Source laboratory reference',
+      value: '5–40 U/L',
+      kind: 'source_laboratory',
+    });
+  });
+
+  test('fails closed for decision thresholds and the unproven legacy TSH range', () => {
+    const apoB = BIOMARKERS.find(marker => marker.id === 'apob')!;
+    const presentation = laboratoryReferencePresentation(apoB);
+    expect(presentation).toEqual({
+      label: 'LABORATORY REFERENCE',
+      value: 'Laboratory-specific interval',
+      kind: 'unavailable',
+    });
+    expect(presentation.value).not.toBe(apoB.target);
+
+    const tsh = BIOMARKERS.find(marker => marker.id === 'tsh')!;
+    expect(bundledLaboratoryReference(tsh)).toBeUndefined();
+    expect(generalReferenceReviewFor(tsh.id)).toMatchObject({
+      status: 'unavailable',
+      reason: 'no_single_defensible_general_interval',
+    });
   });
 
   test('normalizes legacy PDF lookup keys to the exact bundled IDs', () => {

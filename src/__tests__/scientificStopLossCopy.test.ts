@@ -9,7 +9,7 @@ const AFFECTED_FILES = [
   'src/screens/BiomarkerDetailScreen.tsx',
   'src/screens/BiomarkerEntryScreen.tsx',
   'src/screens/AboutScreen.tsx',
-  'src/components/RangeBar.tsx',
+  'src/components/health/BiomarkerHistoryChart.tsx',
   'src/data/firstRunContent.ts',
 ];
 

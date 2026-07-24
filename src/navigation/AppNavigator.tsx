@@ -42,7 +42,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   BiomarkerDetail: { biomarkerId?: string };
   HealthSystem: { systemId: BodySystemId };
-  BiomarkerEntry: { biomarkerId?: string };
+  BiomarkerEntry: { biomarkerId?: string; entryId?: string };
   InteractionChecker: undefined;
   LabUpload: undefined;
   LongevityScore: undefined;

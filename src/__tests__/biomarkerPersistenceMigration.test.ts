@@ -78,10 +78,11 @@ describe('governed Biomarker Persistence migration', () => {
     expect(statements).not.toMatch(/grant[^;]*\bupdate\b|grant[^;]*\bdelete\b/);
   });
 
-  test('keeps client retries idempotent without weakening append-only storage', () => {
+  test('keeps append and migration retries idempotent while edits preserve identity', () => {
     expect(service.match(/ignoreDuplicates: true/g)).toHaveLength(2);
-    expect(service.match(/defaultToNull: false/g)).toHaveLength(2);
-    expect(service.match(/onConflict: 'id'/g)).toHaveLength(2);
+    expect(service.match(/ignoreDuplicates: false/g)).toHaveLength(1);
+    expect(service.match(/defaultToNull: false/g)).toHaveLength(3);
+    expect(service.match(/onConflict: 'id'/g)).toHaveLength(3);
     expect(service).toContain('Promise<boolean>');
     expect(service).toContain('if (error)');
     expect(service).toContain('return false;');

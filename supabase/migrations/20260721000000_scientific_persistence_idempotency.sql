@@ -3,8 +3,10 @@
 --   1. Apply 20260719000000_scientific_persistence_records.sql.
 --   2. Verify that the base installation exists and contains no persisted rows.
 --   3. Apply this migration before activating any runtime writer.
--- This forward-only migration preserves the existing RPC contract and inactive runtime.
+-- The writer-owned legacy RPC is immutable. This migration creates the
+-- postgres-owned, versioned v2 RPC used by the application.
 
+BEGIN;
 SET LOCAL lock_timeout = '5s';
 
 DO $dependencies$
@@ -14,6 +16,225 @@ BEGIN
   END IF;
 END
 $dependencies$;
+
+DO $preflight$
+DECLARE
+  legacy_owner pg_catalog.text;
+  legacy_security_definer pg_catalog.bool;
+  legacy_config pg_catalog.text[];
+  table_owner pg_catalog.text;
+  table_rls_enabled pg_catalog.bool;
+  table_rls_forced pg_catalog.bool;
+  writer_can_login pg_catalog.bool;
+  writer_bypasses_rls pg_catalog.bool;
+BEGIN
+  IF pg_catalog.to_regclass('public.scientific_persistence_records') IS NULL THEN
+    RAISE EXCEPTION 'Scientific persistence base table is missing.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.scientific_persistence_records
+    LIMIT 1
+  ) THEN
+    RAISE EXCEPTION 'Scientific persistence idempotency requires an empty table.';
+  END IF;
+
+  IF (
+    SELECT pg_catalog.array_agg(
+      attribute.attname::pg_catalog.text
+      ORDER BY attribute.attnum
+    )
+    FROM pg_catalog.pg_attribute AS attribute
+    WHERE attribute.attrelid =
+      'public.scientific_persistence_records'::pg_catalog.regclass
+      AND attribute.attnum > 0
+      AND NOT attribute.attisdropped
+  ) IS DISTINCT FROM ARRAY[
+    'persistence_id',
+    'owner_id',
+    'persisted_at',
+    'parent_persistence_id',
+    'envelope_contract_version',
+    'input_contract_version',
+    'request_payload',
+    'result_payload',
+    'metadata_contract_version',
+    'implementation_id',
+    'implementation_version',
+    'schema_version',
+    'model_version',
+    'lineage_contract_version',
+    'audit_contract_version',
+    'boundary_version',
+    'validation_version',
+    'audit_input_contract_version',
+    'request_contract_version',
+    'result_contract_version',
+    'validation_status',
+    'validation_issue_codes'
+  ]::pg_catalog.text[] THEN
+    RAISE EXCEPTION 'Scientific persistence base columns differ.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_attribute AS attribute
+    WHERE attribute.attrelid = 'public.scientific_persistence_records'::pg_catalog.regclass
+      AND attribute.attname IN (
+        'domain_id',
+        'request_id',
+        'snapshot_id',
+        'evaluation_id',
+        'scientific_payload_fingerprint',
+        'idempotency_version'
+      )
+      AND NOT attribute.attisdropped
+  ) THEN
+    RAISE EXCEPTION 'Scientific persistence idempotency columns already exist.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_constraint AS constraint_record
+    WHERE constraint_record.conrelid =
+      'public.scientific_persistence_records'::pg_catalog.regclass
+      AND constraint_record.conname IN (
+        'scientific_persistence_owner_domain_request_unique',
+        'scientific_persistence_domain_id_nonempty',
+        'scientific_persistence_request_id_nonempty',
+        'scientific_persistence_snapshot_id_nonempty',
+        'scientific_persistence_evaluation_id_nonempty',
+        'scientific_persistence_fingerprint_format',
+        'scientific_persistence_idempotency_version_current',
+        'scientific_persistence_payload_identity_consistent',
+        'scientific_persistence_fingerprint_consistent'
+      )
+  ) THEN
+    RAISE EXCEPTION 'Scientific persistence idempotency constraints already exist.';
+  END IF;
+
+  IF pg_catalog.to_regprocedure(
+    'public.insert_scientific_persistence_record(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb)'
+  ) IS NULL THEN
+    RAISE EXCEPTION 'Scientific persistence legacy RPC is missing.';
+  END IF;
+
+  IF pg_catalog.to_regprocedure(
+    'public.insert_scientific_persistence_record_v2(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb)'
+  ) IS NOT NULL THEN
+    RAISE EXCEPTION 'Scientific persistence v2 RPC already exists.';
+  END IF;
+
+  SELECT
+    pg_catalog.pg_get_userbyid(function_record.proowner),
+    function_record.prosecdef,
+    function_record.proconfig
+  INTO legacy_owner, legacy_security_definer, legacy_config
+  FROM pg_catalog.pg_proc AS function_record
+  WHERE function_record.oid = pg_catalog.to_regprocedure(
+    'public.insert_scientific_persistence_record(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb)'
+  );
+
+  IF legacy_owner IS DISTINCT FROM 'scientific_persistence_writer'
+    OR legacy_security_definer IS DISTINCT FROM true
+    OR NOT (
+      'search_path=""' = ANY(
+        COALESCE(legacy_config, ARRAY[]::pg_catalog.text[])
+      )
+    ) THEN
+    RAISE EXCEPTION 'Scientific persistence legacy RPC assumptions differ.';
+  END IF;
+
+  SELECT role_record.rolcanlogin, role_record.rolbypassrls
+  INTO writer_can_login, writer_bypasses_rls
+  FROM pg_catalog.pg_roles AS role_record
+  WHERE role_record.rolname = 'scientific_persistence_writer';
+
+  IF NOT FOUND
+    OR writer_can_login IS DISTINCT FROM false
+    OR writer_bypasses_rls IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'Scientific persistence writer role assumptions differ.';
+  END IF;
+
+  SELECT
+    pg_catalog.pg_get_userbyid(table_record.relowner),
+    table_record.relrowsecurity,
+    table_record.relforcerowsecurity
+  INTO table_owner, table_rls_enabled, table_rls_forced
+  FROM pg_catalog.pg_class AS table_record
+  WHERE table_record.oid =
+    'public.scientific_persistence_records'::pg_catalog.regclass;
+
+  IF table_owner IS DISTINCT FROM 'postgres'
+    OR table_rls_enabled IS DISTINCT FROM true
+    OR table_rls_forced IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Scientific persistence table security assumptions differ.';
+  END IF;
+
+  IF (
+    SELECT pg_catalog.count(*)
+    FROM pg_catalog.pg_policies AS policy_record
+    WHERE policy_record.schemaname = 'public'
+      AND policy_record.tablename = 'scientific_persistence_records'
+  ) IS DISTINCT FROM 2::pg_catalog.int8
+    OR (
+      SELECT pg_catalog.count(*)
+      FROM pg_catalog.pg_policies AS policy_record
+      WHERE policy_record.schemaname = 'public'
+        AND policy_record.tablename = 'scientific_persistence_records'
+        AND (
+          (
+            policy_record.policyname = 'scientific_persistence_writer_insert_own'
+            AND policy_record.cmd = 'INSERT'
+            AND policy_record.roles =
+              ARRAY['scientific_persistence_writer']::pg_catalog.name[]
+          )
+          OR (
+            policy_record.policyname = 'scientific_persistence_writer_return_own'
+            AND policy_record.cmd = 'SELECT'
+            AND policy_record.roles =
+              ARRAY['scientific_persistence_writer']::pg_catalog.name[]
+          )
+        )
+    ) IS DISTINCT FROM 2::pg_catalog.int8 THEN
+    RAISE EXCEPTION 'Scientific persistence RLS policy assumptions differ.';
+  END IF;
+
+  IF pg_catalog.has_table_privilege(
+    'authenticated',
+    'public.scientific_persistence_records',
+    'SELECT'
+  )
+    OR pg_catalog.has_table_privilege(
+      'authenticated',
+      'public.scientific_persistence_records',
+      'INSERT'
+    )
+    OR pg_catalog.has_table_privilege(
+      'authenticated',
+      'public.scientific_persistence_records',
+      'UPDATE'
+    )
+    OR pg_catalog.has_table_privilege(
+      'authenticated',
+      'public.scientific_persistence_records',
+      'DELETE'
+    )
+    OR NOT pg_catalog.has_function_privilege(
+      'authenticated',
+      'public.insert_scientific_persistence_record(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb)',
+      'EXECUTE'
+    )
+    OR pg_catalog.has_function_privilege(
+      'anon',
+      'public.insert_scientific_persistence_record(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb)',
+      'EXECUTE'
+    ) THEN
+    RAISE EXCEPTION 'Scientific persistence privilege assumptions differ.';
+  END IF;
+END
+$preflight$;
 
 ALTER TABLE public.scientific_persistence_records
   ADD COLUMN domain_id text NOT NULL,
@@ -92,24 +313,7 @@ ALTER TABLE public.scientific_persistence_records
       )
     );
 
-GRANT SELECT (
-  owner_id,
-  parent_persistence_id,
-  domain_id,
-  request_id,
-  snapshot_id,
-  evaluation_id,
-  scientific_payload_fingerprint
-) ON TABLE public.scientific_persistence_records TO scientific_persistence_writer;
-
-GRANT USAGE ON SCHEMA extensions TO scientific_persistence_writer;
-GRANT EXECUTE ON FUNCTION extensions.digest(bytea, text)
-  TO scientific_persistence_writer;
-
-GRANT CREATE ON SCHEMA public TO scientific_persistence_writer;
-SET ROLE scientific_persistence_writer;
-
-CREATE OR REPLACE FUNCTION public.insert_scientific_persistence_record(
+CREATE FUNCTION public.insert_scientific_persistence_record_v2(
   p_parent_persistence_id uuid,
   p_envelope_contract_version text,
   p_input_contract_version text,
@@ -337,6 +541,93 @@ BEGIN
 END
 $function$;
 
-SET ROLE postgres;
-REVOKE CREATE ON SCHEMA public FROM scientific_persistence_writer;
-DROP ROLE scientific_persistence_migration_owner;
+REVOKE ALL ON FUNCTION public.insert_scientific_persistence_record_v2(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.insert_scientific_persistence_record_v2(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+) TO authenticated;
+
+ALTER FUNCTION public.insert_scientific_persistence_record_v2(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+) OWNER TO postgres;
+
+COMMENT ON FUNCTION public.insert_scientific_persistence_record_v2(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  jsonb
+) IS
+  'Versioned authenticated idempotent scientific persistence insertion boundary.';
+
+COMMIT;
