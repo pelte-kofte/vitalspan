@@ -39,6 +39,15 @@ import {
   CustomSupplement,
   EMPTY_PROTOCOL,
 } from '../types/protocol';
+import {
+  PROTOCOL_STORAGE_KEY,
+  parseProtocolDoseCount,
+  persistProtocolMainState,
+  persistProtocolState,
+  prepareProtocolState,
+  protocolDoseId,
+  toggleProtocolCompletion,
+} from '../lib/protocolPersistence';
 import { authSessionCoordinator, captureAuthRequestScope } from '../lib/supabase';
 import { userProfilePersistence } from '../lib/userProfilePersistence';
 
@@ -75,13 +84,6 @@ const GOAL_SUPPLEMENTS: Supplement[] = [
   { name: 'Berberine',   dose: '500mg (3x daily)', evidence: 'A', goals: ['Optimize healthspan', 'Slow biological aging', 'Track & understand'], dbId: 'berberine' },
 ];
 
-// Parse "Nx daily" from a dose string → returns count, defaults to 1
-function parseDoseCount(dose: string): number {
-  const m = dose.match(/(\d+)x\s*daily/i);
-  if (m) return Math.min(Math.max(parseInt(m[1], 10), 1), 6);
-  return 1;
-}
-
 const DOSE_TIME_LABELS: Record<number, string[]> = {
   2: ['Morning', 'Evening'],
   3: ['Morning', 'Afternoon', 'Evening'],
@@ -90,10 +92,6 @@ const DOSE_TIME_LABELS: Record<number, string[]> = {
 
 function getDoseTimeLabels(count: number): string[] {
   return DOSE_TIME_LABELS[count] ?? Array.from({ length: count }, (_, i) => `Dose ${i + 1}`);
-}
-
-function doseId(name: string, n: number): string {
-  return `${name}_dose_${n}`;
 }
 
 const TIME_SLOTS: { key: TimeSlot; label: string }[] = [
@@ -111,63 +109,6 @@ const BEST_TIME_LABELS: Record<string, string> = {
   morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening',
   bedtime: 'Bedtime', anytime: 'Anytime',
 };
-
-// ── Migration utility ─────────────────────────────────────────────────────────
-function migrateProtocol(parsed: Record<string, unknown>): ProtocolState {
-  try {
-    // Old schema: has 'addedSupplements' key
-    if ('addedSupplements' in parsed) {
-      const oldAdded = (parsed.addedSupplements as string[]) ?? [];
-      const oldCustom = (parsed.customSupplements as CustomSupplement[]) ?? [];
-
-      const convertedDb: ProtocolItem[] = oldAdded.map((name, index) => {
-        const dbEntry = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === name.toLowerCase());
-        return {
-          id: `supp_migrated_${Date.now()}_${index}`,
-          name: dbEntry?.name ?? name,
-          dose: dbEntry?.defaultDose ?? '—',
-          source: 'db' as const,
-          addedAt: new Date().toISOString(),
-        };
-      });
-
-      const convertedCustom: ProtocolItem[] = oldCustom.map(cs => ({
-        id: cs.id,
-        name: cs.name,
-        dose: cs.dose,
-        timing: cs.timing,
-        source: 'manual' as const,
-        addedAt: cs.addedAt,
-      }));
-
-      return {
-        supplements: [...convertedDb, ...convertedCustom],
-        medTimes: (parsed.medTimes as Record<string, TimeSlot>) ?? {},
-        hiddenMeds: [],
-        taken: [],
-        takenDate: '',
-      };
-    }
-
-    // New schema: has 'supplements' key
-    if ('supplements' in parsed) {
-      return {
-        ...EMPTY_PROTOCOL,
-        ...(parsed as unknown as ProtocolState),
-        hiddenMeds: (parsed.hiddenMeds as string[]) ?? [],
-        supplements: (parsed.supplements as ProtocolItem[]) ?? [],
-        medTimes: (parsed.medTimes as Record<string, TimeSlot>) ?? {},
-        taken: (parsed.taken as string[]) ?? [],
-        takenDate: (parsed.takenDate as string) ?? '',
-      };
-    }
-
-    // Unknown shape
-    return EMPTY_PROTOCOL;
-  } catch {
-    return EMPTY_PROTOCOL;
-  }
-}
 
 // ── Custom Supplement Modal ──────────────────────────────────────────────────
 interface AddModalProps {
@@ -829,72 +770,24 @@ export default function ProtocolScreen() {
     try {
       const [profileRaw, protocolRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
-        AsyncStorage.getItem('@vitalspan_protocol'),
+        AsyncStorage.getItem(PROTOCOL_STORAGE_KEY),
       ]);
       if (profileRaw) setProfile(JSON.parse(profileRaw));
       if (protocolRaw) {
-        const parsed = JSON.parse(protocolRaw) as Record<string, unknown>;
-        const migrated = migrateProtocol(parsed);
-
-        // If old schema detected (addedSupplements key), write back immediately
-        if ('addedSupplements' in parsed) {
-          await AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(migrated)).catch(console.error);
+        const profileData = profileRaw
+          ? JSON.parse(profileRaw) as { medications?: string[] }
+          : null;
+        const prepared = prepareProtocolState(
+          protocolRaw,
+          profileData?.medications ?? [],
+        );
+        for (const stateToPersist of prepared.mainStorageWrites) {
+          await persistProtocolMainState(
+            stateToPersist,
+            (key, value) => AsyncStorage.setItem(key, value),
+          ).catch(console.error);
         }
-
-        // Daily taken reset
-        const today = new Date().toISOString().slice(0, 10);
-
-        // ── Phase 22 streak evaluation ──────────────────────────────────────────
-        // Guard: only fire when takenDate is a real past date (not '' and not today)
-        // Pitfall 1: empty-string guard is mandatory — first launch has takenDate: ''
-        // which must NOT trigger streak eval (RESEARCH Pitfall 1)
-        if (migrated.takenDate !== '' && migrated.takenDate !== today) {
-          const profileData = profileRaw
-            ? JSON.parse(profileRaw) as { medications?: string[] }
-            : null;
-          const medsForStreak = (profileData?.medications ?? []).filter(
-            (m: string) => !migrated.hiddenMeds.includes(m),
-          );
-
-          // Build visible item IDs — mirrors totalItems / takenCount logic (lines 770-785)
-          const visibleItemIds: string[] = [
-            ...medsForStreak,
-            ...migrated.supplements.flatMap(s => {
-              const count = parseDoseCount(s.personalDose ?? s.dose);
-              return count === 1
-                ? [s.id]
-                : Array.from({ length: count }, (_, i) => doseId(s.name, i));
-            }),
-          ];
-
-          if (visibleItemIds.length === 0) {
-            // No visible items — pause streak (neither increment nor reset)
-          } else {
-            const takenSet = new Set(migrated.taken);
-            const allTaken = visibleItemIds.every(id => takenSet.has(id));
-            if (allTaken) {
-              migrated.currentStreak = (migrated.currentStreak ?? 0) + 1;
-              migrated.bestStreak = Math.max(migrated.bestStreak ?? 0, migrated.currentStreak);
-              migrated.lastCompleteDate = migrated.takenDate;
-            } else {
-              migrated.currentStreak = 0;
-            }
-            // Persist streak update before finalState wipes taken[]
-            await AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify({
-              ...migrated,
-              taken: [],
-              takenDate: today,
-            })).catch(console.error);
-          }
-        }
-        // ── end streak evaluation ───────────────────────────────────────────────
-
-        const finalState: ProtocolState = {
-          ...migrated,
-          taken: migrated.takenDate === today ? migrated.taken : [],
-          takenDate: today,
-        };
-        setProtocol(finalState);
+        setProtocol(prepared.state);
       }
     } catch (e) {
       console.error('ProtocolScreen loadData failed:', e);
@@ -917,21 +810,15 @@ export default function ProtocolScreen() {
 
   async function persist(next: ProtocolState) {
     setProtocol(next);
-    await Promise.all([
-      AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(next)),
-      AsyncStorage.setItem('@vitalspan_protocol_today', JSON.stringify({
-        date: next.takenDate, taken: next.taken,
-      })),
-    ]).catch(console.error);
+    await persistProtocolState(
+      next,
+      (key, value) => AsyncStorage.setItem(key, value),
+    ).catch(console.error);
   }
 
   function toggleTaken(id: string) {
     Haptics.selectionAsync().catch(() => null);
-    const today = new Date().toISOString().slice(0, 10);
-    const taken = protocol.taken.includes(id)
-      ? protocol.taken.filter(t => t !== id)
-      : [...protocol.taken, id];
-    persist({ ...protocol, taken, takenDate: today });
+    persist(toggleProtocolCompletion(protocol, id));
   }
 
   // Medication timing + reminder is now set from EditMedicationSheet only
@@ -1115,15 +1002,15 @@ export default function ProtocolScreen() {
   // Total doses: visibleMeds count as 1 each; multi-dose supplements count their full dose count
   const totalItems =
     visibleMeds.length +
-    protocol.supplements.reduce((sum, s) => sum + parseDoseCount(s.personalDose ?? s.dose), 0);
+    protocol.supplements.reduce((sum, s) => sum + parseProtocolDoseCount(s.personalDose ?? s.dose), 0);
 
   const takenCount = protocol.taken.filter(t => {
     if (visibleMeds.includes(t)) return true;
     for (const s of protocol.supplements) {
       if (t === s.id) return true;
-      const count = parseDoseCount(s.personalDose ?? s.dose);
+      const count = parseProtocolDoseCount(s.personalDose ?? s.dose);
       for (let i = 0; i < count; i++) {
-        if (t === doseId(s.name, i)) return true;
+        if (t === protocolDoseId(s.name, i)) return true;
       }
     }
     return false;
@@ -1136,7 +1023,7 @@ export default function ProtocolScreen() {
     <SafeAreaView style={s.safe}>
       <ProductScreenHeader
         eyebrow="VITALSPAN / PROTOCOL"
-        title="Your plan for today."
+        title="What should I complete today?"
         subtitle={dateStr}
         compact={compact}
         action={totalItems > 0 ? <View style={s.progressPill}><Text style={s.progressTxt}>{takenCount} / {totalItems}</Text></View> : undefined}
@@ -1292,10 +1179,10 @@ export default function ProtocolScreen() {
 
         {protocol.supplements.map(item => {
           const displayDose = item.personalDose ?? item.dose;
-          const doseCount = parseDoseCount(displayDose);
+          const doseCount = parseProtocolDoseCount(displayDose);
           const timeLabels = getDoseTimeLabels(doseCount);
           const singleTaken = doseCount === 1 &&
-            (protocol.taken.includes(item.id) || protocol.taken.includes(doseId(item.name, 0)));
+            (protocol.taken.includes(item.id) || protocol.taken.includes(protocolDoseId(item.name, 0)));
           const dbInfo = SUPPLEMENT_DATABASE.find(s => s.name.toLowerCase() === item.name.toLowerCase());
           const evidence = (dbInfo?.evidenceGrade ?? 'C') as 'A' | 'B' | 'C';
           const gradeBg = ({ A: Colors.dark.statusOptimalBg, B: Colors.dark.statusWarnBg, C: Colors.dark.cardBg } as const)[evidence];
@@ -1375,7 +1262,7 @@ export default function ProtocolScreen() {
               {doseCount > 1 && (
                 <View style={s.multiDoseBlock}>
                   {timeLabels.map((label, n) => {
-                    const id = doseId(item.name, n);
+                    const id = protocolDoseId(item.name, n);
                     const dt = protocol.taken.includes(id);
                     return (
                       <TouchableOpacity

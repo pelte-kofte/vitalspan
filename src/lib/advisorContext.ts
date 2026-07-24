@@ -20,6 +20,7 @@ import { getClinicalPhenoAgePresentation } from './clinicalPhenoAgePresentation'
 import { BIOMARKER_STATUS_LABELS, classifyStoredEntry } from './biomarkerInterpretation';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import { ProtocolItem } from '../types/protocol';
+import { protocolDayKey } from './protocolPersistence';
 import { SUPPLEMENT_DATABASE } from '../data/supplementTimings';
 
 // ── Exported types ────────────────────────────────────────────────────────────
@@ -413,7 +414,7 @@ export async function assembleAdvisorContext(): Promise<AdvisorContext> {
     // Uses today's taken array if takenDate === today. Falls back to "unknown".
     let adherenceRate = 'unknown';
     if (protocolState) {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = protocolDayKey();
       const hiddenMedSet = new Set((protocolState.hiddenMeds ?? []).map(m => m.toLowerCase()));
       const visibleSupps = supplementList.length;
       const visibleMeds = medications.filter(m => !hiddenMedSet.has(m.toLowerCase())).length;

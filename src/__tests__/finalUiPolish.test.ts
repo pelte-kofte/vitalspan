@@ -62,10 +62,13 @@ describe('final product UI polish', () => {
     const exercise = source('src/screens/ExerciseScreen.tsx');
     const quickLog = source('src/components/QuickLogModal.tsx');
     const protocol = source('src/screens/ProtocolScreen.tsx');
+    const protocolPersistence = source('src/lib/protocolPersistence.ts');
     expect(exercise).toContain("AsyncStorage.setItem('@vitalspan_exercise_log'");
     expect(quickLog).toContain("AsyncStorage.setItem('@vitalspan_exercise_log'");
     expect(protocol).toContain('function toggleTaken(id: string)');
-    expect(protocol).toContain("AsyncStorage.setItem('@vitalspan_protocol'");
+    expect(protocol).toContain('persistProtocolState(');
+    expect(protocolPersistence).toContain("PROTOCOL_STORAGE_KEY = '@vitalspan_protocol'");
+    expect(protocolPersistence).toContain("PROTOCOL_TODAY_STORAGE_KEY = '@vitalspan_protocol_today'");
     expect(protocol).toContain('accessibilityRole="checkbox"');
   });
 
