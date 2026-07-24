@@ -16,7 +16,7 @@ interface ScientificPersistenceStorageResponse {
 
 export interface ScientificPersistenceStorageClient {
   rpc(
-    operation: 'insert_scientific_persistence_record',
+    operation: 'insert_scientific_persistence_record_v2',
     input: ScientificPersistenceStorageInsert,
   ): PromiseLike<ScientificPersistenceStorageResponse>;
 }
@@ -84,7 +84,7 @@ export class SupabasePersistencePort implements PersistencePort {
 
     try {
       response = await this.client.rpc(
-        'insert_scientific_persistence_record',
+        'insert_scientific_persistence_record_v2',
         storageInput,
       );
     } catch {

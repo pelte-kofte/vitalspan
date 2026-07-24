@@ -241,11 +241,11 @@ describe('Phase 8.0C Sprint 1 scientific persistence storage migration', () => {
     const migration190Completed = currentUser === tableOwner;
     expect(migration190Completed).toBe(true);
 
-    currentUser = 'scientific_persistence_writer';
-    expect(currentUser).not.toBe(tableOwner);
-    expect(idempotencyStatements).toContain('set role postgres');
-    expect(idempotencyStatements).not.toContain('reset role');
-    currentUser = 'postgres';
+    expect(idempotencyStatements).not.toMatch(/\bset role\b|\breset role\b/);
+    expect(idempotencyStatements).toContain(
+      'create function public.insert_scientific_persistence_record_v2',
+    );
+    expect(idempotencyStatements).toContain('owner to postgres');
     expect(currentUser).toBe(tableOwner);
     const migration210Completed = currentUser === tableOwner;
     expect(migration210Completed).toBe(true);

@@ -26,18 +26,22 @@ function occurrences(value: string, pattern: RegExp): number {
   return value.match(pattern)?.length ?? 0;
 }
 
-function functionSignature(source: string): string {
+function functionSignature(source: string, functionName: string): string {
   const match = source.match(
-    /CREATE(?: OR REPLACE)? FUNCTION public\.insert_scientific_persistence_record\(([\s\S]*?)\)\s*RETURNS TABLE/,
+    new RegExp(
+      `CREATE(?: OR REPLACE)? FUNCTION public\\.${functionName}\\(([\\s\\S]*?)\\)\\s*RETURNS TABLE`,
+    ),
   );
   if (match === null)
     throw new Error('Scientific persistence RPC signature is missing.');
   return match[1].replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-function functionReturns(source: string): string {
+function functionReturns(source: string, functionName: string): string {
   const match = source.match(
-    /CREATE(?: OR REPLACE)? FUNCTION public\.insert_scientific_persistence_record\([\s\S]*?\)\s*RETURNS TABLE\s*\(([\s\S]*?)\)\s*LANGUAGE/,
+    new RegExp(
+      `CREATE(?: OR REPLACE)? FUNCTION public\\.${functionName}\\([\\s\\S]*?\\)\\s*RETURNS TABLE\\s*\\(([\\s\\S]*?)\\)\\s*LANGUAGE`,
+    ),
   );
   if (match === null)
     throw new Error('Scientific persistence RPC return contract is missing.');
@@ -45,7 +49,9 @@ function functionReturns(source: string): string {
 }
 
 function functionBody(): string {
-  const match = migration.match(/AS \$function\$([\s\S]*?)\$function\$;/);
+  const match = migration.match(
+    /CREATE FUNCTION public\.insert_scientific_persistence_record_v2\([\s\S]*?AS \$function\$([\s\S]*?)\$function\$;/,
+  );
   if (match === null)
     throw new Error('Scientific persistence RPC body is missing.');
   return match[1]
@@ -56,11 +62,29 @@ function functionBody(): string {
 }
 
 describe('Phase 8 scientific persistence empty-table idempotency migration', () => {
-  test('is a separate forward-only migration that preserves the public RPC contract', () => {
-    expect(functionSignature(migration)).toBe(
-      functionSignature(initialMigration),
+  test('creates a versioned RPC with the exact legacy input and return contract', () => {
+    expect(
+      functionSignature(
+        migration,
+        'insert_scientific_persistence_record_v2',
+      ),
+    ).toBe(
+      functionSignature(
+        initialMigration,
+        'insert_scientific_persistence_record',
+      ),
     );
-    expect(functionReturns(migration)).toBe(functionReturns(initialMigration));
+    expect(
+      functionReturns(
+        migration,
+        'insert_scientific_persistence_record_v2',
+      ),
+    ).toBe(
+      functionReturns(
+        initialMigration,
+        'insert_scientific_persistence_record',
+      ),
+    );
     expect(statements).not.toMatch(
       /\bdrop table\b|\btruncate\b|\bdelete from\b/,
     );
@@ -94,11 +118,28 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
     expect(statements).not.toMatch(/\balter column\b[\s\S]*?\bset not null\b/);
   });
 
-  test('contains no populated-table migration or verification logic', () => {
-    expect(statements).not.toMatch(/\bpreflight\b|\bbackfill\b|\blegacy\b/);
+  test('is transactional and fails closed before DDL when assumptions differ', () => {
+    expect(statements.startsWith('begin;')).toBe(true);
+    expect(statements.endsWith('commit;')).toBe(true);
+    expect(statements).toContain(
+      "if pg_catalog.to_regclass('public.scientific_persistence_records') is null then",
+    );
+    expect(statements).toContain(
+      'if exists ( select 1 from public.scientific_persistence_records limit 1 ) then',
+    );
+    expect(statements).toContain(
+      'scientific persistence idempotency requires an empty table.',
+    );
+    expect(statements).toContain(
+      'scientific persistence legacy rpc assumptions differ.',
+    );
+    expect(statements).toContain(
+      'scientific persistence table security assumptions differ.',
+    );
+    expect(statements).toContain(
+      'scientific persistence rls policy assumptions differ.',
+    );
     expect(statements).not.toMatch(/\bfor\b[\s\S]*?\bloop\b|\bend loop\b/);
-    expect(statements).not.toMatch(/\bcount\s*\(/);
-    expect(statements).not.toMatch(/\bgroup by\b|\bhaving\b/);
     expect(statements).not.toMatch(
       /\bupdate public\.scientific_persistence_records\b/,
     );
@@ -162,7 +203,10 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
   });
 
   test('extracts and validates every identity on the server without client identity parameters', () => {
-    const signature = functionSignature(migration);
+    const signature = functionSignature(
+      migration,
+      'insert_scientific_persistence_record_v2',
+    );
     const body = functionBody();
 
     expect(signature).not.toMatch(
@@ -186,7 +230,10 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
   });
 
   test('derives authority without inaccessible auth-schema grants', () => {
-    const signature = functionSignature(migration);
+    const signature = functionSignature(
+      migration,
+      'insert_scientific_persistence_record_v2',
+    );
     const body = functionBody();
 
     expect(signature).not.toMatch(/p_owner_id/);
@@ -198,48 +245,39 @@ describe('Phase 8 scientific persistence empty-table idempotency migration', () 
     expect(statements).toContain('security definer set search_path =');
     expect(statements).not.toMatch(/grant [^;]*\bauth\./);
     expect(statements).not.toMatch(/grant usage on schema auth/);
-    expect(statements).toContain(
-      'grant execute on function extensions.digest(bytea, text) to scientific_persistence_writer',
-    );
-    expect(statements).toContain(
-      'grant select ( owner_id, parent_persistence_id, domain_id, request_id, snapshot_id, evaluation_id, scientific_payload_fingerprint ) on table public.scientific_persistence_records to scientific_persistence_writer',
+    expect(statements).not.toMatch(
+      /grant [^;]+ to scientific_persistence_writer/,
     );
     expect(statements).not.toMatch(
-      /alter table public\.scientific_persistence_records owner to|alter function public\.insert_scientific_persistence_record[\s\S]*?owner to/,
+      /grant (?:select|insert|update|delete)[^;]+ to authenticated/,
+    );
+    expect(statements).not.toMatch(
+      /alter table public\.scientific_persistence_records owner to/,
     );
   });
 
-  test('replaces the RPC as its existing owner and closes the ownership bridge', () => {
-    const createGrant =
-      'grant create on schema public to scientific_persistence_writer';
-    const ownerActivation = 'set role scientific_persistence_writer';
-    const replacement =
-      'create or replace function public.insert_scientific_persistence_record';
-    const ownerRestore = 'set role postgres';
-    const createRevoke =
-      'revoke create on schema public from scientific_persistence_writer';
-    const bridgeRemoval = 'drop role scientific_persistence_migration_owner';
-
-    expect(statements).toContain(createGrant);
-    expect(statements).toContain(ownerActivation);
-    expect(statements).toContain(ownerRestore);
-    expect(statements).not.toContain('reset role');
-    expect(statements).toContain(createRevoke);
-    expect(statements).toContain(bridgeRemoval);
-    expect(statements.indexOf(createGrant)).toBeLessThan(
-      statements.indexOf(ownerActivation),
+  test('leaves the legacy writer-owned RPC untouched and secures the postgres-owned v2 RPC', () => {
+    expect(statements).toContain(
+      'create function public.insert_scientific_persistence_record_v2',
     );
-    expect(statements.indexOf(ownerActivation)).toBeLessThan(
-      statements.indexOf(replacement),
+    expect(statements).toContain(
+      'alter function public.insert_scientific_persistence_record_v2',
     );
-    expect(statements.indexOf(replacement)).toBeLessThan(
-      statements.lastIndexOf(ownerRestore),
+    expect(statements).toContain('owner to postgres');
+    expect(statements).toMatch(
+      /revoke all on function public\.insert_scientific_persistence_record_v2\([\s\S]*?\) from public, anon/,
     );
-    expect(statements.lastIndexOf(ownerRestore)).toBeLessThan(
-      statements.indexOf(createRevoke),
+    expect(statements).toMatch(
+      /grant execute on function public\.insert_scientific_persistence_record_v2\([\s\S]*?\) to authenticated/,
     );
-    expect(statements.indexOf(createRevoke)).toBeLessThan(
-      statements.indexOf(bridgeRemoval),
+    expect(statements).not.toMatch(
+      /create(?: or replace)? function public\.insert_scientific_persistence_record\(/,
+    );
+    expect(statements).not.toMatch(
+      /(?:alter|drop|revoke|grant)[^;]*function public\.insert_scientific_persistence_record\(/,
+    );
+    expect(statements).not.toMatch(
+      /\bset role\b|\bgrant create on schema public\b|\bdrop role\b/,
     );
   });
 

@@ -409,7 +409,7 @@ describe('Phase 8.0C Sprint 3 concrete Supabase persistence port', () => {
     expect(Object.isFrozen(result.issues)).toBe(true);
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith(
-      'insert_scientific_persistence_record',
+      'insert_scientific_persistence_record_v2',
       mapPersistenceEnvelopeToStorageInsert(envelope),
     );
   });
@@ -558,7 +558,7 @@ describe('Phase 8.0C Sprint 3 concrete Supabase persistence port', () => {
 
     expect(portSource).toContain("from '../../domain/scientificPersistence'");
     expect(portSource).toContain("from './storageMapper'");
-    expect(portSource).toContain("'insert_scientific_persistence_record'");
+    expect(portSource).toContain("'insert_scientific_persistence_record_v2'");
     expect(portSource).not.toMatch(
       /from\s+['"][^'"]*(?:scientificDomains|scientificModels|AsyncStorage)[^'"]*['"]/,
     );
