@@ -1,5 +1,18 @@
 # Vitalspan — Claude Instructions
 
+
+Before making any product or UX decision:
+
+1. Read docs/PRODUCT_BIBLE.md
+
+2. Follow its principles.
+
+3. If a requested feature conflicts with PRODUCT_BIBLE.md,
+explain the conflict instead of implementing it.
+
+PRODUCT_BIBLE.md is the highest priority product document.
+
+
 ## Project Overview
 Longevity tracking iOS app built with React Native (Expo). 
 Built by a licensed pharmacist — science-backed, pharmacist-verified content.
@@ -79,6 +92,8 @@ assets/
 - `@vitalspan_protocol_today` — { date, taken } (daily taken cache for Dashboard)
 - `@vitalspan_health_data` — HealthData (HRV, sleep, glucose, recovery, isDemoMode, lastSynced)
 - `@vitalspan_health_permissions` — PermissionStatus (granted, categories, requestedAt)
+
+
 
 ## ProtocolState schema
 ```typescript
