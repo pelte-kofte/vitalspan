@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import DashboardScreen from '../screens/DashboardScreen';
+import TodayHomeScreen from '../screens/TodayHomeScreen';
 import HealthScreen from '../screens/HealthScreen';
 import HealthSystemScreen from '../screens/HealthSystemScreen';
 import ExerciseScreen from '../screens/ExerciseScreen';
@@ -13,6 +14,7 @@ import BiomarkerDetailScreen from '../screens/BiomarkerDetailScreen';
 import BiomarkerEntryScreen from '../screens/BiomarkerEntryScreen';
 import InteractionCheckerScreen from '../screens/InteractionCheckerScreen';
 import LabUploadScreen from '../screens/LabUploadScreen';
+import AddResultScreen from '../screens/AddResultScreen';
 import ProtocolScreen from '../screens/ProtocolScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -45,6 +47,7 @@ export type RootStackParamList = {
   BiomarkerEntry: { biomarkerId?: string; entryId?: string };
   InteractionChecker: undefined;
   LabUpload: undefined;
+  AddResult: undefined;
   LongevityScore: undefined;
   GuidedFirstRun: undefined;
   Settings: undefined;
@@ -67,8 +70,17 @@ export type MainTabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+export const ACTIVE_HOME_EXPERIENCE = 'today' as
+  | 'today'
+  | 'legacy-dashboard';
+
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  const legacyDashboardIsActive =
+    ACTIVE_HOME_EXPERIENCE === 'legacy-dashboard';
+  const ActiveHomeScreen = legacyDashboardIsActive
+    ? DashboardScreen
+    : TodayHomeScreen;
   return (
     <Tab.Navigator
       detachInactiveScreens={false}
@@ -95,10 +107,22 @@ function MainTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={DashboardScreen}
+        component={ActiveHomeScreen}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, focused }) => <HomeIcon color={color} focused={focused} />,
+          ...(!legacyDashboardIsActive ? {
+            tabBarActiveTintColor: Colors.health.accent,
+            tabBarInactiveTintColor: Colors.health.inkTertiary,
+            tabBarStyle: {
+              backgroundColor: Colors.health.background,
+              borderTopColor: Colors.health.rule,
+              borderTopWidth: 1,
+              paddingBottom: Math.max(insets.bottom, 8),
+              paddingTop: 8,
+              height: Math.max(insets.bottom, 0) + 56,
+            },
+          } : {}),
         }}
       />
       <Tab.Screen
@@ -204,6 +228,11 @@ export default function AppNavigator({ initialRoute }: Props) {
           name="InteractionChecker"
           component={InteractionCheckerScreen}
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="AddResult"
+          component={AddResultScreen}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="LabUpload"

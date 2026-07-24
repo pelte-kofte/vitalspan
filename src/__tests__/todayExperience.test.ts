@@ -165,6 +165,21 @@ describe('Vitalspan Today deterministic experience', () => {
     expect(experience.priority.kind).toBe('complete_labs');
   });
 
+  test('exposes the complete tappable PhenoAge requirement checklist', () => {
+    const candidates = buildPriorityCandidates(baseInput({ phenoResult: phenoResult(2) }), []);
+    const priority = candidates.find(candidate => candidate.kind === 'complete_labs');
+    expect(priority?.requirements).toHaveLength(9);
+    expect(priority?.requirements?.slice(0, 3)).toEqual([
+      { biomarkerId: 'albumin', label: 'Albumin', status: 'present' },
+      { biomarkerId: 'creatinine', label: 'Creatinine', status: 'present' },
+      { biomarkerId: 'fastingglucose', label: 'Fasting Glucose', status: 'missing' },
+    ]);
+    expect(priority?.action).toEqual({
+      destination: 'BiomarkerEntry',
+      params: { biomarkerId: 'fastingglucose' },
+    });
+  });
+
   test('explicitly models no profile, no lab, partial, and stale states', () => {
     expect(buildTodayExperience(baseInput({ profile: null, phenoResult: null })).priority.kind).toBe('profile_setup');
     expect(buildTodayExperience(baseInput()).priority.title).toMatch(/9 required blood inputs/i);

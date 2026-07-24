@@ -6,6 +6,11 @@ import type { ClinicalPhenoAgePresentation } from './clinicalPhenoAgePresentatio
 import type { ClinicalPhenoAgeRequirementPresentationSource } from './clinicalPhenoAgeProduct';
 import type { StoredEntry } from '../types/biomarkerEntry';
 import type { ProtocolState, TimeSlot } from '../types/protocol';
+import {
+  parseProtocolDoseCount,
+  protocolDayKey,
+  protocolDoseId,
+} from './protocolPersistence';
 
 export type TodayDestination =
   | 'AIAdvisor'
@@ -45,6 +50,13 @@ export interface TodayPriorityCandidate {
   ctaLabel: string;
   action: TodayAction;
   canDecline: boolean;
+  requirements?: readonly TodayRequirementChecklistItem[];
+}
+
+export interface TodayRequirementChecklistItem {
+  biomarkerId: string;
+  label: string;
+  status: ClinicalPhenoAgeRequirementPresentationSource['status'];
 }
 
 export interface TodaySafetyAlert {
@@ -167,20 +179,11 @@ const SLOT_LABEL: Record<TimeSlot, string> = {
   night: 'Night',
 };
 
-function parseDoseCount(dose: string): number {
-  const match = dose.match(/(\d+)x\s*daily/i);
-  return match ? Math.min(Math.max(Number.parseInt(match[1], 10), 1), 6) : 1;
-}
-
 function doseTimeLabels(count: number): string[] {
   if (count === 2) return ['Morning', 'Evening'];
   if (count === 3) return ['Morning', 'Afternoon', 'Evening'];
   if (count === 4) return ['Morning', 'Afternoon', 'Evening', 'Night'];
   return Array.from({ length: count }, (_, index) => `Dose ${index + 1}`);
-}
-
-function dateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }
 
 function daysSince(iso: string, now: Date): number | null {
@@ -252,7 +255,7 @@ export function buildProtocolItems(
   context: AdvisorContext | null,
   now: Date,
 ): TodayProtocolItem[] {
-  const today = dateOnly(now);
+  const today = protocolDayKey(now);
   const taken = protocol.takenDate === today ? new Set(protocol.taken) : new Set<string>();
   const hidden = new Set(protocol.hiddenMeds ?? []);
   const conflicts = context?.timingConflicts ?? [];
@@ -278,7 +281,7 @@ export function buildProtocolItems(
 
   const supplementItems: TodayProtocolItem[] = (protocol.supplements ?? []).flatMap(item => {
     const displayDose = item.personalDose ?? item.dose;
-    const count = parseDoseCount(displayDose);
+    const count = parseProtocolDoseCount(displayDose);
     if (count === 1) {
       return [{
         id: item.id,
@@ -292,7 +295,7 @@ export function buildProtocolItems(
       }];
     }
     return doseTimeLabels(count).map((timeLabel, index) => {
-      const id = `${item.name}_dose_${index}`;
+      const id = protocolDoseId(item.name, index);
       return {
         id,
         title: `${item.name} · dose ${index + 1}`,
@@ -390,8 +393,16 @@ export function buildPriorityCandidates(
       whyThis: 'Completing the validated input set is more useful than showing a partial or speculative score.',
       evidence: 'The published model requires chronological age and all nine specified blood measurements.',
       ctaLabel: input.entries.length === 0 ? 'Add laboratory data' : 'Complete inputs',
-      action: { destination: input.entries.length === 0 ? 'GuidedFirstRun' : 'BiomarkerEntry' },
+      action: {
+        destination: 'BiomarkerEntry',
+        params: { biomarkerId: nextRequirement?.biomarkerId },
+      },
       canDecline: true,
+      requirements: input.phenoResult.requirements.map(requirement => ({
+        biomarkerId: requirement.biomarkerId,
+        label: requirement.label,
+        status: requirement.status,
+      })),
     });
   }
 

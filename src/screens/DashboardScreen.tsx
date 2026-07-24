@@ -62,7 +62,13 @@ import {
 } from '../navigation/AppNavigator';
 import { Colors, Radius, Spacing, Typography } from '../theme';
 import type { StoredEntry } from '../types/biomarkerEntry';
-import { EMPTY_PROTOCOL, type ProtocolItem, type ProtocolState, type TimeSlot } from '../types/protocol';
+import { EMPTY_PROTOCOL, type ProtocolState } from '../types/protocol';
+import {
+  PROTOCOL_STORAGE_KEY,
+  parseProtocolState,
+  persistProtocolState,
+  toggleProtocolCompletion,
+} from '../lib/protocolPersistence';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -77,73 +83,12 @@ interface UserProfile {
   medications: string[];
 }
 
-interface LegacyProtocol {
-  addedSupplements?: string[];
-  customSupplements?: Array<{
-    id: string;
-    name: string;
-    dose: string;
-    timing?: TimeSlot;
-    addedAt: string;
-  }>;
-  medTimes?: Record<string, TimeSlot>;
-  taken?: string[];
-  takenDate?: string;
-  hiddenMeds?: string[];
-}
-
 const TODAY_DISMISSED_KEY = '@vitalspan_today_priority_dismissed';
 const TODAY_TEXT_SECONDARY = 'rgba(232,245,238,0.66)';
 const TODAY_TEXT_TERTIARY = 'rgba(232,245,238,0.46)';
 
 function Text({ maxFontSizeMultiplier = 1.4, ...props }: TextProps) {
   return <NativeText maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />;
-}
-
-function normalizeProtocol(raw: string | null): ProtocolState {
-  if (!raw) return EMPTY_PROTOCOL;
-  try {
-    const parsed = JSON.parse(raw) as Partial<ProtocolState> & LegacyProtocol;
-    if (Array.isArray(parsed.supplements)) {
-      return {
-        ...EMPTY_PROTOCOL,
-        ...parsed,
-        supplements: parsed.supplements,
-        medTimes: parsed.medTimes ?? {},
-        hiddenMeds: parsed.hiddenMeds ?? [],
-        taken: parsed.taken ?? [],
-        takenDate: parsed.takenDate ?? '',
-      };
-    }
-
-    const migratedSupplements: ProtocolItem[] = [
-      ...(parsed.addedSupplements ?? []).map((name, index) => ({
-        id: `today_legacy_${index}_${name}`,
-        name,
-        dose: 'Dose not recorded',
-        source: 'manual' as const,
-        addedAt: new Date(0).toISOString(),
-      })),
-      ...(parsed.customSupplements ?? []).map(item => ({
-        id: item.id,
-        name: item.name,
-        dose: item.dose,
-        timing: item.timing,
-        source: 'manual' as const,
-        addedAt: item.addedAt,
-      })),
-    ];
-    return {
-      ...EMPTY_PROTOCOL,
-      supplements: migratedSupplements,
-      medTimes: parsed.medTimes ?? {},
-      hiddenMeds: parsed.hiddenMeds ?? [],
-      taken: parsed.taken ?? [],
-      takenDate: parsed.takenDate ?? '',
-    };
-  } catch {
-    return EMPTY_PROTOCOL;
-  }
 }
 
 function parseDismissed(raw: string | null, today: string): Set<string> {
@@ -160,6 +105,10 @@ function dateHeading(now: Date): string {
   return now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
+/**
+ * @deprecated Rollback-only legacy Home. No new feature development.
+ * Remove only after at least two stable Today releases.
+ */
 export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const { isPremium, isPremiumLoading } = usePremiumContext();
@@ -203,7 +152,7 @@ export default function DashboardScreen() {
       const [profileRaw, loadedEntries, protocolRaw, exerciseRaw, loadedHealth, dismissedRaw] = await Promise.all([
         AsyncStorage.getItem('@vitalspan_user_profile'),
         loadBiomarkerHistory(forceBiomarkerRefresh),
-        AsyncStorage.getItem('@vitalspan_protocol'),
+        AsyncStorage.getItem(PROTOCOL_STORAGE_KEY),
         AsyncStorage.getItem('@vitalspan_exercise_log'),
         loadHealthData(),
         AsyncStorage.getItem(TODAY_DISMISSED_KEY),
@@ -213,7 +162,7 @@ export default function DashboardScreen() {
 
       const nextProfile = profileRaw ? JSON.parse(profileRaw) as UserProfile : null;
       setProfile(nextProfile);
-      setProtocol(normalizeProtocol(protocolRaw));
+      setProtocol(parseProtocolState(protocolRaw).state);
       setExerciseLogs(exerciseRaw ? JSON.parse(exerciseRaw) as ExerciseLogEntry[] : []);
       setHealthData(loadedHealth);
       setDismissedPriorityIds(parseDismissed(dismissedRaw, new Date().toISOString().slice(0, 10)));
@@ -336,18 +285,13 @@ export default function DashboardScreen() {
 
   async function toggleProtocolItem(item: TodayProtocolItem) {
     if (!item.canToggle) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const currentTaken = protocol.takenDate === today ? protocol.taken : [];
-    const taken = currentTaken.includes(item.id)
-      ? currentTaken.filter(id => id !== item.id)
-      : [...currentTaken, item.id];
-    const next = { ...protocol, taken, takenDate: today };
+    const next = toggleProtocolCompletion(protocol, item.id);
     setProtocol(next);
     Haptics.selectionAsync().catch(() => null);
-    await Promise.all([
-      AsyncStorage.setItem('@vitalspan_protocol', JSON.stringify(next)),
-      AsyncStorage.setItem('@vitalspan_protocol_today', JSON.stringify({ date: today, taken })),
-    ]).catch(() => null);
+    await persistProtocolState(
+      next,
+      (key, value) => AsyncStorage.setItem(key, value),
+    ).catch(() => null);
   }
 
   async function refresh() {
@@ -426,6 +370,7 @@ export default function DashboardScreen() {
               priority={experience.priority}
               layout={layout.mode}
               onPrimaryAction={() => navigate(experience.priority.action)}
+              onRequirementPress={biomarkerId => navigation.navigate('BiomarkerEntry', { biomarkerId })}
               onDecline={dismissPriority}
               reduceMotion={reduceMotion}
             />

@@ -86,12 +86,14 @@ export function TodayPriorityHero({
   priority,
   layout,
   onPrimaryAction,
+  onRequirementPress,
   onDecline,
   reduceMotion,
 }: {
   priority: TodayPriorityCandidate;
   layout: TodayLayout;
   onPrimaryAction: () => void;
+  onRequirementPress: (biomarkerId: string) => void;
   onDecline: () => void;
   reduceMotion: boolean;
 }) {
@@ -110,6 +112,35 @@ export function TodayPriorityHero({
       </Text>
       <Text style={styles.priorityReason}>{priority.reason}</Text>
 
+      {priority.requirements ? (
+        <View style={styles.requirementList} accessibilityLabel="Required blood input checklist">
+          {priority.requirements.map((requirement, index) => {
+            const complete = requirement.status === 'present';
+            return (
+              <Pressable
+                key={requirement.biomarkerId}
+                onPress={() => onRequirementPress(requirement.biomarkerId)}
+                style={({ pressed }) => [
+                  styles.requirementRow,
+                  index > 0 && styles.requirementRule,
+                  pressed && styles.controlPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`${requirement.label}. ${complete ? 'Completed' : requirement.status.replace(/_/g, ' ')}. Enter this biomarker.`}
+              >
+                <View style={[styles.requirementMark, complete && styles.requirementMarkComplete]}>
+                  <Text style={[styles.requirementSymbol, complete && styles.requirementSymbolComplete]}>
+                    {complete ? '✓' : '○'}
+                  </Text>
+                </View>
+                <Text style={[styles.requirementLabel, complete && styles.requirementLabelComplete]}>{requirement.label}</Text>
+                <ChevronRightIcon color={complete ? Colors.viz.bioGreen : TODAY_TEXT_TERTIARY} size={15} />
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
       <AnimatedPressable
         onPress={onPrimaryAction}
         style={styles.primaryButton}
@@ -122,39 +153,6 @@ export function TodayPriorityHero({
           <ChevronRightIcon color="#07120B" size={19} />
         </View>
       </AnimatedPressable>
-
-      <View style={[styles.provenancePanel, layout === 'compact' && styles.provenancePanelCompact]}>
-        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
-            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
-          >SOURCE</Text>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
-            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
-          >{priority.sourceLabel}</Text>
-        </View>
-        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
-            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
-          >FRESHNESS</Text>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
-            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
-          >{priority.freshnessLabel}</Text>
-        </View>
-        <View style={[styles.provenanceRow, layout === 'compact' && styles.provenanceRowCompact]}>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1 : 1.15}
-            style={[styles.provenanceLabel, layout === 'compact' && styles.provenanceLabelCompact]}
-          >CONFIDENCE</Text>
-          <Text
-            maxFontSizeMultiplier={layout === 'compact' ? 1.15 : 1.3}
-            style={[styles.provenanceValue, layout === 'compact' && styles.provenanceValueCompact]}
-          >{priority.confidenceLanguage}</Text>
-        </View>
-      </View>
 
       <View style={styles.heroLinks}>
         <Pressable
@@ -192,6 +190,9 @@ export function TodayPriorityHero({
           <View style={styles.disclosure} accessibilityLiveRegion="polite">
             <Text style={styles.disclosureLabel}>{disclosure === 'why' ? 'WHY THIS' : 'EVIDENCE'}</Text>
             <Text style={styles.disclosureText}>{disclosure === 'why' ? priority.whyThis : priority.evidence}</Text>
+            {disclosure === 'evidence' && (
+              <Text style={styles.disclosureMeta}>Source: {priority.sourceLabel}{'\n'}Data status: {priority.freshnessLabel}{'\n'}Confidence: {priority.confidenceLanguage}</Text>
+            )}
           </View>
         ) : (
           <Animated.View
@@ -201,6 +202,9 @@ export function TodayPriorityHero({
           >
             <Text style={styles.disclosureLabel}>{disclosure === 'why' ? 'WHY THIS' : 'EVIDENCE'}</Text>
             <Text style={styles.disclosureText}>{disclosure === 'why' ? priority.whyThis : priority.evidence}</Text>
+            {disclosure === 'evidence' && (
+              <Text style={styles.disclosureMeta}>Source: {priority.sourceLabel}{'\n'}Data status: {priority.freshnessLabel}{'\n'}Confidence: {priority.confidenceLanguage}</Text>
+            )}
           </Animated.View>
         )
       ) : null}
@@ -511,6 +515,15 @@ const styles = StyleSheet.create({
   priorityTitle: { color: Colors.dark.text, fontSize: Typography.sizes.display3, lineHeight: Typography.lineHeights.display3, letterSpacing: -0.8, fontWeight: '400', marginTop: Spacing.lg },
   priorityTitleCompact: { fontSize: Typography.sizes.h1, lineHeight: Typography.lineHeights.h1 },
   priorityReason: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.body, lineHeight: 22, marginTop: Spacing.base },
+  requirementList: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, marginTop: Spacing.lg },
+  requirementRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  requirementRule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border },
+  requirementMark: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  requirementMarkComplete: { borderRadius: Radius.full, backgroundColor: Colors.dark.accentBg },
+  requirementSymbol: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.lg, lineHeight: Typography.sizes.lg },
+  requirementSymbolComplete: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.bodySmall, fontWeight: '700' },
+  requirementLabel: { flex: 1, color: Colors.dark.text, fontSize: Typography.sizes.bodySmall, lineHeight: Typography.lineHeights.bodySmall },
+  requirementLabelComplete: { color: Colors.viz.bioGreen },
   provenancePanel: { backgroundColor: 'rgba(255,255,255,0.035)', borderRadius: Radius.card, paddingHorizontal: Spacing.md, paddingVertical: 10, marginTop: 22 },
   provenancePanelCompact: { paddingHorizontal: 10, paddingVertical: 7, marginTop: Spacing.base },
   provenanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, paddingVertical: 7 },
@@ -531,6 +544,7 @@ const styles = StyleSheet.create({
   disclosure: { backgroundColor: 'rgba(255,255,255,0.035)', borderRadius: Radius.card, padding: Spacing.base, marginTop: Spacing.xs },
   disclosureLabel: { color: Colors.viz.bioGreen, fontSize: Typography.sizes.captionSmall, fontWeight: '700', letterSpacing: 1.2 },
   disclosureText: { color: TODAY_TEXT_SECONDARY, fontSize: Typography.sizes.base, lineHeight: Typography.lineHeights.body, marginTop: 7 },
+  disclosureMeta: { color: TODAY_TEXT_TERTIARY, fontSize: Typography.sizes.captionSmall, lineHeight: Typography.lineHeights.caption, marginTop: Spacing.md },
   briefSurface: { backgroundColor: TODAY_SURFACE, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.dark.border, borderRadius: Radius.card, paddingHorizontal: Spacing.lg, overflow: 'hidden' },
   briefRow: { paddingVertical: 18 },
   dividedRow: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.dark.border },
